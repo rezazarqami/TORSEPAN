@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="TORSEPAN.API/TORSEPAN.API.csproj" Id="c199a668-e0cd-438c-99a8-18a7c2483dd2" />
+  <Project Path="TORSEPAN.Application/TORSEPAN.Application.csproj" />
+  <Project Path="TORSEPAN.Domain/TORSEPAN.Domain.csproj" />
+  <Project Path="TORSEPAN.Infrastructure/TORSEPAN.Infrastructure.csproj" />
+  <Project Path="TORSEPAN.Web/TORSEPAN.Web.csproj" Id="37ed0d3d-183b-409b-adc3-0e7e2ef97de5" />
+</Solution>

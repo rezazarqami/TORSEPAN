@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TORSEPAN.Application\TORSEPAN.Application.csproj" />
+    <ProjectReference Include="..\TORSEPAN.Domain\TORSEPAN.Domain.csproj" />
+    <ProjectReference Include="..\TORSEPAN.Infrastructure\TORSEPAN.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
