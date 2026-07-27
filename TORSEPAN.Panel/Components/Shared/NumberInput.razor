@@ -1,0 +1,16 @@
+﻿@using System.Linq.Expressions
+
+<InputNumber class="form-control"
+             Value="Value"
+             ValueChanged="ValueChanged"
+             ValueExpression="ValueExpression" />
+
+@code {
+
+    [Parameter] public int Value { get; set; }
+
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<int>>? ValueExpression { get; set; }
+
+}

@@ -24,17 +24,16 @@ public sealed class ValidationBehavior<TRequest, TResponse>
             var context = new ValidationContext<TRequest>(request);
 
             var results = await Task.WhenAll(
-                _validators.Select(v => v.ValidateAsync(context, cancellationToken)));
+                _validators.Select(v =>
+                    v.ValidateAsync(context, cancellationToken)));
 
             var failures = results
                 .SelectMany(r => r.Errors)
-                .Where(f => f is not null)
+                .Where(f => f != null)
                 .ToList();
 
-            if (failures.Count != 0)
-            {
+            if (failures.Any())
                 throw new ValidationException(failures);
-            }
         }
 
         return await next();

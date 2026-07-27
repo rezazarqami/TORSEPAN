@@ -2,7 +2,7 @@
 
 namespace TORSEPAN.Domain.Entities;
 
-public class User : Entity
+public sealed class User : Entity
 {
     public string UserName { get; private set; } = string.Empty;
 
@@ -10,7 +10,11 @@ public class User : Entity
 
     public bool IsActive { get; private set; }
 
-    public ICollection<ProductionEvent> ProductionEvents { get; private set; } = new List<ProductionEvent>();
+    public ICollection<ProductionEvent> ProductionEvents { get; private set; }
+        = new List<ProductionEvent>();
+
+    public ICollection<RefreshToken> RefreshTokens { get; private set; }
+        = new List<RefreshToken>();
 
     private User()
     {
@@ -18,18 +22,28 @@ public class User : Entity
 
     public User(string userName, string fullName)
     {
-        if (string.IsNullOrWhiteSpace(userName))
-            throw new ArgumentException("User name is required.");
-
-        if (string.IsNullOrWhiteSpace(fullName))
-            throw new ArgumentException("Full name is required.");
-
-        UserName = userName.Trim();
-        FullName = fullName.Trim();
+        UserName = userName;
+        FullName = fullName;
         IsActive = true;
     }
 
-    public void Activate() => IsActive = true;
+    public void Activate()
+    {
+        IsActive = true;
+    }
 
-    public void Deactivate() => IsActive = false;
+    public void Deactivate()
+    {
+        IsActive = false;
+    }
+
+    public void ChangeUserName(string userName)
+    {
+        UserName = userName;
+    }
+
+    public void ChangeFullName(string fullName)
+    {
+        FullName = fullName;
+    }
 }

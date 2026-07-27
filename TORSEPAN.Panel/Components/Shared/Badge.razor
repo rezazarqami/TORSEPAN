@@ -1,0 +1,13 @@
+﻿<span class="badge @CssClass">
+    @Text
+</span>
+
+@code {
+
+    [Parameter]
+    public string Text { get; set; } = "";
+
+    [Parameter]
+    public string CssClass { get; set; } = "bg-primary";
+
+}

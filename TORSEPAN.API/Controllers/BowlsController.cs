@@ -26,9 +26,10 @@ public sealed class BowlsController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(
-            new GetAllBowlsQuery(new PageRequest(page, pageSize)),
-            cancellationToken);
+        var query = new GetAllBowlsQuery(
+            new PageRequest(page, pageSize));
+
+        var result = await _mediator.Send(query, cancellationToken);
 
         return Ok(result);
     }
@@ -48,13 +49,16 @@ public sealed class BowlsController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
-    public async Task<ActionResult> Create(
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    public async Task<ActionResult<Guid>> Create(
         [FromBody] CreateBowlCommand command,
         CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(command, cancellationToken);
+        var id = await _mediator.Send(command, cancellationToken);
 
-        return this.ToActionResult(result);
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id },
+            id);
     }
 }

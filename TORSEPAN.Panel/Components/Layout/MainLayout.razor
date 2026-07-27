@@ -1,0 +1,27 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page d-flex">
+
+    <aside class="sidebar">
+
+        <Sidebar />
+
+    </aside>
+
+    <div class="flex-grow-1">
+
+        <header class="topbar">
+
+            <Topbar />
+
+        </header>
+
+        <main class="content">
+
+            @Body
+
+        </main>
+
+    </div>
+
+</div>

@@ -1,0 +1,25 @@
+﻿<div class="card shadow-sm h-100">
+
+    <div class="card-body">
+
+        <div class="text-muted">
+            @Title
+        </div>
+
+        <h2 class="mt-2">
+            @Value
+        </h2>
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+}

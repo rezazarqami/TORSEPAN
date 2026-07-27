@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TORSEPAN.API.Extensions;
 using TORSEPAN.Application.DependencyInjection;
 using TORSEPAN.Application.Interfaces;
+using TORSEPAN.Domain.Production;
 using TORSEPAN.Infrastructure.DependencyInjection;
 using TORSEPAN.Infrastructure.Persistence;
 using TORSEPAN.Infrastructure.Persistence.Repositories;
@@ -17,7 +18,10 @@ builder.Services.AddDbContext<TORSEPANDbContext>(options =>
 builder.Services.AddApplication();
 
 // Infrastructure
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure(builder.Configuration);
+
+// Production Engine
+builder.Services.AddSingleton<IProductionEngine, ProductionEngine>();
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();

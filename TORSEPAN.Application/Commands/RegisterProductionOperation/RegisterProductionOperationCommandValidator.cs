@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.Application.Production.Commands.RegisterProductionOperation;
 
@@ -8,15 +7,18 @@ public sealed class RegisterProductionOperationCommandValidator
 {
     public RegisterProductionOperationCommandValidator()
     {
+        RuleFor(x => x.UserId)
+            .NotEmpty();
+
         RuleFor(x => x.SerialNumber)
             .NotEmpty()
             .MaximumLength(50);
 
-        RuleFor(x => x.Description)
-            .MaximumLength(500);
+        RuleFor(x => x.Result)
+            .IsInEnum();
 
-        RuleFor(x => x.Duration)
-            .IsInEnum()
-            .When(x => x.Duration.HasValue);
+        RuleFor(x => x.Description)
+            .MaximumLength(1000)
+            .When(x => !string.IsNullOrWhiteSpace(x.Description));
     }
 }

@@ -1,0 +1,22 @@
+﻿@using System.Linq.Expressions
+
+<InputSelect class="form-select"
+             Value="Value"
+             ValueChanged="ValueChanged"
+             ValueExpression="ValueExpression">
+
+    @ChildContent
+
+</InputSelect>
+
+@code {
+
+    [Parameter] public string Value { get; set; } = "";
+
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<string>>? ValueExpression { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+}

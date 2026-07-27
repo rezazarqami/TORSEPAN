@@ -1,0 +1,32 @@
+﻿@page "/warehouse"
+
+@inject NavigationManager Navigation
+
+<PageTitle>Warehouse</PageTitle>
+
+<PageHeader Title="Warehouse"
+            SubTitle="Warehouse Management">
+
+    <Actions>
+
+        <PrimaryButton Text="Open Inventory"
+                       OnClick="OpenInventory" />
+
+    </Actions>
+
+</PageHeader>
+
+<Card>
+
+    Warehouse Module
+
+</Card>
+
+@code {
+
+    void OpenInventory()
+    {
+        Navigation.NavigateTo("/warehouse/list");
+    }
+
+}

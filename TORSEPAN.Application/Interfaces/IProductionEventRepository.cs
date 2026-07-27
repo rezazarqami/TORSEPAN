@@ -2,9 +2,15 @@
 
 namespace TORSEPAN.Application.Interfaces;
 
-public interface IProductionEventRepository : IRepository<ProductionEvent>
+public interface IProductionEventRepository
 {
-    Task<IEnumerable<ProductionEvent>> GetByHandpanIdAsync(Guid handpanId);
+    Task<ProductionEvent?> GetByIdAsync(Guid id);
 
-    Task<IEnumerable<ProductionEvent>> GetRecentEventsAsync(int count = 100);
+    Task<List<ProductionEvent>> GetByHandpanIdAsync(Guid handpanId);
+
+    Task AddAsync(ProductionEvent productionEvent);
+
+    void Update(ProductionEvent productionEvent);
+
+    void Remove(ProductionEvent productionEvent);
 }

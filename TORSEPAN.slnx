@@ -3,5 +3,6 @@
   <Project Path="TORSEPAN.Application/TORSEPAN.Application.csproj" />
   <Project Path="TORSEPAN.Domain/TORSEPAN.Domain.csproj" />
   <Project Path="TORSEPAN.Infrastructure/TORSEPAN.Infrastructure.csproj" />
+  <Project Path="TORSEPAN.Panel/TORSEPAN.Panel.csproj" Id="6d992193-1c29-4d43-b9bc-aee84c5414f1" />
   <Project Path="TORSEPAN.Web/TORSEPAN.Web.csproj" Id="37ed0d3d-183b-409b-adc3-0e7e2ef97de5" />
 </Solution>

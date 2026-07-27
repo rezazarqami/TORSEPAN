@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Extensions\" />
+    <Folder Include="Helpers\" />
+    <Folder Include="Shared\Buttons\" />
+    <Folder Include="Shared\Dialogs\" />
+    <Folder Include="Shared\Forms\" />
+    <Folder Include="Shared\Loading\" />
+    <Folder Include="Shared\Tables\" />
+  </ItemGroup>
+
+</Project>

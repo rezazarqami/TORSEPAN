@@ -1,22 +1,17 @@
-﻿namespace TORSEPAN.Application.Interfaces;
+﻿using TORSEPAN.Application.Interfaces;
 
-public interface IUnitOfWork : IDisposable
+namespace TORSEPAN.Application.Interfaces;
+
+public interface IUnitOfWork
 {
     IUserRepository Users { get; }
 
-    IBowlRepository Bowls { get; }
-
     IHandpanRepository Handpans { get; }
 
-    IHandpanAssemblyRepository HandpanAssemblies { get; }
+    IBowlRepository Bowls { get; }
 
     IProductionEventRepository ProductionEvents { get; }
 
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-
-    Task BeginTransactionAsync();
-
-    Task CommitTransactionAsync();
-
-    Task RollbackTransactionAsync();
+    Task<int> SaveChangesAsync(
+        CancellationToken cancellationToken = default);
 }

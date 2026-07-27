@@ -1,0 +1,52 @@
+﻿@page "/warehouse/list"
+
+<PageTitle>Warehouse</PageTitle>
+
+<PageHeader Title="Warehouse"
+            SubTitle="Inventory">
+
+    <Actions>
+
+        <PrimaryButton Text="New Item" />
+
+    </Actions>
+
+</PageHeader>
+
+<SearchBox Placeholder="Search..." />
+
+<Card>
+
+    <DataTable>
+
+        <thead>
+
+            <tr>
+
+                <th>Code</th>
+                <th>Name</th>
+                <th>Quantity</th>
+                <th>Location</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            <tr>
+
+                <td colspan="4">
+
+                    <EmptyState Title="No Item"
+                                Description="Warehouse is empty." />
+
+                </td>
+
+            </tr>
+
+        </tbody>
+
+    </DataTable>
+
+</Card>

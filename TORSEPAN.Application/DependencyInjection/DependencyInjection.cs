@@ -1,25 +1,21 @@
 ﻿using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
-using TORSEPAN.Application.Common.Behaviors;
+using TORSEPAN.Domain.Production;
 
 namespace TORSEPAN.Application.DependencyInjection;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services)
+    public static IServiceCollection AddApplication(
+        this IServiceCollection services)
     {
-        var assembly = Assembly.GetExecutingAssembly();
-
         services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssembly(assembly);
+            cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 
-            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
-        });
+        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
-        services.AddValidatorsFromAssembly(assembly);
+        services.AddSingleton<IProductionEngine, ProductionEngine>();
 
         return services;
     }

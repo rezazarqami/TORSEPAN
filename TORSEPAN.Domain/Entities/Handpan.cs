@@ -1,5 +1,6 @@
 ﻿using TORSEPAN.Domain.Common;
 using TORSEPAN.Domain.Enums;
+using TORSEPAN.Domain.Production;
 
 namespace TORSEPAN.Domain.Entities;
 
@@ -9,7 +10,7 @@ public class Handpan : Entity
 
     public string SerialNumber { get; private set; } = string.Empty;
 
-    public DateTime CreatedAt { get; private set; }
+    public new DateTime CreatedAt { get; private set; }
 
     public ProductionStatus Status { get; private set; }
 
@@ -39,8 +40,35 @@ public class Handpan : Entity
 
         Status = ProductionStatus.InProgress;
 
-        // شروع واقعی Workflow
         Stage = ProductionStage.Created;
+    }
+
+    public void RegisterProductionOperation(
+        ProductionTransition transition,
+        Guid userId,
+        EventResult result,
+        OperationDuration? duration,
+        string? description)
+    {
+        ArgumentNullException.ThrowIfNull(transition);
+
+        if (transition.CurrentStage != Stage)
+            throw new InvalidOperationException(
+                $"Current stage is '{Stage}' but transition expects '{transition.CurrentStage}'.");
+
+        var productionEvent = new ProductionEvent(
+            userId: userId,
+            action: transition.Action,
+            result: result,
+            handpanId: Id,
+            duration: duration,
+            description: description);
+
+        ProductionEvents.Add(productionEvent);
+
+        Stage = transition.NextStage;
+
+        MarkUpdated();
     }
 
     public void ChangeStage(ProductionStage stage)

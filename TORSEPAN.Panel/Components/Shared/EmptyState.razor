@@ -1,0 +1,21 @@
+﻿<div class="text-center py-5">
+
+    <h5 class="text-secondary">
+        @Title
+    </h5>
+
+    <p class="text-muted">
+        @Description
+    </p>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Description { get; set; } = "";
+
+}

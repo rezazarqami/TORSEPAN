@@ -1,4 +1,5 @@
-﻿using TORSEPAN.API.Middlewares;
+﻿using Microsoft.AspNetCore.Builder;
+using TORSEPAN.API.Middleware;
 
 namespace TORSEPAN.API.Extensions;
 

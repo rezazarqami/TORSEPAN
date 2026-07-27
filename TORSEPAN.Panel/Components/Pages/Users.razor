@@ -1,0 +1,32 @@
+﻿@page "/users"
+
+@inject NavigationManager Navigation
+
+<PageTitle>Users</PageTitle>
+
+<PageHeader Title="Users"
+            SubTitle="User Management">
+
+    <Actions>
+
+        <PrimaryButton Text="Open Users"
+                       OnClick="OpenUsers" />
+
+    </Actions>
+
+</PageHeader>
+
+<Card>
+
+    User Management Module
+
+</Card>
+
+@code {
+
+    void OpenUsers()
+    {
+        Navigation.NavigateTo("/users/list");
+    }
+
+}

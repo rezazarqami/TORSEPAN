@@ -1,0 +1,42 @@
+﻿@page "/production/list"
+
+<PageTitle>Production List</PageTitle>
+
+<PageHeader Title="Production"
+            SubTitle="Production Queue" />
+
+<Card>
+
+    <DataTable>
+
+        <thead>
+
+            <tr>
+
+                <th>Code</th>
+                <th>Stage</th>
+                <th>Status</th>
+                <th>Created</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            <tr>
+
+                <td colspan="4">
+
+                    <EmptyState Title="No Production"
+                                Description="Production queue is empty." />
+
+                </td>
+
+            </tr>
+
+        </tbody>
+
+    </DataTable>
+
+</Card>

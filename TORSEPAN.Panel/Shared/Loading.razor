@@ -1,0 +1,15 @@
+﻿@if (IsLoading)
+{
+    <div class="text-center p-5">
+
+        <div class="spinner-border"></div>
+
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+}

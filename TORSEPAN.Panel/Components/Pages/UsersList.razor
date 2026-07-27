@@ -1,0 +1,51 @@
+﻿@page "/users/list"
+
+<PageTitle>Users</PageTitle>
+
+<PageHeader Title="Users"
+            SubTitle="System Users">
+
+    <Actions>
+
+        <PrimaryButton Text="New User" />
+
+    </Actions>
+
+</PageHeader>
+
+<SearchBox Placeholder="Search user..." />
+
+<Card>
+
+    <DataTable>
+
+        <thead>
+
+            <tr>
+
+                <th>Username</th>
+                <th>Role</th>
+                <th>Status</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            <tr>
+
+                <td colspan="3">
+
+                    <EmptyState Title="No User"
+                                Description="There are no registered users." />
+
+                </td>
+
+            </tr>
+
+        </tbody>
+
+    </DataTable>
+
+</Card>

@@ -1,0 +1,62 @@
+﻿@page "/login"
+@namespace TORSEPAN.Panel.Pages
+
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Auth
+
+@inject AuthenticationService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Login</PageTitle>
+
+<EditForm Model="_model" OnValidSubmit="OnLogin">
+
+    <DataAnnotationsValidator />
+
+    <div class="container mt-5" style="max-width:420px;">
+
+        <div class="card shadow">
+
+            <div class="card-header">
+                <h4>TORSEPAN</h4>
+            </div>
+
+            <div class="card-body">
+
+                <div class="mb-3">
+                    <label>Username</label>
+                    <InputText class="form-control"
+                               @bind-Value="_model.Username" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Password</label>
+                    <InputText class="form-control"
+                               @bind-Value="_model.Password"
+                               type="password" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    Login
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code
+{
+    private readonly LoginRequest _model = new();
+
+    private async Task OnLogin()
+    {
+        if (await AuthService.LoginAsync(_model))
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+}

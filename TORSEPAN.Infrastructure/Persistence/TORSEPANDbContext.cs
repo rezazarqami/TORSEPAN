@@ -20,6 +20,8 @@ public class TORSEPANDbContext : DbContext
 
     public DbSet<ProductionEvent> ProductionEvents => Set<ProductionEvent>();
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

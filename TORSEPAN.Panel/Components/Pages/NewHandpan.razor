@@ -1,0 +1,127 @@
+﻿@page "/handpans/new"
+
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+
+@inject HandpanService HandpanService
+@inject NavigationManager Navigation
+
+<PageTitle>ثبت هنگدرام</PageTitle>
+
+<div class="container-fluid">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-header bg-white">
+
+                    <h3 class="fw-bold m-0">
+                        ثبت هنگدرام جدید
+                    </h3>
+
+                </div>
+
+                <div class="card-body">
+
+                    <EditForm Model="_model" OnValidSubmit="Save">
+
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    کد تولید
+                                </label>
+
+                                <InputText class="form-control"
+                                           @bind-Value="_model.SerialNumber" />
+
+                            </div>
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    اسکیل
+                                </label>
+
+                                <InputText class="form-control"
+                                           @bind-Value="_model.Scale" />
+
+                            </div>
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    تعداد نت
+                                </label>
+
+                                <InputNumber class="form-control"
+                                             @bind-Value="_model.Notes" />
+
+                            </div>
+
+                            <div class="col-md-6 d-flex align-items-end">
+
+                                <div class="form-check">
+
+                                    <InputCheckbox class="form-check-input"
+                                                   @bind-Value="_model.IsCustom" />
+
+                                    <label class="form-check-label">
+                                        هنگدرام سفارشی
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-4 d-flex gap-2">
+
+                            <button class="btn btn-primary"
+                                    type="submit">
+                                ثبت
+                            </button>
+
+                            <button class="btn btn-outline-secondary"
+                                    type="button"
+                                    @onclick="Back">
+                                انصراف
+                            </button>
+
+                        </div>
+
+                    </EditForm>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code
+{
+    private readonly CreateHandpanRequest _model = new();
+
+    private async Task Save()
+    {
+        await HandpanService.CreateAsync(_model);
+        Navigation.NavigateTo("/handpans");
+    }
+
+    private void Back()
+    {
+        Navigation.NavigateTo("/handpans");
+    }
+}

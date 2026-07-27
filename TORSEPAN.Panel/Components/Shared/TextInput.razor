@@ -1,0 +1,15 @@
+﻿@using System.Linq.Expressions
+<InputText class= "form-control"
+           Value="Value"
+           ValueChanged="ValueChanged"
+           ValueExpression="ValueExpression" />
+
+@code {
+
+    [Parameter] public string Value { get; set; } = "";
+
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter] public Expression<Func<string>>? ValueExpression { get; set; }
+
+}
