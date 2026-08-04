@@ -19,7 +19,7 @@ public sealed class AuthorizationBehavior<TRequest, TResponse>
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        if (!_userContext.IsAuthenticated)
+        if (request is not IAllowAnonymousRequest && !_userContext.IsAuthenticated)
             throw new UnauthorizedAccessException("User is not authenticated.");
 
         return await next();
