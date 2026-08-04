@@ -18,7 +18,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
 builder.Services.AddHttpClient<ApiClient>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7081/api/");
+    client.BaseAddress = new Uri("https://localhost:7081/");
 });
 
 builder.Services.AddScoped<IAuthService, AuthenticationService>();
