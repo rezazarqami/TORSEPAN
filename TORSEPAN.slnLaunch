@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "TORSEPAN.API\\TORSEPAN.API.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "TORSEPAN.Panel\\TORSEPAN.Panel.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

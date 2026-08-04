@@ -13,8 +13,10 @@ public sealed class ReportService
 
     public async Task<IReadOnlyList<ReportItemDto>> GetAsync()
     {
-        return await _api.GetAsync<IReadOnlyList<ReportItemDto>>(
-                   "api/reports")
-               ?? [];
+        var result =
+            await _api.GetAsync<IReadOnlyList<ReportItemDto>>(
+                "api/reports");
+
+        return result ?? [];
     }
 }

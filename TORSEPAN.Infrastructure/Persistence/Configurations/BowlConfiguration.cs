@@ -31,8 +31,6 @@ public class BowlConfiguration : IEntityTypeConfiguration<Bowl>
         builder.Property(x => x.InstrumentType)
             .IsRequired();
 
-        builder.Property(x => x.NoteCount);
-
         builder.Property(x => x.Status)
             .IsRequired();
 

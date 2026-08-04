@@ -1,14 +1,16 @@
-﻿using TORSEPAN.Domain.Enums;
+using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.Application.Features.Bowls.Commands.CreateBowl;
 
-public class CreateBowlRequest
+public sealed class CreateBowlRequest
 {
+    public string ProductionCode { get; set; } = string.Empty;
+
     public BowlType BowlType { get; set; }
 
     public bool HasNotes { get; set; }
 
     public InstrumentType InstrumentType { get; set; }
 
-    public int? NoteCount { get; set; }
+    public Guid MaterialId { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿@page "/"
 
 @inject ProductionService ProductionService
+@inject NavigationManager Navigation
 
 <PageTitle>داشبورد</PageTitle>
 
@@ -12,102 +13,130 @@
 }
 else
 {
-    <div class="container-fluid">
+    <div class="row g-4">
 
-        <div class="mb-4">
-
-            <h2 class="fw-bold">
-                داشبورد
-            </h2>
-
-            <p class="text-secondary">
-                سامانه مدیریت تولید TORSEPAN
-            </p>
-
-        </div>
-
-        <div class="row g-4">
-
-            <div class="col-md-3">
-
-                <div class="card p-4">
-
-                    <div class="stat-title">
+        <div class="col-xl-3 col-md-6">
+            <div class="dashboard-card">
+                <div class="dashboard-icon blue">🥁</div>
+                <div>
+                    <div class="dashboard-title">
                         کل هنگدرام‌ها
                     </div>
-
-                    <div class="stat-value">
+                    <div class="dashboard-value">
                         @_dashboard.TotalHandpans
                     </div>
-
                 </div>
-
             </div>
-
-            <div class="col-md-3">
-
-                <div class="card p-4">
-
-                    <div class="stat-title">
-                        در حال تولید
-                    </div>
-
-                    <div class="stat-value text-primary">
-                        @_dashboard.InProduction
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="col-md-3">
-
-                <div class="card p-4">
-
-                    <div class="stat-title">
-                        تکمیل شده
-                    </div>
-
-                    <div class="stat-value text-success">
-                        @_dashboard.Finished
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="col-md-3">
-
-                <div class="card p-4">
-
-                    <div class="stat-title">
-                        برگشتی
-                    </div>
-
-                    <div class="stat-value text-danger">
-                        @_dashboard.Rejected
-                    </div>
-
-                </div>
-
-            </div>
-
         </div>
 
-        <div class="card mt-4 p-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="dashboard-card">
+                <div class="dashboard-icon orange">⚙️</div>
+                <div>
+                    <div class="dashboard-title">
+                        در حال تولید
+                    </div>
+                    <div class="dashboard-value">
+                        @_dashboard.InProduction
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <h5 class="mb-3">
-                درصد پیشرفت تولید
-            </h5>
+        <div class="col-xl-3 col-md-6">
+            <div class="dashboard-card">
+                <div class="dashboard-icon green">✅</div>
+                <div>
+                    <div class="dashboard-title">
+                        تکمیل شده
+                    </div>
+                    <div class="dashboard-value">
+                        @_dashboard.Finished
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <div class="progress" style="height:24px">
+        <div class="col-xl-3 col-md-6">
+            <div class="dashboard-card">
+                <div class="dashboard-icon red">❌</div>
+                <div>
+                    <div class="dashboard-title">
+                        برگشتی
+                    </div>
+                    <div class="dashboard-value">
+                        @_dashboard.Rejected
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card mt-4">
+
+        <div class="card-body p-4">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <h5 class="fw-bold mb-0">
+                    پیشرفت تولید
+                </h5>
+
+                <strong>
+                    @_dashboard.CompletionRate%
+                </strong>
+
+            </div>
+
+            <div class="progress">
 
                 <div class="progress-bar"
                      role="progressbar"
                      style="width:@($"{_dashboard.CompletionRate}%")">
+                </div>
 
-                    @_dashboard.CompletionRate%
+            </div>
 
+        </div>
+
+    </div>
+
+    <div class="card mt-4">
+
+        <div class="card-header">
+            خلاصه وضعیت سیستم
+        </div>
+
+        <div class="card-body">
+
+            <div class="row text-center">
+
+                <div class="col-md-4">
+                    <h2 class="fw-bold text-primary">
+                        @_dashboard.TotalHandpans
+                    </h2>
+                    <div class="text-secondary">
+                        کل تولید
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <h2 class="fw-bold text-success">
+                        @_dashboard.Finished
+                    </h2>
+                    <div class="text-secondary">
+                        آماده تحویل
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <h2 class="fw-bold text-warning">
+                        @_dashboard.InProduction
+                    </h2>
+                    <div class="text-secondary">
+                        داخل کارگاه
+                    </div>
                 </div>
 
             </div>
@@ -128,6 +157,10 @@ else
         try
         {
             _dashboard = await ProductionService.GetDashboardAsync() ?? new();
+        }
+        catch
+        {
+            Navigation.NavigateTo("/login", true);
         }
         finally
         {

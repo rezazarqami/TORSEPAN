@@ -1,0 +1,12 @@
+﻿<div class="row g-4">
+
+    @ChildContent
+
+</div>
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+}

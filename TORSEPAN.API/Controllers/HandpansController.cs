@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.Application.Handpans.Commands.CreateHandpan;
 using TORSEPAN.Application.Handpans.Queries.GetHandpanBySerialNumber;
@@ -10,6 +11,7 @@ namespace TORSEPAN.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public sealed class HandpansController : ControllerBase
 {
     private readonly IMediator _mediator;

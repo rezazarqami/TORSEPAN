@@ -1,0 +1,78 @@
+﻿@page "/materials"
+
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+
+@inject MaterialService MaterialService
+@inject NavigationManager Navigation
+
+<PageTitle>Materials</PageTitle>
+
+<h3 class="mb-4">Materials</h3>
+
+<button class="btn btn-primary mb-3"
+        @onclick="NewMaterial">
+    New Material
+</button>
+
+@if (_loading)
+{
+    <div class="spinner-border"></div>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-warning">
+        هیچ متریالی ثبت نشده است.
+    </div>
+}
+else
+{
+    <table class="table table-striped">
+
+        <thead>
+
+            <tr>
+                <th>Name</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var item in _items)
+            {
+                <tr>
+
+                    <td>@item.Name</td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+}
+
+@code
+{
+    private readonly List<MaterialDto> _items = [];
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items.AddRange(await MaterialService.GetAsync());
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void NewMaterial()
+    {
+        Navigation.NavigateTo("/materials/new");
+    }
+}

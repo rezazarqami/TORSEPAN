@@ -18,7 +18,7 @@ public sealed class GetRecentlyCreatedUsersQueryHandler
         CancellationToken cancellationToken)
     {
         var users = (await _unitOfWork.Users.GetAllAsync())
-            .OrderByDescending(x => x.CreatedAt)
+            .OrderByDescending(x => x.Id)
             .Take(request.Count)
             .Select(x => new UserDto
             {
@@ -26,7 +26,7 @@ public sealed class GetRecentlyCreatedUsersQueryHandler
                 UserName = x.UserName,
                 FullName = x.FullName,
                 IsActive = x.IsActive,
-                CreatedAt = x.CreatedAt
+                CreatedAt = DateTime.MinValue
             })
             .ToList();
 

@@ -1,0 +1,48 @@
+﻿@page "/materials/new"
+
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+
+@inject MaterialService MaterialService
+@inject NavigationManager Navigation
+
+<PageTitle>New Material</PageTitle>
+
+<h3 class="mb-4">New Material</h3>
+
+<EditForm Model="_model"
+          OnValidSubmit="SaveAsync">
+
+    <DataAnnotationsValidator />
+
+    <ValidationSummary />
+
+    <div class="mb-3">
+
+        <label class="form-label">
+            Name
+        </label>
+
+        <InputText class="form-control"
+                   @bind-Value="_model.Name" />
+
+    </div>
+
+    <button class="btn btn-success"
+            type="submit">
+        Save
+    </button>
+
+</EditForm>
+
+@code
+{
+    private readonly CreateMaterialRequest _model = new();
+
+    private async Task SaveAsync()
+    {
+        await MaterialService.CreateMaterialAsync(_model);
+
+        Navigation.NavigateTo("/materials");
+    }
+}

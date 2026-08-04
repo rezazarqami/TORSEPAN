@@ -18,4 +18,12 @@ public class UserRepository : GenericRepository<User>, IUserRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.UserName == username);
     }
+
+    public async Task<List<User>> GetAllAsync()
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .OrderBy(x => x.UserName)
+            .ToListAsync();
+    }
 }

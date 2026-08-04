@@ -1,0 +1,28 @@
+﻿<div class="mb-3">
+
+    <h5 class="fw-bold mb-1">
+
+        @Title
+
+    </h5>
+
+    @if (!string.IsNullOrWhiteSpace(Description))
+    {
+        <div class="text-secondary">
+
+            @Description
+
+        </div>
+    }
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public string Description { get; set; } = "";
+
+}

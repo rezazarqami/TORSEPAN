@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
-using TORSEPAN.Infrastructure.Persistence;
 
 namespace TORSEPAN.Infrastructure.Persistence.Repositories;
 
@@ -44,5 +44,12 @@ public class BowlRepository : GenericRepository<Bowl>, IBowlRepository
             .OrderByDescending(x => x.ProductionCode)
             .Select(x => x.ProductionCode)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<bool> AnyAsync(
+        Expression<Func<Bowl, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.AnyAsync(predicate, cancellationToken);
     }
 }

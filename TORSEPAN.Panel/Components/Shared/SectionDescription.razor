@@ -1,0 +1,15 @@
+﻿@if (!string.IsNullOrWhiteSpace(Text))
+{
+    <p class="text-secondary mb-3">
+
+        @Text
+
+    </p>
+}
+
+@code {
+
+    [Parameter]
+    public string Text { get; set; } = "";
+
+}

@@ -41,6 +41,10 @@ public sealed class RefreshLoginCommandHandler
         if (user is null || !user.IsActive)
             throw new UnauthorizedAccessException("User not found.");
 
+        var roles = user.UserRoles
+            .Select(x => x.Role.Name)
+            .ToList();
+
         refreshToken.Revoke();
 
         var newRefreshToken = new Domain.Entities.RefreshToken(
@@ -58,7 +62,9 @@ public sealed class RefreshLoginCommandHandler
         {
             AccessToken = _jwtService.GenerateAccessToken(
                 user.Id,
-                user.UserName),
+                user.UserName,
+                user.FullName,
+                roles),
 
             RefreshToken = newRefreshToken.Token
         };

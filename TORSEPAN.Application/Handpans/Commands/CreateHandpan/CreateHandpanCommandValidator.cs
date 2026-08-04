@@ -7,9 +7,6 @@ public sealed class CreateHandpanCommandValidator
 {
     public CreateHandpanCommandValidator()
     {
-        RuleFor(x => x.AssemblyId)
-            .NotEmpty();
-
         RuleFor(x => x.SerialNumber)
             .NotEmpty()
             .MaximumLength(50);

@@ -11,10 +11,25 @@ public sealed class ProductionService
         _api = api;
     }
 
-    public async Task<ProductionDashboardDto> GetDashboardAsync()
+    public async Task<ProductionDashboardDto?> GetDashboardAsync()
     {
         return await _api.GetAsync<ProductionDashboardDto>(
-                   "api/production/dashboard")
-               ?? new();
+            "production/dashboard");
+    }
+
+    public async Task<IReadOnlyList<ProductionStageItemDto>> GetQueueAsync()
+    {
+        var result =
+            await _api.GetAsync<IReadOnlyList<ProductionStageItemDto>>(
+                "production/queue");
+
+        return result ?? [];
+    }
+
+    public async Task<bool> ChangeStageAsync(ChangeProductionStageRequest request)
+    {
+        return await _api.PostAsync<ChangeProductionStageRequest, bool>(
+            "production/change-stage",
+            request);
     }
 }

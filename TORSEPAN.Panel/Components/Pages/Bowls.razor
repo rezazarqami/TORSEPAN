@@ -1,0 +1,100 @@
+﻿@page "/bowls"
+
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+
+@inject BowlService BowlService
+@inject NavigationManager Navigation
+
+<PageTitle>کاسه‌ها</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h3>کاسه‌ها</h3>
+
+    <button class="btn btn-primary"
+            @onclick="NewBowl">
+        ثبت کاسه
+    </button>
+
+</div>
+
+@if (_loading)
+{
+    <p>در حال بارگذاری...</p>
+}
+else if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">
+        @_error
+    </div>
+}
+else if (_bowls.Count == 0)
+{
+    <div class="alert alert-info">
+        هیچ کاسه‌ای ثبت نشده است.
+    </div>
+}
+else
+{
+    <table class="table table-striped">
+
+        <thead>
+            <tr>
+                <th>کد</th>
+                <th>نوع کاسه</th>
+                <th>دارای نت</th>
+                <th>نوع ساز</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            @foreach (var bowl in _bowls)
+            {
+                <tr>
+                    <td>@bowl.ProductionCode</td>
+                    <td>@(bowl.BowlType == 0 ? "کاسه بالا" : "کاسه پایین")</td>
+                    <td>@(bowl.HasNotes ? "بله" : "خیر")</td>
+                    <td>@(bowl.InstrumentType == 0 ? "9 نت" : "Custom")</td>
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+}
+
+@code
+{
+    private bool _loading = true;
+
+    private string? _error;
+
+    private List<BowlDto> _bowls = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            _bowls = (await BowlService.GetAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void NewBowl()
+    {
+        Navigation.NavigateTo("/bowls/new");
+    }
+}

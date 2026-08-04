@@ -1,0 +1,21 @@
+﻿@if (Loading)
+{
+    <div class="text-center py-5">
+
+        <div class="spinner-border"></div>
+
+        <div class="mt-3">
+
+            لطفاً منتظر بمانید...
+
+        </div>
+
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public bool Loading { get; set; }
+
+}

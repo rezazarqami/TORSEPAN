@@ -22,7 +22,7 @@ public sealed class BowlQueryService : IBowlQueryService
     {
         var query = _context.Bowls
             .AsNoTracking()
-            .OrderByDescending(x => x.ProductionCode)
+            .OrderByDescending(x => x.Id)
             .Select(x => new BowlDto
             {
                 Id = x.Id,
@@ -30,7 +30,6 @@ public sealed class BowlQueryService : IBowlQueryService
                 BowlType = (int)x.BowlType,
                 HasNotes = x.HasNotes,
                 InstrumentType = (int)x.InstrumentType,
-                NoteCount = x.NoteCount,
                 Status = (int)x.Status,
                 Stage = (int)x.Stage
             });
@@ -63,7 +62,6 @@ public sealed class BowlQueryService : IBowlQueryService
                 BowlType = (int)x.BowlType,
                 HasNotes = x.HasNotes,
                 InstrumentType = (int)x.InstrumentType,
-                NoteCount = x.NoteCount,
                 Status = (int)x.Status,
                 Stage = (int)x.Stage
             })

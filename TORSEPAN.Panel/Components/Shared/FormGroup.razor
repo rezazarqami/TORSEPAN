@@ -1,19 +1,13 @@
-﻿<div class="mb-3">
-
-    <label class="form-label">
-
-        @Label
-
-    </label>
+﻿<SectionCard Title="@Title">
 
     @ChildContent
 
-</div>
+</SectionCard>
 
 @code {
 
     [Parameter]
-    public string Label { get; set; } = "";
+    public string Title { get; set; } = "";
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }

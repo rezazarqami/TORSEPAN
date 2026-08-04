@@ -1,0 +1,12 @@
+﻿<div class="d-flex justify-content-end gap-2 mb-4">
+
+    @ChildContent
+
+</div>
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+}

@@ -20,14 +20,19 @@ public sealed class GetUsersQueryHandler
         var users = await _unitOfWork.Users.GetAllAsync();
 
         return users
+            .OrderBy(x => x.UserName)
             .Select(x => new UserDto
             {
                 Id = x.Id,
                 UserName = x.UserName,
                 FullName = x.FullName,
-                IsActive = x.IsActive
+                IsActive = x.IsActive,
+                Role = string.Empty,
+                Roles = x.UserRoles
+                    .Select(r => r.Role.DisplayName)
+                    .OrderBy(r => r)
+                    .ToList()
             })
-            .OrderBy(x => x.UserName)
             .ToList();
     }
 }

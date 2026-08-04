@@ -1,4 +1,13 @@
-﻿<div class="card shadow-sm">
+﻿<div class="card shadow-sm border-0 mb-4">
+
+    @if (!string.IsNullOrWhiteSpace(Title))
+    {
+        <div class="card-header bg-white fw-bold">
+
+            @Title
+
+        </div>
+    }
 
     <div class="card-body">
 
@@ -9,6 +18,9 @@
 </div>
 
 @code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }

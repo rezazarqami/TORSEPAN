@@ -3,6 +3,7 @@
 namespace TORSEPAN.Application.Handpans.Commands.CreateHandpan;
 
 public sealed record CreateHandpanCommand(
-    Guid AssemblyId,
+    Guid TopBowlId,
+    Guid BottomBowlId,
     string SerialNumber)
     : IRequest<Guid>;

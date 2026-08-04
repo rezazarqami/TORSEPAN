@@ -1,62 +1,62 @@
 ﻿@page "/login"
-@namespace TORSEPAN.Panel.Pages
 
-@using TORSEPAN.Panel.Models
+@using TORSEPAN.Application.Auth.Commands.Login
 @using TORSEPAN.Panel.Services.Auth
 
-@inject AuthenticationService AuthService
-@inject NavigationManager Navigation
+<PageTitle>ورود</PageTitle>
 
-<PageTitle>Login</PageTitle>
+<PageContainer>
 
-<EditForm Model="_model" OnValidSubmit="OnLogin">
+    <PageHeader Title="ورود به سامانه"
+                SubTitle="احراز هویت">
+    </PageHeader>
 
-    <DataAnnotationsValidator />
+    <PageCard>
 
-    <div class="container mt-5" style="max-width:420px;">
+        <FormSection Title="اطلاعات ورود">
 
-        <div class="card shadow">
+            <TextInput Label="نام کاربری"
+                       @bind-Value="Username" />
 
-            <div class="card-header">
-                <h4>TORSEPAN</h4>
-            </div>
+            <TextInput Label="رمز عبور"
+                       @bind-Value="Password" />
 
-            <div class="card-body">
+            <FormActions>
 
-                <div class="mb-3">
-                    <label>Username</label>
-                    <InputText class="form-control"
-                               @bind-Value="_model.Username" />
-                </div>
+                <PrimaryButton Text="ورود"
+                               OnClick="LoginUser" />
 
-                <div class="mb-3">
-                    <label>Password</label>
-                    <InputText class="form-control"
-                               @bind-Value="_model.Password"
-                               type="password" />
-                </div>
+            </FormActions>
 
-                <button type="submit" class="btn btn-primary w-100">
-                    Login
-                </button>
+        </FormSection>
 
-            </div>
+    </PageCard>
 
-        </div>
+</PageContainer>
 
-    </div>
+@code {
 
-</EditForm>
+    [Inject]
+    NavigationManager Navigation { get; set; } = default!;
 
-@code
-{
-    private readonly LoginRequest _model = new();
+    [Inject]
+    IAuthService AuthenticationService { get; set; } = default!;
 
-    private async Task OnLogin()
+    string Username = "";
+
+    string Password = "";
+
+    async Task LoginUser()
     {
-        if (await AuthService.LoginAsync(_model))
+        var result = await AuthenticationService.LoginAsync(
+            new LoginCommand(
+                Username,
+                Password));
+
+        if (result.Success)
         {
-            Navigation.NavigateTo("/");
+            Navigation.NavigateTo("/", true);
         }
     }
+
 }

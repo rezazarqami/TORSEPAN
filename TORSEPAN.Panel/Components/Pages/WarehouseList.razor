@@ -1,19 +1,19 @@
 ﻿@page "/warehouse/list"
 
-<PageTitle>Warehouse</PageTitle>
+<PageTitle>انبار</PageTitle>
 
-<PageHeader Title="Warehouse"
-            SubTitle="Inventory">
+<PageHeader Title="انبار"
+            SubTitle="موجودی">
 
     <Actions>
 
-        <PrimaryButton Text="New Item" />
+        <PrimaryButton Text="ثبت کالا" />
 
     </Actions>
 
 </PageHeader>
 
-<SearchBox Placeholder="Search..." />
+<SearchBox Placeholder="جستجو..." />
 
 <Card>
 
@@ -23,10 +23,10 @@
 
             <tr>
 
-                <th>Code</th>
-                <th>Name</th>
-                <th>Quantity</th>
-                <th>Location</th>
+                <th>کد</th>
+                <th>نام</th>
+                <th>تعداد</th>
+                <th>محل نگهداری</th>
 
             </tr>
 
@@ -38,8 +38,8 @@
 
                 <td colspan="4">
 
-                    <EmptyState Title="No Item"
-                                Description="Warehouse is empty." />
+                    <EmptyState Title="انبار خالی است"
+                                Description="هیچ کالایی ثبت نشده است." />
 
                 </td>
 

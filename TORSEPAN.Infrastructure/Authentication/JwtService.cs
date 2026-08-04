@@ -17,7 +17,11 @@ public sealed class JwtService : IJwtService
         _configuration = configuration;
     }
 
-    public string GenerateAccessToken(Guid userId, string userName)
+    public string GenerateAccessToken(
+        Guid userId,
+        string userName,
+        string fullName,
+        IEnumerable<string> roles)
     {
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
@@ -26,16 +30,27 @@ public sealed class JwtService : IJwtService
             key,
             SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-            new Claim(ClaimTypes.Name, userName)
+            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(ClaimTypes.Name, userName),
+            new(ClaimTypes.GivenName, fullName),
+            new("FullName", fullName),
+            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new(JwtRegisteredClaimNames.UniqueName, userName),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        foreach (var role in roles.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
             claims: claims,
+            notBefore: DateTime.UtcNow,
             expires: DateTime.UtcNow.AddMinutes(30),
             signingCredentials: credentials);
 

@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
 
 namespace TORSEPAN.Panel.Services;
 
@@ -9,6 +10,18 @@ public class ApiClient
     public ApiClient(HttpClient http)
     {
         _http = http;
+    }
+
+    public void SetBearerToken(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            _http.DefaultRequestHeaders.Authorization = null;
+            return;
+        }
+
+        _http.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
     }
 
     public async Task<T?> GetAsync<T>(string url)

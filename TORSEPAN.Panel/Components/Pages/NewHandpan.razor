@@ -4,124 +4,108 @@
 @using TORSEPAN.Panel.Services.Api
 
 @inject HandpanService HandpanService
+@inject BowlService BowlService
 @inject NavigationManager Navigation
 
 <PageTitle>ثبت هنگدرام</PageTitle>
 
-<div class="container-fluid">
+<h3 class="mb-4">ثبت هنگدرام</h3>
 
-    <div class="row justify-content-center">
+@if (_loading)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+    <EditForm Model="_model"
+              OnValidSubmit="SaveAsync">
 
-        <div class="col-lg-8">
+        <DataAnnotationsValidator />
 
-            <div class="card shadow-sm border-0">
+        <ValidationSummary />
 
-                <div class="card-header bg-white">
+        <div class="mb-3">
 
-                    <h3 class="fw-bold m-0">
-                        ثبت هنگدرام جدید
-                    </h3>
+            <label class="form-label">کاسه بالا</label>
 
-                </div>
+            <InputSelect class="form-select"
+                         @bind-Value="_model.TopBowlId">
 
-                <div class="card-body">
+                <option value="@Guid.Empty">انتخاب کنید...</option>
 
-                    <EditForm Model="_model" OnValidSubmit="Save">
+                @foreach (var bowl in _topBowls)
+                {
+                    <option value="@bowl.Id">
+                        @bowl.ProductionCode
+                    </option>
+                }
 
-                        <DataAnnotationsValidator />
-                        <ValidationSummary />
-
-                        <div class="row g-3">
-
-                            <div class="col-md-6">
-
-                                <label class="form-label">
-                                    کد تولید
-                                </label>
-
-                                <InputText class="form-control"
-                                           @bind-Value="_model.SerialNumber" />
-
-                            </div>
-
-                            <div class="col-md-6">
-
-                                <label class="form-label">
-                                    اسکیل
-                                </label>
-
-                                <InputText class="form-control"
-                                           @bind-Value="_model.Scale" />
-
-                            </div>
-
-                            <div class="col-md-6">
-
-                                <label class="form-label">
-                                    تعداد نت
-                                </label>
-
-                                <InputNumber class="form-control"
-                                             @bind-Value="_model.Notes" />
-
-                            </div>
-
-                            <div class="col-md-6 d-flex align-items-end">
-
-                                <div class="form-check">
-
-                                    <InputCheckbox class="form-check-input"
-                                                   @bind-Value="_model.IsCustom" />
-
-                                    <label class="form-check-label">
-                                        هنگدرام سفارشی
-                                    </label>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                        <div class="mt-4 d-flex gap-2">
-
-                            <button class="btn btn-primary"
-                                    type="submit">
-                                ثبت
-                            </button>
-
-                            <button class="btn btn-outline-secondary"
-                                    type="button"
-                                    @onclick="Back">
-                                انصراف
-                            </button>
-
-                        </div>
-
-                    </EditForm>
-
-                </div>
-
-            </div>
+            </InputSelect>
 
         </div>
 
-    </div>
+        <div class="mb-3">
 
-</div>
+            <label class="form-label">کاسه پایین</label>
+
+            <InputSelect class="form-select"
+                         @bind-Value="_model.BottomBowlId">
+
+                <option value="@Guid.Empty">انتخاب کنید...</option>
+
+                @foreach (var bowl in _bottomBowls)
+                {
+                    <option value="@bowl.Id">
+                        @bowl.ProductionCode
+                    </option>
+                }
+
+            </InputSelect>
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">Serial Number</label>
+
+            <InputText class="form-control"
+                       @bind-Value="_model.SerialNumber" />
+
+        </div>
+
+        <button class="btn btn-primary"
+                type="submit">
+            ثبت
+        </button>
+
+    </EditForm>
+}
 
 @code
 {
     private readonly CreateHandpanRequest _model = new();
 
-    private async Task Save()
+    private readonly List<BowlDto> _topBowls = [];
+
+    private readonly List<BowlDto> _bottomBowls = [];
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
     {
-        await HandpanService.CreateAsync(_model);
-        Navigation.NavigateTo("/handpans");
+        var bowls = await BowlService.GetAsync();
+
+        _topBowls.AddRange(bowls.Where(x => x.BowlType == 0));
+        _bottomBowls.AddRange(bowls.Where(x => x.BowlType == 1));
+
+        _loading = false;
     }
 
-    private void Back()
+    private async Task SaveAsync()
     {
-        Navigation.NavigateTo("/handpans");
+        var id = await HandpanService.CreateAsync(_model);
+
+        if (id.HasValue)
+            Navigation.NavigateTo("/handpans");
     }
 }

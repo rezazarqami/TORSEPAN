@@ -1,0 +1,30 @@
+﻿using MediatR;
+using TORSEPAN.Application.Interfaces;
+
+namespace TORSEPAN.Application.Materials.Queries.GetAllMaterials;
+
+public sealed class GetAllMaterialsHandler
+    : IRequestHandler<GetAllMaterialsQuery, IReadOnlyList<MaterialDto>>
+{
+    private readonly IUnitOfWork _unitOfWork;
+
+    public GetAllMaterialsHandler(IUnitOfWork unitOfWork)
+    {
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<IReadOnlyList<MaterialDto>> Handle(
+        GetAllMaterialsQuery request,
+        CancellationToken cancellationToken)
+    {
+        var materials = await _unitOfWork.Materials.GetAllAsync();
+
+        return materials
+            .Select(x => new MaterialDto
+            {
+                Id = x.Id,
+                Name = x.Name
+            })
+            .ToList();
+    }
+}

@@ -10,11 +10,7 @@ public sealed class BowlDetailDto
 
     public bool HasNotes { get; init; }
 
-    public int InstrumentType { get; init; }
-
-    public int? NoteCount { get; init; }
-
-    public int Status { get; init; }
+    public int InstrumentType { get; init; }public int Status { get; init; }
 
     public int Stage { get; init; }
 }

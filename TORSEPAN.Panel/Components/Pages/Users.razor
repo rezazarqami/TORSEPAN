@@ -9,24 +9,71 @@
 
     <Actions>
 
-        <PrimaryButton Text="Open Users"
+        <PrimaryButton Text="Users List"
                        OnClick="OpenUsers" />
+
+        <PrimaryButton Text="New User"
+                       OnClick="NewUser" />
 
     </Actions>
 
 </PageHeader>
 
-<Card>
+<div class="row g-4">
 
-    User Management Module
+    <div class="col-md-4">
+
+        <Card>
+
+            <h4>Total Users</h4>
+
+            <h2>1</h2>
+
+        </Card>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <Card>
+
+            <h4>Active Users</h4>
+
+            <h2>1</h2>
+
+        </Card>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <Card>
+
+            <h4>Inactive Users</h4>
+
+            <h2>0</h2>
+
+        </Card>
+
+    </div>
+
+</div>
+
+<Card Class="mt-4">
+
+    <p>Select one of the actions above.</p>
 
 </Card>
 
-@code {
-
+@code
+{
     void OpenUsers()
     {
         Navigation.NavigateTo("/users/list");
     }
 
+    void NewUser()
+    {
+        Navigation.NavigateTo("/users/new");
+    }
 }

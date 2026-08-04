@@ -1,9 +1,9 @@
 ﻿using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using TORSEPAN.Domain.Production;
+using TORSEPAN.Application.Common.Behaviors;
 
-namespace TORSEPAN.Application.DependencyInjection;
+namespace TORSEPAN.Application;
 
 public static class DependencyInjection
 {
@@ -11,11 +11,13 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddMediatR(cfg =>
-            cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
+        {
+            cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
+        });
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
-        services.AddSingleton<IProductionEngine, ProductionEngine>();
+        services.AddAuthorizationBehavior();
 
         return services;
     }

@@ -1,48 +1,56 @@
-﻿<div class="d-flex flex-column h-100 p-3">
+﻿<div class="sidebar-header">
+    <div class="logo">T</div>
 
-    <h3 class="mb-4 fw-bold text-white">
-        TORSEPAN
-    </h3>
+    <div>
+        <div class="sidebar-title">
+            TORSEPAN
+        </div>
 
-    <nav class="nav nav-pills flex-column gap-2">
+        <div class="sidebar-subtitle">
+            سامانه مدیریت تولید
+        </div>
+    </div>
+</div>
 
-        <NavLink class="nav-link text-white"
-                 ActiveClass="active"
-                 href="/"
-                 Match="NavLinkMatch.All">
-            🏠 داشبورد
-        </NavLink>
+<nav class="sidebar-menu">
 
-        <NavLink class="nav-link text-white"
-                 ActiveClass="active"
-                 href="/handpans">
-            🥁 هنگدرام‌ها
-        </NavLink>
+    <NavLink href="/" Match="NavLinkMatch.All">
+        <span>🏠</span>
+        <span>داشبورد</span>
+    </NavLink>
 
-        <NavLink class="nav-link text-white"
-                 ActiveClass="active"
-                 href="/production/list">
-            ⚙️ تولید
-        </NavLink>
+    <NavLink href="/bowls/new">
+        <span>🥣</span>
+        <span>ثبت کاسه</span>
+    </NavLink>
 
-        <NavLink class="nav-link text-white"
-                 ActiveClass="active"
-                 href="/warehouse/list">
-            📦 انبار
-        </NavLink>
+    <NavLink href="/bowls">
+        <span>🥣</span>
+        <span>کاسه‌ها</span>
+    </NavLink>
 
-        <NavLink class="nav-link text-white"
-                 ActiveClass="active"
-                 href="/users/list">
-            👤 کاربران
-        </NavLink>
+    <NavLink href="/production/list">
+        <span>⚙️</span>
+        <span>تولید</span>
+    </NavLink>
 
-        <NavLink class="nav-link text-white"
-                 ActiveClass="active"
-                 href="/reports">
-            📊 گزارش‌ها
-        </NavLink>
+    <NavLink href="/warehouse/list">
+        <span>📦</span>
+        <span>انبار</span>
+    </NavLink>
 
-    </nav>
+    <NavLink href="/users/list">
+        <span>👤</span>
+        <span>کاربران</span>
+    </NavLink>
 
+    <NavLink href="/reports">
+        <span>📊</span>
+        <span>گزارش‌ها</span>
+    </NavLink>
+
+</nav>
+
+<div class="sidebar-footer">
+    TORSEPAN 1.0
 </div>

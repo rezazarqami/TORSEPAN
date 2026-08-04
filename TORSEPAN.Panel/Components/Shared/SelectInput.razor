@@ -1,22 +1,35 @@
-﻿@using System.Linq.Expressions
+﻿<div class="mb-3">
 
-<InputSelect class="form-select"
-             Value="Value"
-             ValueChanged="ValueChanged"
-             ValueExpression="ValueExpression">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <label class="form-label">
 
-    @ChildContent
+            @Label
 
-</InputSelect>
+        </label>
+    }
+
+    <InputSelect class="form-select"
+                 @bind-Value="Value">
+
+        @ChildContent
+
+    </InputSelect>
+
+</div>
 
 @code {
 
-    [Parameter] public string Value { get; set; } = "";
+    [Parameter]
+    public string Label { get; set; } = "";
 
-    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter]
+    public string Value { get; set; } = "";
 
-    [Parameter] public Expression<Func<string>>? ValueExpression { get; set; }
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
 
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 
 }

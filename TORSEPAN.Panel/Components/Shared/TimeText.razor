@@ -1,0 +1,12 @@
+﻿<span>
+
+    @(Value?.ToString("HH:mm") ?? "-")
+
+</span>
+
+@code {
+
+    [Parameter]
+    public DateTime? Value { get; set; }
+
+}

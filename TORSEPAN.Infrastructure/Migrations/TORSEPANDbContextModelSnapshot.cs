@@ -36,8 +36,8 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<int>("InstrumentType")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("NoteCount")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("MaterialId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ProductionCode")
                         .IsRequired()
@@ -51,6 +51,8 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
 
                     b.HasIndex("ProductionCode")
                         .IsUnique();
@@ -79,6 +81,9 @@ namespace TORSEPAN.Infrastructure.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -114,6 +119,25 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("HandpanAssemblies", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.Material", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Materials", (string)null);
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.ProductionEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -129,13 +153,17 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<byte?>("Duration")
+                        .HasColumnType("smallint");
 
                     b.Property<DateTime>("EventDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("HandpanId")
+                    b.Property<Guid>("HandpanId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Result")
@@ -157,6 +185,59 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("ProductionEvents", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Revoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.Role", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Roles", (string)null);
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -170,6 +251,14 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -181,6 +270,38 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.UserRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("UserId", "RoleId")
+                        .IsUnique();
+
+                    b.ToTable("UserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.Bowl", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Material");
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.Handpan", b =>
@@ -228,7 +349,8 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.HasOne("TORSEPAN.Domain.Entities.Handpan", "Handpan")
                         .WithMany("ProductionEvents")
                         .HasForeignKey("HandpanId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("TORSEPAN.Domain.Entities.User", "User")
                         .WithMany("ProductionEvents")
@@ -241,6 +363,36 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Navigation("Bowl");
 
                     b.Navigation("Handpan");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.UserRole", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.Role", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.User", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
 
                     b.Navigation("User");
                 });
@@ -261,14 +413,24 @@ namespace TORSEPAN.Infrastructure.Migrations
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.HandpanAssembly", b =>
                 {
-                    b.Navigation("Handpan");
+                    b.Navigation("Handpan")
+                        .IsRequired();
 
                     b.Navigation("ProductionEvents");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.Role", b =>
+                {
+                    b.Navigation("UserRoles");
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.User", b =>
                 {
                     b.Navigation("ProductionEvents");
+
+                    b.Navigation("RefreshTokens");
+
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

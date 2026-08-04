@@ -1,84 +1,89 @@
 ﻿@page "/reports"
 
-<PageTitle>Reports</PageTitle>
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
 
-<PageHeader Title="Reports"
-            SubTitle="Production Reports" />
+@inject ReportService ReportService
 
-<div class="row g-4">
+<PageTitle>گزارش‌ها</PageTitle>
 
-    <div class="col-md-3">
+<PageHeader Title="گزارش‌ها"
+            SubTitle="آمار و گزارش تولید" />
 
-        <StatCard Title="Today"
-                  Value="0" />
+@if (_loading)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+    <div class="row g-4">
 
-    </div>
-
-    <div class="col-md-3">
-
-        <StatCard Title="This Week"
-                  Value="0" />
-
-    </div>
-
-    <div class="col-md-3">
-
-        <StatCard Title="This Month"
-                  Value="0" />
+        <div class="col-md-3">
+            <StatCard Title="تعداد گزارش‌ها"
+                      Value="@_reports.Count.ToString()" />
+        </div>
 
     </div>
 
-    <div class="col-md-3">
+    <Card Class="mt-4">
 
-        <StatCard Title="Finished"
-                  Value="0" />
+        @if (_reports.Count == 0)
+        {
+            <EmptyState Title="گزارشی وجود ندارد"
+                        Description="هنوز اطلاعاتی برای نمایش ثبت نشده است." />
+        }
+        else
+        {
+            <table class="table">
 
-    </div>
+                <thead>
 
-</div>
+                    <tr>
+                        <th>عنوان</th>
+                        <th>توضیح</th>
+                        <th>تاریخ</th>
+                    </tr>
 
-<div class="mt-4">
+                </thead>
 
-    <SearchBox Placeholder="Search reports..." />
+                <tbody>
 
-</div>
+                    @foreach (var item in _reports)
+                    {
+                        <tr>
 
-<div class="mt-3">
+                            <td>@item.Title</td>
 
-    <Card>
+                            <td>@item.Description</td>
 
-        <DataTable>
+                            <td>@item.CreatedAt.ToString("yyyy/MM/dd")</td>
 
-            <thead>
+                        </tr>
+                    }
 
-                <tr>
+                </tbody>
 
-                    <th>Production Code</th>
-                    <th>Stage</th>
-                    <th>Date</th>
-                    <th>User</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                <tr>
-
-                    <td colspan="4">
-
-                        <EmptyState Title="No Reports"
-                                    Description="No report data found." />
-
-                    </td>
-
-                </tr>
-
-            </tbody>
-
-        </DataTable>
+            </table>
+        }
 
     </Card>
+}
 
-</div>
+@code
+{
+    private readonly List<ReportItemDto> _reports = [];
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _reports.AddRange(await ReportService.GetAsync());
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

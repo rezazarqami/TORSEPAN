@@ -1,35 +1,74 @@
-﻿using TORSEPAN.Panel.Models;
+﻿using Microsoft.AspNetCore.Components.Authorization;
+using TORSEPAN.Application.Auth.Commands.Login;
+using TORSEPAN.Panel.Authentication;
 using TORSEPAN.Panel.Services.Api;
 
 namespace TORSEPAN.Panel.Services.Auth;
 
-public sealed class AuthenticationService(
-    ApiClient api,
-    TokenStorage storage,
-    AuthStateProvider provider)
+public sealed class AuthenticationService : IAuthService
 {
-    public async Task<bool> LoginAsync(LoginRequest request)
+    private readonly ApiClient _apiClient;
+    private readonly TokenStorage _tokenStorage;
+    private readonly AuthStateProvider _authStateProvider;
+
+    private LoginResult? _currentUser;
+
+    public AuthenticationService(
+        ApiClient apiClient,
+        TokenStorage tokenStorage,
+        AuthenticationStateProvider authenticationStateProvider)
     {
-        var result = await api.PostAsync<LoginRequest, LoginResponse>(
+        _apiClient = apiClient;
+        _tokenStorage = tokenStorage;
+        _authStateProvider = (AuthStateProvider)authenticationStateProvider;
+    }
+
+    public bool IsAuthenticated =>
+        _currentUser is not null && _currentUser.Success;
+
+    public string? Token =>
+        _currentUser?.Token;
+
+    public string? UserName =>
+        _currentUser?.UserName;
+
+    public string? FullName =>
+        _currentUser?.FullName;
+
+    public IReadOnlyList<string> Roles =>
+        _currentUser?.Roles ?? [];
+
+    public async Task<LoginResult> LoginAsync(LoginCommand command)
+    {
+        _currentUser = await _apiClient.PostAsync<LoginCommand, LoginResult>(
             ApiEndpoints.Login,
-            request);
+            command);
 
-        if (result is null)
-            return false;
+        if (_currentUser is not null &&
+            _currentUser.Success &&
+            !string.IsNullOrWhiteSpace(_currentUser.Token))
+        {
+            await _tokenStorage.SaveAccessTokenAsync(_currentUser.Token);
 
-        await storage.SaveAsync(
-            result.AccessToken,
-            result.RefreshToken);
+            _apiClient.SetBearerToken(_currentUser.Token);
 
-        provider.NotifyUserAuthentication();
+            await _authStateProvider.RefreshAsync();
+        }
 
-        return true;
+        return _currentUser ?? new LoginResult
+        {
+            Success = false
+        };
     }
 
     public async Task LogoutAsync()
     {
-        await storage.ClearAsync();
+        _currentUser = null;
 
-        provider.NotifyUserLogout();
+        await _tokenStorage.ClearAsync();
+
+        _apiClient.SetBearerToken(null);
+
+        _authStateProvider.NotifyUserLogout();
     }
 }

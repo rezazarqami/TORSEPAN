@@ -11,15 +11,14 @@ public class TORSEPANDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
 
     public DbSet<Bowl> Bowls => Set<Bowl>();
-
     public DbSet<HandpanAssembly> HandpanAssemblies => Set<HandpanAssembly>();
-
     public DbSet<Handpan> Handpans => Set<Handpan>();
-
+    public DbSet<Material> Materials => Set<Material>();
     public DbSet<ProductionEvent> ProductionEvents => Set<ProductionEvent>();
-
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

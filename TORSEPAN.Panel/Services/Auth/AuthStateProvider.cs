@@ -10,23 +10,41 @@ public sealed class AuthStateProvider(TokenStorage storage)
     private static readonly AuthenticationState Anonymous =
         new(new ClaimsPrincipal(new ClaimsIdentity()));
 
-    public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+    public override Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        var token = await storage.GetAccessTokenAsync();
-
-        if (string.IsNullOrWhiteSpace(token))
-            return Anonymous;
-
-        var identity = new ClaimsIdentity(
-            JwtParser.ParseClaims(token),
-            "jwt");
-
-        return new AuthenticationState(new ClaimsPrincipal(identity));
+        // هنگام Prerender به localStorage دسترسی نزن.
+        return Task.FromResult(Anonymous);
     }
 
-    public void NotifyUserAuthentication()
-        => NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+    public async Task RefreshAsync()
+    {
+        try
+        {
+            var token = await storage.GetAccessTokenAsync();
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                NotifyAuthenticationStateChanged(Task.FromResult(Anonymous));
+                return;
+            }
+
+            var identity = new ClaimsIdentity(
+                JwtParser.ParseClaims(token),
+                "jwt");
+
+            NotifyAuthenticationStateChanged(
+                Task.FromResult(
+                    new AuthenticationState(
+                        new ClaimsPrincipal(identity))));
+        }
+        catch
+        {
+            NotifyAuthenticationStateChanged(Task.FromResult(Anonymous));
+        }
+    }
 
     public void NotifyUserLogout()
-        => NotifyAuthenticationStateChanged(Task.FromResult(Anonymous));
+    {
+        NotifyAuthenticationStateChanged(Task.FromResult(Anonymous));
+    }
 }

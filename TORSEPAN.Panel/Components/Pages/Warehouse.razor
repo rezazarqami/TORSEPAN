@@ -2,14 +2,14 @@
 
 @inject NavigationManager Navigation
 
-<PageTitle>Warehouse</PageTitle>
+<PageTitle>انبار</PageTitle>
 
-<PageHeader Title="Warehouse"
-            SubTitle="Warehouse Management">
+<PageHeader Title="انبار"
+            SubTitle="مدیریت انبار">
 
     <Actions>
 
-        <PrimaryButton Text="Open Inventory"
+        <PrimaryButton Text="مشاهده موجودی"
                        OnClick="OpenInventory" />
 
     </Actions>
@@ -18,15 +18,22 @@
 
 <Card>
 
-    Warehouse Module
+    <div class="text-center p-5">
+
+        <h5>مدیریت انبار</h5>
+
+        <p class="text-secondary">
+            مدیریت موجودی کاسه‌ها، اسمبلی‌ها و هنگدرام‌ها
+        </p>
+
+    </div>
 
 </Card>
 
-@code {
-
-    void OpenInventory()
+@code
+{
+    private void OpenInventory()
     {
         Navigation.NavigateTo("/warehouse/list");
     }
-
 }

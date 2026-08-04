@@ -1,42 +1,76 @@
 ﻿@page "/production/list"
 
-<PageTitle>Production List</PageTitle>
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
 
-<PageHeader Title="Production"
-            SubTitle="Production Queue" />
+@inject ProductionService ProductionService
 
-<Card>
+<PageTitle>صف تولید</PageTitle>
 
-    <DataTable>
+<h3 class="mb-4">صف تولید</h3>
+
+@if (_loading)
+{
+    <div class="spinner-border"></div>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-info">
+        موردی برای نمایش وجود ندارد.
+    </div>
+}
+else
+{
+    <table class="table table-striped">
 
         <thead>
 
             <tr>
-
-                <th>Code</th>
-                <th>Stage</th>
-                <th>Status</th>
-                <th>Created</th>
-
+                <th>Serial</th>
+                <th>مرحله</th>
+                <th>وضعیت</th>
+                <th>تاریخ</th>
             </tr>
 
         </thead>
 
         <tbody>
 
-            <tr>
+            @foreach (var item in _items)
+            {
+                <tr>
 
-                <td colspan="4">
+                    <td>@item.SerialNumber</td>
 
-                    <EmptyState Title="No Production"
-                                Description="Production queue is empty." />
+                    <td>@item.Stage</td>
 
-                </td>
+                    <td>@item.Status</td>
 
-            </tr>
+                    <td>@item.CreatedAt.ToString("yyyy/MM/dd")</td>
+
+                </tr>
+            }
 
         </tbody>
 
-    </DataTable>
+    </table>
+}
 
-</Card>
+@code
+{
+    private readonly List<ProductionStageItemDto> _items = [];
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items.AddRange(await ProductionService.GetQueueAsync());
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

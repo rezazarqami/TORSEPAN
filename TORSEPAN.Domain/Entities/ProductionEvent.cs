@@ -5,13 +5,71 @@ namespace TORSEPAN.Domain.Entities;
 
 public class ProductionEvent : Entity
 {
-    public Guid UserId { get; private set; }
+    private ProductionEvent()
+    {
+    }
 
-    public Guid? BowlId { get; private set; }
+    // Used by ChangeProductionStageCommand
+    public ProductionEvent(
+        Guid userId,
+        ProductionAction action,
+        EventResult result,
+        Guid handpanId,
+        string? description)
+        : this(
+            handpanId,
+            null,
+            null,
+            userId,
+            action,
+            result,
+            null,
+            description)
+    {
+    }
+
+    // Used by CreateProductionEventCommand
+    public ProductionEvent(
+        Guid handpanId,
+        Guid? assemblyId,
+        Guid? bowlId,
+        Guid userId,
+        ProductionAction action,
+        EventResult result,
+        OperationDuration? duration,
+        string? description)
+    {
+        Id = Guid.NewGuid();
+
+        HandpanId = handpanId;
+        AssemblyId = assemblyId;
+        BowlId = bowlId;
+
+        UserId = userId;
+
+        Action = action;
+        Result = result;
+        Duration = duration;
+
+        Description = description ?? string.Empty;
+        EventDate = DateTime.UtcNow;
+    }
+
+    public Guid HandpanId { get; private set; }
+
+    public Handpan Handpan { get; private set; } = null!;
 
     public Guid? AssemblyId { get; private set; }
 
-    public Guid? HandpanId { get; private set; }
+    public HandpanAssembly? Assembly { get; private set; }
+
+    public Guid? BowlId { get; private set; }
+
+    public Bowl? Bowl { get; private set; }
+
+    public Guid UserId { get; private set; }
+
+    public User User { get; private set; } = null!;
 
     public ProductionAction Action { get; private set; }
 
@@ -19,58 +77,7 @@ public class ProductionEvent : Entity
 
     public OperationDuration? Duration { get; private set; }
 
+    public string Description { get; private set; } = string.Empty;
+
     public DateTime EventDate { get; private set; }
-
-    public string? Description { get; private set; }
-
-    // Navigation Properties
-    public User User { get; private set; } = null!;
-
-    public Bowl? Bowl { get; private set; }
-
-    public HandpanAssembly? Assembly { get; private set; }
-
-    public Handpan? Handpan { get; private set; }
-
-    private ProductionEvent()
-    {
-    }
-
-    public ProductionEvent(
-        Guid userId,
-        ProductionAction action,
-        EventResult result,
-        Guid? bowlId = null,
-        Guid? assemblyId = null,
-        Guid? handpanId = null,
-        OperationDuration? duration = null,
-        string? description = null)
-    {
-        if (userId == Guid.Empty)
-            throw new ArgumentException("User is required.");
-
-        int owners =
-            (bowlId.HasValue ? 1 : 0) +
-            (assemblyId.HasValue ? 1 : 0) +
-            (handpanId.HasValue ? 1 : 0);
-
-        if (owners != 1)
-            throw new ArgumentException("Exactly one event owner must be specified.");
-
-        UserId = userId;
-        Action = action;
-        Result = result;
-
-        BowlId = bowlId;
-        AssemblyId = assemblyId;
-        HandpanId = handpanId;
-
-        Duration = duration;
-
-        Description = string.IsNullOrWhiteSpace(description)
-            ? null
-            : description.Trim();
-
-        EventDate = DateTime.UtcNow;
-    }
 }

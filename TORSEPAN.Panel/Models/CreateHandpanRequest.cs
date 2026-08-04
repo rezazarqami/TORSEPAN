@@ -1,12 +1,16 @@
-﻿namespace TORSEPAN.Panel.Models;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace TORSEPAN.Panel.Models;
 
 public sealed class CreateHandpanRequest
 {
+    [Required]
+    public Guid TopBowlId { get; set; }
+
+    [Required]
+    public Guid BottomBowlId { get; set; }
+
+    [Required]
+    [StringLength(50)]
     public string SerialNumber { get; set; } = string.Empty;
-
-    public string Scale { get; set; } = string.Empty;
-
-    public int Notes { get; set; }
-
-    public bool IsCustom { get; set; }
 }

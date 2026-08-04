@@ -33,6 +33,10 @@ public sealed class LoginQueryHandler
         if (!user.IsActive)
             throw new InvalidOperationException("User is inactive.");
 
+        var roles = user.UserRoles
+            .Select(x => x.Role.Name)
+            .ToList();
+
         var refreshToken = new RefreshToken(
             user.Id,
             _jwtService.GenerateRefreshToken(),
@@ -46,7 +50,9 @@ public sealed class LoginQueryHandler
         {
             AccessToken = _jwtService.GenerateAccessToken(
                 user.Id,
-                user.UserName),
+                user.UserName,
+                user.FullName,
+                roles),
 
             RefreshToken = refreshToken.Token
         };

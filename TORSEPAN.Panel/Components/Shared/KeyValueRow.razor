@@ -1,0 +1,25 @@
+﻿<div class="row mb-2">
+
+    <div class="col-4 fw-bold">
+
+        @Key
+
+    </div>
+
+    <div class="col-8">
+
+        @Value
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string Key { get; set; } = "";
+
+    [Parameter]
+    public string Value { get; set; } = "";
+
+}

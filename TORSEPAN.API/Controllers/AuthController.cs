@@ -1,8 +1,10 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.API.Contracts.Auth;
 using TORSEPAN.Application.Auth.Commands.CreateUser;
 using TORSEPAN.Application.Auth.Commands.DeleteUser;
+using TORSEPAN.Application.Auth.Commands.Login;
 using TORSEPAN.Application.Auth.Commands.RefreshLogin;
 using TORSEPAN.Application.Auth.Commands.UpdateUser;
 using TORSEPAN.Application.Auth.Commands.UpdateUserStatus;
@@ -12,7 +14,6 @@ using TORSEPAN.Application.Auth.Queries.GetUserById;
 using TORSEPAN.Application.Auth.Queries.GetUserByUsername;
 using TORSEPAN.Application.Auth.Queries.GetUsers;
 using TORSEPAN.Application.Auth.Queries.GetUsersPaged;
-using TORSEPAN.Application.Auth.Queries.Login;
 using TORSEPAN.Application.Auth.Queries.SearchUsers;
 using TORSEPAN.Application.Auth.Queries.UserCount;
 using TORSEPAN.Application.Auth.Queries.UserExists;
@@ -20,12 +21,11 @@ using TORSEPAN.Application.Auth.Queries.UserNameExists;
 using TORSEPAN.Application.Auth.Queries.UserStatistics;
 using TORSEPAN.Application.Auth.Queries.UserSummary;
 
-using LoginResponse = TORSEPAN.Application.Auth.Queries.Login.LoginResponse;
-
 namespace TORSEPAN.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public sealed class AuthController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -35,12 +35,15 @@ public sealed class AuthController : ControllerBase
         _mediator = mediator;
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginQuery query)
+    public async Task<ActionResult<LoginResult>> Login(
+        [FromBody] LoginCommand command)
     {
-        return Ok(await _mediator.Send(query));
+        return Ok(await _mediator.Send(command));
     }
 
+    [AllowAnonymous]
     [HttpPost("refresh")]
     public async Task<ActionResult<RefreshLoginResponse>> Refresh(
         [FromBody] RefreshTokenRequest request)

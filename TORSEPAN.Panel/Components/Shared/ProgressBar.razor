@@ -1,0 +1,21 @@
+﻿<div class="progress" style="height:@Height">
+
+    <div class="progress-bar"
+         role="progressbar"
+         style="width:@($"{Value}%")">
+
+        @($"{Value}%")
+
+    </div>
+
+</div>
+
+@code {
+
+    [Parameter]
+    public int Value { get; set; }
+
+    [Parameter]
+    public string Height { get; set; } = "22px";
+
+}

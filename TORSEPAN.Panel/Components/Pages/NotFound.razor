@@ -1,7 +1,29 @@
-﻿@page "/not-found"
+﻿@page "/notfound"
 
-<PageTitle>Not Found</PageTitle>
+<PageTitle>یافت نشد</PageTitle>
 
-<h3>Page Not Found</h3>
+<PageContainer>
 
-<p>The requested page does not exist.</p>
+    <CenteredMessage Title="صفحه مورد نظر پیدا نشد"
+                     Message="آدرس وارد شده معتبر نیست." />
+
+    <ActionBar>
+
+        <PrimaryButton Text="بازگشت"
+                       OnClick="GoHome" />
+
+    </ActionBar>
+
+</PageContainer>
+
+@code {
+
+    [Inject]
+    NavigationManager Navigation { get; set; } = default!;
+
+    void GoHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+}

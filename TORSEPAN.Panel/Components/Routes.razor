@@ -2,12 +2,28 @@
 
     <Found Context="routeData">
 
-        <RouteView RouteData="@routeData"
-                   DefaultLayout="@typeof(MainLayout)" />
+        @if (routeData.PageType == typeof(TORSEPAN.Panel.Components.Pages.Login))
+        {
+            <RouteView RouteData="@routeData"
+                       DefaultLayout="@typeof(EmptyLayout)" />
+        }
+        else
+        {
+            <RouteView RouteData="@routeData"
+                       DefaultLayout="@typeof(MainLayout)" />
+        }
 
         <FocusOnNavigate RouteData="@routeData"
                          Selector="h1" />
 
     </Found>
+
+    <NotFound>
+
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p>صفحه مورد نظر پیدا نشد.</p>
+        </LayoutView>
+
+    </NotFound>
 
 </Router>

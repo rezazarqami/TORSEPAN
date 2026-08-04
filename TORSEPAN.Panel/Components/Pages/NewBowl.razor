@@ -1,0 +1,133 @@
+﻿@page "/bowls/new"
+
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+
+@inject BowlService BowlService
+@inject MaterialService MaterialService
+@inject NavigationManager Navigation
+
+<PageTitle>ثبت کاسه</PageTitle>
+
+<h3>ثبت کاسه</h3>
+
+<EditForm Model="_model"
+          Method="post"
+          FormName="CreateBowl"
+          OnValidSubmit="SaveAsync">
+
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    <div class="card p-4">
+
+        <div class="mb-3">
+            <label class="form-label">کد کاسه</label>
+            <InputText class="form-control"
+                       @bind-Value="_model.ProductionCode" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">نوع کاسه</label>
+
+            <InputSelect class="form-select"
+                         @bind-Value="_model.BowlType">
+                <option value="0">کاسه بالا</option>
+                <option value="1">کاسه پایین</option>
+            </InputSelect>
+        </div>
+
+        @if (_model.BowlType == 1)
+        {
+            <div class="mb-3">
+                <div class="form-check">
+                    <InputCheckbox class="form-check-input"
+                                   @bind-Value="_model.HasNotes" />
+                    <label class="form-check-label">
+                        دارای نت
+                    </label>
+                </div>
+            </div>
+        }
+
+        <div class="mb-3">
+            <label class="form-label">نوع ساز</label>
+
+            <InputSelect class="form-select"
+                         @bind-Value="_model.InstrumentType">
+                <option value="0">9 نت</option>
+                <option value="1">Custom</option>
+            </InputSelect>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">متریال</label>
+
+            <InputSelect class="form-select"
+                         @bind-Value="_model.MaterialId">
+
+                <option value="@Guid.Empty">انتخاب کنید...</option>
+
+                @foreach (var material in _materials)
+                {
+                    <option value="@material.Id">@material.Name</option>
+                }
+
+            </InputSelect>
+        </div>
+
+        <button class="btn btn-primary"
+                type="submit">
+            ثبت
+        </button>
+
+    </div>
+
+</EditForm>
+
+@code
+{
+    private readonly CreateBowlRequest _model = new();
+
+    private readonly List<MaterialDto> _materials = [];
+
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model.HasNotes = true;
+
+        _materials.Clear();
+        _materials.AddRange(await MaterialService.GetAsync());
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            _error = null;
+
+            if (_model.BowlType == 0)
+                _model.HasNotes = true;
+
+            var id = await BowlService.CreateAsync(_model);
+
+            if (id.HasValue)
+            {
+                Navigation.NavigateTo("/bowls", true);
+                return;
+            }
+
+            _error = "ثبت انجام نشد.";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+}

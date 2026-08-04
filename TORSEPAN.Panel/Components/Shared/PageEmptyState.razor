@@ -1,0 +1,16 @@
+﻿<PageCard>
+
+    <CenteredMessage Title="@Title"
+                     Message="@Message" />
+
+</PageCard>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "اطلاعاتی وجود ندارد";
+
+    [Parameter]
+    public string Message { get; set; } = "";
+
+}

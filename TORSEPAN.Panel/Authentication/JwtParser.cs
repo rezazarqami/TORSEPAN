@@ -9,9 +9,12 @@ public static class JwtParser
     {
         var claims = new List<Claim>();
 
+        if (string.IsNullOrWhiteSpace(jwt))
+            return claims;
+
         var parts = jwt.Split('.');
 
-        if (parts.Length < 2)
+        if (parts.Length != 3)
             return claims;
 
         var payload = parts[1]
@@ -28,16 +31,26 @@ public static class JwtParser
                 break;
         }
 
-        var json = Convert.FromBase64String(payload);
+        var jsonBytes = Convert.FromBase64String(payload);
 
-        var values = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+        var values = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonBytes);
 
         if (values is null)
             return claims;
 
         foreach (var item in values)
         {
-            claims.Add(new Claim(item.Key, item.Value?.ToString() ?? ""));
+            if (item.Value.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var role in item.Value.EnumerateArray())
+                {
+                    claims.Add(new Claim(item.Key, role.GetString() ?? string.Empty));
+                }
+
+                continue;
+            }
+
+            claims.Add(new Claim(item.Key, item.Value.ToString()));
         }
 
         return claims;

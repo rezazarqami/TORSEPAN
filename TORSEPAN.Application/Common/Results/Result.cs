@@ -6,16 +6,6 @@ public class Result
 {
     protected Result(bool isSuccess, Error error)
     {
-        if (isSuccess && error != Error.None)
-            throw new ArgumentException(
-                "A successful result cannot contain an error.",
-                nameof(error));
-
-        if (!isSuccess && error == Error.None)
-            throw new ArgumentException(
-                "A failed result must contain an error.",
-                nameof(error));
-
         IsSuccess = isSuccess;
         Error = error;
     }
@@ -46,29 +36,11 @@ public sealed class Result<T> : Result
         _value = value;
     }
 
-    public T Value =>
-        IsSuccess
-            ? _value!
-            : throw new InvalidOperationException(
-                "Cannot access the value of a failed result.");
+    public T? Value => _value;
 
     public static Result<T> Success([DisallowNull] T value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-
-        return new Result<T>(
-            value,
-            true,
-            Error.None);
-    }
+        => new(value, true, Error.None);
 
     public new static Result<T> Failure(Error error)
-    {
-        ArgumentNullException.ThrowIfNull(error);
-
-        return new Result<T>(
-            default,
-            false,
-            error);
-    }
+        => new(default, false, error);
 }

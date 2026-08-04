@@ -1,0 +1,21 @@
+﻿<div class="mb-4">
+
+    <h6 class="fw-bold mb-3">
+
+        @Title
+
+    </h6>
+
+    @ChildContent
+
+</div>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+}

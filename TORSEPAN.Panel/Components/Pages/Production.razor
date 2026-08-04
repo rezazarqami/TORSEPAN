@@ -1,42 +1,83 @@
-﻿@page "/production/list"
+﻿@page "/production"
 
-<PageTitle>Production List</PageTitle>
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
 
-<PageHeader Title="Production"
-            SubTitle="Production Queue" />
+@inject NavigationManager Navigation
+@inject ProductionService ProductionService
 
-<Card>
+<PageTitle>تولید</PageTitle>
 
-    <DataTable>
+<PageHeader Title="تولید"
+            SubTitle="مدیریت خط تولید">
 
-        <thead>
+    <Actions>
 
-            <tr>
+        <PrimaryButton Text="صف تولید"
+                       OnClick="OpenQueue" />
 
-                <th>Code</th>
-                <th>Stage</th>
-                <th>Status</th>
-                <th>Created</th>
+    </Actions>
 
-            </tr>
+</PageHeader>
 
-        </thead>
+@if (_loading)
+{
+    <div class="text-center mt-5">
+        <div class="spinner-border"></div>
+    </div>
+}
+else if (_dashboard is null)
+{
+    <EmptyState Title="اطلاعاتی وجود ندارد"
+                Description="داشبورد تولید در دسترس نیست." />
+}
+else
+{
+    <div class="row g-3">
 
-        <tbody>
+        <div class="col-md-3">
+            <StatCard Title="کل کاسه‌ها"
+                      Value="@_dashboard.TotalBowls.ToString()" />
+        </div>
 
-            <tr>
+        <div class="col-md-3">
+            <StatCard Title="کل اسمبلی"
+                      Value="@_dashboard.TotalAssemblies.ToString()" />
+        </div>
 
-                <td colspan="4">
+        <div class="col-md-3">
+            <StatCard Title="کل هنگدرام"
+                      Value="@_dashboard.TotalHandpans.ToString()" />
+        </div>
 
-                    <EmptyState Title="No Production"
-                                Description="Production queue is empty." />
+        <div class="col-md-3">
+            <StatCard Title="تکمیل شده"
+                      Value="@_dashboard.Finished.ToString()" />
+        </div>
 
-                </td>
+    </div>
+}
 
-            </tr>
+@code
+{
+    private bool _loading = true;
 
-        </tbody>
+    private ProductionDashboardDto? _dashboard;
 
-    </DataTable>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _dashboard = await ProductionService.GetDashboardAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
 
-</Card>
+    private void OpenQueue()
+    {
+        Navigation.NavigateTo("/production/list");
+    }
+}

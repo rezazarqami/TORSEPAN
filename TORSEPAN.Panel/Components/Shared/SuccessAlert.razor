@@ -1,0 +1,18 @@
+﻿@if (Visible)
+{
+    <div class="alert alert-success">
+
+        @Message
+
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public string Message { get; set; } = "";
+
+}

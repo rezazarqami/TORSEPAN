@@ -6,20 +6,7 @@ namespace TORSEPAN.Domain.Entities;
 
 public class Handpan : Entity
 {
-    public Guid AssemblyId { get; private set; }
-
-    public string SerialNumber { get; private set; } = string.Empty;
-
-    public new DateTime CreatedAt { get; private set; }
-
-    public ProductionStatus Status { get; private set; }
-
-    public ProductionStage Stage { get; private set; }
-
-    // Navigation
-    public HandpanAssembly Assembly { get; private set; } = null!;
-
-    public ICollection<ProductionEvent> ProductionEvents { get; private set; } = new List<ProductionEvent>();
+    private readonly List<ProductionEvent> _productionEvents = new();
 
     private Handpan()
     {
@@ -27,78 +14,76 @@ public class Handpan : Entity
 
     public Handpan(Guid assemblyId, string serialNumber)
     {
-        if (assemblyId == Guid.Empty)
-            throw new ArgumentException("Assembly is required.");
-
-        if (string.IsNullOrWhiteSpace(serialNumber))
-            throw new ArgumentException("Serial number is required.");
-
+        Id = Guid.NewGuid();
         AssemblyId = assemblyId;
-        SerialNumber = serialNumber.Trim();
-
+        SerialNumber = serialNumber;
         CreatedAt = DateTime.UtcNow;
-
-        Status = ProductionStatus.InProgress;
-
-        Stage = ProductionStage.Created;
     }
+
+    public Guid AssemblyId { get; private set; }
+
+    public HandpanAssembly Assembly { get; private set; } = null!;
+
+    public string SerialNumber { get; private set; } = string.Empty;
+
+    public ProductionStatus Status { get; private set; }
+
+    public ProductionStage Stage { get; private set; }
+
+    public DateTime CreatedAt { get; private set; }
+
+    public DateTime? UpdatedAt { get; private set; }
+
+    public IReadOnlyCollection<ProductionEvent> ProductionEvents => _productionEvents;
 
     public void RegisterProductionOperation(
         ProductionTransition transition,
         Guid userId,
         EventResult result,
         OperationDuration? duration,
-        string? description)
+        string description)
     {
-        ArgumentNullException.ThrowIfNull(transition);
+        if (!Enum.TryParse<ProductionAction>(
+            transition.ToString(),
+            true,
+            out var action))
+        {
+            action = default;
+        }
 
-        if (transition.CurrentStage != Stage)
-            throw new InvalidOperationException(
-                $"Current stage is '{Stage}' but transition expects '{transition.CurrentStage}'.");
+        _productionEvents.Add(
+            new ProductionEvent(
+                handpanId: Id,
+                assemblyId: AssemblyId,
+                bowlId: null,
+                userId: userId,
+                action: action,
+                result: result,
+                duration: duration,
+                description: description));
 
-        var productionEvent = new ProductionEvent(
-            userId: userId,
-            action: transition.Action,
-            result: result,
-            handpanId: Id,
-            duration: duration,
-            description: description);
+        UpdatedAt = DateTime.UtcNow;
+    }
 
-        ProductionEvents.Add(productionEvent);
+    public void CompleteProduction()
+    {
+        UpdatedAt = DateTime.UtcNow;
+    }
 
-        Stage = transition.NextStage;
-
-        MarkUpdated();
+    public void Reject()
+    {
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void ChangeStage(ProductionStage stage)
     {
         Stage = stage;
-
-        MarkUpdated();
+        UpdatedAt = DateTime.UtcNow;
     }
 
-    public void CompleteProduction()
+    public void ChangeStatus(ProductionStatus status)
     {
-        Status = ProductionStatus.Completed;
-        Stage = ProductionStage.FinishedWarehouse;
-
-        MarkUpdated();
-    }
-
-    public void Reject()
-    {
-        Status = ProductionStatus.Rejected;
-
-        MarkUpdated();
-    }
-
-    public void AddProductionEvent(ProductionEvent productionEvent)
-    {
-        ArgumentNullException.ThrowIfNull(productionEvent);
-
-        ProductionEvents.Add(productionEvent);
-
-        MarkUpdated();
+        Status = status;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

@@ -1,5 +1,11 @@
 ﻿@page "/users/list"
 
+@using TORSEPAN.Panel.Services
+@using TORSEPAN.Application.Auth.Queries.GetUsers
+
+@inject NavigationManager Navigation
+@inject IUserService UserService
+
 <PageTitle>Users</PageTitle>
 
 <PageHeader Title="Users"
@@ -7,7 +13,8 @@
 
     <Actions>
 
-        <PrimaryButton Text="New User" />
+        <PrimaryButton Text="New User"
+                       OnClick="NewUser" />
 
     </Actions>
 
@@ -24,7 +31,8 @@
             <tr>
 
                 <th>Username</th>
-                <th>Role</th>
+                <th>Full Name</th>
+                <th>Roles</th>
                 <th>Status</th>
 
             </tr>
@@ -33,19 +41,44 @@
 
         <tbody>
 
-            <tr>
+            @foreach (var user in Users)
+            {
+                <tr>
 
-                <td colspan="3">
+                    <td>@user.UserName</td>
 
-                    <EmptyState Title="No User"
-                                Description="There are no registered users." />
+                    <td>@user.FullName</td>
 
-                </td>
+                    <td>
+                        @(user.Roles.Count > 0
+                            ? string.Join(", ", user.Roles)
+                            : user.Role)
+                    </td>
 
-            </tr>
+                    <td>
+                        @(user.IsActive ? "Active" : "Inactive")
+                    </td>
+
+                </tr>
+            }
 
         </tbody>
 
     </DataTable>
 
 </Card>
+
+@code
+{
+    private List<UserDto> Users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Users = await UserService.GetUsersAsync();
+    }
+
+    private void NewUser()
+    {
+        Navigation.NavigateTo("/users/new");
+    }
+}

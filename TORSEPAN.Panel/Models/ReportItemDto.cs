@@ -1,7 +1,12 @@
 ﻿namespace TORSEPAN.Panel.Models;
 
-public sealed record ReportItemDto(
-    string ProductionCode,
-    string Stage,
-    DateTime Date,
-    string User);
+public sealed class ReportItemDto
+{
+    public Guid Id { get; set; }
+
+    public string Title { get; set; } = string.Empty;
+
+    public string Description { get; set; } = string.Empty;
+
+    public DateTime CreatedAt { get; set; }
+}

@@ -9,8 +9,7 @@ public sealed class CreateHandpanCommandHandler
 {
     private readonly IUnitOfWork _unitOfWork;
 
-    public CreateHandpanCommandHandler(
-        IUnitOfWork unitOfWork)
+    public CreateHandpanCommandHandler(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
     }
@@ -26,8 +25,14 @@ public sealed class CreateHandpanCommandHandler
             throw new InvalidOperationException(
                 $"Handpan '{request.SerialNumber}' already exists.");
 
+        var assembly = new HandpanAssembly(
+            request.TopBowlId,
+            request.BottomBowlId);
+
+        await _unitOfWork.HandpanAssemblies.AddAsync(assembly);
+
         var handpan = new Handpan(
-            request.AssemblyId,
+            assembly.Id,
             request.SerialNumber);
 
         await _unitOfWork.Handpans.AddAsync(handpan);
