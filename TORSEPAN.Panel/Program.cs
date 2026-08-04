@@ -16,9 +16,12 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<TokenStorage>();
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
+var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
+    ?? "https://localhost:7081/";
+
 builder.Services.AddHttpClient<ApiClient>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7081/");
+    client.BaseAddress = new Uri(apiBaseUrl);
 });
 
 builder.Services.AddScoped<IAuthService, AuthenticationService>();
