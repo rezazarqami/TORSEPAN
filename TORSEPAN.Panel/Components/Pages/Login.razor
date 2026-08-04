@@ -15,6 +15,9 @@
 
         <FormSection Title="اطلاعات ورود">
 
+            <ErrorAlert Visible="@(!string.IsNullOrWhiteSpace(ErrorMessage))"
+                        Message="@ErrorMessage" />
+
             <TextInput Label="نام کاربری"
                        @bind-Value="Username" />
 
@@ -23,7 +26,8 @@
 
             <FormActions>
 
-                <PrimaryButton Text="ورود"
+                <PrimaryButton Text="@(IsSubmitting ? "در حال ورود..." : "ورود")"
+                               Disabled="@IsSubmitting"
                                OnClick="LoginUser" />
 
             </FormActions>
@@ -46,16 +50,41 @@
 
     string Password = "";
 
+    string ErrorMessage = "";
+
+    bool IsSubmitting;
+
     async Task LoginUser()
     {
-        var result = await AuthenticationService.LoginAsync(
-            new LoginCommand(
-                Username,
-                Password));
+        ErrorMessage = "";
+        IsSubmitting = true;
 
-        if (result.Success)
+        try
         {
-            Navigation.NavigateTo("/", true);
+            var result = await AuthenticationService.LoginAsync(
+                new LoginCommand(
+                    Username,
+                    Password));
+
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/", true);
+                return;
+            }
+
+            ErrorMessage = "نام کاربری یا رمز عبور صحیح نیست.";
+        }
+        catch (HttpRequestException)
+        {
+            ErrorMessage = "ارتباط با سرویس ورود برقرار نشد. لطفاً دوباره تلاش کنید.";
+        }
+        catch
+        {
+            ErrorMessage = "ورود انجام نشد. لطفاً اطلاعات خود را بررسی و دوباره تلاش کنید.";
+        }
+        finally
+        {
+            IsSubmitting = false;
         }
     }
 
