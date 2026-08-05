@@ -14,9 +14,12 @@ public class UserRepository : GenericRepository<User>, IUserRepository
 
     public async Task<User?> GetByUsernameAsync(string username)
     {
+        var normalizedUsername = username.Trim().ToUpper();
+
         return await _dbSet
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.UserName == username);
+            .FirstOrDefaultAsync(x =>
+                x.UserName.ToUpper() == normalizedUsername);
     }
 
     public async Task<List<User>> GetAllAsync()
