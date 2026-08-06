@@ -13,14 +13,14 @@ public sealed class MaterialService
 
     public async Task<IReadOnlyList<MaterialDto>> GetAsync()
     {
-        return await _api.GetAsync<List<MaterialDto>>("api/materials")
+        return await _api.GetAsync<List<MaterialDto>>("materials")
                ?? [];
     }
 
     public async Task<Guid?> CreateMaterialAsync(CreateMaterialRequest request)
     {
         return await _api.PostAsync<CreateMaterialRequest, Guid>(
-            "api/materials",
+            "materials",
             request);
     }
 }

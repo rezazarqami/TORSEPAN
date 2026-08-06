@@ -14,20 +14,20 @@ public sealed class HandpanService
     public async Task<Guid?> CreateAsync(CreateHandpanRequest request)
     {
         return await _api.PostAsync<CreateHandpanRequest, Guid?>(
-            "api/handpans",
+            "handpans",
             request);
     }
 
     public async Task<HandpanDto?> GetAsync(Guid id)
     {
         return await _api.GetAsync<HandpanDto>(
-            $"api/handpans/{id}");
+            $"handpans/{id}");
     }
 
     public async Task<IReadOnlyList<HandpanDto>> GetReadyForPackagingAsync()
     {
         return await _api.GetAsync<IReadOnlyList<HandpanDto>>(
-                   "api/handpans/ready-for-packaging")
+                   "handpans/ready-for-packaging")
                ?? [];
     }
 }

@@ -15,7 +15,7 @@ public sealed class ReportService
     {
         var result =
             await _api.GetAsync<IReadOnlyList<ReportItemDto>>(
-                "api/reports");
+                "reports");
 
         return result ?? [];
     }
