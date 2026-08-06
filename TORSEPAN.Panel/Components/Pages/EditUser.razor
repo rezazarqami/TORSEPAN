@@ -68,7 +68,7 @@
     public Guid UserId { get; set; }
 
     private readonly EditUserModel _model = new();
-    private readonly List<RoleOption> _roles = RoleOption.CreateDefaults();
+    private List<RoleOption> _roles = new();
     private bool _isLoading = true;
     private bool _isSaving;
     private string? _errorMessage;
@@ -76,7 +76,11 @@
     protected override async Task OnParametersSetAsync()
     {
         _isLoading = true;
-        var user = await UserService.GetUserAsync(UserId);
+        var userTask = UserService.GetUserAsync(UserId);
+        var rolesTask = UserService.GetRolesAsync();
+        await Task.WhenAll(userTask, rolesTask);
+
+        var user = await userTask;
 
         if (user is null)
         {
@@ -88,8 +92,12 @@
         _model.FullName = user.FullName;
 
         var selectedRoleIds = user.RoleIds.ToHashSet();
-        foreach (var role in _roles)
-            role.IsSelected = selectedRoleIds.Contains(role.Id);
+        _roles = (await rolesTask)
+            .Select(role => new RoleOption(
+                role.Id,
+                role.DisplayName,
+                selectedRoleIds.Contains(role.Id)))
+            .ToList();
 
         _isLoading = false;
     }
@@ -132,27 +140,15 @@
 
     private sealed class RoleOption
     {
-        private RoleOption(string id, string displayName)
+        public RoleOption(Guid id, string displayName, bool isSelected)
         {
-            Id = Guid.Parse(id);
+            Id = id;
             DisplayName = displayName;
+            IsSelected = isSelected;
         }
 
         public Guid Id { get; }
         public string DisplayName { get; }
         public bool IsSelected { get; set; }
-
-        public static List<RoleOption> CreateDefaults() => new()
-        {
-            new("11111111-1111-1111-1111-111111111111", "Administrator"),
-            new("22222222-2222-2222-2222-222222222222", "Production Manager"),
-            new("33333333-3333-3333-3333-333333333333", "Dimpler"),
-            new("44444444-4444-4444-4444-444444444444", "Shaper"),
-            new("55555555-5555-5555-5555-555555555555", "Tuner"),
-            new("66666666-6666-6666-6666-666666666666", "Fine Tuner"),
-            new("77777777-7777-7777-7777-777777777777", "Quality Control"),
-            new("88888888-8888-8888-8888-888888888888", "Workshop"),
-            new("99999999-9999-9999-9999-999999999999", "Warehouse")
-        };
     }
 }

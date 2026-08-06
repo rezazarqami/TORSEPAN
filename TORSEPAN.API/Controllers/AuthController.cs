@@ -10,6 +10,7 @@ using TORSEPAN.Application.Auth.Commands.UpdateUser;
 using TORSEPAN.Application.Auth.Commands.UpdateUserStatus;
 using TORSEPAN.Application.Auth.Queries.GetActiveUsers;
 using TORSEPAN.Application.Auth.Queries.GetInactiveUsers;
+using TORSEPAN.Application.Auth.Queries.GetRoles;
 using TORSEPAN.Application.Auth.Queries.GetUserById;
 using TORSEPAN.Application.Auth.Queries.GetUserByUsername;
 using TORSEPAN.Application.Auth.Queries.GetUsers;
@@ -80,6 +81,12 @@ public sealed class AuthController : ControllerBase
     public async Task<ActionResult<List<TORSEPAN.Application.Auth.Queries.GetUsers.UserDto>>> GetUsers()
     {
         return Ok(await _mediator.Send(new GetUsersQuery()));
+    }
+
+    [HttpGet("roles")]
+    public async Task<ActionResult<List<RoleDto>>> GetRoles()
+    {
+        return Ok(await _mediator.Send(new GetRolesQuery()));
     }
 
     [HttpGet("users/paged")]
