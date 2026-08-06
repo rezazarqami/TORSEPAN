@@ -15,7 +15,7 @@ public sealed class BowlService
 
     public async Task<IReadOnlyList<BowlDto>> GetAsync()
     {
-        var result = await _api.GetAsync<PagedResult<BowlDto>>("api/bowls");
+        var result = await _api.GetAsync<PagedResult<BowlDto>>("bowls");
         return result?.Items ?? [];
     }
 
@@ -24,7 +24,7 @@ public sealed class BowlService
         try
         {
             var response = await _api.PostAsync<CreateBowlRequest, JsonElement>(
-                "api/bowls",
+                "bowls",
                 request);
 
             if (response.ValueKind == JsonValueKind.Object &&
