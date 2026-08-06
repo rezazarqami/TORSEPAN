@@ -12,12 +12,22 @@ public class UserRepository : GenericRepository<User>, IUserRepository
     {
     }
 
+    public override async Task<User?> GetByIdAsync(Guid id)
+    {
+        return await _dbSet
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(x => x.Id == id);
+    }
+
     public async Task<User?> GetByUsernameAsync(string username)
     {
         var normalizedUsername = username.Trim().ToUpper();
 
         return await _dbSet
             .AsNoTracking()
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
             .FirstOrDefaultAsync(x =>
                 x.UserName.ToUpper() == normalizedUsername);
     }
@@ -26,6 +36,8 @@ public class UserRepository : GenericRepository<User>, IUserRepository
     {
         return await _dbSet
             .AsNoTracking()
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
             .OrderBy(x => x.UserName)
             .ToListAsync();
     }

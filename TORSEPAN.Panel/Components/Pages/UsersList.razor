@@ -34,6 +34,7 @@
                 <th>Full Name</th>
                 <th>Roles</th>
                 <th>Status</th>
+                <th></th>
 
             </tr>
 
@@ -59,6 +60,13 @@
                         @(user.IsActive ? "Active" : "Inactive")
                     </td>
 
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary"
+                                @onclick="() => EditUser(user.Id)">
+                            ویرایش
+                        </button>
+                    </td>
+
                 </tr>
             }
 
@@ -80,5 +88,10 @@
     private void NewUser()
     {
         Navigation.NavigateTo("/users/new");
+    }
+
+    private void EditUser(Guid userId)
+    {
+        Navigation.NavigateTo($"/users/{userId}/edit");
     }
 }

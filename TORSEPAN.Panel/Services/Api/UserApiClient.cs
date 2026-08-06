@@ -1,31 +1,38 @@
-﻿using System.Net.Http.Json;
 using TORSEPAN.Application.Auth.Commands.CreateUser;
+using TORSEPAN.Application.Auth.Commands.UpdateUser;
 using TORSEPAN.Application.Auth.Queries.GetUsers;
+using UserDetailsDto = TORSEPAN.Application.Auth.Queries.GetUserById.UserDto;
 
 namespace TORSEPAN.Panel.Services.Api;
 
 public class UserApiClient
 {
-    private readonly HttpClient _httpClient;
+    private readonly ApiClient _apiClient;
 
-    public UserApiClient(HttpClient httpClient)
+    public UserApiClient(ApiClient apiClient)
     {
-        _httpClient = httpClient;
+        _apiClient = apiClient;
     }
 
     public async Task<List<UserDto>> GetUsersAsync()
     {
-        var result = await _httpClient.GetFromJsonAsync<List<UserDto>>("/api/users");
-
+        var result = await _apiClient.GetAsync<List<UserDto>>("auth/users");
         return result ?? new List<UserDto>();
     }
 
     public async Task<Guid> CreateUserAsync(CreateUserCommand command)
     {
-        var response = await _httpClient.PostAsJsonAsync("/api/users", command);
+        return await _apiClient.PostAsync<CreateUserCommand, Guid>("auth/users", command);
+    }
 
-        response.EnsureSuccessStatusCode();
+    public Task<UserDetailsDto?> GetUserAsync(Guid userId)
+    {
+        return _apiClient.GetAsync<UserDetailsDto>($"auth/users/{userId}");
+    }
 
-        return await response.Content.ReadFromJsonAsync<Guid>();
+    public async Task UpdateUserAsync(UpdateUserCommand command)
+    {
+        await _apiClient.PutAsync<UpdateUserCommand, object?>(
+            $"auth/users/{command.UserId}", command);
     }
 }

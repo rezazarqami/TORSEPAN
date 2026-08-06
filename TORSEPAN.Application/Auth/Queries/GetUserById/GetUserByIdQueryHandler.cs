@@ -27,6 +27,8 @@ public sealed class GetUserByIdQueryHandler
             Id = user.Id,
             UserName = user.UserName,
             FullName = user.FullName,
+            RoleIds = user.UserRoles.Select(x => x.RoleId).ToList(),
+            Roles = user.UserRoles.Select(x => x.Role.DisplayName).OrderBy(x => x).ToList(),
             IsActive = user.IsActive
         };
     }

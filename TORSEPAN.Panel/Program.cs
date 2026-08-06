@@ -34,7 +34,7 @@ builder.Services.AddScoped<ApiClient>(serviceProvider =>
 
 builder.Services.AddScoped<IAuthService, AuthenticationService>();
 
-builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<UserApiClient>();
 
 builder.Services.AddScoped<ProductionService>();

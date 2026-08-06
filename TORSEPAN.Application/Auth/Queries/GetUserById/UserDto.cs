@@ -8,5 +8,9 @@ public sealed class UserDto
 
     public string FullName { get; set; } = string.Empty;
 
+    public List<Guid> RoleIds { get; set; } = new();
+
+    public List<string> Roles { get; set; } = new();
+
     public bool IsActive { get; set; }
 }
