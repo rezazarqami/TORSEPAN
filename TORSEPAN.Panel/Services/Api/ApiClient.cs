@@ -2,16 +2,19 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using TORSEPAN.Panel.Services.Auth;
 
 namespace TORSEPAN.Panel.Services;
 
 public class ApiClient
 {
     private readonly HttpClient _http;
+    private readonly TokenStorage _tokenStorage;
 
-    public ApiClient(HttpClient http)
+    public ApiClient(HttpClient http, TokenStorage tokenStorage)
     {
         _http = http;
+        _tokenStorage = tokenStorage;
     }
 
     public void SetBearerToken(string? token)
@@ -28,6 +31,7 @@ public class ApiClient
 
     public async Task<T?> GetAsync<T>(string url)
     {
+        await ApplyStoredTokenAsync();
         return await _http.GetFromJsonAsync<T>(url);
     }
 
@@ -35,6 +39,7 @@ public class ApiClient
         string url,
         TRequest request)
     {
+        await ApplyStoredTokenAsync();
         var response = await _http.PostAsJsonAsync(url, request);
         return await ReadResponseAsync<TResult>(response);
     }
@@ -43,14 +48,22 @@ public class ApiClient
         string url,
         TRequest request)
     {
+        await ApplyStoredTokenAsync();
         var response = await _http.PutAsJsonAsync(url, request);
         return await ReadResponseAsync<TResult>(response);
     }
 
     public async Task DeleteAsync(string url)
     {
+        await ApplyStoredTokenAsync();
         var response = await _http.DeleteAsync(url);
         response.EnsureSuccessStatusCode();
+    }
+
+    private async Task ApplyStoredTokenAsync()
+    {
+        var token = await _tokenStorage.GetAccessTokenAsync();
+        SetBearerToken(token);
     }
 
     private static async Task<TResult?> ReadResponseAsync<TResult>(

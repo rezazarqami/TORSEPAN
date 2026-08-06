@@ -118,7 +118,7 @@
                 _model.FullName,
                 _roles.Where(x => x.IsSelected).Select(x => x.Id).ToList()));
 
-            Navigation.NavigateTo("/users/list", true);
+            Navigation.NavigateTo("/users/list");
         }
         catch (Exception ex)
         {
