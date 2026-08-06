@@ -1,0 +1,147 @@
+@page "/users/{UserId:guid}/edit"
+
+@using TORSEPAN.Application.Auth.Commands.UpdateUser
+
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>ویرایش کاربر</PageTitle>
+
+<PageHeader Title="ویرایش کاربر"
+            SubTitle="ویرایش مشخصات و نقش‌های کاربر" />
+
+<Card>
+    @if (_isLoading)
+    {
+        <p>در حال دریافت اطلاعات...</p>
+    }
+    else
+    {
+        <EditForm Model="_model">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">نام کاربری</label>
+                    <InputText class="form-control" @bind-Value="_model.UserName" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">نام کامل</label>
+                    <InputText class="form-control" @bind-Value="_model.FullName" />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">نقش‌ها</label>
+                    <div class="row g-2">
+                        @foreach (var role in _roles)
+                        {
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input"
+                                                   @bind-Value="role.IsSelected" />
+                                    <label class="form-check-label">@role.DisplayName</label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button class="btn btn-primary" type="button" @onclick="Save" disabled="@_isSaving">
+                    ذخیره
+                </button>
+                <button class="btn btn-secondary" type="button" @onclick="Back">
+                    انصراف
+                </button>
+            </div>
+        </EditForm>
+    }
+</Card>
+
+@code {
+    [Parameter]
+    public Guid UserId { get; set; }
+
+    private readonly EditUserModel _model = new();
+    private readonly List<RoleOption> _roles = RoleOption.CreateDefaults();
+    private bool _isLoading = true;
+    private bool _isSaving;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        var user = await UserService.GetUserAsync(UserId);
+
+        if (user is null)
+        {
+            Navigation.NavigateTo("/users/list");
+            return;
+        }
+
+        _model.UserName = user.UserName;
+        _model.FullName = user.FullName;
+
+        var selectedRoleIds = user.RoleIds.ToHashSet();
+        foreach (var role in _roles)
+            role.IsSelected = selectedRoleIds.Contains(role.Id);
+
+        _isLoading = false;
+    }
+
+    private async Task Save()
+    {
+        if (_isSaving)
+            return;
+
+        _isSaving = true;
+
+        try
+        {
+            await UserService.UpdateUserAsync(new UpdateUserCommand(
+                UserId,
+                _model.UserName,
+                _model.FullName,
+                _roles.Where(x => x.IsSelected).Select(x => x.Id).ToList()));
+
+            Navigation.NavigateTo("/users/list", true);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Back() => Navigation.NavigateTo("/users/list");
+
+    private sealed class EditUserModel
+    {
+        public string UserName { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+    }
+
+    private sealed class RoleOption
+    {
+        private RoleOption(string id, string displayName)
+        {
+            Id = Guid.Parse(id);
+            DisplayName = displayName;
+        }
+
+        public Guid Id { get; }
+        public string DisplayName { get; }
+        public bool IsSelected { get; set; }
+
+        public static List<RoleOption> CreateDefaults() => new()
+        {
+            new("11111111-1111-1111-1111-111111111111", "Administrator"),
+            new("22222222-2222-2222-2222-222222222222", "Production Manager"),
+            new("33333333-3333-3333-3333-333333333333", "Dimpler"),
+            new("44444444-4444-4444-4444-444444444444", "Shaper"),
+            new("55555555-5555-5555-5555-555555555555", "Tuner"),
+            new("66666666-6666-6666-6666-666666666666", "Fine Tuner"),
+            new("77777777-7777-7777-7777-777777777777", "Quality Control"),
+            new("88888888-8888-8888-8888-888888888888", "Workshop"),
+            new("99999999-9999-9999-9999-999999999999", "Warehouse")
+        };
+    }
+}
