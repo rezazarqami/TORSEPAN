@@ -27,9 +27,11 @@ builder.Services.AddHttpClient("Api", client =>
 builder.Services.AddScoped<ApiClient>(serviceProvider =>
 {
     var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+    var tokenStorage = serviceProvider.GetRequiredService<TokenStorage>();
 
     return new ApiClient(
-        httpClientFactory.CreateClient("Api"));
+        httpClientFactory.CreateClient("Api"),
+        tokenStorage);
 });
 
 builder.Services.AddScoped<IAuthService, AuthenticationService>();
