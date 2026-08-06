@@ -1,6 +1,7 @@
 using TORSEPAN.Application.Auth.Commands.CreateUser;
 using TORSEPAN.Application.Auth.Commands.UpdateUser;
 using TORSEPAN.Application.Auth.Queries.GetUsers;
+using TORSEPAN.Application.Auth.Queries.GetRoles;
 using TORSEPAN.Panel.Services.Api;
 using UserDetailsDto = TORSEPAN.Application.Auth.Queries.GetUserById.UserDto;
 
@@ -19,6 +20,8 @@ public class UserService : IUserService
 
     public Task<Guid> CreateUserAsync(CreateUserCommand command) =>
         _api.CreateUserAsync(command);
+
+    public Task<List<RoleDto>> GetRolesAsync() => _api.GetRolesAsync();
 
     public Task<UserDetailsDto?> GetUserAsync(Guid userId) =>
         _api.GetUserAsync(userId);
