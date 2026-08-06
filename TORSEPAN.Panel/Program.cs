@@ -17,11 +17,19 @@ builder.Services.AddScoped<TokenStorage>();
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
 var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
-    ?? "https://localhost:7081/";
+    ?? "https://localhost:7081/api/";
 
-builder.Services.AddHttpClient<ApiClient>(client =>
+builder.Services.AddHttpClient("Api", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
+});
+
+builder.Services.AddScoped<ApiClient>(serviceProvider =>
+{
+    var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+
+    return new ApiClient(
+        httpClientFactory.CreateClient("Api"));
 });
 
 builder.Services.AddScoped<IAuthService, AuthenticationService>();

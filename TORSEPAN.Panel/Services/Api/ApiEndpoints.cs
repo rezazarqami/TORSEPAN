@@ -2,12 +2,12 @@
 
 public static class ApiEndpoints
 {
-    public const string Login = "api/auth/login";
-    public const string Refresh = "api/auth/refresh";
+    public const string Login = "auth/login";
+    public const string Refresh = "auth/refresh";
 
-    public const string Users = "api/auth/users";
+    public const string Users = "auth/users";
 
-    public const string Handpans = "api/handpans";
-    public const string Bowls = "api/bowls";
-    public const string Production = "api/production";
+    public const string Handpans = "handpans";
+    public const string Bowls = "bowls";
+    public const string Production = "production";
 }

@@ -18,11 +18,24 @@
             <ErrorAlert Visible="@(!string.IsNullOrWhiteSpace(ErrorMessage))"
                         Message="@ErrorMessage" />
 
-            <TextInput Label="نام کاربری"
-                       @bind-Value="Username" />
+            <div class="mb-3">
+                <label class="form-label">نام کاربری</label>
 
-            <TextInput Label="رمز عبور"
-                       @bind-Value="Password" />
+                <input class="form-control"
+                       autocomplete="username"
+                       value="@Username"
+                       @oninput="OnUsernameInput" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">رمز عبور</label>
+
+                <input class="form-control"
+                       type="password"
+                       autocomplete="current-password"
+                       value="@Password"
+                       @oninput="OnPasswordInput" />
+            </div>
 
             <FormActions>
 
@@ -54,6 +67,16 @@
 
     bool IsSubmitting;
 
+    void OnUsernameInput(ChangeEventArgs e)
+    {
+        Username = e.Value?.ToString()?.Trim() ?? "";
+    }
+
+    void OnPasswordInput(ChangeEventArgs e)
+    {
+        Password = e.Value?.ToString() ?? "";
+    }
+
     async Task LoginUser()
     {
         ErrorMessage = "";
@@ -68,7 +91,7 @@
 
             if (result.Success)
             {
-                Navigation.NavigateTo("/", true);
+                Navigation.NavigateTo("/");
                 return;
             }
 
