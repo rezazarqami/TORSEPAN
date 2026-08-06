@@ -25,6 +25,7 @@ public sealed class MaterialsController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IReadOnlyList<GetAllMaterialDto>>> GetAll(
         CancellationToken cancellationToken)
     {
