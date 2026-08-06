@@ -1,5 +1,7 @@
-﻿using System.Net.Http.Headers;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace TORSEPAN.Panel.Services;
 
@@ -34,13 +36,7 @@ public class ApiClient
         TRequest request)
     {
         var response = await _http.PostAsJsonAsync(url, request);
-
-        response.EnsureSuccessStatusCode();
-
-        if (response.Content.Headers.ContentLength == 0)
-            return default;
-
-        return await response.Content.ReadFromJsonAsync<TResult>();
+        return await ReadResponseAsync<TResult>(response);
     }
 
     public async Task<TResult?> PutAsync<TRequest, TResult>(
@@ -48,19 +44,31 @@ public class ApiClient
         TRequest request)
     {
         var response = await _http.PutAsJsonAsync(url, request);
-
-        response.EnsureSuccessStatusCode();
-
-        if (response.Content.Headers.ContentLength == 0)
-            return default;
-
-        return await response.Content.ReadFromJsonAsync<TResult>();
+        return await ReadResponseAsync<TResult>(response);
     }
 
     public async Task DeleteAsync(string url)
     {
         var response = await _http.DeleteAsync(url);
-
         response.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<TResult?> ReadResponseAsync<TResult>(
+        HttpResponseMessage response)
+    {
+        response.EnsureSuccessStatusCode();
+
+        if (response.StatusCode == HttpStatusCode.NoContent ||
+            response.Content.Headers.ContentLength == 0)
+            return default;
+
+        var content = await response.Content.ReadAsStringAsync();
+
+        if (string.IsNullOrWhiteSpace(content))
+            return default;
+
+        return JsonSerializer.Deserialize<TResult>(
+            content,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
     }
 }
