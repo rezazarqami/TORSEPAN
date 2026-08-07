@@ -20,6 +20,17 @@
 
 <div class="topbar-right">
 
+    <button type="button"
+            class="logout-button"
+            title="خروج از حساب کاربری"
+            disabled="@isLoggingOut"
+            @onclick="LogoutAsync">
+
+        <span aria-hidden="true">🚪</span>
+        <span>@(isLoggingOut ? "در حال خروج..." : "خروج")</span>
+
+    </button>
+
     <button class="icon-button">
 
         🔔
@@ -59,3 +70,25 @@
     </div>
 
 </div>
+
+@code {
+    [Inject]
+    private IAuthService AuthenticationService { get; set; } = default!;
+
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
+    private bool isLoggingOut;
+
+    private async Task LogoutAsync()
+    {
+        if (isLoggingOut)
+            return;
+
+        isLoggingOut = true;
+
+        await AuthenticationService.LogoutAsync();
+
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}
