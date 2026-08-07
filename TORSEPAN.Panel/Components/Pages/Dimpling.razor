@@ -1,4 +1,5 @@
 @page "/dimpling"
+@page "/production/process"
 
 @using System.Net
 @using TORSEPAN.Panel.Models
@@ -11,7 +12,7 @@
 <h3 class="mb-4">تولید</h3>
 
 <div class="alert alert-light border mb-4">
-    دیمپل ← شیپ ← کوره و پولیش ← تیون ← چسب ← فاین تیون ← کنترل کیفیت
+    دیمپل ← شیپ ← پخت ← تیون ← چسب ← فاین تیون ← کنترل کیفیت
 </div>
 
 <div class="card p-4">
@@ -63,8 +64,29 @@
             }
             else if (_bowl.Stage == 4)
             {
+                <div class="row align-items-end mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label">مدت زمان انجام شیپ</label>
+                        <select class="form-select" @bind="_duration">
+                            @foreach (var option in DurationOptions)
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <button class="btn btn-success w-100"
+                                disabled="@_loading"
+                                @onclick="CompleteShapeAsync">
+                            شیپ انجام شد
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (_bowl.Stage == 6)
+            {
                 <div class="alert alert-success mt-3 mb-0">
-                    دیمپل این کاسه ثبت شد و اکنون در انتظار شیپ است.
+                    شیپ این کاسه ثبت شد و اکنون در انتظار پخت است.
                 </div>
             }
             else
@@ -137,6 +159,16 @@
         });
     }
 
+    private async Task CompleteShapeAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            _bowl = await BowlService.CompleteShapeAsync(_productionCode, _duration);
+            if (_bowl is null)
+                _error = "ثبت پایان شیپ انجام نشد.";
+        });
+    }
+
     private async Task ExecuteAsync(Func<Task> action)
     {
         _loading = true;
@@ -179,6 +211,8 @@
         3 => "در حال دیمپل",
         4 => "در انتظار شیپ",
         5 => "در حال شیپ",
+        6 => "در انتظار پخت",
+        7 => "در حال پخت",
         _ => "در مرحله دیگری از تولید"
     };
 }

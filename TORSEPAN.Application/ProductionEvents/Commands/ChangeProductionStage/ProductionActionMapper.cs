@@ -12,7 +12,7 @@ internal static class ProductionActionMapper
 
             ProductionStage.Shape => ProductionAction.Shape,
 
-            ProductionStage.HeatTreatment => ProductionAction.Furnace,
+            ProductionStage.Bake => ProductionAction.Furnace,
 
             ProductionStage.Glue => ProductionAction.Glue,
 

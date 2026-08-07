@@ -191,7 +191,7 @@ else
     private void OpenDimpling()
     {
         if (!string.IsNullOrWhiteSpace(_dimplingCode))
-            Navigation.NavigateTo($"/dimpling?code={Uri.EscapeDataString(_dimplingCode.Trim())}");
+            Navigation.NavigateTo($"/production/process?code={Uri.EscapeDataString(_dimplingCode.Trim())}");
     }
 
     private void OpenDimplingOnEnter(KeyboardEventArgs args)

@@ -37,12 +37,12 @@
 
             <InputSelect class="form-select"
                          @bind-Value="_model.BowlType">
-                <option value="0">کاسه بالا</option>
-                <option value="1">کاسه پایین</option>
+                <option value="1">کاسه بالا</option>
+                <option value="2">کاسه پایین</option>
             </InputSelect>
         </div>
 
-        @if (_model.BowlType == 1)
+        @if (_model.BowlType == 2)
         {
             <div class="mb-3">
                 <div class="form-check">
@@ -60,8 +60,8 @@
 
             <InputSelect class="form-select"
                          @bind-Value="_model.InstrumentType">
-                <option value="0">9 نت</option>
-                <option value="1">Custom</option>
+                <option value="1">۹ نت</option>
+                <option value="2">سفارشی</option>
             </InputSelect>
         </div>
 
@@ -101,6 +101,8 @@
     protected override async Task OnInitializedAsync()
     {
         _model.HasNotes = true;
+        _model.BowlType = 1;
+        _model.InstrumentType = 1;
 
         _materials.Clear();
         _materials.AddRange(await MaterialService.GetAsync());
@@ -112,7 +114,7 @@
         {
             _error = null;
 
-            if (_model.BowlType == 0)
+            if (_model.BowlType == 1)
                 _model.HasNotes = true;
 
             var id = await BowlService.CreateAsync(_model);
