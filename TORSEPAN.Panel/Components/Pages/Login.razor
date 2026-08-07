@@ -23,8 +23,7 @@
 
                 <input class="form-control"
                        autocomplete="username"
-                       value="@Username"
-                       @oninput="OnUsernameInput" />
+                       @bind="Username" />
             </div>
 
             <div class="mb-3">
@@ -33,8 +32,7 @@
                 <input class="form-control"
                        type="password"
                        autocomplete="current-password"
-                       value="@Password"
-                       @oninput="OnPasswordInput" />
+                       @bind="Password" />
             </div>
 
             <FormActions>
@@ -67,16 +65,6 @@
 
     bool IsSubmitting;
 
-    void OnUsernameInput(ChangeEventArgs e)
-    {
-        Username = e.Value?.ToString()?.Trim() ?? "";
-    }
-
-    void OnPasswordInput(ChangeEventArgs e)
-    {
-        Password = e.Value?.ToString() ?? "";
-    }
-
     async Task LoginUser()
     {
         ErrorMessage = "";
@@ -86,7 +74,7 @@
         {
             var result = await AuthenticationService.LoginAsync(
                 new LoginCommand(
-                    Username,
+                    Username.Trim(),
                     Password));
 
             if (result.Success)
