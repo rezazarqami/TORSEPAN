@@ -19,4 +19,13 @@ public sealed class BowlDto
     public int Status { get; init; }
 
     public int Stage { get; init; }
+
+    public IReadOnlyList<BowlOperationDto> Operations { get; init; } = [];
+}
+
+public sealed class BowlOperationDto
+{
+    public int Action { get; init; }
+    public string PerformedBy { get; init; } = string.Empty;
+    public DateTime PerformedAt { get; init; }
 }

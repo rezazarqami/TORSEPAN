@@ -1,0 +1,37 @@
+@using TORSEPAN.Panel.Models
+
+<div class="p-3">
+    <h6 class="mb-3">@Title</h6>
+    @if (Operations.Count == 0)
+    {
+        <div class="text-muted">هنوز عملیاتی ثبت نشده است.</div>
+    }
+    else
+    {
+        <table class="table table-sm table-bordered mb-0">
+            <thead><tr><th>عملیات</th><th>انجام‌دهنده</th><th>تاریخ انجام</th></tr></thead>
+            <tbody>
+                @foreach (var operation in Operations)
+                {
+                    <tr>
+                        <td>@ActionText(operation.Action)</td>
+                        <td>@operation.PerformedBy</td>
+                        <td>@operation.PerformedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public IReadOnlyList<ProductionOperationDto> Operations { get; set; } = [];
+
+    private static string ActionText(int action) => action switch
+    {
+        1 => "ثبت کاسه", 2 => "دیمپل", 3 => "شیپ", 4 => "پخت", 5 => "چسب",
+        6 => "تیون", 7 => "فاین تیون", 8 => "QC", 9 => "بسته‌بندی",
+        10 => "ورود به انبار", 11 => "رد شده", _ => "عملیات تولید"
+    };
+}

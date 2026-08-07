@@ -9,4 +9,10 @@ public sealed record HandpanDto(
     string ScaleName,
     int Status,
     int Stage,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    IReadOnlyList<HandpanOperationDto> Operations);
+
+public sealed record HandpanOperationDto(
+    int Action,
+    string PerformedBy,
+    DateTime PerformedAt);

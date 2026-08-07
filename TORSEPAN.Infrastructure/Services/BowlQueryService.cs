@@ -34,7 +34,19 @@ public sealed class BowlQueryService : IBowlQueryService
                 MaterialId = x.MaterialId,
                 MaterialName = x.Material.Name,
                 Status = (int)x.Status,
-                Stage = (int)x.Stage
+                Stage = (int)x.Stage,
+                Operations = x.ProductionEvents
+                    .Where(e => e.Result == TORSEPAN.Domain.Enums.EventResult.Completed)
+                    .OrderBy(e => e.EventDate)
+                    .Select(e => new BowlOperationDto
+                    {
+                        Action = (int)e.Action,
+                        PerformedBy = string.IsNullOrWhiteSpace(e.User.FullName)
+                            ? e.User.UserName
+                            : e.User.FullName,
+                        PerformedAt = e.EventDate
+                    })
+                    .ToList()
             });
 
         var totalItems = await query.CountAsync(cancellationToken);
