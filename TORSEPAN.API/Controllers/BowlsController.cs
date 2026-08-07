@@ -67,7 +67,7 @@ public sealed class BowlsController : ControllerBase
     }
 
     [HttpGet("dimpling/{productionCode}")]
-    [Authorize(Roles = "Dimpler,Shaper,Administrator")]
+    [Authorize(Roles = "Dimpler,Shaper,Workshop,Administrator")]
     public async Task<ActionResult> GetForDimpling(
         string productionCode,
         CancellationToken cancellationToken)
@@ -102,6 +102,19 @@ public sealed class BowlsController : ControllerBase
     {
         var result = await _mediator.Send(
             new CompleteBowlShapeCommand(productionCode, request.Duration),
+            cancellationToken);
+
+        return this.ToActionResult(result);
+    }
+
+    [HttpPost("production/{productionCode}/bake/complete")]
+    [Authorize(Roles = "Workshop,Administrator")]
+    public async Task<ActionResult> CompleteBake(
+        string productionCode,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new CompleteBowlBakeCommand(productionCode),
             cancellationToken);
 
         return this.ToActionResult(result);
