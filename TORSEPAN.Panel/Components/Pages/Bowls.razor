@@ -45,6 +45,7 @@ else
                 <th>نوع کاسه</th>
                 <th>دارای نت</th>
                 <th>نوع ساز</th>
+                <th>وضعیت</th>
             </tr>
         </thead>
 
@@ -54,9 +55,10 @@ else
             {
                 <tr>
                     <td>@bowl.ProductionCode</td>
-                    <td>@(bowl.BowlType == 0 ? "کاسه بالا" : "کاسه پایین")</td>
+                    <td>@(bowl.BowlType == 1 ? "کاسه بالا" : "کاسه پایین")</td>
                     <td>@(bowl.HasNotes ? "بله" : "خیر")</td>
-                    <td>@(bowl.InstrumentType == 0 ? "9 نت" : "Custom")</td>
+                    <td>@(bowl.InstrumentType == 1 ? "۹ نت" : "سفارشی")</td>
+                    <td><span class="badge bg-primary">@StageText(bowl.Stage)</span></td>
                 </tr>
             }
 
@@ -97,4 +99,28 @@ else
     {
         Navigation.NavigateTo("/bowls/new");
     }
+
+    private static string StageText(int stage) => stage switch
+    {
+        1 => "ثبت شده",
+        2 => "در انتظار دیمپل",
+        3 => "در حال دیمپل",
+        4 => "در انتظار شیپ",
+        5 => "در حال شیپ",
+        6 => "طراحی",
+        7 => "عملیات حرارتی",
+        8 => "در انتظار کوک",
+        9 => "در حال کوک",
+        10 => "در انتظار چسب‌کاری",
+        11 => "در حال چسب‌کاری",
+        12 => "خشک شدن",
+        13 => "کوک نهایی",
+        14 => "در انتظار کنترل کیفیت",
+        15 => "کنترل کیفیت",
+        16 => "در انتظار بسته‌بندی",
+        17 => "بسته‌بندی",
+        18 => "تکمیل شده",
+        19 => "رد شده",
+        _ => "نامشخص"
+    };
 }

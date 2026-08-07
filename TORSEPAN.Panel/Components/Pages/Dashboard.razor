@@ -76,6 +76,25 @@ else
     <div class="card mt-4">
 
         <div class="card-body p-4">
+            <h5 class="fw-bold">عملیات دیمپل</h5>
+            <label class="form-label">کد ساز را وارد کنید</label>
+            <div class="input-group">
+                <input class="form-control"
+                       placeholder="کد ساز را وارد کنید"
+                       @bind="_dimplingCode"
+                       @bind:event="oninput"
+                       @onkeydown="OpenDimplingOnEnter" />
+                <button class="btn btn-primary" @onclick="OpenDimpling">
+                    ورود
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card mt-4">
+
+        <div class="card-body p-4">
 
             <div class="d-flex justify-content-between align-items-center mb-3">
 
@@ -151,6 +170,7 @@ else
     private bool _loading = true;
 
     private ProductionDashboardDto _dashboard = new();
+    private string _dimplingCode = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -166,5 +186,17 @@ else
         {
             _loading = false;
         }
+    }
+
+    private void OpenDimpling()
+    {
+        if (!string.IsNullOrWhiteSpace(_dimplingCode))
+            Navigation.NavigateTo($"/dimpling?code={Uri.EscapeDataString(_dimplingCode.Trim())}");
+    }
+
+    private void OpenDimplingOnEnter(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            OpenDimpling();
     }
 }

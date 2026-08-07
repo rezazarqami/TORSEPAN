@@ -7,6 +7,7 @@ using TORSEPAN.Application.Bowls.Queries.GetBowlById;
 using TORSEPAN.Application.Bowls.Dimpling;
 using TORSEPAN.Application.Common.Pagination;
 using TORSEPAN.Application.Features.Bowls.Commands.CreateBowl;
+using TORSEPAN.API.Contracts.Bowls;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -66,7 +67,7 @@ public sealed class BowlsController : ControllerBase
     }
 
     [HttpGet("dimpling/{productionCode}")]
-    [Authorize(Roles = "Dimpler,Administrator")]
+    [Authorize(Roles = "Dimpler,Shaper,Administrator")]
     public async Task<ActionResult> GetForDimpling(
         string productionCode,
         CancellationToken cancellationToken)
@@ -78,14 +79,15 @@ public sealed class BowlsController : ControllerBase
         return this.ToActionResult(result);
     }
 
-    [HttpPost("dimpling/{productionCode}/queue")]
-    [Authorize(Roles = "Dimpler,Administrator")]
-    public async Task<ActionResult> QueueForDimpling(
+    [HttpPost("dimpling/{productionCode}/complete")]
+    [Authorize(Roles = "Dimpler,Shaper,Administrator")]
+    public async Task<ActionResult> CompleteDimpling(
         string productionCode,
+        [FromBody] CompleteBowlDimpleRequest request,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new QueueBowlForDimpleCommand(productionCode),
+            new CompleteBowlDimpleCommand(productionCode, request.Duration),
             cancellationToken);
 
         return this.ToActionResult(result);
