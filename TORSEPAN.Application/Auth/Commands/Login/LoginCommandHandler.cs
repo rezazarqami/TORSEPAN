@@ -23,14 +23,15 @@ public sealed class LoginCommandHandler
     {
         var user = await _unitOfWork.Users.GetByUsernameAsync(request.UserName);
 
-        if (user is null)
-            throw new UnauthorizedAccessException("Invalid username or password.");
-
-        if (!user.VerifyPassword(request.Password))
-            throw new UnauthorizedAccessException("Invalid username or password.");
-
-        if (!user.IsActive)
-            throw new UnauthorizedAccessException("User is inactive.");
+        if (user is null ||
+            !user.VerifyPassword(request.Password) ||
+            !user.IsActive)
+        {
+            return new LoginResult
+            {
+                Success = false
+            };
+        }
 
         var roles = user.UserRoles
             .Select(x => x.Role.Name)

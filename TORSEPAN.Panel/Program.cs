@@ -25,7 +25,14 @@ builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
 
 var apiBaseUrl = builder.Configuration["Api:BaseUrl"]
     ?? throw new InvalidOperationException("Set Api__BaseUrl to the public API URL.");
-apiBaseUrl = $"{apiBaseUrl.TrimEnd('/')}/";
+apiBaseUrl = apiBaseUrl.TrimEnd('/');
+
+if (!apiBaseUrl.EndsWith("/api", StringComparison.OrdinalIgnoreCase))
+{
+    apiBaseUrl = $"{apiBaseUrl}/api";
+}
+
+apiBaseUrl = $"{apiBaseUrl}/";
 
 builder.Services.AddHttpClient("Api", client =>
 {
