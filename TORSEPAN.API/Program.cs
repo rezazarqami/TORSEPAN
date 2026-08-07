@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
 using TORSEPAN.Application;
+using TORSEPAN.Domain.Entities;
 using TORSEPAN.Infrastructure.DependencyInjection;
 using TORSEPAN.Infrastructure.Persistence;
 
@@ -53,8 +54,29 @@ await using (var scope = app.Services.CreateAsyncScope())
         }
         else
         {
-            app.Logger.LogWarning(
-                "Bootstrap password reset was requested, but the configured user was not found.");
+            var administratorRole = await dbContext.Roles.FirstOrDefaultAsync(role =>
+                role.Name == "Administrator");
+
+            if (administratorRole is null)
+            {
+                app.Logger.LogError(
+                    "Bootstrap administrator could not be created because the Administrator role was not found.");
+            }
+            else
+            {
+                bootstrapUser = new User(
+                    bootstrapUserName.Trim(),
+                    bootstrapUserName.Trim());
+                bootstrapUser.SetPassword(bootstrapPassword);
+                bootstrapUser.UserRoles.Add(
+                    new UserRole(bootstrapUser.Id, administratorRole.Id));
+
+                dbContext.Users.Add(bootstrapUser);
+                await dbContext.SaveChangesAsync();
+
+                app.Logger.LogInformation(
+                    "Bootstrap administrator was created from the configured environment variables.");
+            }
         }
     }
     else
