@@ -46,9 +46,12 @@ public sealed class AuthenticationService : IAuthService
 
         if (_currentUser is not null &&
             _currentUser.Success &&
-            !string.IsNullOrWhiteSpace(_currentUser.Token))
+            !string.IsNullOrWhiteSpace(_currentUser.Token) &&
+            !string.IsNullOrWhiteSpace(_currentUser.RefreshToken))
         {
-            await _tokenStorage.SaveAccessTokenAsync(_currentUser.Token);
+            await _tokenStorage.SaveTokensAsync(
+                _currentUser.Token,
+                _currentUser.RefreshToken);
 
             _apiClient.SetBearerToken(_currentUser.Token);
 

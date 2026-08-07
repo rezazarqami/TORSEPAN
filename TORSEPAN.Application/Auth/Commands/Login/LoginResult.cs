@@ -6,6 +6,8 @@ public sealed class LoginResult
 
     public string Token { get; init; } = string.Empty;
 
+    public string RefreshToken { get; init; } = string.Empty;
+
     public Guid UserId { get; init; }
 
     public string UserName { get; init; } = string.Empty;

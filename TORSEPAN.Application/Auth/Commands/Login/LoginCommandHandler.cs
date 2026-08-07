@@ -44,10 +44,22 @@ public sealed class LoginCommandHandler
             user.FullName,
             roles);
 
+        // A separate refresh token is stored for every login/device.  Its
+        // lifetime is renewed whenever it is used, so active devices remain
+        // signed in without making the access token itself long-lived.
+        var refreshToken = new Domain.Entities.RefreshToken(
+            user.Id,
+            _jwtService.GenerateRefreshToken(),
+            DateTime.UtcNow.AddDays(365));
+
+        await _unitOfWork.RefreshTokens.AddAsync(refreshToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
         return new LoginResult
         {
             Success = true,
             Token = token,
+            RefreshToken = refreshToken.Token,
             UserId = user.Id,
             UserName = user.UserName,
             FullName = user.FullName,
