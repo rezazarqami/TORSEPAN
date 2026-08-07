@@ -10,4 +10,12 @@ public sealed class WarehouseHandpanDto
     public string ScaleName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? WarehouseEntryDate { get; set; }
+    public List<WarehouseOperationDto> Operations { get; set; } = [];
+}
+
+public sealed class WarehouseOperationDto
+{
+    public string Operation { get; set; } = string.Empty;
+    public string PerformedBy { get; set; } = string.Empty;
+    public DateTime PerformedAt { get; set; }
 }
