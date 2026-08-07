@@ -65,11 +65,11 @@ public static class ProductionWorkflow
         new(
             ProductionStage.Glue,
             ProductionAction.Glue,
-            ProductionStage.Drying),
+            ProductionStage.WaitingForFinalTune),
 
         // فاین تیون
         new(
-            ProductionStage.Drying,
+            ProductionStage.WaitingForFinalTune,
             ProductionAction.FineTune,
             ProductionStage.FinalTune),
 

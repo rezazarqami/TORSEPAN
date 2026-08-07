@@ -114,8 +114,23 @@
             }
             else if (_bowl.Stage == 10)
             {
+                <div class="mt-3">
+                    <label class="form-label">@PairedBowlLabel(_bowl.BowlType)</label>
+                    <input class="form-control"
+                           placeholder="کد کاسه مکمل را وارد کنید"
+                           @bind="_pairedProductionCode"
+                           @bind:event="oninput" />
+                    <button class="btn btn-success mt-3"
+                            disabled="@(_loading || string.IsNullOrWhiteSpace(_pairedProductionCode))"
+                            @onclick="CompleteGlueAsync">
+                        چسب انجام شد
+                    </button>
+                </div>
+            }
+            else if (_bowl.Stage == 12)
+            {
                 <div class="alert alert-success mt-3 mb-0">
-                    تیون این کاسه ثبت شد و اکنون در انتظار چسب است.
+                    اتصال دو کاسه ثبت شد و اکنون در انتظار فاین تیون است.
                 </div>
             }
             else
@@ -137,6 +152,7 @@
     private DimpleBowlDto? _bowl;
     private bool _loading;
     private int _duration = 1;
+    private string _pairedProductionCode = string.Empty;
 
     private static readonly (int Value, string Text)[] DurationOptions =
     [
@@ -172,6 +188,7 @@
 
         await ExecuteAsync(async () =>
         {
+            _pairedProductionCode = string.Empty;
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
             if (_bowl is null)
                 _error = "کاسه پیدا نشد.";
@@ -218,6 +235,24 @@
         });
     }
 
+    private async Task CompleteGlueAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_pairedProductionCode))
+        {
+            _error = "کد کاسه مکمل را وارد کنید.";
+            return;
+        }
+
+        await ExecuteAsync(async () =>
+        {
+            _bowl = await BowlService.CompleteGlueAsync(
+                _productionCode,
+                _pairedProductionCode);
+            if (_bowl is null)
+                _error = "ثبت اتصال کاسه‌ها انجام نشد.";
+        });
+    }
+
     private async Task ExecuteAsync(Func<Task> action)
     {
         _loading = true;
@@ -236,6 +271,10 @@
             ex.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
         {
             _error = "این عملیات فقط برای کاربر دارای نقش مرتبط با مرحله تولید یا مدیر مجاز است.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
+        {
+            _error = "کاسه مکمل باید از نوع مخالف، هم‌نوع ساز، در انتظار چسب و استفاده‌نشده باشد.";
         }
         catch (HttpRequestException)
         {
@@ -265,6 +304,13 @@
         8 => "در انتظار تیون",
         9 => "در حال تیون",
         10 => "در انتظار چسب",
+        11 => "در حال چسب",
+        12 => "در انتظار فاین تیون",
         _ => "در مرحله دیگری از تولید"
     };
+
+    private static string PairedBowlLabel(int bowlType) =>
+        bowlType == 1
+            ? "کد کاسه پایین را وارد کنید"
+            : "کد کاسه بالا را وارد کنید";
 }

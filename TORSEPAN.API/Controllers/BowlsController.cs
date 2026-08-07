@@ -133,4 +133,20 @@ public sealed class BowlsController : ControllerBase
 
         return this.ToActionResult(result);
     }
+
+    [HttpPost("production/{productionCode}/glue/complete")]
+    [Authorize(Roles = "Workshop,Administrator")]
+    public async Task<ActionResult> CompleteGlue(
+        string productionCode,
+        [FromBody] CompleteBowlGlueRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new CompleteBowlGlueCommand(
+                productionCode,
+                request.PairedProductionCode),
+            cancellationToken);
+
+        return this.ToActionResult(result);
+    }
 }

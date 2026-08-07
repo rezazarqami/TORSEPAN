@@ -22,7 +22,7 @@ public enum ProductionStage
     WaitingForGlue = 10,
     Glue = 11,
 
-    Drying = 12,
+    WaitingForFinalTune = 12,
 
     FinalTune = 13,
 
