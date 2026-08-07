@@ -14,7 +14,7 @@
 <h3 class="mb-4">تولید</h3>
 
 <div class="alert alert-light border mb-4">
-    دیمپل ← شیپ ← پخت ← تیون ← چسب ← فاین تیون ← کنترل کیفیت
+    دیمپل ← شیپ ← پخت ← تیون ← چسب ← فاین تیون ← QC
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_successMessage))
@@ -163,8 +163,49 @@
             }
             else if (_bowl.Stage == 12)
             {
-                <div class="alert alert-success mt-3 mb-0">
-                    اتصال دو کاسه ثبت شد و اکنون در انتظار فاین تیون است.
+                <button class="btn btn-success mt-3"
+                        disabled="@_loading"
+                        @onclick="CompleteFinalTuneAsync">
+                    فاین تیون انجام شد
+                </button>
+            }
+            else if (_bowl.Stage == 14)
+            {
+                <div class="mt-3">
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-success"
+                                disabled="@_loading"
+                                @onclick="ApproveQualityControlAsync">
+                            QC تأیید شد
+                        </button>
+                        <button class="btn btn-outline-danger"
+                                disabled="@_loading"
+                                @onclick="ShowQualityControlRejection">
+                            QC تأیید نشد
+                        </button>
+                    </div>
+
+                    @if (_showQcRejection)
+                    {
+                        <label class="form-label">دلیل تأیید نشدن</label>
+                        <select class="form-select" @bind="_qcRejectionReason">
+                            <option value="OutOfTune">کوک نبودن</option>
+                            <option value="Appearance">وضعیت ظاهری</option>
+                            <option value="Other">سایر موارد</option>
+                        </select>
+
+                        @if (_qcRejectionReason == "Other")
+                        {
+                            <label class="form-label mt-3">توضیحات سایر موارد</label>
+                            <textarea class="form-control" rows="3" @bind="_qcDetails"></textarea>
+                        }
+
+                        <button class="btn btn-danger mt-3"
+                                disabled="@(_loading || (_qcRejectionReason == "Other" && string.IsNullOrWhiteSpace(_qcDetails)))"
+                                @onclick="RejectQualityControlAsync">
+                            ثبت عدم تأیید و بازگشت به فاین تیون
+                        </button>
+                    }
                 </div>
             }
             else
@@ -190,6 +231,9 @@
     private Guid _scaleId;
     private readonly List<ScaleDto> _scales = [];
     private string? _successMessage;
+    private bool _showQcRejection;
+    private string _qcRejectionReason = "OutOfTune";
+    private string _qcDetails = string.Empty;
 
     private static readonly (int Value, string Text)[] DurationOptions =
     [
@@ -234,6 +278,7 @@
         {
             _pairedProductionCode = string.Empty;
             _successMessage = null;
+            _showQcRejection = false;
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
             if (_bowl is null)
                 _error = "کاسه پیدا نشد.";
@@ -300,6 +345,39 @@
         {
             var result = await BowlService.ReleaseFromGlueRoomAsync(_productionCode);
             SetOperationResult(result, "ساز با موفقیت از اتاق چسب خارج شد.", "ثبت خروج از اتاق چسب انجام نشد.");
+        });
+    }
+
+    private async Task CompleteFinalTuneAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            var result = await BowlService.CompleteFinalTuneAsync(_productionCode);
+            SetOperationResult(result, "فاین تیون با موفقیت انجام شد و ساز در انتظار QC قرار گرفت.", "ثبت پایان فاین تیون انجام نشد.");
+        });
+    }
+
+    private void ShowQualityControlRejection() => _showQcRejection = true;
+
+    private async Task ApproveQualityControlAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            var result = await BowlService.CompleteQualityControlAsync(_productionCode, true);
+            SetOperationResult(result, "QC تأیید شد و ساز به انبار منتقل شد.", "ثبت تأیید QC انجام نشد.");
+        });
+    }
+
+    private async Task RejectQualityControlAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            var result = await BowlService.CompleteQualityControlAsync(
+                _productionCode,
+                false,
+                _qcRejectionReason,
+                _qcDetails);
+            SetOperationResult(result, "عدم تأیید QC ثبت شد و ساز به در انتظار فاین تیون برگشت.", "ثبت عدم تأیید QC انجام نشد.");
         });
     }
 
@@ -370,6 +448,8 @@
         10 => "در انتظار چسب",
         11 => "در اتاق چسب",
         12 => "در انتظار فاین تیون",
+        14 => "در انتظار QC",
+        18 => "انبار",
         _ => "در مرحله دیگری از تولید"
     };
 

@@ -105,4 +105,24 @@ public sealed class BowlService
             $"bowls/production/{code}/glue-room/release",
             new { });
     }
+
+    public Task<DimpleBowlDto?> CompleteFinalTuneAsync(string productionCode)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>(
+            $"bowls/production/{code}/final-tune/complete",
+            new { });
+    }
+
+    public Task<DimpleBowlDto?> CompleteQualityControlAsync(
+        string productionCode,
+        bool approved,
+        string? rejectionReason = null,
+        string? details = null)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>(
+            $"bowls/production/{code}/qc/complete",
+            new { Approved = approved, RejectionReason = rejectionReason, Details = details });
+    }
 }
