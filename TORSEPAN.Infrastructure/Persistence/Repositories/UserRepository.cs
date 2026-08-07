@@ -29,7 +29,7 @@ public class UserRepository : GenericRepository<User>, IUserRepository
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .FirstOrDefaultAsync(x =>
-                x.UserName.ToUpper() == normalizedUsername);
+                x.UserName.Trim().ToUpper() == normalizedUsername);
     }
 
     public async Task<List<User>> GetAllAsync()

@@ -41,14 +41,26 @@ await using (var scope = app.Services.CreateAsyncScope())
     {
         var normalizedUserName = bootstrapUserName.Trim().ToUpper();
         var bootstrapUser = await dbContext.Users.FirstOrDefaultAsync(user =>
-            user.UserName.ToUpper() == normalizedUserName);
+            user.UserName.Trim().ToUpper() == normalizedUserName);
 
         if (bootstrapUser is not null)
         {
             bootstrapUser.SetPassword(bootstrapPassword);
             bootstrapUser.Activate();
             await dbContext.SaveChangesAsync();
+            app.Logger.LogInformation(
+                "Bootstrap password reset was applied to the configured user.");
         }
+        else
+        {
+            app.Logger.LogWarning(
+                "Bootstrap password reset was requested, but the configured user was not found.");
+        }
+    }
+    else
+    {
+        app.Logger.LogWarning(
+            "Bootstrap password reset was skipped because its environment variables are missing.");
     }
 }
 
