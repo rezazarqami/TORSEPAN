@@ -30,7 +30,7 @@ public class ProductionEvent : Entity
 
     // Used by CreateProductionEventCommand
     public ProductionEvent(
-        Guid handpanId,
+        Guid? handpanId,
         Guid? assemblyId,
         Guid? bowlId,
         Guid userId,
@@ -55,9 +55,9 @@ public class ProductionEvent : Entity
         EventDate = DateTime.UtcNow;
     }
 
-    public Guid HandpanId { get; private set; }
+    public Guid? HandpanId { get; private set; }
 
-    public Handpan Handpan { get; private set; } = null!;
+    public Handpan? Handpan { get; private set; }
 
     public Guid? AssemblyId { get; private set; }
 

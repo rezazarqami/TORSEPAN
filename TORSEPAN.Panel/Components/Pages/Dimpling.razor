@@ -6,21 +6,19 @@
 
 @inject BowlService BowlService
 
-<PageTitle>پذیرش دیمپل</PageTitle>
+<PageTitle>عملیات دیمپل</PageTitle>
 
-<h3 class="mb-4">پذیرش کاسه برای دیمپل</h3>
+<h3 class="mb-4">عملیات دیمپل کاسه</h3>
 
 <div class="card p-4">
-    <label class="form-label">کد کاسه</label>
+    <label class="form-label">کد ساز را وارد کنید</label>
     <div class="input-group mb-3">
         <input class="form-control"
-               placeholder="کد کاسه را وارد یا اسکن کنید"
+               placeholder="کد ساز را وارد کنید"
                @bind="_productionCode"
                @bind:event="oninput"
                @onkeydown="HandleKeyDown" />
-        <button class="btn btn-primary"
-                disabled="@_loading"
-                @onclick="SearchAsync">
+        <button class="btn btn-primary" disabled="@_loading" @onclick="SearchAsync">
             جست‌وجو
         </button>
     </div>
@@ -38,18 +36,37 @@
             <div><strong>نوع ساز:</strong> @InstrumentTypeText(_bowl.InstrumentType)</div>
             <div><strong>وضعیت:</strong> @StageText(_bowl.Stage)</div>
 
-            @if (_bowl.Stage == 1)
+            @if (_bowl.Stage == 2)
             {
-                <button class="btn btn-success mt-3"
-                        disabled="@_loading"
-                        @onclick="QueueAsync">
-                    قرار دادن در قفسه انتظار دیمپل
-                </button>
+                <div class="row align-items-end mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label">مدت زمان انجام دیمپل</label>
+                        <select class="form-select" @bind="_duration">
+                            @foreach (var option in DurationOptions)
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <button class="btn btn-success w-100"
+                                disabled="@_loading"
+                                @onclick="CompleteAsync">
+                            دیمپل انجام شد
+                        </button>
+                    </div>
+                </div>
             }
-            else if (_bowl.Stage == 2)
+            else if (_bowl.Stage == 4)
             {
                 <div class="alert alert-success mt-3 mb-0">
-                    این کاسه در قفسه انتظار دیمپل قرار دارد.
+                    دیمپل این کاسه ثبت شد و اکنون در انتظار شیپ است.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning mt-3 mb-0">
+                    این کاسه در مرحله دیگری از تولید قرار دارد.
                 </div>
             }
         </div>
@@ -57,10 +74,32 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "code")]
+    public string? Code { get; set; }
+
     private string _productionCode = string.Empty;
     private string? _error;
     private DimpleBowlDto? _bowl;
     private bool _loading;
+    private int _duration = 1;
+
+    private static readonly (int Value, string Text)[] DurationOptions =
+    [
+        (1, "۵ دقیقه"), (2, "۱۰ دقیقه"), (3, "۱۵ دقیقه"),
+        (4, "۲۰ دقیقه"), (5, "۲۵ دقیقه"), (6, "۳۰ دقیقه"),
+        (7, "۳۵ دقیقه"), (8, "۴۰ دقیقه"), (9, "۴۵ دقیقه"),
+        (10, "۵۰ دقیقه"), (11, "۵۵ دقیقه"), (12, "۶۰ دقیقه"),
+        (13, "بیشتر از ۶۰ دقیقه")
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Code) && Code != _productionCode)
+        {
+            _productionCode = Code;
+            await SearchAsync();
+        }
+    }
 
     private async Task HandleKeyDown(KeyboardEventArgs args)
     {
@@ -72,7 +111,7 @@
     {
         if (string.IsNullOrWhiteSpace(_productionCode))
         {
-            _error = "کد کاسه را وارد کنید.";
+            _error = "کد ساز را وارد کنید.";
             return;
         }
 
@@ -84,13 +123,13 @@
         });
     }
 
-    private async Task QueueAsync()
+    private async Task CompleteAsync()
     {
         await ExecuteAsync(async () =>
         {
-            _bowl = await BowlService.QueueForDimplingAsync(_productionCode);
+            _bowl = await BowlService.CompleteDimplingAsync(_productionCode, _duration);
             if (_bowl is null)
-                _error = "انتقال کاسه انجام نشد.";
+                _error = "ثبت پایان دیمپل انجام نشد.";
         });
     }
 
@@ -108,9 +147,10 @@
             _bowl = null;
             _error = "کاسه‌ای با این کد پیدا نشد.";
         }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        catch (HttpRequestException ex) when (
+            ex.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
         {
-            _error = "این عملیات فقط برای کاربر دارای نقش دیمپل مجاز است.";
+            _error = "این عملیات فقط برای کاربر دارای نقش دیمپل، شیپر یا مدیر مجاز است.";
         }
         catch (HttpRequestException)
         {
@@ -132,6 +172,9 @@
     {
         1 => "ثبت شده",
         2 => "در انتظار دیمپل",
+        3 => "در حال دیمپل",
+        4 => "در انتظار شیپ",
+        5 => "در حال شیپ",
         _ => "در مرحله دیگری از تولید"
     };
 }

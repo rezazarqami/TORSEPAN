@@ -49,11 +49,13 @@ public sealed class BowlService
         return _api.GetAsync<DimpleBowlDto>($"bowls/dimpling/{code}");
     }
 
-    public Task<DimpleBowlDto?> QueueForDimplingAsync(string productionCode)
+    public Task<DimpleBowlDto?> CompleteDimplingAsync(
+        string productionCode,
+        int duration)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
-            $"bowls/dimpling/{code}/queue",
-            new { });
+            $"bowls/dimpling/{code}/complete",
+            new { Duration = duration });
     }
 }

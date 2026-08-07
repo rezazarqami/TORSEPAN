@@ -34,11 +34,12 @@ public class Bowl : Entity
         HasNotes = hasNotes;
         InstrumentType = instrumentType;
         MaterialId = materialId;
-        Status = ProductionStatus.Created;
-        Stage = ProductionStage.Created;
+        Status = ProductionStatus.Waiting;
+        Stage = ProductionStage.WaitingForDimple;
     }
 
     public void StartProduction()=> Status=ProductionStatus.InProgress;
+    public void MarkAsWaiting()=> Status=ProductionStatus.Waiting;
     public void ChangeStage(ProductionStage stage)=> Stage=stage;
     public void CompleteProduction()=> Status=ProductionStatus.Completed;
     public void Reject()=> Status=ProductionStatus.Rejected;
