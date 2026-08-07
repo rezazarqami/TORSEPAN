@@ -194,4 +194,17 @@ public sealed class BowlsController : ControllerBase
 
         return this.ToActionResult(result);
     }
+
+    [HttpPost("production/{productionCode}/packaging/complete")]
+    [Authorize(Roles = "Workshop,Administrator")]
+    public async Task<ActionResult> CompletePackaging(
+        string productionCode,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new CompleteHandpanPackagingCommand(productionCode),
+            cancellationToken);
+
+        return this.ToActionResult(result);
+    }
 }

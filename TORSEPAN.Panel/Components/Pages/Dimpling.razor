@@ -208,6 +208,14 @@
                     }
                 </div>
             }
+            else if (_bowl.Stage == 16)
+            {
+                <button class="btn btn-success mt-3"
+                        disabled="@_loading"
+                        @onclick="CompletePackagingAsync">
+                    بسته‌بندی انجام شد
+                </button>
+            }
             else
             {
                 <div class="alert alert-warning mt-3 mb-0">
@@ -364,7 +372,7 @@
         await ExecuteAsync(async () =>
         {
             var result = await BowlService.CompleteQualityControlAsync(_productionCode, true);
-            SetOperationResult(result, "QC تأیید شد و ساز به انبار منتقل شد.", "ثبت تأیید QC انجام نشد.");
+            SetOperationResult(result, "QC تأیید شد و ساز در انتظار بسته‌بندی قرار گرفت.", "ثبت تأیید QC انجام نشد.");
         });
     }
 
@@ -378,6 +386,15 @@
                 _qcRejectionReason,
                 _qcDetails);
             SetOperationResult(result, "عدم تأیید QC ثبت شد و ساز به در انتظار فاین تیون برگشت.", "ثبت عدم تأیید QC انجام نشد.");
+        });
+    }
+
+    private async Task CompletePackagingAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            var result = await BowlService.CompletePackagingAsync(_productionCode);
+            SetOperationResult(result, "بسته‌بندی انجام شد و ساز وارد انبار شد.", "ثبت پایان بسته‌بندی انجام نشد.");
         });
     }
 
@@ -449,6 +466,7 @@
         11 => "در اتاق چسب",
         12 => "در انتظار فاین تیون",
         14 => "در انتظار QC",
+        16 => "در انتظار بسته‌بندی",
         18 => "انبار",
         _ => "در مرحله دیگری از تولید"
     };
