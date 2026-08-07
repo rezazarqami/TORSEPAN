@@ -11,9 +11,9 @@ public enum ProductionStage
     WaitingForShape = 4,
     Shape = 5,
 
-    Design = 6,
+    WaitingForBake = 6,
 
-    HeatTreatment = 7,
+    Bake = 7,
 
     // Handpan Production
     WaitingForTune = 8,

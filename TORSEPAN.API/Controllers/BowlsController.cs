@@ -92,4 +92,18 @@ public sealed class BowlsController : ControllerBase
 
         return this.ToActionResult(result);
     }
+
+    [HttpPost("production/{productionCode}/shape/complete")]
+    [Authorize(Roles = "Shaper,Administrator")]
+    public async Task<ActionResult> CompleteShape(
+        string productionCode,
+        [FromBody] CompleteBowlDimpleRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new CompleteBowlShapeCommand(productionCode, request.Duration),
+            cancellationToken);
+
+        return this.ToActionResult(result);
+    }
 }

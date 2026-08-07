@@ -32,16 +32,16 @@ public static class ProductionWorkflow
         new(
             ProductionStage.Shape,
             ProductionAction.Shape,
-            ProductionStage.Design),
+            ProductionStage.WaitingForBake),
 
         // کوره
         new(
-            ProductionStage.Design,
+            ProductionStage.WaitingForBake,
             ProductionAction.Furnace,
-            ProductionStage.HeatTreatment),
+            ProductionStage.Bake),
 
         new(
-            ProductionStage.HeatTreatment,
+            ProductionStage.Bake,
             ProductionAction.Furnace,
             ProductionStage.WaitingForTune),
 
