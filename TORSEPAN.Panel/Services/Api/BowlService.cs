@@ -125,4 +125,12 @@ public sealed class BowlService
             $"bowls/production/{code}/qc/complete",
             new { Approved = approved, RejectionReason = rejectionReason, Details = details });
     }
+
+    public Task<DimpleBowlDto?> CompletePackagingAsync(string productionCode)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>(
+            $"bowls/production/{code}/packaging/complete",
+            new { });
+    }
 }

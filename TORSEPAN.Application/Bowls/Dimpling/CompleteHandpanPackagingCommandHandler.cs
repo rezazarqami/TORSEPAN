@@ -7,35 +7,27 @@ using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.Application.Bowls.Dimpling;
 
-public sealed class CompleteHandpanQualityControlCommandHandler
-    : IRequestHandler<CompleteHandpanQualityControlCommand, Result<BowlDimpleDto>>
+public sealed class CompleteHandpanPackagingCommandHandler
+    : IRequestHandler<CompleteHandpanPackagingCommand, Result<BowlDimpleDto>>
 {
-    private static readonly HashSet<string> ValidReasons = ["OutOfTune", "Appearance", "Other"];
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
 
-    public CompleteHandpanQualityControlCommandHandler(IUnitOfWork unitOfWork, IUserContext userContext)
+    public CompleteHandpanPackagingCommandHandler(IUnitOfWork unitOfWork, IUserContext userContext)
     {
         _unitOfWork = unitOfWork;
         _userContext = userContext;
     }
 
     public async Task<Result<BowlDimpleDto>> Handle(
-        CompleteHandpanQualityControlCommand request,
+        CompleteHandpanPackagingCommand request,
         CancellationToken cancellationToken)
     {
-        if (!request.Approved &&
-            (!ValidReasons.Contains(request.RejectionReason ?? string.Empty) ||
-             (request.RejectionReason == "Other" && string.IsNullOrWhiteSpace(request.Details))))
-        {
-            return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
-        }
-
         var code = request.ProductionCode.Trim();
         var bowl = (await _unitOfWork.Bowls.FindAsync(x => x.ProductionCode == code)).SingleOrDefault();
         if (bowl is null)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);
-        if (bowl.Stage != ProductionStage.WaitingForQualityControl)
+        if (bowl.Stage != ProductionStage.WaitingForPackaging)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidStage);
 
         var assembly = (await _unitOfWork.HandpanAssemblies.FindAsync(
@@ -55,36 +47,20 @@ public sealed class CompleteHandpanQualityControlCommandHandler
         if (_userContext.UserId is not Guid userId)
             throw new UnauthorizedAccessException();
 
-        var targetStage = request.Approved
-            ? ProductionStage.WaitingForPackaging
-            : ProductionStage.WaitingForFinalTune;
-
-        handpan.ChangeStage(targetStage);
-        handpan.ChangeStatus(ProductionStatus.Waiting);
+        handpan.ChangeStage(ProductionStage.FinishedWarehouse);
+        handpan.ChangeStatus(ProductionStatus.Completed);
         _unitOfWork.Handpans.Update(handpan);
 
         foreach (var item in bowls)
         {
-            item.ChangeStage(targetStage);
-            item.MarkAsWaiting();
+            item.ChangeStage(ProductionStage.FinishedWarehouse);
+            item.CompleteProduction();
             _unitOfWork.Bowls.Update(item);
         }
 
-        var reasonText = request.RejectionReason switch
-        {
-            "OutOfTune" => "کوک نبودن",
-            "Appearance" => "وضعیت ظاهری",
-            "Other" => "سایر موارد",
-            _ => string.Empty
-        };
-        var description = request.Approved
-            ? "QC تأیید شد و ساز در انتظار بسته‌بندی قرار گرفت"
-            : $"QC تأیید نشد؛ دلیل: {reasonText}; توضیحات: {request.Details}";
-
         await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(
-            handpan.Id, assembly.Id, null, userId, ProductionAction.QualityCheck,
-            request.Approved ? EventResult.Completed : EventResult.Rejected,
-            null, description));
+            handpan.Id, assembly.Id, null, userId, ProductionAction.Packaging,
+            EventResult.Completed, null, "بسته‌بندی انجام شد و ساز وارد انبار شد"));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(

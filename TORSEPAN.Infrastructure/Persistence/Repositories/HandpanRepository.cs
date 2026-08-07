@@ -36,7 +36,7 @@ public class HandpanRepository
     public async Task<IEnumerable<Handpan>> GetReadyForPackagingAsync()
     {
         return await _dbSet
-            .Where(x => x.Stage == ProductionStage.Packaging)
+            .Where(x => x.Stage == ProductionStage.WaitingForPackaging)
             .ToListAsync();
     }
 
@@ -51,6 +51,7 @@ public class HandpanRepository
     {
         return await _dbSet
             .AsNoTracking()
+            .Where(x => x.Stage != ProductionStage.FinishedWarehouse)
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.TopBowl)
                     .ThenInclude(x => x.Material)
