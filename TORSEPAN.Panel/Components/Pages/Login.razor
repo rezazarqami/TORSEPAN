@@ -23,7 +23,7 @@
 
                 <input class="form-control"
                        autocomplete="username"
-                       @bind="Username" />
+                       @ref="UsernameInput" />
             </div>
 
             <div class="mb-3">
@@ -32,7 +32,7 @@
                 <input class="form-control"
                        type="password"
                        autocomplete="current-password"
-                       @bind="Password" />
+                       @ref="PasswordInput" />
             </div>
 
             <FormActions>
@@ -57,9 +57,12 @@
     [Inject]
     IAuthService AuthenticationService { get; set; } = default!;
 
-    string Username = "";
+    [Inject]
+    IJSRuntime JS { get; set; } = default!;
 
-    string Password = "";
+    ElementReference UsernameInput;
+
+    ElementReference PasswordInput;
 
     string ErrorMessage = "";
 
@@ -72,10 +75,15 @@
 
         try
         {
+            var credentials = await JS.InvokeAsync<LoginCredentials>(
+                "torsepanLogin.readCredentials",
+                UsernameInput,
+                PasswordInput);
+
             var result = await AuthenticationService.LoginAsync(
                 new LoginCommand(
-                    Username.Trim(),
-                    Password));
+                    credentials.Username.Trim(),
+                    credentials.Password));
 
             if (result.Success)
             {
@@ -98,5 +106,7 @@
             IsSubmitting = false;
         }
     }
+
+    sealed record LoginCredentials(string Username, string Password);
 
 }
