@@ -1,52 +1,99 @@
-﻿@page "/warehouse/list"
+@page "/warehouse/list"
+
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+@inject ProductionService ProductionService
 
 <PageTitle>انبار</PageTitle>
 
-<PageHeader Title="انبار"
-            SubTitle="موجودی">
+<PageHeader Title="انبار" SubTitle="سازهای بسته‌بندی‌شده" />
 
-    <Actions>
-
-        <PrimaryButton Text="ثبت کالا" />
-
-    </Actions>
-
-</PageHeader>
-
-<SearchBox Placeholder="جستجو..." />
+<div class="mb-4">
+    <input class="form-control"
+           placeholder="جستجوی کد ساز، کاسه، متریال یا اسکیل..."
+           @bind="_search"
+           @bind:event="oninput" />
+</div>
 
 <Card>
-
-    <DataTable>
-
-        <thead>
-
-            <tr>
-
-                <th>کد</th>
-                <th>نام</th>
-                <th>تعداد</th>
-                <th>محل نگهداری</th>
-
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-            <tr>
-
-                <td colspan="4">
-
-                    <EmptyState Title="انبار خالی است"
-                                Description="هیچ کالایی ثبت نشده است." />
-
-                </td>
-
-            </tr>
-
-        </tbody>
-
-    </DataTable>
-
+    @if (_loading)
+    {
+        <div class="text-center p-4"><div class="spinner-border"></div></div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+    else
+    {
+        <DataTable>
+            <thead>
+                <tr>
+                    <th>کد ساز</th>
+                    <th>کد کاسه بالا</th>
+                    <th>کد کاسه پایین</th>
+                    <th>متریال</th>
+                    <th>اسکیل</th>
+                    <th>تاریخ ورود</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!FilteredItems.Any())
+                {
+                    <tr>
+                        <td colspan="6">
+                            <EmptyState Title="انبار خالی است" Description="هنوز هیچ ساز بسته‌بندی‌شده‌ای وارد انبار نشده است." />
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in FilteredItems)
+                    {
+                        <tr>
+                            <td>@item.SerialNumber</td>
+                            <td>@item.TopBowlCode</td>
+                            <td>@item.BottomBowlCode</td>
+                            <td>@item.MaterialName</td>
+                            <td>@item.ScaleName</td>
+                            <td>@(item.WarehouseEntryDate?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "-")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </DataTable>
+    }
 </Card>
+
+@code {
+    private readonly List<WarehouseHandpanDto> _items = [];
+    private bool _loading = true;
+    private string? _error;
+    private string _search = string.Empty;
+
+    private IEnumerable<WarehouseHandpanDto> FilteredItems =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _items
+            : _items.Where(x =>
+                x.SerialNumber.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                x.TopBowlCode.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                x.BottomBowlCode.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                x.MaterialName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                x.ScaleName.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items.AddRange(await ProductionService.GetWarehouseAsync());
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

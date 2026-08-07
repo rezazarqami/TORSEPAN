@@ -10,7 +10,13 @@ public sealed class BowlDto
 
     public bool HasNotes { get; init; }
 
-    public int InstrumentType { get; init; }public int Status { get; init; }
+    public int InstrumentType { get; init; }
+
+    public Guid MaterialId { get; init; }
+
+    public string MaterialName { get; init; } = string.Empty;
+
+    public int Status { get; init; }
 
     public int Stage { get; init; }
 }

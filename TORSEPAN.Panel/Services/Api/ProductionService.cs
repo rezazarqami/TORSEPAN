@@ -32,4 +32,10 @@ public sealed class ProductionService
             "production/change-stage",
             request);
     }
+
+    public async Task<IReadOnlyList<WarehouseHandpanDto>> GetWarehouseAsync()
+    {
+        return await _api.GetAsync<List<WarehouseHandpanDto>>(
+            "production/warehouse") ?? [];
+    }
 }

@@ -26,7 +26,12 @@ public sealed class GetWarehouseInventoryQueryHandler
                 HandpanId = x.Id,
                 SerialNumber = x.SerialNumber,
                 Stage = x.Stage.ToString(),
-                CreatedAt = x.CreatedAt
+                TopBowlCode = x.Assembly.TopBowl.ProductionCode,
+                BottomBowlCode = x.Assembly.BottomBowl.ProductionCode,
+                MaterialName = x.Assembly.TopBowl.Material.Name,
+                ScaleName = x.Scale?.Name ?? "تعیین نشده",
+                CreatedAt = x.CreatedAt,
+                WarehouseEntryDate = x.UpdatedAt
             })
             .ToList();
     }
