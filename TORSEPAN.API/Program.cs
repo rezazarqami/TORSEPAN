@@ -43,8 +43,7 @@ await using (var scope = app.Services.CreateAsyncScope())
         var bootstrapUser = await dbContext.Users.FirstOrDefaultAsync(user =>
             user.UserName.ToUpper() == normalizedUserName);
 
-        if (bootstrapUser is not null &&
-            string.IsNullOrEmpty(bootstrapUser.PasswordHash))
+        if (bootstrapUser is not null)
         {
             bootstrapUser.SetPassword(bootstrapPassword);
             bootstrapUser.Activate();
