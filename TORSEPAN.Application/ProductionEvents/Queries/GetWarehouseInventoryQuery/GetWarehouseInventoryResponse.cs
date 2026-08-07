@@ -19,4 +19,16 @@ public sealed class GetWarehouseInventoryResponse
     public DateTime CreatedAt { get; set; }
 
     public DateTime? WarehouseEntryDate { get; set; }
+
+    public IReadOnlyList<WarehouseOperationResponse> Operations { get; set; }
+        = [];
+}
+
+public sealed class WarehouseOperationResponse
+{
+    public string Operation { get; set; } = string.Empty;
+
+    public string PerformedBy { get; set; } = string.Empty;
+
+    public DateTime PerformedAt { get; set; }
 }

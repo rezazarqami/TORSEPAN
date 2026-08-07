@@ -29,6 +29,7 @@
         <DataTable>
             <thead>
                 <tr>
+                    <th style="width: 48px;"></th>
                     <th>کد ساز</th>
                     <th>کد کاسه بالا</th>
                     <th>کد کاسه پایین</th>
@@ -41,7 +42,7 @@
                 @if (!FilteredItems.Any())
                 {
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <EmptyState Title="انبار خالی است" Description="هنوز هیچ ساز بسته‌بندی‌شده‌ای وارد انبار نشده است." />
                         </td>
                     </tr>
@@ -51,6 +52,13 @@
                     @foreach (var item in FilteredItems)
                     {
                         <tr>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        title="نمایش عملیات انجام‌شده"
+                                        @onclick="() => ToggleDetails(item.HandpanId)">
+                                    @(_expanded.Contains(item.HandpanId) ? "−" : "+")
+                                </button>
+                            </td>
                             <td>@item.SerialNumber</td>
                             <td>@item.TopBowlCode</td>
                             <td>@item.BottomBowlCode</td>
@@ -58,6 +66,38 @@
                             <td>@item.ScaleName</td>
                             <td>@(item.WarehouseEntryDate?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "-")</td>
                         </tr>
+                        @if (_expanded.Contains(item.HandpanId))
+                        {
+                            <tr class="table-light">
+                                <td></td>
+                                <td colspan="6">
+                                    <div class="p-3">
+                                        <h6 class="mb-3">عملیات انجام‌شده روی ساز @item.SerialNumber</h6>
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>عملیات</th>
+                                                    <th>انجام‌دهنده</th>
+                                                    <th>زمان انجام</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var operation in item.Operations)
+                                                {
+                                                    <tr>
+                                                        <td>@operation.Operation</td>
+                                                        <td>@operation.PerformedBy</td>
+                                                        <td>@(operation.PerformedAt == default
+                                                            ? "-"
+                                                            : operation.PerformedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm"))</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     }
                 }
             </tbody>
@@ -70,6 +110,7 @@
     private bool _loading = true;
     private string? _error;
     private string _search = string.Empty;
+    private readonly HashSet<Guid> _expanded = [];
 
     private IEnumerable<WarehouseHandpanDto> FilteredItems =>
         string.IsNullOrWhiteSpace(_search)
@@ -95,5 +136,11 @@
         {
             _loading = false;
         }
+    }
+
+    private void ToggleDetails(Guid handpanId)
+    {
+        if (!_expanded.Add(handpanId))
+            _expanded.Remove(handpanId);
     }
 }

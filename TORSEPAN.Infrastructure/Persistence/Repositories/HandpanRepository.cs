@@ -43,6 +43,7 @@ public class HandpanRepository
     public async Task<IEnumerable<Handpan>> GetWarehouseInventoryAsync()
     {
         return await _dbSet
+            .AsNoTracking()
             .Where(x => x.Stage == ProductionStage.FinishedWarehouse)
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.TopBowl)
@@ -50,6 +51,16 @@ public class HandpanRepository
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.BottomBowl)
             .Include(x => x.Scale)
+            .Include(x => x.ProductionEvents)
+                .ThenInclude(x => x.User)
+            .Include(x => x.Assembly)
+                .ThenInclude(x => x.TopBowl)
+                    .ThenInclude(x => x.ProductionEvents)
+                        .ThenInclude(x => x.User)
+            .Include(x => x.Assembly)
+                .ThenInclude(x => x.BottomBowl)
+                    .ThenInclude(x => x.ProductionEvents)
+                        .ThenInclude(x => x.User)
             .OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt)
             .ToListAsync();
     }
