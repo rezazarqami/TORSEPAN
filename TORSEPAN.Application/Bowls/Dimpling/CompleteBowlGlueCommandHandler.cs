@@ -70,6 +70,11 @@ public sealed class CompleteBowlGlueCommandHandler
         var assembly = new HandpanAssembly(top.Id, bottom.Id);
         await _unitOfWork.HandpanAssemblies.AddAsync(assembly);
 
+        var handpan = new Handpan(assembly.Id, top.ProductionCode);
+        handpan.ChangeStatus(ProductionStatus.Waiting);
+        handpan.ChangeStage(ProductionStage.GlueRoom);
+        await _unitOfWork.Handpans.AddAsync(handpan);
+
         foreach (var bowl in bowls)
         {
             bowl.MarkAsWaiting();
@@ -77,7 +82,7 @@ public sealed class CompleteBowlGlueCommandHandler
             _unitOfWork.Bowls.Update(bowl);
 
             await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(
-                handpanId: null,
+                handpanId: handpan.Id,
                 assemblyId: assembly.Id,
                 bowlId: bowl.Id,
                 userId: userId,

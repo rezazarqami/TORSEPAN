@@ -6,6 +6,7 @@
 @using TORSEPAN.Panel.Services.Api
 
 @inject BowlService BowlService
+@inject NavigationManager Navigation
 
 <PageTitle>تولید</PageTitle>
 
@@ -14,6 +15,20 @@
 <div class="alert alert-light border mb-4">
     دیمپل ← شیپ ← پخت ← تیون ← چسب ← فاین تیون ← کنترل کیفیت
 </div>
+
+@if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+         style="background: rgba(15, 23, 42, .55); z-index: 2000;">
+        <div class="card shadow-lg text-center p-5" style="min-width: min(520px, 90vw);">
+            <div class="display-4 text-success mb-3">✓</div>
+            <h3 class="mb-4">@_successMessage</h3>
+            <button class="btn btn-primary btn-lg px-5" @onclick="ReturnToDashboard">
+                تأیید و بازگشت به داشبورد
+            </button>
+        </div>
+    </div>
+}
 
 <div class="card p-4">
     <label class="form-label">کد ساز را وارد کنید</label>
@@ -164,6 +179,7 @@
     private bool _loading;
     private int _duration = 1;
     private string _pairedProductionCode = string.Empty;
+    private string? _successMessage;
 
     private static readonly (int Value, string Text)[] DurationOptions =
     [
@@ -200,6 +216,7 @@
         await ExecuteAsync(async () =>
         {
             _pairedProductionCode = string.Empty;
+            _successMessage = null;
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
             if (_bowl is null)
                 _error = "کاسه پیدا نشد.";
@@ -210,9 +227,8 @@
     {
         await ExecuteAsync(async () =>
         {
-            _bowl = await BowlService.CompleteDimplingAsync(_productionCode, _duration);
-            if (_bowl is null)
-                _error = "ثبت پایان دیمپل انجام نشد.";
+            var result = await BowlService.CompleteDimplingAsync(_productionCode, _duration);
+            SetOperationResult(result, "دیمپل با موفقیت انجام شد.", "ثبت پایان دیمپل انجام نشد.");
         });
     }
 
@@ -220,9 +236,8 @@
     {
         await ExecuteAsync(async () =>
         {
-            _bowl = await BowlService.CompleteShapeAsync(_productionCode, _duration);
-            if (_bowl is null)
-                _error = "ثبت پایان شیپ انجام نشد.";
+            var result = await BowlService.CompleteShapeAsync(_productionCode, _duration);
+            SetOperationResult(result, "شیپ با موفقیت انجام شد.", "ثبت پایان شیپ انجام نشد.");
         });
     }
 
@@ -230,9 +245,8 @@
     {
         await ExecuteAsync(async () =>
         {
-            _bowl = await BowlService.CompleteBakeAsync(_productionCode);
-            if (_bowl is null)
-                _error = "ثبت پایان پخت انجام نشد.";
+            var result = await BowlService.CompleteBakeAsync(_productionCode);
+            SetOperationResult(result, "پخت با موفقیت انجام شد.", "ثبت پایان پخت انجام نشد.");
         });
     }
 
@@ -240,9 +254,8 @@
     {
         await ExecuteAsync(async () =>
         {
-            _bowl = await BowlService.CompleteTuneAsync(_productionCode, _duration);
-            if (_bowl is null)
-                _error = "ثبت پایان تیون انجام نشد.";
+            var result = await BowlService.CompleteTuneAsync(_productionCode, _duration);
+            SetOperationResult(result, "تیون با موفقیت انجام شد.", "ثبت پایان تیون انجام نشد.");
         });
     }
 
@@ -256,11 +269,10 @@
 
         await ExecuteAsync(async () =>
         {
-            _bowl = await BowlService.CompleteGlueAsync(
+            var result = await BowlService.CompleteGlueAsync(
                 _productionCode,
                 _pairedProductionCode);
-            if (_bowl is null)
-                _error = "ثبت اتصال کاسه‌ها انجام نشد.";
+            SetOperationResult(result, "چسب‌کاری با موفقیت انجام شد و ساز وارد اتاق چسب شد.", "ثبت اتصال کاسه‌ها انجام نشد.");
         });
     }
 
@@ -268,11 +280,27 @@
     {
         await ExecuteAsync(async () =>
         {
-            _bowl = await BowlService.ReleaseFromGlueRoomAsync(_productionCode);
-            if (_bowl is null)
-                _error = "ثبت خروج از اتاق چسب انجام نشد.";
+            var result = await BowlService.ReleaseFromGlueRoomAsync(_productionCode);
+            SetOperationResult(result, "ساز با موفقیت از اتاق چسب خارج شد.", "ثبت خروج از اتاق چسب انجام نشد.");
         });
     }
+
+    private void SetOperationResult(
+        DimpleBowlDto? result,
+        string successMessage,
+        string errorMessage)
+    {
+        if (result is null)
+        {
+            _error = errorMessage;
+            return;
+        }
+
+        _bowl = null;
+        _successMessage = successMessage;
+    }
+
+    private void ReturnToDashboard() => Navigation.NavigateTo("/");
 
     private async Task ExecuteAsync(Func<Task> action)
     {
