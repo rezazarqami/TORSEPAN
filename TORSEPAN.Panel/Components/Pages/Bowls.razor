@@ -4,6 +4,7 @@
 @using TORSEPAN.Panel.Services.Api
 
 @inject BowlService BowlService
+@inject HandpanService HandpanService
 @inject NavigationManager Navigation
 
 <PageTitle>تولید</PageTitle>
@@ -19,6 +20,21 @@
 
 </div>
 
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "bowls" ? "active" : null)"
+                @onclick="ShowBowls">
+            کاسه‌ها
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == "handpans" ? "active" : null)"
+                @onclick="ShowHandpans">
+            سازها
+        </button>
+    </li>
+</ul>
+
 @if (_loading)
 {
     <p>در حال بارگذاری...</p>
@@ -29,13 +45,13 @@ else if (!string.IsNullOrWhiteSpace(_error))
         @_error
     </div>
 }
-else if (_bowls.Count == 0)
+else if (_activeTab == "bowls" && _bowls.Count == 0)
 {
     <div class="alert alert-info">
         هیچ کاسه‌ای ثبت نشده است.
     </div>
 }
-else
+else if (_activeTab == "bowls")
 {
     <table class="table table-striped">
 
@@ -66,6 +82,34 @@ else
 
     </table>
 }
+else if (_handpans.Count == 0)
+{
+    <div class="alert alert-info">هنوز سازی تشکیل نشده است.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>کد ساز</th>
+                <th>کد کاسه بالا</th>
+                <th>کد کاسه پایین</th>
+                <th>وضعیت</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var handpan in _handpans)
+            {
+                <tr>
+                    <td>@handpan.SerialNumber</td>
+                    <td>@handpan.TopBowlCode</td>
+                    <td>@handpan.BottomBowlCode</td>
+                    <td><span class="badge bg-primary">@StageText(handpan.Stage)</span></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
 
 @code
 {
@@ -74,6 +118,8 @@ else
     private string? _error;
 
     private List<BowlDto> _bowls = new();
+    private List<HandpanDto> _handpans = new();
+    private string _activeTab = "bowls";
 
     protected override async Task OnInitializedAsync()
     {
@@ -83,6 +129,7 @@ else
         try
         {
             _bowls = (await BowlService.GetAsync()).ToList();
+            _handpans = (await HandpanService.GetAllAsync()).ToList();
         }
         catch (Exception ex)
         {
@@ -99,6 +146,10 @@ else
     {
         Navigation.NavigateTo("/bowls/new");
     }
+
+    private void ShowBowls() => _activeTab = "bowls";
+
+    private void ShowHandpans() => _activeTab = "handpans";
 
     private static string StageText(int stage) => stage switch
     {

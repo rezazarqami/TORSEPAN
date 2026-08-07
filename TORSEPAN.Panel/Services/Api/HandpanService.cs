@@ -30,4 +30,10 @@ public sealed class HandpanService
                    "handpans/ready-for-packaging")
                ?? [];
     }
+
+    public async Task<IReadOnlyList<HandpanDto>> GetAllAsync()
+    {
+        return await _api.GetAsync<IReadOnlyList<HandpanDto>>("handpans")
+               ?? [];
+    }
 }

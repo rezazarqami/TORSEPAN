@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.Application.Handpans.Commands.CreateHandpan;
+using TORSEPAN.Application.Handpans.Queries.GetAllHandpans;
 using TORSEPAN.Application.Handpans.Queries.GetHandpanBySerialNumber;
 using TORSEPAN.Application.Handpans.Queries.GetHandpansByStatus;
 using TORSEPAN.Application.Handpans.Queries.GetReadyForPackaging;
@@ -19,6 +20,17 @@ public sealed class HandpansController : ControllerBase
     public HandpansController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<TORSEPAN.Application.Handpans.Queries.GetAllHandpans.HandpanDto>>>
+        GetAll(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new GetAllHandpansQuery(),
+            cancellationToken);
+
+        return Ok(result);
     }
 
     [HttpGet("{serialNumber}")]

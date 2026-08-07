@@ -46,4 +46,16 @@ public class HandpanRepository
             .Where(x => x.Stage == ProductionStage.FinishedWarehouse)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Handpan>> GetAllWithAssemblyAsync()
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Include(x => x.Assembly)
+                .ThenInclude(x => x.TopBowl)
+            .Include(x => x.Assembly)
+                .ThenInclude(x => x.BottomBowl)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync();
+    }
 }

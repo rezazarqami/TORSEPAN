@@ -22,6 +22,7 @@ public sealed class BowlQueryService : IBowlQueryService
     {
         var query = _context.Bowls
             .AsNoTracking()
+            .Where(x => !x.TopAssemblies.Any() && !x.BottomAssemblies.Any())
             .OrderByDescending(x => x.Id)
             .Select(x => new BowlDto
             {

@@ -4,9 +4,9 @@ public sealed class HandpanDto
 {
     public Guid Id { get; set; }
 
-    public Guid TopBowlId { get; set; }
+    public string TopBowlCode { get; set; } = string.Empty;
 
-    public Guid BottomBowlId { get; set; }
+    public string BottomBowlCode { get; set; } = string.Empty;
 
     public string SerialNumber { get; set; } = string.Empty;
 

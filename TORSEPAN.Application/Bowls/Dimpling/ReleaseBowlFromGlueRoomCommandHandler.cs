@@ -53,6 +53,17 @@ public sealed class ReleaseBowlFromGlueRoomCommandHandler
         if (_userContext.UserId is not Guid userId)
             throw new UnauthorizedAccessException();
 
+        var topBowl = pairedBowls.Single(x => x.Id == assembly.TopBowlId);
+        var handpan = await _unitOfWork.Handpans.GetBySerialNumberAsync(
+            topBowl.ProductionCode);
+
+        if (handpan is null)
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
+
+        handpan.ChangeStatus(ProductionStatus.Waiting);
+        handpan.ChangeStage(ProductionStage.WaitingForFinalTune);
+        _unitOfWork.Handpans.Update(handpan);
+
         foreach (var pairedBowl in pairedBowls)
         {
             pairedBowl.MarkAsWaiting();
@@ -60,7 +71,7 @@ public sealed class ReleaseBowlFromGlueRoomCommandHandler
             _unitOfWork.Bowls.Update(pairedBowl);
 
             await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(
-                handpanId: null,
+                handpanId: handpan.Id,
                 assemblyId: assembly.Id,
                 bowlId: pairedBowl.Id,
                 userId: userId,
