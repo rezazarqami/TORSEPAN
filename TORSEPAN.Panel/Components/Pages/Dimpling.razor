@@ -85,8 +85,16 @@
             }
             else if (_bowl.Stage == 6)
             {
+                <button class="btn btn-success mt-3"
+                        disabled="@_loading"
+                        @onclick="CompleteBakeAsync">
+                    پخت انجام شد
+                </button>
+            }
+            else if (_bowl.Stage == 8)
+            {
                 <div class="alert alert-success mt-3 mb-0">
-                    شیپ این کاسه ثبت شد و اکنون در انتظار پخت است.
+                    پخت این کاسه ثبت شد و اکنون در انتظار تیون است.
                 </div>
             }
             else
@@ -169,6 +177,16 @@
         });
     }
 
+    private async Task CompleteBakeAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            _bowl = await BowlService.CompleteBakeAsync(_productionCode);
+            if (_bowl is null)
+                _error = "ثبت پایان پخت انجام نشد.";
+        });
+    }
+
     private async Task ExecuteAsync(Func<Task> action)
     {
         _loading = true;
@@ -186,7 +204,7 @@
         catch (HttpRequestException ex) when (
             ex.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
         {
-            _error = "این عملیات فقط برای کاربر دارای نقش دیمپل، شیپر یا مدیر مجاز است.";
+            _error = "این عملیات فقط برای کاربر دارای نقش مرتبط با مرحله تولید یا مدیر مجاز است.";
         }
         catch (HttpRequestException)
         {
@@ -213,6 +231,7 @@
         5 => "در حال شیپ",
         6 => "در انتظار پخت",
         7 => "در حال پخت",
+        8 => "در انتظار تیون",
         _ => "در مرحله دیگری از تولید"
     };
 }
