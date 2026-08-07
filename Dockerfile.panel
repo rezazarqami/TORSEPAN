@@ -8,7 +8,6 @@ RUN dotnet restore "TORSEPAN.Panel/TORSEPAN.Panel.csproj"
 
 COPY . .
 RUN dotnet publish "TORSEPAN.Panel/TORSEPAN.Panel.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
-RUN cp /app/publish/wwwroot/_framework/blazor.web.js /app/publish/wwwroot/blazor.web.js
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
