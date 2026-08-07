@@ -9,14 +9,14 @@ public sealed class TokenStorage(IJSRuntime js)
     public async Task<string?> GetAccessTokenAsync()
     {
         return await js.InvokeAsync<string?>(
-            "localStorage.getItem",
+            "sessionStorage.getItem",
             AccessTokenKey);
     }
 
     public async Task SaveAccessTokenAsync(string token)
     {
         await js.InvokeVoidAsync(
-            "localStorage.setItem",
+            "sessionStorage.setItem",
             AccessTokenKey,
             token);
     }
@@ -24,7 +24,7 @@ public sealed class TokenStorage(IJSRuntime js)
     public async Task ClearAsync()
     {
         await js.InvokeVoidAsync(
-            "localStorage.removeItem",
+            "sessionStorage.removeItem",
             AccessTokenKey);
     }
 }

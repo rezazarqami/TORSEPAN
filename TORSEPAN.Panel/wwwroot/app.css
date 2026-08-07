@@ -191,6 +191,225 @@ body {
 #blazor-error-ui {
     display: none !important;
 }
+
+/* Mobile and tablet layout */
+
+@media (max-width: 768px) {
+    html,
+    body {
+        min-width: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .layout {
+        display: block;
+        width: 100%;
+        min-height: 100dvh;
+        height: auto;
+    }
+
+    .sidebar {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        border-left: 0;
+        border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .sidebar-header {
+        height: auto;
+        min-height: 64px;
+        gap: 12px;
+        padding: 10px 14px;
+    }
+
+    .logo {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        font-size: 20px;
+    }
+
+    .sidebar-title {
+        font-size: 18px;
+    }
+
+    .sidebar-subtitle {
+        margin-top: 1px;
+        font-size: 11px;
+    }
+
+    .sidebar-menu {
+        flex-direction: row;
+        gap: 6px;
+        padding: 8px;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        scrollbar-width: none;
+    }
+
+    .sidebar-menu::-webkit-scrollbar {
+        display: none;
+    }
+
+    .sidebar-menu a {
+        flex: 0 0 auto;
+        gap: 7px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        white-space: nowrap;
+        font-size: 14px;
+    }
+
+    .sidebar-menu a span:first-child {
+        width: auto;
+        font-size: 17px;
+    }
+
+    .sidebar-footer {
+        display: none;
+    }
+
+    .main {
+        width: 100%;
+        min-width: 0;
+        overflow: visible;
+    }
+
+    .topbar {
+        height: auto;
+        min-height: 68px;
+        gap: 10px;
+        padding: 10px 14px;
+        flex-wrap: wrap;
+    }
+
+    .topbar-left {
+        flex: 1 1 220px;
+        min-width: 0;
+    }
+
+    .topbar-right {
+        flex: 0 1 auto;
+        gap: 8px;
+    }
+
+    .page-title {
+        font-size: 18px;
+        line-height: 1.4;
+    }
+
+    .page-subtitle {
+        font-size: 11px;
+    }
+
+    .icon-button {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+    }
+
+    .user-box {
+        gap: 8px;
+        padding: 6px 9px;
+        border-radius: 13px;
+    }
+
+    .avatar {
+        width: 38px;
+        height: 38px;
+        font-size: 15px;
+    }
+
+    .user-name {
+        font-size: 13px;
+    }
+
+    .user-role {
+        font-size: 10px;
+    }
+
+    .content {
+        min-width: 0;
+        overflow: visible;
+        padding: 14px;
+    }
+
+    .card,
+    .dashboard-card {
+        max-width: 100%;
+        border-radius: 15px;
+    }
+
+    .card-body.p-5 {
+        padding: 1.25rem !important;
+    }
+
+    .dashboard-card {
+        gap: 14px;
+        padding: 18px;
+    }
+
+    .dashboard-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 15px;
+        font-size: 27px;
+    }
+
+    .dashboard-value,
+    .stat-value {
+        font-size: 28px;
+    }
+
+    .table {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .table td,
+    .table th {
+        padding: 11px;
+    }
+
+    .input-group.input-group-lg {
+        align-items: stretch;
+    }
+
+    .input-group.input-group-lg .btn {
+        padding-inline: 18px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar-subtitle,
+    .page-subtitle,
+    .user-role {
+        display: none;
+    }
+
+    .topbar-left,
+    .topbar-right {
+        width: 100%;
+        flex-basis: 100%;
+    }
+
+    .topbar-right {
+        justify-content: flex-start;
+    }
+
+    .content {
+        padding: 10px;
+    }
+
+    .btn {
+        padding: 9px 14px;
+    }
+}
 .sidebar-header {
     height: 92px;
     display: flex;
