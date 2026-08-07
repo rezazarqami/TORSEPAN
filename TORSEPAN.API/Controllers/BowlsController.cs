@@ -67,7 +67,7 @@ public sealed class BowlsController : ControllerBase
     }
 
     [HttpGet("dimpling/{productionCode}")]
-    [Authorize(Roles = "Dimpler,Shaper,Workshop,Tuner,Administrator")]
+    [Authorize(Roles = "Dimpler,Shaper,Workshop,Tuner,FineTuner,QualityControl,Administrator")]
     public async Task<ActionResult> GetForDimpling(
         string productionCode,
         CancellationToken cancellationToken)
@@ -159,6 +159,37 @@ public sealed class BowlsController : ControllerBase
     {
         var result = await _mediator.Send(
             new ReleaseBowlFromGlueRoomCommand(productionCode),
+            cancellationToken);
+
+        return this.ToActionResult(result);
+    }
+
+    [HttpPost("production/{productionCode}/final-tune/complete")]
+    [Authorize(Roles = "FineTuner,Administrator")]
+    public async Task<ActionResult> CompleteFinalTune(
+        string productionCode,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new CompleteHandpanFinalTuneCommand(productionCode),
+            cancellationToken);
+
+        return this.ToActionResult(result);
+    }
+
+    [HttpPost("production/{productionCode}/qc/complete")]
+    [Authorize(Roles = "QualityControl,Administrator")]
+    public async Task<ActionResult> CompleteQualityControl(
+        string productionCode,
+        [FromBody] CompleteHandpanQualityControlRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new CompleteHandpanQualityControlCommand(
+                productionCode,
+                request.Approved,
+                request.RejectionReason,
+                request.Details),
             cancellationToken);
 
         return this.ToActionResult(result);
