@@ -19,4 +19,6 @@ public sealed class HandpanDto
     public int Stage { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public List<ProductionOperationDto> Operations { get; set; } = [];
 }

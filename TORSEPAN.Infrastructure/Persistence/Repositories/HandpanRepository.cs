@@ -76,6 +76,16 @@ public class HandpanRepository
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.BottomBowl)
             .Include(x => x.Scale)
+            .Include(x => x.ProductionEvents)
+                .ThenInclude(x => x.User)
+            .Include(x => x.Assembly)
+                .ThenInclude(x => x.TopBowl)
+                    .ThenInclude(x => x.ProductionEvents)
+                        .ThenInclude(x => x.User)
+            .Include(x => x.Assembly)
+                .ThenInclude(x => x.BottomBowl)
+                    .ThenInclude(x => x.ProductionEvents)
+                        .ThenInclude(x => x.User)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
     }

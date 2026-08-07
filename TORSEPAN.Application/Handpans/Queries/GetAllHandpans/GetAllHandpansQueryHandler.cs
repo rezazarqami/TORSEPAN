@@ -1,5 +1,6 @@
 using MediatR;
 using TORSEPAN.Application.Interfaces;
+using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.Application.Handpans.Queries.GetAllHandpans;
 
@@ -19,15 +20,36 @@ public sealed class GetAllHandpansQueryHandler
     {
         var handpans = await _unitOfWork.Handpans.GetAllWithAssemblyAsync();
 
-        return handpans.Select(x => new HandpanDto(
-            x.Id,
-            x.SerialNumber,
-            x.Assembly.TopBowl.ProductionCode,
-            x.Assembly.BottomBowl.ProductionCode,
-            x.Assembly.TopBowl.Material.Name,
-            x.Scale?.Name ?? "تعیین نشده",
-            (int)x.Status,
-            (int)x.Stage,
-            x.CreatedAt)).ToList();
+        return handpans.Select(x =>
+        {
+            var operations = x.ProductionEvents
+                .Concat(x.Assembly.TopBowl.ProductionEvents)
+                .Concat(x.Assembly.BottomBowl.ProductionEvents)
+                .Where(e => e.Result == EventResult.Completed)
+                .GroupBy(e => e.Action)
+                .Select(group => new HandpanOperationDto(
+                    (int)group.Key,
+                    string.Join("، ", group
+                        .Select(e => string.IsNullOrWhiteSpace(e.User.FullName)
+                            ? e.User.UserName
+                            : e.User.FullName)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Distinct()),
+                    group.Max(e => e.EventDate)))
+                .OrderBy(e => e.PerformedAt)
+                .ToList();
+
+            return new HandpanDto(
+                x.Id,
+                x.SerialNumber,
+                x.Assembly.TopBowl.ProductionCode,
+                x.Assembly.BottomBowl.ProductionCode,
+                x.Assembly.TopBowl.Material.Name,
+                x.Scale?.Name ?? "تعیین نشده",
+                (int)x.Status,
+                (int)x.Stage,
+                x.CreatedAt,
+                operations);
+        }).ToList();
     }
 }

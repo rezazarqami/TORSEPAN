@@ -1,4 +1,4 @@
-﻿@page "/bowls"
+@page "/bowls"
 
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
@@ -10,14 +10,8 @@
 <PageTitle>تولید</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-
     <h3>تولید</h3>
-
-    <button class="btn btn-primary"
-            @onclick="NewBowl">
-        ثبت کاسه
-    </button>
-
+    <button class="btn btn-primary" @onclick="NewBowl">ثبت کاسه</button>
 </div>
 
 @if (_loading)
@@ -26,9 +20,7 @@
 }
 else if (!string.IsNullOrWhiteSpace(_error))
 {
-    <div class="alert alert-danger">
-        @_error
-    </div>
+    <div class="alert alert-danger">@_error</div>
 }
 else
 {
@@ -40,32 +32,31 @@ else
     else
     {
         <table class="table table-striped mb-5">
-
-        <thead>
-            <tr>
-                <th>کد</th>
-                <th>نوع کاسه</th>
-                <th>دارای نت</th>
-                <th>متریال</th>
-                <th>وضعیت</th>
-            </tr>
-        </thead>
-
-        <tbody>
-
-            @foreach (var bowl in _bowls)
-            {
+            <thead>
                 <tr>
-                    <td>@bowl.ProductionCode</td>
-                    <td>@(bowl.BowlType == 1 ? "کاسه بالا" : "کاسه پایین")</td>
-                    <td>@(bowl.HasNotes ? "بله" : "خیر")</td>
-                    <td>@bowl.MaterialName</td>
-                    <td><span class="badge bg-primary">@StageText(bowl.Stage)</span></td>
+                    <th style="width: 48px;"></th>
+                    <th>کد</th><th>نوع کاسه</th><th>دارای نت</th><th>متریال</th><th>وضعیت</th>
                 </tr>
-            }
-
-        </tbody>
-
+            </thead>
+            <tbody>
+                @foreach (var bowl in _bowls)
+                {
+                    <tr>
+                        <td><button class="btn btn-sm btn-outline-primary" title="نمایش عملیات انجام‌شده" @onclick="() => ToggleBowlDetails(bowl.Id)">@(_expandedBowls.Contains(bowl.Id) ? "−" : "+")</button></td>
+                        <td>@bowl.ProductionCode</td>
+                        <td>@(bowl.BowlType == 1 ? "کاسه بالا" : "کاسه پایین")</td>
+                        <td>@(bowl.HasNotes ? "بله" : "خیر")</td>
+                        <td>@bowl.MaterialName</td>
+                        <td><span class="badge bg-primary">@StageText(bowl.Stage)</span></td>
+                    </tr>
+                    @if (_expandedBowls.Contains(bowl.Id))
+                    {
+                        <tr class="table-light">
+                            <td></td><td colspan="5"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی کاسه {bowl.ProductionCode}")" Operations="bowl.Operations" /></td>
+                        </tr>
+                    }
+                }
+            </tbody>
         </table>
     }
 
@@ -77,47 +68,43 @@ else
     else
     {
         <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>کد ساز</th>
-                <th>کد کاسه بالا</th>
-                <th>کد کاسه پایین</th>
-                <th>متریال</th>
-                <th>اسکیل</th>
-                <th>وضعیت</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var handpan in _handpans)
-            {
+            <thead>
                 <tr>
-                    <td>@handpan.SerialNumber</td>
-                    <td>@handpan.TopBowlCode</td>
-                    <td>@handpan.BottomBowlCode</td>
-                    <td>@handpan.MaterialName</td>
-                    <td>@handpan.ScaleName</td>
-                    <td><span class="badge bg-primary">@StageText(handpan.Stage)</span></td>
+                    <th style="width: 48px;"></th>
+                    <th>کد ساز</th><th>کد کاسه بالا</th><th>کد کاسه پایین</th><th>متریال</th><th>اسکیل</th><th>وضعیت</th>
                 </tr>
-            }
-        </tbody>
+            </thead>
+            <tbody>
+                @foreach (var handpan in _handpans)
+                {
+                    <tr>
+                        <td><button class="btn btn-sm btn-outline-primary" title="نمایش عملیات انجام‌شده" @onclick="() => ToggleHandpanDetails(handpan.Id)">@(_expandedHandpans.Contains(handpan.Id) ? "−" : "+")</button></td>
+                        <td>@handpan.SerialNumber</td><td>@handpan.TopBowlCode</td><td>@handpan.BottomBowlCode</td>
+                        <td>@handpan.MaterialName</td><td>@handpan.ScaleName</td>
+                        <td><span class="badge bg-primary">@StageText(handpan.Stage)</span></td>
+                    </tr>
+                    @if (_expandedHandpans.Contains(handpan.Id))
+                    {
+                        <tr class="table-light">
+                            <td></td><td colspan="6"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی ساز {handpan.SerialNumber}")" Operations="handpan.Operations" /></td>
+                        </tr>
+                    }
+                }
+            </tbody>
         </table>
     }
 }
 
-@code
-{
+@code {
     private bool _loading = true;
-
     private string? _error;
-
-    private List<BowlDto> _bowls = new();
-    private List<HandpanDto> _handpans = new();
+    private List<BowlDto> _bowls = [];
+    private List<HandpanDto> _handpans = [];
+    private readonly HashSet<Guid> _expandedBowls = [];
+    private readonly HashSet<Guid> _expandedHandpans = [];
 
     protected override async Task OnInitializedAsync()
     {
-        _loading = true;
-        _error = null;
-
         try
         {
             _bowls = (await BowlService.GetAsync()).ToList();
@@ -130,36 +117,19 @@ else
         finally
         {
             _loading = false;
-            StateHasChanged();
         }
     }
 
-    private void NewBowl()
-    {
-        Navigation.NavigateTo("/bowls/new");
-    }
+    private void ToggleBowlDetails(Guid id) { if (!_expandedBowls.Add(id)) _expandedBowls.Remove(id); }
+    private void ToggleHandpanDetails(Guid id) { if (!_expandedHandpans.Add(id)) _expandedHandpans.Remove(id); }
+    private void NewBowl() => Navigation.NavigateTo("/bowls/new");
 
     private static string StageText(int stage) => stage switch
     {
-        1 => "ثبت شده",
-        2 => "در انتظار دیمپل",
-        3 => "در حال دیمپل",
-        4 => "در انتظار شیپ",
-        5 => "در حال شیپ",
-        6 => "در انتظار پخت",
-        7 => "در حال پخت",
-        8 => "در انتظار کوک",
-        9 => "در حال کوک",
-        10 => "در انتظار چسب‌کاری",
-        11 => "در اتاق چسب",
-        12 => "در انتظار فاین تیون",
-        13 => "کوک نهایی",
-        14 => "در انتظار QC",
-        15 => "QC",
-        16 => "در انتظار بسته‌بندی",
-        17 => "بسته‌بندی",
-        18 => "انبار",
-        19 => "رد شده",
-        _ => "نامشخص"
+        1 => "ثبت شده", 2 => "در انتظار دیمپل", 3 => "در حال دیمپل", 4 => "در انتظار شیپ",
+        5 => "در حال شیپ", 6 => "در انتظار پخت", 7 => "در حال پخت", 8 => "در انتظار کوک",
+        9 => "در حال کوک", 10 => "در انتظار چسب‌کاری", 11 => "در اتاق چسب",
+        12 => "در انتظار فاین تیون", 13 => "کوک نهایی", 14 => "در انتظار QC", 15 => "QC",
+        16 => "در انتظار بسته‌بندی", 17 => "بسته‌بندی", 18 => "انبار", 19 => "رد شده", _ => "نامشخص"
     };
 }

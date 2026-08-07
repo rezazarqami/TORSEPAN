@@ -19,4 +19,6 @@ public sealed class BowlDto
     public int Status { get; set; }
 
     public int Stage { get; set; }
+
+    public List<ProductionOperationDto> Operations { get; set; } = [];
 }
