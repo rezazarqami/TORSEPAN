@@ -32,6 +32,25 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<TORSEPANDbContext>();
     await dbContext.Database.MigrateAsync();
+
+    var bootstrapUserName = builder.Configuration["BootstrapAdmin:UserName"];
+    var bootstrapPassword = builder.Configuration["BootstrapAdmin:Password"];
+
+    if (!string.IsNullOrWhiteSpace(bootstrapUserName) &&
+        !string.IsNullOrWhiteSpace(bootstrapPassword))
+    {
+        var normalizedUserName = bootstrapUserName.Trim().ToUpper();
+        var bootstrapUser = await dbContext.Users.FirstOrDefaultAsync(user =>
+            user.UserName.ToUpper() == normalizedUserName);
+
+        if (bootstrapUser is not null &&
+            string.IsNullOrEmpty(bootstrapUser.PasswordHash))
+        {
+            bootstrapUser.SetPassword(bootstrapPassword);
+            bootstrapUser.Activate();
+            await dbContext.SaveChangesAsync();
+        }
+    }
 }
 
 if (app.Environment.IsDevelopment())
