@@ -89,12 +89,13 @@ public sealed class BowlService
 
     public Task<DimpleBowlDto?> CompleteGlueAsync(
         string productionCode,
-        string pairedProductionCode)
+        string pairedProductionCode,
+        Guid scaleId)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/glue/complete",
-            new { PairedProductionCode = pairedProductionCode.Trim() });
+            new { PairedProductionCode = pairedProductionCode.Trim(), ScaleId = scaleId });
     }
 
     public Task<DimpleBowlDto?> ReleaseFromGlueRoomAsync(string productionCode)

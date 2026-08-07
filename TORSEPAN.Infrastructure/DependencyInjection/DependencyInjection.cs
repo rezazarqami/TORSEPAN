@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<IHandpanAssemblyRepository, HandpanAssemblyRepository>();
         services.AddScoped<IBowlRepository, BowlRepository>();
         services.AddScoped<IMaterialRepository, MaterialRepository>();
+        services.AddScoped<IScaleRepository, ScaleRepository>();
         services.AddScoped<IProductionEventRepository, ProductionEventRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();

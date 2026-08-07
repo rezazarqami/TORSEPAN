@@ -5,6 +5,8 @@ public sealed record HandpanDto(
     string SerialNumber,
     string TopBowlCode,
     string BottomBowlCode,
+    string MaterialName,
+    string ScaleName,
     int Status,
     int Stage,
     DateTime CreatedAt);

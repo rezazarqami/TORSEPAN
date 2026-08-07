@@ -144,7 +144,8 @@ public sealed class BowlsController : ControllerBase
         var result = await _mediator.Send(
             new CompleteBowlGlueCommand(
                 productionCode,
-                request.PairedProductionCode),
+                request.PairedProductionCode,
+                request.ScaleId),
             cancellationToken);
 
         return this.ToActionResult(result);

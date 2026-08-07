@@ -21,6 +21,8 @@ public interface IUnitOfWork
 
     IMaterialRepository Materials { get; }
 
+    IScaleRepository Scales { get; }
+
     IProductionEventRepository ProductionEvents { get; }
 
     Task<int> SaveChangesAsync(

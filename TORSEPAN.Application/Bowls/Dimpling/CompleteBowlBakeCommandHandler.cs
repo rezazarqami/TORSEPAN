@@ -32,7 +32,11 @@ public sealed class CompleteBowlBakeCommandHandler
         if (bowl is null)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);
 
-        if (bowl.Stage == ProductionStage.WaitingForTune)
+        var nextStage = bowl.BowlType == BowlType.Bottom && !bowl.HasNotes
+            ? ProductionStage.WaitingForGlue
+            : ProductionStage.WaitingForTune;
+
+        if (bowl.Stage == nextStage)
             return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(bowl));
 
         if (bowl.Stage != ProductionStage.WaitingForBake)
@@ -42,7 +46,7 @@ public sealed class CompleteBowlBakeCommandHandler
             throw new UnauthorizedAccessException();
 
         bowl.MarkAsWaiting();
-        bowl.ChangeStage(ProductionStage.WaitingForTune);
+        bowl.ChangeStage(nextStage);
         _unitOfWork.Bowls.Update(bowl);
 
         await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(

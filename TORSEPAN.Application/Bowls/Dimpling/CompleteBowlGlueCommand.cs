@@ -5,4 +5,5 @@ namespace TORSEPAN.Application.Bowls.Dimpling;
 
 public sealed record CompleteBowlGlueCommand(
     string ProductionCode,
-    string PairedProductionCode) : IRequest<Result<BowlDimpleDto>>;
+    string PairedProductionCode,
+    Guid ScaleId) : IRequest<Result<BowlDimpleDto>>;

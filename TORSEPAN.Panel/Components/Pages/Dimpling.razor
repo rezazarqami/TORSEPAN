@@ -6,6 +6,7 @@
 @using TORSEPAN.Panel.Services.Api
 
 @inject BowlService BowlService
+@inject ScaleService ScaleService
 @inject NavigationManager Navigation
 
 <PageTitle>تولید</PageTitle>
@@ -53,7 +54,6 @@
         <div class="border rounded p-3 mt-2">
             <div><strong>کد:</strong> @_bowl.ProductionCode</div>
             <div><strong>نوع کاسه:</strong> @BowlTypeText(_bowl.BowlType)</div>
-            <div><strong>نوع ساز:</strong> @InstrumentTypeText(_bowl.InstrumentType)</div>
             <div><strong>وضعیت:</strong> @StageText(_bowl.Stage)</div>
 
             @if (_bowl.Stage == 2)
@@ -135,8 +135,16 @@
                            placeholder="کد کاسه مکمل را وارد کنید"
                            @bind="_pairedProductionCode"
                            @bind:event="oninput" />
+                    <label class="form-label mt-3">اسکیل ساز</label>
+                    <select class="form-select" @bind="_scaleId">
+                        <option value="@Guid.Empty">انتخاب کنید...</option>
+                        @foreach (var scale in _scales)
+                        {
+                            <option value="@scale.Id">@scale.Name</option>
+                        }
+                    </select>
                     <button class="btn btn-success mt-3"
-                            disabled="@(_loading || string.IsNullOrWhiteSpace(_pairedProductionCode))"
+                            disabled="@(_loading || string.IsNullOrWhiteSpace(_pairedProductionCode) || _scaleId == Guid.Empty)"
                             @onclick="CompleteGlueAsync">
                         چسب انجام شد
                     </button>
@@ -179,6 +187,8 @@
     private bool _loading;
     private int _duration = 1;
     private string _pairedProductionCode = string.Empty;
+    private Guid _scaleId;
+    private readonly List<ScaleDto> _scales = [];
     private string? _successMessage;
 
     private static readonly (int Value, string Text)[] DurationOptions =
@@ -189,6 +199,13 @@
         (10, "۵۰ دقیقه"), (11, "۵۵ دقیقه"), (12, "۶۰ دقیقه"),
         (13, "بیشتر از ۶۰ دقیقه")
     ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _scales.AddRange(await ScaleService.GetAsync());
+        if (_scales.Count > 0)
+            _scaleId = _scales[0].Id;
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -261,7 +278,7 @@
 
     private async Task CompleteGlueAsync()
     {
-        if (string.IsNullOrWhiteSpace(_pairedProductionCode))
+        if (string.IsNullOrWhiteSpace(_pairedProductionCode) || _scaleId == Guid.Empty)
         {
             _error = "کد کاسه مکمل را وارد کنید.";
             return;
@@ -271,7 +288,8 @@
         {
             var result = await BowlService.CompleteGlueAsync(
                 _productionCode,
-                _pairedProductionCode);
+                _pairedProductionCode,
+                _scaleId);
             SetOperationResult(result, "چسب‌کاری با موفقیت انجام شد و ساز وارد اتاق چسب شد.", "ثبت اتصال کاسه‌ها انجام نشد.");
         });
     }
@@ -323,7 +341,7 @@
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
         {
-            _error = "کاسه مکمل باید از نوع مخالف، هم‌نوع ساز، در انتظار چسب و استفاده‌نشده باشد.";
+            _error = "کاسه مکمل، اسکیل معتبر و وضعیت در انتظار چسب را بررسی کنید.";
         }
         catch (HttpRequestException)
         {
@@ -337,9 +355,6 @@
 
     private static string BowlTypeText(int value) =>
         value == 1 ? "کاسه بالا" : "کاسه پایین";
-
-    private static string InstrumentTypeText(int value) =>
-        value == 1 ? "۹ نت" : "سفارشی";
 
     private static string StageText(int value) => value switch
     {

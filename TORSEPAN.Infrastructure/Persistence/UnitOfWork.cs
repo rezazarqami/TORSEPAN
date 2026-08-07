@@ -16,6 +16,7 @@ public sealed class UnitOfWork : IUnitOfWork
         IHandpanAssemblyRepository handpanAssemblies,
         IBowlRepository bowls,
         IMaterialRepository materials,
+        IScaleRepository scales,
         IProductionEventRepository productionEvents)
     {
         _context = context;
@@ -28,6 +29,7 @@ public sealed class UnitOfWork : IUnitOfWork
         HandpanAssemblies = handpanAssemblies;
         Bowls = bowls;
         Materials = materials;
+        Scales = scales;
         ProductionEvents = productionEvents;
     }
 
@@ -46,6 +48,8 @@ public sealed class UnitOfWork : IUnitOfWork
     public IBowlRepository Bowls { get; }
 
     public IMaterialRepository Materials { get; }
+
+    public IScaleRepository Scales { get; }
 
     public IProductionEventRepository ProductionEvents { get; }
 

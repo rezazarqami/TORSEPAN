@@ -24,6 +24,8 @@ public sealed class GetAllHandpansQueryHandler
             x.SerialNumber,
             x.Assembly.TopBowl.ProductionCode,
             x.Assembly.BottomBowl.ProductionCode,
+            x.Assembly.TopBowl.Material.Name,
+            x.Scale?.Name ?? "تعیین نشده",
             (int)x.Status,
             (int)x.Stage,
             x.CreatedAt)).ToList();

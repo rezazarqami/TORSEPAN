@@ -13,10 +13,16 @@ public class Handpan : Entity
     }
 
     public Handpan(Guid assemblyId, string serialNumber)
+        : this(assemblyId, serialNumber, null)
+    {
+    }
+
+    public Handpan(Guid assemblyId, string serialNumber, Guid? scaleId)
     {
         Id = Guid.NewGuid();
         AssemblyId = assemblyId;
         SerialNumber = serialNumber;
+        ScaleId = scaleId;
         CreatedAt = DateTime.UtcNow;
     }
 
@@ -25,6 +31,10 @@ public class Handpan : Entity
     public HandpanAssembly Assembly { get; private set; } = null!;
 
     public string SerialNumber { get; private set; } = string.Empty;
+
+    public Guid? ScaleId { get; private set; }
+
+    public Scale? Scale { get; private set; }
 
     public ProductionStatus Status { get; private set; }
 
