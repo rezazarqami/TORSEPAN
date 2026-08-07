@@ -1,10 +1,11 @@
-﻿using System.Text;
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using TORSEPAN.Application.Common.Interfaces;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Production;
@@ -21,9 +22,10 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var connectionString = GetConnectionString(configuration);
+
         services.AddDbContext<TORSEPANDbContext>(options =>
-            options.UseNpgsql(
-                configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(connectionString));
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -73,5 +75,40 @@ public static class DependencyInjection
         services.AddScoped<IBowlQueryService, BowlQueryService>();
 
         return services;
+    }
+
+    private static string GetConnectionString(IConfiguration configuration)
+    {
+        var configuredConnectionString = configuration.GetConnectionString("DefaultConnection");
+        var databaseUrl = configuration["DATABASE_URL"];
+
+        if (!string.IsNullOrWhiteSpace(databaseUrl))
+        {
+            if (!Uri.TryCreate(databaseUrl, UriKind.Absolute, out var uri))
+            {
+                throw new InvalidOperationException("DATABASE_URL is not a valid PostgreSQL URL.");
+            }
+
+            var credentials = Uri.UnescapeDataString(uri.UserInfo).Split(':', 2);
+            if (credentials.Length != 2)
+            {
+                throw new InvalidOperationException("DATABASE_URL must contain a username and password.");
+            }
+
+            return new NpgsqlConnectionStringBuilder
+            {
+                Host = uri.Host,
+                Port = uri.IsDefaultPort ? 5432 : uri.Port,
+                Database = uri.AbsolutePath.TrimStart('/'),
+                Username = credentials[0],
+                Password = credentials[1],
+                SslMode = SslMode.Require
+            }.ConnectionString;
+        }
+
+        return !string.IsNullOrWhiteSpace(configuredConnectionString)
+            ? configuredConnectionString
+            : throw new InvalidOperationException(
+                "Set DATABASE_URL or ConnectionStrings__DefaultConnection.");
     }
 }
