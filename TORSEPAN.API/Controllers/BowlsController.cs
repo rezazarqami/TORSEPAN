@@ -149,4 +149,17 @@ public sealed class BowlsController : ControllerBase
 
         return this.ToActionResult(result);
     }
+
+    [HttpPost("production/{productionCode}/glue-room/release")]
+    [Authorize(Roles = "Workshop,Administrator")]
+    public async Task<ActionResult> ReleaseFromGlueRoom(
+        string productionCode,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new ReleaseBowlFromGlueRoomCommand(productionCode),
+            cancellationToken);
+
+        return this.ToActionResult(result);
+    }
 }

@@ -60,10 +60,10 @@ public static class ProductionWorkflow
         new(
             ProductionStage.WaitingForGlue,
             ProductionAction.Glue,
-            ProductionStage.Glue),
+            ProductionStage.GlueRoom),
 
         new(
-            ProductionStage.Glue,
+            ProductionStage.GlueRoom,
             ProductionAction.Glue,
             ProductionStage.WaitingForFinalTune),
 

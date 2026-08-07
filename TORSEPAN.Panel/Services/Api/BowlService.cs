@@ -96,4 +96,12 @@ public sealed class BowlService
             $"bowls/production/{code}/glue/complete",
             new { PairedProductionCode = pairedProductionCode.Trim() });
     }
+
+    public Task<DimpleBowlDto?> ReleaseFromGlueRoomAsync(string productionCode)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>(
+            $"bowls/production/{code}/glue-room/release",
+            new { });
+    }
 }

@@ -14,7 +14,7 @@ internal static class ProductionActionMapper
 
             ProductionStage.Bake => ProductionAction.Furnace,
 
-            ProductionStage.Glue => ProductionAction.Glue,
+            ProductionStage.GlueRoom => ProductionAction.Glue,
 
             ProductionStage.Tune => ProductionAction.Tune,
 
