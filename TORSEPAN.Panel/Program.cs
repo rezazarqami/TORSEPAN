@@ -43,6 +43,7 @@ builder.Services.AddScoped<ProductionService>();
 builder.Services.AddScoped<HandpanService>();
 builder.Services.AddScoped<BowlService>();
 builder.Services.AddScoped<MaterialService>();
+builder.Services.AddScoped<ScaleService>();
 builder.Services.AddScoped<ReportService>();
 
 var app = builder.Build();

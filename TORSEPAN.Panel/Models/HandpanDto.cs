@@ -8,6 +8,10 @@ public sealed class HandpanDto
 
     public string BottomBowlCode { get; set; } = string.Empty;
 
+    public string MaterialName { get; set; } = string.Empty;
+
+    public string ScaleName { get; set; } = string.Empty;
+
     public string SerialNumber { get; set; } = string.Empty;
 
     public int Status { get; set; }

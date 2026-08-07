@@ -20,21 +20,6 @@
 
 </div>
 
-<ul class="nav nav-tabs mb-4">
-    <li class="nav-item">
-        <button class="nav-link @(_activeTab == "bowls" ? "active" : null)"
-                @onclick="ShowBowls">
-            کاسه‌ها
-        </button>
-    </li>
-    <li class="nav-item">
-        <button class="nav-link @(_activeTab == "handpans" ? "active" : null)"
-                @onclick="ShowHandpans">
-            سازها
-        </button>
-    </li>
-</ul>
-
 @if (_loading)
 {
     <p>در حال بارگذاری...</p>
@@ -45,22 +30,23 @@ else if (!string.IsNullOrWhiteSpace(_error))
         @_error
     </div>
 }
-else if (_activeTab == "bowls" && _bowls.Count == 0)
+else
 {
-    <div class="alert alert-info">
-        هیچ کاسه‌ای ثبت نشده است.
-    </div>
-}
-else if (_activeTab == "bowls")
-{
-    <table class="table table-striped">
+    <h4 class="mb-3">کاسه‌ها</h4>
+    @if (_bowls.Count == 0)
+    {
+        <div class="alert alert-info">هیچ کاسه‌ای ثبت نشده است.</div>
+    }
+    else
+    {
+        <table class="table table-striped mb-5">
 
         <thead>
             <tr>
                 <th>کد</th>
                 <th>نوع کاسه</th>
                 <th>دارای نت</th>
-                <th>نوع ساز</th>
+                <th>متریال</th>
                 <th>وضعیت</th>
             </tr>
         </thead>
@@ -73,27 +59,31 @@ else if (_activeTab == "bowls")
                     <td>@bowl.ProductionCode</td>
                     <td>@(bowl.BowlType == 1 ? "کاسه بالا" : "کاسه پایین")</td>
                     <td>@(bowl.HasNotes ? "بله" : "خیر")</td>
-                    <td>@(bowl.InstrumentType == 1 ? "۹ نت" : "سفارشی")</td>
+                    <td>@bowl.MaterialName</td>
                     <td><span class="badge bg-primary">@StageText(bowl.Stage)</span></td>
                 </tr>
             }
 
         </tbody>
 
-    </table>
-}
-else if (_handpans.Count == 0)
-{
-    <div class="alert alert-info">هنوز سازی تشکیل نشده است.</div>
-}
-else
-{
-    <table class="table table-striped">
+        </table>
+    }
+
+    <h4 class="mb-3">سازها</h4>
+    @if (_handpans.Count == 0)
+    {
+        <div class="alert alert-info">هنوز سازی تشکیل نشده است.</div>
+    }
+    else
+    {
+        <table class="table table-striped">
         <thead>
             <tr>
                 <th>کد ساز</th>
                 <th>کد کاسه بالا</th>
                 <th>کد کاسه پایین</th>
+                <th>متریال</th>
+                <th>اسکیل</th>
                 <th>وضعیت</th>
             </tr>
         </thead>
@@ -104,11 +94,14 @@ else
                     <td>@handpan.SerialNumber</td>
                     <td>@handpan.TopBowlCode</td>
                     <td>@handpan.BottomBowlCode</td>
+                    <td>@handpan.MaterialName</td>
+                    <td>@handpan.ScaleName</td>
                     <td><span class="badge bg-primary">@StageText(handpan.Stage)</span></td>
                 </tr>
             }
         </tbody>
-    </table>
+        </table>
+    }
 }
 
 @code
@@ -119,7 +112,6 @@ else
 
     private List<BowlDto> _bowls = new();
     private List<HandpanDto> _handpans = new();
-    private string _activeTab = "bowls";
 
     protected override async Task OnInitializedAsync()
     {
@@ -146,10 +138,6 @@ else
     {
         Navigation.NavigateTo("/bowls/new");
     }
-
-    private void ShowBowls() => _activeTab = "bowls";
-
-    private void ShowHandpans() => _activeTab = "handpans";
 
     private static string StageText(int stage) => stage switch
     {

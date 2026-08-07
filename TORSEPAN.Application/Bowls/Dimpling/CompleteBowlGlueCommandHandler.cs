@@ -29,6 +29,7 @@ public sealed class CompleteBowlGlueCommandHandler
         var secondCode = request.PairedProductionCode.Trim();
 
         if (string.IsNullOrWhiteSpace(secondCode) ||
+            request.ScaleId == Guid.Empty ||
             string.Equals(firstCode, secondCode, StringComparison.OrdinalIgnoreCase))
         {
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
@@ -49,8 +50,7 @@ public sealed class CompleteBowlGlueCommandHandler
 
         if (first.Stage != ProductionStage.WaitingForGlue ||
             second.Stage != ProductionStage.WaitingForGlue ||
-            first.BowlType == second.BowlType ||
-            first.InstrumentType != second.InstrumentType)
+            first.BowlType == second.BowlType)
         {
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
         }
@@ -64,13 +64,16 @@ public sealed class CompleteBowlGlueCommandHandler
         if (alreadyUsed)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
+        if (!await _unitOfWork.Scales.ExistsAsync(request.ScaleId))
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
+
         if (_userContext.UserId is not Guid userId)
             throw new UnauthorizedAccessException();
 
         var assembly = new HandpanAssembly(top.Id, bottom.Id);
         await _unitOfWork.HandpanAssemblies.AddAsync(assembly);
 
-        var handpan = new Handpan(assembly.Id, top.ProductionCode);
+        var handpan = new Handpan(assembly.Id, top.ProductionCode, request.ScaleId);
         handpan.ChangeStatus(ProductionStatus.Waiting);
         handpan.ChangeStage(ProductionStage.GlueRoom);
         await _unitOfWork.Handpans.AddAsync(handpan);

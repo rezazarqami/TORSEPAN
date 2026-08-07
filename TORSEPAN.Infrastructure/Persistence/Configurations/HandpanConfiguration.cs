@@ -22,6 +22,11 @@ public class HandpanConfiguration : IEntityTypeConfiguration<Handpan>
         builder.HasIndex(x => x.SerialNumber)
             .IsUnique();
 
+        builder.HasOne(x => x.Scale)
+            .WithMany(x => x.Handpans)
+            .HasForeignKey(x => x.ScaleId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Property(x => x.Status)
             .IsRequired();
 

@@ -53,8 +53,10 @@ public class HandpanRepository
             .AsNoTracking()
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.TopBowl)
+                    .ThenInclude(x => x.Material)
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.BottomBowl)
+            .Include(x => x.Scale)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
     }
