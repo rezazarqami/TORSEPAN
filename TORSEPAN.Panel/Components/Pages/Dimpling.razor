@@ -93,8 +93,29 @@
             }
             else if (_bowl.Stage == 8)
             {
+                <div class="row align-items-end mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label">مدت زمان انجام تیون</label>
+                        <select class="form-select" @bind="_duration">
+                            @foreach (var option in DurationOptions)
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <button class="btn btn-success w-100"
+                                disabled="@_loading"
+                                @onclick="CompleteTuneAsync">
+                            تیون انجام شد
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (_bowl.Stage == 10)
+            {
                 <div class="alert alert-success mt-3 mb-0">
-                    پخت این کاسه ثبت شد و اکنون در انتظار تیون است.
+                    تیون این کاسه ثبت شد و اکنون در انتظار چسب است.
                 </div>
             }
             else
@@ -187,6 +208,16 @@
         });
     }
 
+    private async Task CompleteTuneAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            _bowl = await BowlService.CompleteTuneAsync(_productionCode, _duration);
+            if (_bowl is null)
+                _error = "ثبت پایان تیون انجام نشد.";
+        });
+    }
+
     private async Task ExecuteAsync(Func<Task> action)
     {
         _loading = true;
@@ -232,6 +263,8 @@
         6 => "در انتظار پخت",
         7 => "در حال پخت",
         8 => "در انتظار تیون",
+        9 => "در حال تیون",
+        10 => "در انتظار چسب",
         _ => "در مرحله دیگری از تولید"
     };
 }

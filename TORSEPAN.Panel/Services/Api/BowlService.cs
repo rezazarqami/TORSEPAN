@@ -76,4 +76,14 @@ public sealed class BowlService
             $"bowls/production/{code}/bake/complete",
             new { });
     }
+
+    public Task<DimpleBowlDto?> CompleteTuneAsync(
+        string productionCode,
+        int duration)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>(
+            $"bowls/production/{code}/tune/complete",
+            new { Duration = duration });
+    }
 }
