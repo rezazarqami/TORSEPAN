@@ -35,7 +35,9 @@ public class Bowl : Entity
         InstrumentType = instrumentType;
         MaterialId = materialId;
         Status = ProductionStatus.Waiting;
-        Stage = ProductionStage.WaitingForDimple;
+        Stage = bowlType == BowlType.Bottom && !hasNotes
+            ? ProductionStage.WaitingForBake
+            : ProductionStage.WaitingForDimple;
     }
 
     public void StartProduction()=> Status=ProductionStatus.InProgress;

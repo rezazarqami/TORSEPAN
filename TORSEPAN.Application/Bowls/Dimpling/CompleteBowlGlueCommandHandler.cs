@@ -44,7 +44,7 @@ public sealed class CompleteBowlGlueCommandHandler
         if (first is null || second is null)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);
 
-        if (first.Stage == ProductionStage.WaitingForFinalTune)
+        if (first.Stage == ProductionStage.GlueRoom)
             return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(first));
 
         if (first.Stage != ProductionStage.WaitingForGlue ||
@@ -73,7 +73,7 @@ public sealed class CompleteBowlGlueCommandHandler
         foreach (var bowl in bowls)
         {
             bowl.MarkAsWaiting();
-            bowl.ChangeStage(ProductionStage.WaitingForFinalTune);
+            bowl.ChangeStage(ProductionStage.GlueRoom);
             _unitOfWork.Bowls.Update(bowl);
 
             await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(

@@ -127,6 +127,17 @@
                     </button>
                 </div>
             }
+            else if (_bowl.Stage == 11)
+            {
+                <div class="alert alert-info mt-3">
+                    این ساز در اتاق چسب قرار دارد.
+                </div>
+                <button class="btn btn-success"
+                        disabled="@_loading"
+                        @onclick="ReleaseFromGlueRoomAsync">
+                    از اتاق چسب خارج شد
+                </button>
+            }
             else if (_bowl.Stage == 12)
             {
                 <div class="alert alert-success mt-3 mb-0">
@@ -253,6 +264,16 @@
         });
     }
 
+    private async Task ReleaseFromGlueRoomAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            _bowl = await BowlService.ReleaseFromGlueRoomAsync(_productionCode);
+            if (_bowl is null)
+                _error = "ثبت خروج از اتاق چسب انجام نشد.";
+        });
+    }
+
     private async Task ExecuteAsync(Func<Task> action)
     {
         _loading = true;
@@ -304,7 +325,7 @@
         8 => "در انتظار تیون",
         9 => "در حال تیون",
         10 => "در انتظار چسب",
-        11 => "در حال چسب",
+        11 => "در اتاق چسب",
         12 => "در انتظار فاین تیون",
         _ => "در مرحله دیگری از تولید"
     };

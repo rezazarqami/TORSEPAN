@@ -33,7 +33,7 @@ public class BowlRepository : GenericRepository<Bowl>, IBowlRepository
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(x => x.Stage == ProductionStage.Glue)
+            .Where(x => x.Stage == ProductionStage.GlueRoom)
             .ToListAsync();
     }
 

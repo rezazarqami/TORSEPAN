@@ -13,6 +13,25 @@
 }
 else
 {
+    <div class="d-flex justify-content-center mb-5">
+        <div class="card shadow-sm w-100" style="max-width: 900px;">
+            <div class="card-body p-5 text-center">
+                <h3 class="fw-bold mb-4">ورود به عملیات تولید</h3>
+                <label class="form-label fs-5">کد ساز را وارد کنید</label>
+                <div class="input-group input-group-lg mt-2">
+                    <input class="form-control text-center"
+                           placeholder="کد ساز را وارد کنید"
+                           @bind="_dimplingCode"
+                           @bind:event="oninput"
+                           @onkeydown="OpenDimplingOnEnter" />
+                    <button class="btn btn-primary px-5" @onclick="OpenDimpling">
+                        ورود
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4">
 
         <div class="col-xl-3 col-md-6">
@@ -68,25 +87,6 @@ else
                         @_dashboard.Rejected
                     </div>
                 </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="card mt-4">
-
-        <div class="card-body p-4">
-            <h5 class="fw-bold">تولید</h5>
-            <label class="form-label">کد ساز را وارد کنید</label>
-            <div class="input-group">
-                <input class="form-control"
-                       placeholder="کد ساز را وارد کنید"
-                       @bind="_dimplingCode"
-                       @bind:event="oninput"
-                       @onkeydown="OpenDimplingOnEnter" />
-                <button class="btn btn-primary" @onclick="OpenDimpling">
-                    ورود
-                </button>
             </div>
         </div>
 
