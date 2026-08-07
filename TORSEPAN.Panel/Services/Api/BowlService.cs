@@ -86,4 +86,14 @@ public sealed class BowlService
             $"bowls/production/{code}/tune/complete",
             new { Duration = duration });
     }
+
+    public Task<DimpleBowlDto?> CompleteGlueAsync(
+        string productionCode,
+        string pairedProductionCode)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>(
+            $"bowls/production/{code}/glue/complete",
+            new { PairedProductionCode = pairedProductionCode.Trim() });
+    }
 }

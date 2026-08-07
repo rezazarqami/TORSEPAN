@@ -18,6 +18,12 @@ public class HandpanAssemblyConfiguration : IEntityTypeConfiguration<HandpanAsse
         builder.Property(x => x.AssemblyDate)
             .IsRequired();
 
+        builder.HasIndex(x => x.TopBowlId)
+            .IsUnique();
+
+        builder.HasIndex(x => x.BottomBowlId)
+            .IsUnique();
+
         // -----------------------------
         // Top Bowl
         // -----------------------------
