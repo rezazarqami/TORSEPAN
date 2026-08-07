@@ -1,0 +1,137 @@
+@page "/dimpling"
+
+@using System.Net
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+
+@inject BowlService BowlService
+
+<PageTitle>پذیرش دیمپل</PageTitle>
+
+<h3 class="mb-4">پذیرش کاسه برای دیمپل</h3>
+
+<div class="card p-4">
+    <label class="form-label">کد کاسه</label>
+    <div class="input-group mb-3">
+        <input class="form-control"
+               placeholder="کد کاسه را وارد یا اسکن کنید"
+               @bind="_productionCode"
+               @bind:event="oninput"
+               @onkeydown="HandleKeyDown" />
+        <button class="btn btn-primary"
+                disabled="@_loading"
+                @onclick="SearchAsync">
+            جست‌وجو
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @if (_bowl is not null)
+    {
+        <div class="border rounded p-3 mt-2">
+            <div><strong>کد:</strong> @_bowl.ProductionCode</div>
+            <div><strong>نوع کاسه:</strong> @BowlTypeText(_bowl.BowlType)</div>
+            <div><strong>نوع ساز:</strong> @InstrumentTypeText(_bowl.InstrumentType)</div>
+            <div><strong>وضعیت:</strong> @StageText(_bowl.Stage)</div>
+
+            @if (_bowl.Stage == 1)
+            {
+                <button class="btn btn-success mt-3"
+                        disabled="@_loading"
+                        @onclick="QueueAsync">
+                    قرار دادن در قفسه انتظار دیمپل
+                </button>
+            }
+            else if (_bowl.Stage == 2)
+            {
+                <div class="alert alert-success mt-3 mb-0">
+                    این کاسه در قفسه انتظار دیمپل قرار دارد.
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string _productionCode = string.Empty;
+    private string? _error;
+    private DimpleBowlDto? _bowl;
+    private bool _loading;
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+            await SearchAsync();
+    }
+
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_productionCode))
+        {
+            _error = "کد کاسه را وارد کنید.";
+            return;
+        }
+
+        await ExecuteAsync(async () =>
+        {
+            _bowl = await BowlService.GetForDimplingAsync(_productionCode);
+            if (_bowl is null)
+                _error = "کاسه پیدا نشد.";
+        });
+    }
+
+    private async Task QueueAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            _bowl = await BowlService.QueueForDimplingAsync(_productionCode);
+            if (_bowl is null)
+                _error = "انتقال کاسه انجام نشد.";
+        });
+    }
+
+    private async Task ExecuteAsync(Func<Task> action)
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            await action();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            _bowl = null;
+            _error = "کاسه‌ای با این کد پیدا نشد.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            _error = "این عملیات فقط برای کاربر دارای نقش دیمپل مجاز است.";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "ارتباط با سرویس برقرار نشد.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string BowlTypeText(int value) =>
+        value == 1 ? "کاسه بالا" : "کاسه پایین";
+
+    private static string InstrumentTypeText(int value) =>
+        value == 1 ? "۹ نت" : "سفارشی";
+
+    private static string StageText(int value) => value switch
+    {
+        1 => "ثبت شده",
+        2 => "در انتظار دیمپل",
+        _ => "در مرحله دیگری از تولید"
+    };
+}

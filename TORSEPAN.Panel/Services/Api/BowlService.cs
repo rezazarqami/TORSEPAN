@@ -42,4 +42,18 @@ public sealed class BowlService
             throw new Exception("کد تولید قبلاً ثبت شده است.");
         }
     }
+
+    public Task<DimpleBowlDto?> GetForDimplingAsync(string productionCode)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.GetAsync<DimpleBowlDto>($"bowls/dimpling/{code}");
+    }
+
+    public Task<DimpleBowlDto?> QueueForDimplingAsync(string productionCode)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>(
+            $"bowls/dimpling/{code}/queue",
+            new { });
+    }
 }

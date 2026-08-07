@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.API.Common.Extensions;
 using TORSEPAN.Application.Bowls.Queries.GetAllBowls;
 using TORSEPAN.Application.Bowls.Queries.GetBowlById;
+using TORSEPAN.Application.Bowls.Dimpling;
 using TORSEPAN.Application.Common.Pagination;
 using TORSEPAN.Application.Features.Bowls.Commands.CreateBowl;
 
@@ -62,5 +63,31 @@ public sealed class BowlsController : ControllerBase
         {
             id = result.Value
         });
+    }
+
+    [HttpGet("dimpling/{productionCode}")]
+    [Authorize(Roles = "Dimpler,Administrator")]
+    public async Task<ActionResult> GetForDimpling(
+        string productionCode,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new GetBowlForDimpleQuery(productionCode),
+            cancellationToken);
+
+        return this.ToActionResult(result);
+    }
+
+    [HttpPost("dimpling/{productionCode}/queue")]
+    [Authorize(Roles = "Dimpler,Administrator")]
+    public async Task<ActionResult> QueueForDimpling(
+        string productionCode,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(
+            new QueueBowlForDimpleCommand(productionCode),
+            cancellationToken);
+
+        return this.ToActionResult(result);
     }
 }
