@@ -1,0 +1,21 @@
+name: Build deployment images
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: api
+            dockerfile: Dockerfile.api
+          - name: panel
+            dockerfile: Dockerfile.panel
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.name }}
+        run: docker build --file "${{ matrix.dockerfile }}" --tag "torsepan-${{ matrix.name }}:check" .
