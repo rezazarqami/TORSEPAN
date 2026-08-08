@@ -1,0 +1,6 @@
+{
+  "platform": "docker",
+  "app": "torsepan",
+  "port": 8080,
+  "dockerfile": "Dockerfile.panel"
+}
