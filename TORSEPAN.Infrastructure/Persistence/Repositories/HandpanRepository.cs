@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
@@ -89,4 +89,13 @@ public class HandpanRepository
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Handpan>> GetSoldInventoryAsync()
+    {
+        return await _dbSet.AsNoTracking().Where(x => x.Stage == ProductionStage.Sold)
+            .Include(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
+            .Include(x => x.Assembly).ThenInclude(x => x.BottomBowl)
+            .Include(x => x.Scale).OrderByDescending(x => x.SoldAt).ToListAsync();
+    }
 }
+
