@@ -1,4 +1,4 @@
-﻿namespace TORSEPAN.Domain.Enums;
+namespace TORSEPAN.Domain.Enums;
 
 public enum ProductionAction
 {
@@ -20,5 +20,7 @@ public enum ProductionAction
     WarehouseEntry = 10,
 
     // General
-    Reject = 11
+    Reject = 11,
+    Sale = 12
 }
+
