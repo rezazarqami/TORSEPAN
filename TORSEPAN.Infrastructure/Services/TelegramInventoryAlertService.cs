@@ -8,11 +8,25 @@ public sealed class TelegramInventoryAlertService(HttpClient http, IConfiguratio
     public async Task SendLowStockAsync(string itemName, string stockType, int quantity, int threshold, CancellationToken cancellationToken)
     {
         var token = configuration["Telegram:BotToken"]; var chatId = configuration["Telegram:ChatId"];
-        if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chatId)) return;
         var text = $"âš ï¸ Ù‡Ø´Ø¯Ø§Ø± Ù…ÙˆØ¬ÙˆØ¯ÛŒ Ø§Ù†Ø¨Ø§Ø± Ù…ÙˆØ§Ø¯ Ø§ÙˆÙ„ÛŒÙ‡\n{itemName} - {stockType}\nÙ…ÙˆØ¬ÙˆØ¯ÛŒ ÙØ¹Ù„ÛŒ: {quantity}\nØ­Ø¯ Ù‡Ø´Ø¯Ø§Ø±: {threshold}";
         try
         {
-            var response = await http.PostAsJsonAsync($"https://api.telegram.org/bot{token}/sendMessage", new { chat_id = chatId, text }, cancellationToken);
+            var relayUrl = configuration["Telegram:RelayUrl"];
+            HttpResponseMessage response;
+            if (!string.IsNullOrWhiteSpace(relayUrl))
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, relayUrl)
+                {
+                    Content = JsonContent.Create(new { itemName, stockType, quantity, threshold })
+                };
+                request.Headers.Add("X-Relay-Secret", configuration["Telegram:RelaySecret"]);
+                response = await http.SendAsync(request, cancellationToken);
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chatId)) return;
+                response = await http.PostAsJsonAsync($"https://api.telegram.org/bot{token}/sendMessage", new { chat_id = chatId, text }, cancellationToken);
+            }
             response.EnsureSuccessStatusCode();
             logger.LogInformation("Low stock Telegram alert sent for {ItemName}.", itemName);
         }
