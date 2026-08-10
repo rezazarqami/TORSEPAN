@@ -24,9 +24,10 @@ public sealed class AdjustBowlStockHandler : IRequestHandler<AdjustBowlStockComm
 
         _unitOfWork.Materials.Update(material);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        if (material.TopBowlLowStockThreshold > 0 && previousTop > material.TopBowlLowStockThreshold && material.TopBowlQuantity <= material.TopBowlLowStockThreshold)
-            await _alerts.SendLowStockAsync(material.Name, "کاسه رو", material.TopBowlQuantity, material.TopBowlLowStockThreshold, cancellationToken);
-        if (material.BottomBowlLowStockThreshold > 0 && previousBottom > material.BottomBowlLowStockThreshold && material.BottomBowlQuantity <= material.BottomBowlLowStockThreshold)
-            await _alerts.SendLowStockAsync(material.Name, "کاسه زیر", material.BottomBowlQuantity, material.BottomBowlLowStockThreshold, cancellationToken);
+        if (material.TopBowlLowStockThreshold > 0 && previousTop >= material.TopBowlLowStockThreshold && material.TopBowlQuantity < material.TopBowlLowStockThreshold)
+            await _alerts.SendLowStockAsync(material.Name, "Ú©Ø§Ø³Ù‡ Ø±Ùˆ", material.TopBowlQuantity, material.TopBowlLowStockThreshold, cancellationToken);
+        if (material.BottomBowlLowStockThreshold > 0 && previousBottom >= material.BottomBowlLowStockThreshold && material.BottomBowlQuantity < material.BottomBowlLowStockThreshold)
+            await _alerts.SendLowStockAsync(material.Name, "Ú©Ø§Ø³Ù‡ Ø²ÛŒØ±", material.BottomBowlQuantity, material.BottomBowlLowStockThreshold, cancellationToken);
     }
 }
+
