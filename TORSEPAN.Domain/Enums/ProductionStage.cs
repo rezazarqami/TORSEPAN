@@ -1,4 +1,4 @@
-﻿namespace TORSEPAN.Domain.Enums;
+namespace TORSEPAN.Domain.Enums;
 
 public enum ProductionStage
 {
@@ -34,5 +34,7 @@ public enum ProductionStage
 
     FinishedWarehouse = 18,
 
-    Rejected = 19
+    Rejected = 19,
+    Sold = 20
 }
+
