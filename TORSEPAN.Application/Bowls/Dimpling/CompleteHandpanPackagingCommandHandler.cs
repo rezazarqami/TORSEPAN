@@ -86,8 +86,8 @@ public sealed class CompleteHandpanPackagingCommandHandler
             $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}"));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        foreach (var material in selectedMaterials.Where(x => x.LowStockThreshold > 0 && previousStocks[x.Id] > x.LowStockThreshold && x.Quantity <= x.LowStockThreshold))
-            await _alerts.SendLowStockAsync(material.Name, "موجودی", material.Quantity, material.LowStockThreshold, cancellationToken);
+        foreach (var material in selectedMaterials.Where(x => x.LowStockThreshold > 0 && previousStocks[x.Id] >= x.LowStockThreshold && x.Quantity < x.LowStockThreshold))
+            await _alerts.SendLowStockAsync(material.Name, "Ù…ÙˆØ¬ÙˆØ¯ÛŒ", material.Quantity, material.LowStockThreshold, cancellationToken);
         return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(
             bowls.Single(x => x.Id == bowl.Id)));
     }
@@ -95,7 +95,8 @@ public sealed class CompleteHandpanPackagingCommandHandler
     private static bool IsExclusiveCase(string name)
     {
         var normalized = name.Trim().ToLowerInvariant();
-        return normalized is "سافت کیس" or "میدل کیس" or "هارد کیس"
+        return normalized is "Ø³Ø§ÙØª Ú©ÛŒØ³" or "Ù…ÛŒØ¯Ù„ Ú©ÛŒØ³" or "Ù‡Ø§Ø±Ø¯ Ú©ÛŒØ³"
             or "soft case" or "middle case" or "hard case";
     }
 }
+
