@@ -23,7 +23,9 @@ public sealed class GetAllMaterialsHandler
             .Select(x => new MaterialDto
             {
                 Id = x.Id,
-                Name = x.Name
+                Name = x.Name,
+                Category = (int)x.Category,
+                Quantity = x.Quantity
             })
             .ToList();
     }

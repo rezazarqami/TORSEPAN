@@ -47,6 +47,22 @@ public sealed class CompleteHandpanPackagingCommandHandler
         if (_userContext.UserId is not Guid userId)
             throw new UnauthorizedAccessException();
 
+        var selectedMaterialIds = request.MaterialIds.Distinct().ToArray();
+        var selectedMaterials = selectedMaterialIds.Length == 0
+            ? []
+            : (await _unitOfWork.Materials.FindAsync(
+                x => selectedMaterialIds.Contains(x.Id))).ToList();
+
+        if (selectedMaterials.Count != selectedMaterialIds.Length ||
+            selectedMaterials.Any(x => x.Category != MaterialCategory.Other || x.Quantity < 1))
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
+
+        foreach (var material in selectedMaterials)
+        {
+            material.TryConsume();
+            _unitOfWork.Materials.Update(material);
+        }
+
         handpan.ChangeStage(ProductionStage.FinishedWarehouse);
         handpan.ChangeStatus(ProductionStatus.Completed);
         _unitOfWork.Handpans.Update(handpan);

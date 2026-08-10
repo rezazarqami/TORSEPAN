@@ -7,4 +7,9 @@ public sealed class CreateMaterialRequest
     [Required(ErrorMessage = "نام ماده اولیه الزامی است.")]
     [StringLength(100, ErrorMessage = "نام ماده اولیه حداکثر می‌تواند ۱۰۰ کاراکتر باشد.")]
     public string Name { get; set; } = string.Empty;
+
+    public int Category { get; set; } = 3;
+
+    [Range(0, int.MaxValue, ErrorMessage = "تعداد اولیه نمی‌تواند منفی باشد.")]
+    public int InitialQuantity { get; set; }
 }

@@ -16,6 +16,15 @@ public sealed class MaterialConfiguration : IEntityTypeConfiguration<Material>
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(x => x.Category)
+            .HasConversion<int>()
+            .HasDefaultValue(MaterialCategory.Other)
+            .IsRequired();
+
+        builder.Property(x => x.Quantity)
+            .HasDefaultValue(0)
+            .IsRequired();
+
         builder.HasIndex(x => x.Name)
             .IsUnique();
     }

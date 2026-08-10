@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.Application.Materials.Commands.CreateMaterial;
 using TORSEPAN.Application.Materials.Commands.DeleteMaterial;
 using TORSEPAN.Application.Materials.Commands.UpdateMaterial;
+using TORSEPAN.Application.Materials.Commands.AdjustMaterialStock;
 using TORSEPAN.Application.Materials.Queries.GetAllMaterials;
 using TORSEPAN.Application.Materials.Queries.GetMaterialById;
 
@@ -92,4 +93,25 @@ public sealed class MaterialsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPatch("{id:guid}/stock")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<ActionResult<int>> AdjustStock(Guid id, [FromBody] AdjustStockRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Quantity < 0 || (!request.SetAbsolute && request.Quantity == 0))
+            return BadRequest("Quantity is invalid.");
+
+        try
+        {
+            return Ok(await _mediator.Send(
+                new AdjustMaterialStockCommand(id, request.Quantity, request.SetAbsolute),
+                cancellationToken));
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
 }
+
+public sealed record AdjustStockRequest(int Quantity, bool SetAbsolute = false);

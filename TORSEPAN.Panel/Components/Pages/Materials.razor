@@ -9,108 +9,126 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>انبار ۱ | مواد اولیه</PageTitle>
+<PageTitle>انبار مواد اولیه</PageTitle>
 
-<PageHeader Title="انبار ۱" SubTitle="فهرست مواد اولیه مورد استفاده در تولید">
+<PageHeader Title="انبار مواد اولیه" SubTitle="مدیریت موجودی کاسه‌ها و اقلام مصرفی تولید و بسته‌بندی">
     <Actions>
-        @if (IsAdministrator)
+        @if (_isAdministrator)
         {
-            <PrimaryButton Text="ثبت ماده اولیه جدید" OnClick="NewMaterial" />
+            <PrimaryButton Text="افزودن ماده اولیه جدید" OnClick="NewMaterial" />
         }
     </Actions>
 </PageHeader>
 
-<div class="mb-4">
-    <input class="form-control"
-           placeholder="جست‌وجوی ماده اولیه..."
-           @bind="_search"
-           @bind:event="oninput" />
-</div>
-
-@if (!IsAdministrator)
+@if (!string.IsNullOrWhiteSpace(_message))
 {
-    <div class="alert alert-info">
-        مشاهده فهرست برای شما فعال است. ثبت ماده اولیه جدید فقط توسط مدیر سیستم انجام می‌شود.
-    </div>
+    <div class="alert alert-success">@_message</div>
+}
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">@_error</div>
 }
 
-<Card>
-    @if (_loading)
-    {
-        <div class="text-center p-4"><div class="spinner-border"></div></div>
-    }
-    else if (!string.IsNullOrWhiteSpace(_error))
-    {
-        <div class="alert alert-danger mb-0">@_error</div>
-    }
-    else
-    {
-        <DataTable>
-            <thead>
-                <tr>
-                    <th style="width: 80px;">ردیف</th>
-                    <th>نام ماده اولیه</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (!FilteredItems.Any())
-                {
-                    <tr>
-                        <td colspan="2">
-                            <EmptyState Title="ماده اولیه‌ای ثبت نشده است"
-                                        Description="برای شروع، یک ماده اولیه جدید در انبار ۱ ثبت کنید." />
-                        </td>
-                    </tr>
-                }
-                else
-                {
-                    var rowNumber = 1;
-                    @foreach (var item in FilteredItems)
+@if (_loading)
+{
+    <div class="text-center p-5"><div class="spinner-border"></div></div>
+}
+else
+{
+    <h4 class="mb-3">کاسه‌ها</h4>
+    <div class="row g-3 mb-5">
+        @foreach (var item in BowlItems)
+        {
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted mb-1">موجودی فعلی</div>
+                            <h4 class="mb-0">@item.Name</h4>
+                        </div>
+                        <div class="display-5 fw-bold text-primary">@item.Quantity</div>
+                    </div>
+                    @if (_isAdministrator)
                     {
-                        <tr>
-                            <td>@rowNumber</td>
-                            <td>@item.Name</td>
-                        </tr>
-                        rowNumber++;
+                        <StockControls Item="item" OnSaved="StockSaved" />
                     }
-                }
-            </tbody>
-        </DataTable>
-    }
-</Card>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">سایر مواد اولیه و اقلام بسته‌بندی</h4>
+        <input class="form-control" style="max-width:320px" placeholder="جست‌وجوی ماده اولیه..."
+               @bind="_search" @bind:event="oninput" />
+    </div>
+
+    <div class="row g-3">
+        @foreach (var item in OtherItems)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="card shadow-sm h-100 p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>@item.Name</strong>
+                        <span class="badge bg-primary fs-6">@item.Quantity عدد</span>
+                    </div>
+                    @if (_isAdministrator)
+                    {
+                        <StockControls Item="item" OnSaved="StockSaved" />
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
 
 @code {
     private readonly List<MaterialDto> _items = [];
     private bool _loading = true;
-    private string? _error;
-    private string _search = string.Empty;
-
     private bool _isAdministrator;
-    private bool IsAdministrator => _isAdministrator;
+    private string _search = string.Empty;
+    private string? _error;
+    private string? _message;
 
-    private IEnumerable<MaterialDto> FilteredItems =>
-        string.IsNullOrWhiteSpace(_search)
-            ? _items
-            : _items.Where(item =>
-                item.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<MaterialDto> BowlItems => _items
+        .Where(x => x.Category is 1 or 2)
+        .OrderBy(x => x.Category);
+
+    private IEnumerable<MaterialDto> OtherItems => _items
+        .Where(x => x.Category >= 3 &&
+            (string.IsNullOrWhiteSpace(_search) || x.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)))
+        .OrderBy(x => x.Name);
 
     protected override async Task OnInitializedAsync()
     {
-        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _isAdministrator = authenticationState.User.IsInRole("Administrator");
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _isAdministrator = state.User.IsInRole("Administrator");
+        await LoadAsync();
+    }
 
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
         try
         {
+            _items.Clear();
             _items.AddRange(await MaterialService.GetAsync());
         }
-        catch (Exception ex)
+        catch
         {
-            _error = $"دریافت فهرست مواد اولیه انجام نشد: {ex.Message}";
+            _error = "دریافت موجودی انبار انجام نشد.";
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    private async Task StockSaved()
+    {
+        _message = "موجودی با موفقیت به‌روزرسانی شد.";
+        await LoadAsync();
     }
 
     private void NewMaterial() => Navigation.NavigateTo("/warehouse/materials/new");

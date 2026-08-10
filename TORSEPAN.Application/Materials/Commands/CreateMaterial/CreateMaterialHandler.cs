@@ -18,7 +18,10 @@ public sealed class CreateMaterialHandler
         CreateMaterialCommand request,
         CancellationToken cancellationToken)
     {
-        var material = new Material(request.Name);
+        var category = Enum.IsDefined(typeof(MaterialCategory), request.Category)
+            ? (MaterialCategory)request.Category
+            : MaterialCategory.Other;
+        var material = new Material(request.Name.Trim(), category, request.InitialQuantity);
 
         await _unitOfWork.Materials.AddAsync(material);
 

@@ -23,4 +23,18 @@ public sealed class MaterialService
             "materials",
             request);
     }
+
+    public Task<int> AddStockAsync(Guid id, int quantity)
+    {
+        return _api.PatchAsync<object, int>(
+            $"materials/{id}/stock",
+            new { Quantity = quantity, SetAbsolute = false });
+    }
+
+    public Task<int> SetStockAsync(Guid id, int quantity)
+    {
+        return _api.PatchAsync<object, int>(
+            $"materials/{id}/stock",
+            new { Quantity = quantity, SetAbsolute = true });
+    }
 }

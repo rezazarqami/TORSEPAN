@@ -126,11 +126,11 @@ public sealed class BowlService
             new { Approved = approved, RejectionReason = rejectionReason, Details = details });
     }
 
-    public Task<DimpleBowlDto?> CompletePackagingAsync(string productionCode)
+    public Task<DimpleBowlDto?> CompletePackagingAsync(string productionCode, IReadOnlyCollection<Guid> materialIds)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/packaging/complete",
-            new { });
+            new { MaterialIds = materialIds });
     }
 }

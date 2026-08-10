@@ -7,6 +7,7 @@
 
 @inject BowlService BowlService
 @inject ScaleService ScaleService
+@inject MaterialService MaterialService
 @inject NavigationManager Navigation
 
 <PageTitle>تولید</PageTitle>
@@ -210,6 +211,25 @@
             }
             else if (_bowl.Stage == 16)
             {
+                <div class="card bg-light border-0 p-3 mt-3">
+                    <h5>اقلام مصرف‌شده در بسته‌بندی</h5>
+                    <p class="text-muted">هر قلم استفاده‌شده را انتخاب کنید؛ پس از ثبت، یک عدد از موجودی آن کم می‌شود.</p>
+                    <div class="row g-2">
+                        @foreach (var material in _packagingMaterials)
+                        {
+                            <div class="col-md-4">
+                                <label class="form-check border rounded p-3 w-100 @(material.Quantity == 0 ? "opacity-50" : "")">
+                                    <input class="form-check-input" type="checkbox"
+                                           disabled="@(material.Quantity == 0)"
+                                           checked="@_selectedPackagingMaterialIds.Contains(material.Id)"
+                                           @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
+                                    <span class="me-2">@material.Name</span>
+                                    <small class="text-muted">(موجودی: @material.Quantity)</small>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
                 <button class="btn btn-success mt-3"
                         disabled="@_loading"
                         @onclick="CompletePackagingAsync">
@@ -238,6 +258,8 @@
     private string _pairedProductionCode = string.Empty;
     private Guid _scaleId;
     private readonly List<ScaleDto> _scales = [];
+    private readonly List<MaterialDto> _packagingMaterials = [];
+    private readonly HashSet<Guid> _selectedPackagingMaterialIds = [];
     private string? _successMessage;
     private bool _showQcRejection;
     private string _qcRejectionReason = "OutOfTune";
@@ -255,6 +277,7 @@
     protected override async Task OnInitializedAsync()
     {
         _scales.AddRange(await ScaleService.GetAsync());
+        _packagingMaterials.AddRange((await MaterialService.GetAsync()).Where(x => x.Category == 3));
         if (_scales.Count > 0)
             _scaleId = _scales[0].Id;
     }
@@ -393,9 +416,17 @@
     {
         await ExecuteAsync(async () =>
         {
-            var result = await BowlService.CompletePackagingAsync(_productionCode);
+            var result = await BowlService.CompletePackagingAsync(_productionCode, _selectedPackagingMaterialIds);
             SetOperationResult(result, "بسته‌بندی انجام شد و ساز وارد انبار شد.", "ثبت پایان بسته‌بندی انجام نشد.");
         });
+    }
+
+    private void TogglePackagingMaterial(Guid id, bool selected)
+    {
+        if (selected)
+            _selectedPackagingMaterialIds.Add(id);
+        else
+            _selectedPackagingMaterialIds.Remove(id);
     }
 
     private void SetOperationResult(

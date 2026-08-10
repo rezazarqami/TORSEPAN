@@ -95,7 +95,7 @@
         _model.InstrumentType = 1;
 
         _materials.Clear();
-        _materials.AddRange(await MaterialService.GetAsync());
+        _materials.AddRange((await MaterialService.GetAsync()).Where(x => x.Category == 4));
     }
 
     private async Task SaveAsync()

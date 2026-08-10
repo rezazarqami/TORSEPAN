@@ -199,10 +199,11 @@ public sealed class BowlsController : ControllerBase
     [Authorize(Roles = "Workshop,Administrator")]
     public async Task<ActionResult> CompletePackaging(
         string productionCode,
+        [FromBody] CompletePackagingRequest request,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new CompleteHandpanPackagingCommand(productionCode),
+            new CompleteHandpanPackagingCommand(productionCode, request.MaterialIds ?? []),
             cancellationToken);
 
         return this.ToActionResult(result);
