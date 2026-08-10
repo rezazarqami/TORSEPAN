@@ -51,7 +51,7 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
         ProductionAction.Furnace => "پخت", ProductionAction.Glue => "چسب", ProductionAction.Tune => "تیون",
         ProductionAction.FineTune => "فاین‌تیون", ProductionAction.QualityCheck => "کنترل کیفیت",
         ProductionAction.Packaging => "بسته‌بندی", ProductionAction.WarehouseEntry => "ورود به انبار",
-        ProductionAction.Reject => "برگشتی", _ => action.ToString()
+        ProductionAction.Reject => "برگشتی", ProductionAction.Sale => "فروش", _ => action.ToString()
     };
     private static string ResultTitle(EventResult result) => result switch
     {
@@ -59,3 +59,4 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
         EventResult.Rejected => "ردشده", EventResult.Skipped => "ردشده از مرحله", _ => result.ToString()
     };
 }
+
