@@ -1,48 +1,93 @@
-﻿@page "/materials/new"
+@page "/materials/new"
+@page "/warehouse/materials/new"
 
 @using TORSEPAN.Panel.Models
+@using Microsoft.AspNetCore.Components.Authorization
 @using TORSEPAN.Panel.Services.Api
 
 @inject MaterialService MaterialService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>New Material</PageTitle>
+<PageTitle>ثبت ماده اولیه | انبار ۱</PageTitle>
 
-<h3 class="mb-4">New Material</h3>
+<PageHeader Title="ثبت ماده اولیه جدید" SubTitle="افزودن قلم جدید به فهرست انبار ۱" />
 
-<EditForm Model="_model"
-          OnValidSubmit="SaveAsync">
-
-    <DataAnnotationsValidator />
-
-    <ValidationSummary />
-
-    <div class="mb-3">
-
-        <label class="form-label">
-            Name
-        </label>
-
-        <InputText class="form-control"
-                   @bind-Value="_model.Name" />
-
-    </div>
-
-    <button class="btn btn-success"
-            type="submit">
-        Save
-    </button>
-
-</EditForm>
-
-@code
+@if (!IsAdministrator)
 {
+    <div class="alert alert-danger">فقط مدیر سیستم اجازه ثبت ماده اولیه جدید را دارد.</div>
+    <button class="btn btn-outline-secondary" @onclick="BackToList">بازگشت به انبار ۱</button>
+}
+else
+{
+    <Card>
+        <EditForm Model="_model" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="alert alert-danger">@_error</div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label">نام ماده اولیه</label>
+                <InputText class="form-control"
+                           placeholder="مثلاً فولاد نیتراسیون"
+                           @bind-Value="_model.Name" />
+                <ValidationMessage For="@(() => _model.Name)" />
+            </div>
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" type="submit" disabled="@_saving">
+                    @(_saving ? "در حال ثبت..." : "ثبت در انبار ۱")
+                </button>
+                <button class="btn btn-outline-secondary" type="button" @onclick="BackToList" disabled="@_saving">
+                    انصراف
+                </button>
+            </div>
+        </EditForm>
+    </Card>
+}
+
+@code {
     private readonly CreateMaterialRequest _model = new();
+    private bool _saving;
+    private string? _error;
+
+    private bool _isAdministrator;
+    private bool IsAdministrator => _isAdministrator;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _isAdministrator = authenticationState.User.IsInRole("Administrator");
+    }
 
     private async Task SaveAsync()
     {
-        await MaterialService.CreateMaterialAsync(_model);
+        _saving = true;
+        _error = null;
+        try
+        {
+            var id = await MaterialService.CreateMaterialAsync(_model);
+            if (id is null)
+            {
+                _error = "ثبت ماده اولیه انجام نشد. دوباره تلاش کنید.";
+                return;
+            }
 
-        Navigation.NavigateTo("/materials");
+            Navigation.NavigateTo("/warehouse/materials");
+        }
+        catch (Exception ex)
+        {
+            _error = $"ثبت ماده اولیه انجام نشد: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
+
+    private void BackToList() => Navigation.NavigateTo("/warehouse/materials");
 }

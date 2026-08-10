@@ -1,69 +1,111 @@
-﻿@page "/materials"
+@page "/materials"
+@page "/warehouse/materials"
 
 @using TORSEPAN.Panel.Models
+@using Microsoft.AspNetCore.Components.Authorization
 @using TORSEPAN.Panel.Services.Api
 
 @inject MaterialService MaterialService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Materials</PageTitle>
+<PageTitle>انبار ۱ | مواد اولیه</PageTitle>
 
-<h3 class="mb-4">Materials</h3>
+<PageHeader Title="انبار ۱" SubTitle="فهرست مواد اولیه مورد استفاده در تولید">
+    <Actions>
+        @if (IsAdministrator)
+        {
+            <PrimaryButton Text="ثبت ماده اولیه جدید" OnClick="NewMaterial" />
+        }
+    </Actions>
+</PageHeader>
 
-<button class="btn btn-primary mb-3"
-        @onclick="NewMaterial">
-    New Material
-</button>
+<div class="mb-4">
+    <input class="form-control"
+           placeholder="جست‌وجوی ماده اولیه..."
+           @bind="_search"
+           @bind:event="oninput" />
+</div>
 
-@if (_loading)
+@if (!IsAdministrator)
 {
-    <div class="spinner-border"></div>
-}
-else if (_items.Count == 0)
-{
-    <div class="alert alert-warning">
-        هیچ متریالی ثبت نشده است.
+    <div class="alert alert-info">
+        مشاهده فهرست برای شما فعال است. ثبت ماده اولیه جدید فقط توسط مدیر سیستم انجام می‌شود.
     </div>
 }
-else
-{
-    <table class="table table-striped">
 
-        <thead>
-
-            <tr>
-                <th>Name</th>
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-            @foreach (var item in _items)
-            {
+<Card>
+    @if (_loading)
+    {
+        <div class="text-center p-4"><div class="spinner-border"></div></div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger mb-0">@_error</div>
+    }
+    else
+    {
+        <DataTable>
+            <thead>
                 <tr>
-
-                    <td>@item.Name</td>
-
+                    <th style="width: 80px;">ردیف</th>
+                    <th>نام ماده اولیه</th>
                 </tr>
-            }
+            </thead>
+            <tbody>
+                @if (!FilteredItems.Any())
+                {
+                    <tr>
+                        <td colspan="2">
+                            <EmptyState Title="ماده اولیه‌ای ثبت نشده است"
+                                        Description="برای شروع، یک ماده اولیه جدید در انبار ۱ ثبت کنید." />
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    var rowNumber = 1;
+                    @foreach (var item in FilteredItems)
+                    {
+                        <tr>
+                            <td>@rowNumber</td>
+                            <td>@item.Name</td>
+                        </tr>
+                        rowNumber++;
+                    }
+                }
+            </tbody>
+        </DataTable>
+    }
+</Card>
 
-        </tbody>
-
-    </table>
-}
-
-@code
-{
+@code {
     private readonly List<MaterialDto> _items = [];
-
     private bool _loading = true;
+    private string? _error;
+    private string _search = string.Empty;
+
+    private bool _isAdministrator;
+    private bool IsAdministrator => _isAdministrator;
+
+    private IEnumerable<MaterialDto> FilteredItems =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _items
+            : _items.Where(item =>
+                item.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _isAdministrator = authenticationState.User.IsInRole("Administrator");
+
         try
         {
             _items.AddRange(await MaterialService.GetAsync());
+        }
+        catch (Exception ex)
+        {
+            _error = $"دریافت فهرست مواد اولیه انجام نشد: {ex.Message}";
         }
         finally
         {
@@ -71,8 +113,5 @@ else
         }
     }
 
-    private void NewMaterial()
-    {
-        Navigation.NavigateTo("/materials/new");
-    }
+    private void NewMaterial() => Navigation.NavigateTo("/warehouse/materials/new");
 }

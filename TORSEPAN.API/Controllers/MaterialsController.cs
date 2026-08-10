@@ -52,6 +52,7 @@ public sealed class MaterialsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<Guid>> Create(
         [FromBody] CreateMaterialCommand command,
         CancellationToken cancellationToken)
@@ -65,6 +66,7 @@ public sealed class MaterialsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Update(
         Guid id,
         [FromBody] UpdateMaterialCommand command,
@@ -79,6 +81,7 @@ public sealed class MaterialsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Delete(
         Guid id,
         CancellationToken cancellationToken)
