@@ -73,7 +73,8 @@ public static class DependencyInjection
         services.AddScoped<ICodeGenerator, ProductionCodeGenerator>();
 
         services.AddScoped<IBowlQueryService, BowlQueryService>();
-        services.AddHttpClient<IInventoryAlertService, TelegramInventoryAlertService>();
+        services.AddHttpClient<IInventoryAlertService, TelegramInventoryAlertService>(client =>
+            client.Timeout = TimeSpan.FromMinutes(4));
 
         return services;
     }
