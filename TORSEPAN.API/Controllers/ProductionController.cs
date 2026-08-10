@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.Application.Handpans.Queries.GetCurrentProductionStage;
 using TORSEPAN.Application.Handpans.Queries.GetProductionTimeline;
@@ -22,6 +22,7 @@ using TORSEPAN.Application.ProductionEvents.Queries.GetRejectedHandpans;
 using TORSEPAN.Application.ProductionEvents.Queries.GetStageWorkload;
 using TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory;
 using TORSEPAN.Domain.Enums;
+using TORSEPAN.Application.Sales;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -126,4 +127,13 @@ public sealed class ProductionController : ControllerBase
     [HttpGet("{serialNumber}/current-stage")]
     public async Task<IActionResult> GetCurrentStage(string serialNumber)
         => Ok(await _mediator.Send(new GetCurrentProductionStageQuery(serialNumber)));
+
+    [HttpPost("{handpanId:guid}/sell")]
+    public async Task<IActionResult> Sell(Guid handpanId, [FromBody] SellHandpanRequest request)
+    { await _mediator.Send(new SellHandpanCommand(handpanId, request.BuyerName)); return NoContent(); }
+
+    [HttpGet("sales")]
+    public async Task<IActionResult> Sales() => Ok(await _mediator.Send(new GetSalesQuery()));
 }
+public sealed record SellHandpanRequest(string BuyerName);
+
