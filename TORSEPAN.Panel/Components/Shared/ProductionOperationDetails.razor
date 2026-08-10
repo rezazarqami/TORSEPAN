@@ -16,7 +16,7 @@
                     <tr>
                         <td>@ActionText(operation.Action)</td>
                         <td>@operation.PerformedBy</td>
-                        <td>@operation.PerformedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                        <td>@PersianDateTime.FormatDateTime(operation.PerformedAt)</td>
                     </tr>
                 }
             </tbody>
