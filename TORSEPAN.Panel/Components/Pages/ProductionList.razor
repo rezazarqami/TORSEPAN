@@ -46,7 +46,7 @@ else
 
                     <td>@item.Status</td>
 
-                    <td>@item.CreatedAt.ToString("yyyy/MM/dd")</td>
+                    <td>@PersianDateTime.FormatDate(item.CreatedAt)</td>
 
                 </tr>
             }
