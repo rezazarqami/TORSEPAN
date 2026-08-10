@@ -12,11 +12,13 @@ public sealed class CompleteHandpanPackagingCommandHandler
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
+    private readonly IInventoryAlertService _alerts;
 
-    public CompleteHandpanPackagingCommandHandler(IUnitOfWork unitOfWork, IUserContext userContext)
+    public CompleteHandpanPackagingCommandHandler(IUnitOfWork unitOfWork, IUserContext userContext, IInventoryAlertService alerts)
     {
         _unitOfWork = unitOfWork;
         _userContext = userContext;
+        _alerts = alerts;
     }
 
     public async Task<Result<BowlDimpleDto>> Handle(
@@ -60,6 +62,7 @@ public sealed class CompleteHandpanPackagingCommandHandler
             selectedMaterials.Any(x => x.Category != MaterialCategory.Other || x.Quantity < 1))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
+        var previousStocks = selectedMaterials.ToDictionary(x => x.Id, x => x.Quantity);
         foreach (var material in selectedMaterials)
         {
             material.TryConsume();
@@ -83,6 +86,8 @@ public sealed class CompleteHandpanPackagingCommandHandler
             $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}"));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        foreach (var material in selectedMaterials.Where(x => x.LowStockThreshold > 0 && previousStocks[x.Id] > x.LowStockThreshold && x.Quantity <= x.LowStockThreshold))
+            await _alerts.SendLowStockAsync(material.Name, "موجودی", material.Quantity, material.LowStockThreshold, cancellationToken);
         return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(
             bowls.Single(x => x.Id == bowl.Id)));
     }

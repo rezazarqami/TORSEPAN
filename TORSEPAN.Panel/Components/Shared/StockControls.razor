@@ -13,14 +13,22 @@
         <small class="text-danger">@_error</small>
     }
 </div>
+<div class="input-group mt-2">
+    <span class="input-group-text">حد هشدار</span><input type="number" min="0" class="form-control" @bind="_threshold" />
+    <button class="btn btn-outline-danger" disabled="@_saving" @onclick="SaveThresholdAsync">ثبت</button>
+</div>
 
 @code {
     [Parameter, EditorRequired] public MaterialDto Item { get; set; } = default!;
     [Parameter] public EventCallback OnSaved { get; set; }
 
     private int _quantity = 1;
+    private int _threshold;
     private bool _saving;
     private string? _error;
+    private Guid _loadedItemId;
+    protected override void OnParametersSet(){if(_loadedItemId!=Item.Id){_loadedItemId=Item.Id;_threshold=Item.LowStockThreshold;}}
+    private async Task SaveThresholdAsync(){ _saving=true; try { await MaterialService.SetLowStockThresholdAsync(Item.Id,_threshold,0,0); await OnSaved.InvokeAsync(); } catch { _error="ثبت حد هشدار انجام نشد."; } finally {_saving=false;} }
 
     private async Task AddAsync() => await SaveAsync(false);
     private async Task SetAsync() => await SaveAsync(true);

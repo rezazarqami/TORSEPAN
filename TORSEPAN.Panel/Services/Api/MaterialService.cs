@@ -44,4 +44,9 @@ public sealed class MaterialService
             $"materials/{id}/bowl-stock",
             new { TopQuantity = topQuantity, BottomQuantity = bottomQuantity, SetAbsolute = setAbsolute });
     }
+    public async Task SetLowStockThresholdAsync(Guid id, int quantity, int top, int bottom)
+    {
+        await _api.PatchAsync<object, object?>($"materials/{id}/low-stock-threshold",
+            new { Quantity = quantity, TopQuantity = top, BottomQuantity = bottom });
+    }
 }

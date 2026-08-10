@@ -27,6 +27,9 @@ public sealed class MaterialConfiguration : IEntityTypeConfiguration<Material>
 
         builder.Property(x => x.TopBowlQuantity).HasDefaultValue(0).IsRequired();
         builder.Property(x => x.BottomBowlQuantity).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.LowStockThreshold).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.TopBowlLowStockThreshold).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.BottomBowlLowStockThreshold).HasDefaultValue(0).IsRequired();
 
         builder.HasIndex(x => x.Name)
             .IsUnique();

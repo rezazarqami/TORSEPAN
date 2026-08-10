@@ -27,7 +27,10 @@ public sealed class GetAllMaterialsHandler
                 Category = (int)x.Category,
                 Quantity = x.Quantity,
                 TopBowlQuantity = x.TopBowlQuantity,
-                BottomBowlQuantity = x.BottomBowlQuantity
+                BottomBowlQuantity = x.BottomBowlQuantity,
+                LowStockThreshold = x.LowStockThreshold,
+                TopBowlLowStockThreshold = x.TopBowlLowStockThreshold,
+                BottomBowlLowStockThreshold = x.BottomBowlLowStockThreshold
             })
             .ToList();
     }

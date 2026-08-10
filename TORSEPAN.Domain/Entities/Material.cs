@@ -25,6 +25,15 @@ public sealed class Material
     public int TopBowlQuantity { get; private set; }
 
     public int BottomBowlQuantity { get; private set; }
+    public int LowStockThreshold { get; private set; }
+    public int TopBowlLowStockThreshold { get; private set; }
+    public int BottomBowlLowStockThreshold { get; private set; }
+
+    public void SetLowStockThresholds(int quantity, int top, int bottom)
+    {
+        if (quantity < 0 || top < 0 || bottom < 0) throw new ArgumentOutOfRangeException();
+        LowStockThreshold = quantity; TopBowlLowStockThreshold = top; BottomBowlLowStockThreshold = bottom;
+    }
 
     public void Rename(string name)
     {

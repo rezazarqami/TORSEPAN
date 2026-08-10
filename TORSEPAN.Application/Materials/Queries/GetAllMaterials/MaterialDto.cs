@@ -13,4 +13,7 @@ public sealed class MaterialDto
     public int TopBowlQuantity { get; set; }
 
     public int BottomBowlQuantity { get; set; }
+    public int LowStockThreshold { get; set; }
+    public int TopBowlLowStockThreshold { get; set; }
+    public int BottomBowlLowStockThreshold { get; set; }
 }

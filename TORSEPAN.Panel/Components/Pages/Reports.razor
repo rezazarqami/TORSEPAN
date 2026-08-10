@@ -8,8 +8,8 @@
 
 <div class="card border-0 shadow-sm mb-4"><div class="card-body">
     <div class="row g-3 align-items-end">
-        <div class="col-lg-2 col-md-4"><label class="form-label">از تاریخ</label><InputDate TValue="DateTime?" class="form-control" @bind-Value="_from" /></div>
-        <div class="col-lg-2 col-md-4"><label class="form-label">تا تاریخ</label><InputDate TValue="DateTime?" class="form-control" @bind-Value="_to" /></div>
+        <div class="col-lg-2 col-md-4"><label class="form-label">از تاریخ</label><PersianDatePicker @bind-Value="_from" /></div>
+        <div class="col-lg-2 col-md-4"><label class="form-label">تا تاریخ</label><PersianDatePicker @bind-Value="_to" /></div>
         <div class="col-lg-2 col-md-4"><label class="form-label">کاربر</label><select class="form-select" @bind="_user"><option value="">همه کاربران</option>@foreach (var u in _report.Users){<option value="@u.Id">@(string.IsNullOrWhiteSpace(u.FullName) ? u.UserName : u.FullName)</option>}</select></div>
         <div class="col-lg-2 col-md-4"><label class="form-label">عملیات</label><select class="form-select" @bind="_action"><option value="">همه عملیات‌ها</option>@foreach(var a in Actions){<option value="@a.Id">@a.Title</option>}</select></div>
         <div class="col-lg-2 col-md-4"><label class="form-label">نتیجه</label><select class="form-select" @bind="_result"><option value="">همه نتایج</option><option value="1">تکمیل‌شده</option><option value="2">ناموفق</option><option value="3">ردشده</option><option value="4">ردشده از مرحله</option></select></div>

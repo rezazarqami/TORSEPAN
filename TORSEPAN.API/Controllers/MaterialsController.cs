@@ -6,6 +6,7 @@ using TORSEPAN.Application.Materials.Commands.DeleteMaterial;
 using TORSEPAN.Application.Materials.Commands.UpdateMaterial;
 using TORSEPAN.Application.Materials.Commands.AdjustMaterialStock;
 using TORSEPAN.Application.Materials.Commands.AdjustBowlStock;
+using TORSEPAN.Application.Materials.Commands.SetLowStockThreshold;
 using TORSEPAN.Application.Materials.Queries.GetAllMaterials;
 using TORSEPAN.Application.Materials.Queries.GetMaterialById;
 
@@ -131,7 +132,17 @@ public sealed class MaterialsController : ControllerBase
         catch (KeyNotFoundException) { return NotFound(); }
         catch (InvalidOperationException) { return BadRequest(); }
     }
+
+    [HttpPatch("{id:guid}/low-stock-threshold")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> SetThreshold(Guid id, [FromBody] LowStockThresholdRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Quantity < 0 || request.TopQuantity < 0 || request.BottomQuantity < 0) return BadRequest();
+        await _mediator.Send(new SetLowStockThresholdCommand(id, request.Quantity, request.TopQuantity, request.BottomQuantity), cancellationToken);
+        return NoContent();
+    }
 }
 
 public sealed record AdjustStockRequest(int Quantity, bool SetAbsolute = false);
 public sealed record AdjustBowlStockRequest(int TopQuantity, int BottomQuantity, bool SetAbsolute = false);
+public sealed record LowStockThresholdRequest(int Quantity, int TopQuantity, int BottomQuantity);

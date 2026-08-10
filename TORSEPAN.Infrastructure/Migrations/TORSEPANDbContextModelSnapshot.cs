@@ -137,6 +137,12 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("BottomBowlLowStockThreshold").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0);
+
+                    b.Property<int>("LowStockThreshold").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0);
+
+                    b.Property<int>("TopBowlLowStockThreshold").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0);
+
                     b.Property<int>("Category")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")

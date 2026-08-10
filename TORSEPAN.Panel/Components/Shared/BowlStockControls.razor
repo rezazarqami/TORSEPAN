@@ -13,6 +13,11 @@
             <input type="number" min="0" class="form-control" @bind="_bottom" />
         </div>
     </div>
+    <div class="row g-2 mt-2">
+        <div class="col-6"><label class="form-label text-danger">حد هشدار کاسه رو</label><input type="number" min="0" class="form-control" @bind="_topThreshold" /></div>
+        <div class="col-6"><label class="form-label text-danger">حد هشدار کاسه زیر</label><input type="number" min="0" class="form-control" @bind="_bottomThreshold" /></div>
+        <div class="col-12"><button class="btn btn-outline-danger w-100" disabled="@_saving" @onclick="SaveThresholdAsync">ثبت حد هشدار موجودی</button></div>
+    </div>
     <div class="d-flex gap-2 mt-2">
         <button class="btn btn-outline-primary flex-fill" disabled="@_saving" @onclick="AddAsync">افزایش موجودی</button>
         <button class="btn btn-outline-secondary flex-fill" disabled="@_saving" @onclick="SetAsync">ثبت موجودی دقیق</button>
@@ -25,8 +30,12 @@
     [Parameter] public EventCallback OnSaved { get; set; }
     private int _top;
     private int _bottom;
+    private int _topThreshold; private int _bottomThreshold;
     private bool _saving;
     private string? _error;
+    private Guid _loadedItemId;
+    protected override void OnParametersSet(){if(_loadedItemId!=Item.Id){_loadedItemId=Item.Id;_topThreshold=Item.TopBowlLowStockThreshold;_bottomThreshold=Item.BottomBowlLowStockThreshold;}}
+    private async Task SaveThresholdAsync(){_saving=true;try{await MaterialService.SetLowStockThresholdAsync(Item.Id,0,_topThreshold,_bottomThreshold);await OnSaved.InvokeAsync();}catch{_error="ثبت حد هشدار انجام نشد.";}finally{_saving=false;}}
 
     private Task AddAsync() => SaveAsync(false);
     private Task SetAsync() => SaveAsync(true);
