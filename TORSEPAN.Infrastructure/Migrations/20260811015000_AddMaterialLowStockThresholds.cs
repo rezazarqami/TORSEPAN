@@ -1,6 +1,10 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using TORSEPAN.Infrastructure.Persistence;
 #nullable disable
 namespace TORSEPAN.Infrastructure.Migrations;
+[DbContext(typeof(TORSEPANDbContext))]
+[Migration("20260811015000_AddMaterialLowStockThresholds")]
 public partial class AddMaterialLowStockThresholds : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,3 +20,4 @@ public partial class AddMaterialLowStockThresholds : Migration
         migrationBuilder.DropColumn(name:"BottomBowlLowStockThreshold",table:"Materials");
     }
 }
+
