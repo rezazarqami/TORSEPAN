@@ -1,27 +1,20 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using TORSEPAN.Panel.Services.Auth
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <div class="layout">
-
-    <aside class="sidebar">
-
-        <Sidebar />
-
-    </aside>
-
+    <aside class="sidebar"><Sidebar /></aside>
     <div class="main">
-
-        <header class="topbar">
-
-            <Topbar />
-
-        </header>
-
-        <main class="content">
-
-            @Body
-
-        </main>
-
+        <header class="topbar"><Topbar /></header>
+        <main class="content">@Body</main>
     </div>
-
 </div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AuthenticationStateProvider is AuthStateProvider provider)
+            await provider.RefreshAsync();
+    }
+}

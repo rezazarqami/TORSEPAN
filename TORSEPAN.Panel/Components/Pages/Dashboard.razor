@@ -1,202 +1,89 @@
-﻿@page "/"
+@page "/"
 
 @inject ProductionService ProductionService
 @inject NavigationManager Navigation
 
-<PageTitle>داشبورد</PageTitle>
+<PageTitle>داشبورد تولید</PageTitle>
 
 @if (_loading)
 {
-    <div class="text-center mt-5">
-        <div class="spinner-border text-primary"></div>
-    </div>
+    <div class="text-center mt-5"><div class="spinner-border text-primary"></div></div>
 }
 else
 {
-    <div class="d-flex justify-content-center mb-5">
-        <div class="card shadow-sm w-100" style="max-width: 900px;">
-            <div class="card-body p-5 text-center">
-                <h3 class="fw-bold mb-4">ورود به عملیات تولید</h3>
-                <label class="form-label fs-5">کد ساز را وارد کنید</label>
-                <div class="input-group input-group-lg mt-2">
-                    <input class="form-control text-center"
-                           placeholder="کد ساز را وارد کنید"
-                           @bind="_dimplingCode"
-                           @bind:event="oninput"
-                           @onkeydown="OpenDimplingOnEnter" />
-                    <button class="btn btn-primary px-5" @onclick="OpenDimpling">
-                        ورود
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-
-        <div class="col-xl-3 col-md-6">
-            <div class="dashboard-card">
-                <div class="dashboard-icon blue">🥁</div>
-                <div>
-                    <div class="dashboard-title">
-                        کل هنگدرام‌ها
-                    </div>
-                    <div class="dashboard-value">
-                        @_dashboard.TotalHandpans
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="dashboard-card">
-                <div class="dashboard-icon orange">⚙️</div>
-                <div>
-                    <div class="dashboard-title">
-                        در حال تولید
-                    </div>
-                    <div class="dashboard-value">
-                        @_dashboard.InProduction
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="dashboard-card">
-                <div class="dashboard-icon green">✅</div>
-                <div>
-                    <div class="dashboard-title">
-                        تکمیل شده
-                    </div>
-                    <div class="dashboard-value">
-                        @_dashboard.Finished
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="dashboard-card">
-                <div class="dashboard-icon red">❌</div>
-                <div>
-                    <div class="dashboard-title">
-                        برگشتی
-                    </div>
-                    <div class="dashboard-value">
-                        @_dashboard.Rejected
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="card mt-4">
-
+    <div class="card shadow-sm mb-4">
         <div class="card-body p-4">
-
-            <div class="d-flex justify-content-between align-items-center mb-3">
-
-                <h5 class="fw-bold mb-0">
-                    پیشرفت تولید
-                </h5>
-
-                <strong>
-                    @_dashboard.CompletionRate%
-                </strong>
-
+            <h4 class="fw-bold mb-3">ورود به عملیات تولید</h4>
+            <div class="input-group input-group-lg">
+                <input class="form-control" placeholder="کد کاسه یا ساز را وارد کنید"
+                       @bind="_productionCode" @bind:event="oninput" @onkeydown="OpenProductionOnEnter" />
+                <button class="btn btn-primary px-5" @onclick="OpenProduction">ورود</button>
             </div>
-
-            <div class="progress">
-
-                <div class="progress-bar"
-                     role="progressbar"
-                     style="width:@($"{_dashboard.CompletionRate}%")">
-                </div>
-
-            </div>
-
         </div>
-
     </div>
 
-    <div class="card mt-4">
-
-        <div class="card-header">
-            خلاصه وضعیت سیستم
-        </div>
-
-        <div class="card-body">
-
-            <div class="row text-center">
-
-                <div class="col-md-4">
-                    <h2 class="fw-bold text-primary">
-                        @_dashboard.TotalHandpans
-                    </h2>
-                    <div class="text-secondary">
-                        کل تولید
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <h2 class="fw-bold text-success">
-                        @_dashboard.Finished
-                    </h2>
-                    <div class="text-secondary">
-                        آماده تحویل
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <h2 class="fw-bold text-warning">
-                        @_dashboard.InProduction
-                    </h2>
-                    <div class="text-secondary">
-                        داخل کارگاه
-                    </div>
-                </div>
-
+    <Card>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="mb-1">صف‌های آماده تولید</h4>
+                <div class="text-muted">کد کاسه‌ها و سازهایی که منتظر مرحله بعد هستند</div>
             </div>
-
+            <button class="btn btn-outline-primary" @onclick="ReloadAsync">به‌روزرسانی</button>
         </div>
 
-    </div>
+        <DataTable>
+            <thead>
+                <tr><th style="width:260px">مرحله آماده</th><th style="width:90px">تعداد</th><th>کدها</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var queue in _dashboard.Queues)
+                {
+                    <tr>
+                        <td><strong>@queue.Stage</strong></td>
+                        <td><span class="badge @(queue.Codes.Count == 0 ? "bg-secondary" : "bg-primary") fs-6">@queue.Codes.Count</span></td>
+                        <td>
+                            @if (queue.Codes.Count == 0)
+                            {
+                                <span class="text-muted">موردی وجود ندارد</span>
+                            }
+                            else
+                            {
+                                @foreach (var itemCode in queue.Codes)
+                                {
+                                    <span class="badge bg-light text-dark border me-1 mb-1 fs-6">@itemCode</span>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </DataTable>
+    </Card>
 }
 
-@code
-{
+@code {
     private bool _loading = true;
-
     private ProductionDashboardDto _dashboard = new();
-    private string _dimplingCode = string.Empty;
+    private string _productionCode = string.Empty;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
     {
-        try
-        {
-            _dashboard = await ProductionService.GetDashboardAsync() ?? new();
-        }
-        catch
-        {
-            Navigation.NavigateTo("/login", true);
-        }
-        finally
-        {
-            _loading = false;
-        }
+        _loading = true;
+        try { _dashboard = await ProductionService.GetDashboardAsync() ?? new(); }
+        catch { Navigation.NavigateTo("/login", true); }
+        finally { _loading = false; }
     }
 
-    private void OpenDimpling()
+    private void OpenProduction()
     {
-        if (!string.IsNullOrWhiteSpace(_dimplingCode))
-            Navigation.NavigateTo($"/production/process?code={Uri.EscapeDataString(_dimplingCode.Trim())}");
+        if (!string.IsNullOrWhiteSpace(_productionCode))
+            Navigation.NavigateTo($"/production/process?code={Uri.EscapeDataString(_productionCode.Trim())}");
     }
 
-    private void OpenDimplingOnEnter(KeyboardEventArgs args)
+    private void OpenProductionOnEnter(KeyboardEventArgs args)
     {
-        if (args.Key == "Enter")
-            OpenDimpling();
+        if (args.Key == "Enter") OpenProduction();
     }
 }

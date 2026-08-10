@@ -50,7 +50,7 @@ public sealed class RefreshLoginCommandHandler
         var newRefreshToken = new Domain.Entities.RefreshToken(
             user.Id,
             _jwtService.GenerateRefreshToken(),
-            DateTime.UtcNow.AddDays(365));
+            DateTime.UtcNow.AddYears(10));
 
         await _refreshTokens.AddAsync(newRefreshToken);
 

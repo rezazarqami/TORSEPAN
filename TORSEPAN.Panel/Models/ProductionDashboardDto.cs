@@ -33,4 +33,12 @@ public sealed class ProductionDashboardDto
     public int WaitingForQualityControl { get; set; }
 
     public int WaitingForPackaging { get; set; }
+
+    public List<ProductionQueueItemDto> Queues { get; set; } = [];
+}
+
+public sealed class ProductionQueueItemDto
+{
+    public string Stage { get; set; } = string.Empty;
+    public List<string> Codes { get; set; } = [];
 }
