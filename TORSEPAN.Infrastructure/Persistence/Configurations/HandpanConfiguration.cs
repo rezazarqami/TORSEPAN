@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TORSEPAN.Domain.Entities;
 
@@ -32,6 +32,7 @@ public class HandpanConfiguration : IEntityTypeConfiguration<Handpan>
 
         builder.Property(x => x.Stage)
             .IsRequired();
+        builder.Property(x => x.BuyerName).HasMaxLength(200);
 
         // -----------------------------
         // Assembly (One-To-One)
@@ -52,3 +53,4 @@ public class HandpanConfiguration : IEntityTypeConfiguration<Handpan>
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
+
