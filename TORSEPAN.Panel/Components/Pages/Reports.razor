@@ -41,8 +41,9 @@ else
 @code {
     private ProductionReportDto _report = new(); private bool _loading = true;
     private DateTime? _from, _to; private string _user = "", _action = "", _result = "";
-    private static readonly (int Id,string Title)[] Actions = [(1,"ثبت اولیه"),(2,"دیمپل"),(3,"شیپ"),(4,"پخت"),(5,"چسب"),(6,"تیون"),(7,"فاین‌تیون"),(8,"کنترل کیفیت"),(9,"بسته‌بندی"),(10,"ورود به انبار"),(11,"برگشتی")];
+    private static readonly (int Id,string Title)[] Actions = [(1,"ثبت اولیه"),(2,"دیمپل"),(3,"شیپ"),(4,"پخت"),(5,"چسب"),(6,"تیون"),(7,"فاین‌تیون"),(8,"کنترل کیفیت"),(9,"بسته‌بندی"),(10,"ورود به انبار"),(11,"برگشتی"),(12,"فروش")];
     protected override Task OnInitializedAsync() => LoadAsync();
     private async Task LoadAsync(){_loading=true; try { Guid? user=Guid.TryParse(_user,out var u)?u:null; int? action=int.TryParse(_action,out var a)?a:null; int? result=int.TryParse(_result,out var r)?r:null; _report=await ReportService.GetAsync(_from,_to,user,action,result); } finally {_loading=false;}}
     private async Task ClearAsync(){_from=_to=null; _user=_action=_result=""; await LoadAsync();}
 }
+
