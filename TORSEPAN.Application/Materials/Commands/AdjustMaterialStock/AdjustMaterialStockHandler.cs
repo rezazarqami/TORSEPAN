@@ -22,8 +22,9 @@ public sealed class AdjustMaterialStockHandler : IRequestHandler<AdjustMaterialS
 
         _unitOfWork.Materials.Update(material);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        if (material.LowStockThreshold > 0 && previous > material.LowStockThreshold && material.Quantity <= material.LowStockThreshold)
-            await _alerts.SendLowStockAsync(material.Name, "موجودی", material.Quantity, material.LowStockThreshold, cancellationToken);
+        if (material.LowStockThreshold > 0 && previous >= material.LowStockThreshold && material.Quantity < material.LowStockThreshold)
+            await _alerts.SendLowStockAsync(material.Name, "Ù…ÙˆØ¬ÙˆØ¯ÛŒ", material.Quantity, material.LowStockThreshold, cancellationToken);
         return material.Quantity;
     }
 }
+
