@@ -5,6 +5,8 @@ using TORSEPAN.Panel.Services;
 using TORSEPAN.Panel.Services.Api;
 using TORSEPAN.Panel.Services.Auth;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -113,10 +115,11 @@ app.MapPost("/api/internal/telegram-inventory-alert", async (
     if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chatId))
         return Results.Problem("Telegram relay is not configured.");
 
-    var text = $"âš ï¸ Ù‡Ø´Ø¯Ø§Ø± Ù…ÙˆØ¬ÙˆØ¯ÛŒ Ø§Ù†Ø¨Ø§Ø± Ù…ÙˆØ§Ø¯ Ø§ÙˆÙ„ÛŒÙ‡\n{alert.ItemName} - {alert.StockType}\nÙ…ÙˆØ¬ÙˆØ¯ÛŒ ÙØ¹Ù„ÛŒ: {alert.Quantity}\nØ­Ø¯ Ù‡Ø´Ø¯Ø§Ø±: {alert.Threshold}";
-    var response = await httpClientFactory.CreateClient().PostAsJsonAsync(
+    var text = $"⚠️ هشدار موجودی انبار مواد اولیه\n{alert.ItemName} - {alert.StockType}\nموجودی فعلی: {alert.Quantity}\nحد هشدار: {alert.Threshold}";
+    var json = JsonSerializer.Serialize(new { chat_id = chatId, text });
+    var response = await httpClientFactory.CreateClient().PostAsync(
         $"https://api.telegram.org/bot{token}/sendMessage",
-        new { chat_id = chatId, text }, cancellationToken);
+        new StringContent(json, Encoding.UTF8, "application/json"), cancellationToken);
     return response.IsSuccessStatusCode ? Results.Ok() : Results.StatusCode((int)response.StatusCode);
 }).DisableAntiforgery();
 
