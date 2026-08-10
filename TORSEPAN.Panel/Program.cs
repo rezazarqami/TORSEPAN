@@ -119,7 +119,7 @@ app.MapPost("/api/internal/telegram-inventory-alert", async (
     var json = JsonSerializer.Serialize(new { chat_id = chatId, text });
     var response = await httpClientFactory.CreateClient().PostAsync(
         $"https://api.telegram.org/bot{token}/sendMessage",
-        new StringContent(json, Encoding.UTF8, "application/json"), cancellationToken);
+        new StringContent(json, Encoding.UTF8, "application/json"), CancellationToken.None);
     return response.IsSuccessStatusCode ? Results.Ok() : Results.StatusCode((int)response.StatusCode);
 }).DisableAntiforgery();
 
