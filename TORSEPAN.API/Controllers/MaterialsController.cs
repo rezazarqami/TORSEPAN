@@ -5,6 +5,7 @@ using TORSEPAN.Application.Materials.Commands.CreateMaterial;
 using TORSEPAN.Application.Materials.Commands.DeleteMaterial;
 using TORSEPAN.Application.Materials.Commands.UpdateMaterial;
 using TORSEPAN.Application.Materials.Commands.AdjustMaterialStock;
+using TORSEPAN.Application.Materials.Commands.AdjustBowlStock;
 using TORSEPAN.Application.Materials.Queries.GetAllMaterials;
 using TORSEPAN.Application.Materials.Queries.GetMaterialById;
 
@@ -112,6 +113,25 @@ public sealed class MaterialsController : ControllerBase
             return NotFound();
         }
     }
+
+    [HttpPatch("{id:guid}/bowl-stock")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> AdjustBowlStock(Guid id, [FromBody] AdjustBowlStockRequest request, CancellationToken cancellationToken)
+    {
+        if (request.TopQuantity < 0 || request.BottomQuantity < 0 ||
+            (!request.SetAbsolute && request.TopQuantity == 0 && request.BottomQuantity == 0))
+            return BadRequest("Quantities are invalid.");
+
+        try
+        {
+            await _mediator.Send(new AdjustBowlStockCommand(
+                id, request.TopQuantity, request.BottomQuantity, request.SetAbsolute), cancellationToken);
+            return NoContent();
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException) { return BadRequest(); }
+    }
 }
 
 public sealed record AdjustStockRequest(int Quantity, bool SetAbsolute = false);
+public sealed record AdjustBowlStockRequest(int TopQuantity, int BottomQuantity, bool SetAbsolute = false);

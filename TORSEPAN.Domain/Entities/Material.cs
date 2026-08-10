@@ -22,6 +22,10 @@ public sealed class Material
 
     public int Quantity { get; private set; }
 
+    public int TopBowlQuantity { get; private set; }
+
+    public int BottomBowlQuantity { get; private set; }
+
     public void Rename(string name)
     {
         Name = name;
@@ -52,6 +56,24 @@ public sealed class Material
 
         Quantity -= amount;
         return true;
+    }
+
+    public void AddBowlStock(int topQuantity, int bottomQuantity)
+    {
+        if (topQuantity < 0 || bottomQuantity < 0 || (topQuantity == 0 && bottomQuantity == 0))
+            throw new ArgumentOutOfRangeException(nameof(topQuantity));
+
+        TopBowlQuantity += topQuantity;
+        BottomBowlQuantity += bottomQuantity;
+    }
+
+    public void SetBowlStock(int topQuantity, int bottomQuantity)
+    {
+        if (topQuantity < 0 || bottomQuantity < 0)
+            throw new ArgumentOutOfRangeException(nameof(topQuantity));
+
+        TopBowlQuantity = topQuantity;
+        BottomBowlQuantity = bottomQuantity;
     }
 }
 

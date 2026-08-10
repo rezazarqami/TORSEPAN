@@ -27,7 +27,9 @@ public sealed class GetMaterialByIdHandler
             Id = material.Id,
             Name = material.Name,
             Category = (int)material.Category,
-            Quantity = material.Quantity
+            Quantity = material.Quantity,
+            TopBowlQuantity = material.TopBowlQuantity,
+            BottomBowlQuantity = material.BottomBowlQuantity
         };
     }
 }

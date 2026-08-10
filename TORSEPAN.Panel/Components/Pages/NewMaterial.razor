@@ -2,21 +2,13 @@
 @page "/warehouse/materials/new"
 
 @using TORSEPAN.Panel.Models
-@using Microsoft.AspNetCore.Components.Authorization
 @using TORSEPAN.Panel.Services.Api
 @inject MaterialService MaterialService
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>افزودن ماده اولیه</PageTitle>
 <PageHeader Title="افزودن ماده اولیه جدید" SubTitle="تعریف قلم جدید در بخش سایر مواد اولیه و اقلام بسته‌بندی" />
 
-@if (!_isAdministrator)
-{
-    <div class="alert alert-danger">فقط مدیر سیستم اجازه افزودن ماده اولیه را دارد.</div>
-}
-else
-{
     <Card>
         <EditForm Model="_model" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
@@ -39,19 +31,11 @@ else
             <button class="btn btn-outline-secondary me-2" type="button" @onclick="BackToList">انصراف</button>
         </EditForm>
     </Card>
-}
 
 @code {
     private readonly CreateMaterialRequest _model = new() { Category = 3 };
     private bool _saving;
-    private bool _isAdministrator;
     private string? _error;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _isAdministrator = state.User.IsInRole("Administrator");
-    }
 
     private async Task SaveAsync()
     {

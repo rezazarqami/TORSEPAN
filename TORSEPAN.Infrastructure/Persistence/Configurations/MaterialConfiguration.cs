@@ -25,6 +25,9 @@ public sealed class MaterialConfiguration : IEntityTypeConfiguration<Material>
             .HasDefaultValue(0)
             .IsRequired();
 
+        builder.Property(x => x.TopBowlQuantity).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.BottomBowlQuantity).HasDefaultValue(0).IsRequired();
+
         builder.HasIndex(x => x.Name)
             .IsUnique();
     }

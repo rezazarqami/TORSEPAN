@@ -25,7 +25,9 @@ public sealed class GetAllMaterialsHandler
                 Id = x.Id,
                 Name = x.Name,
                 Category = (int)x.Category,
-                Quantity = x.Quantity
+                Quantity = x.Quantity,
+                TopBowlQuantity = x.TopBowlQuantity,
+                BottomBowlQuantity = x.BottomBowlQuantity
             })
             .ToList();
     }

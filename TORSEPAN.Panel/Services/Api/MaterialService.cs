@@ -37,4 +37,11 @@ public sealed class MaterialService
             $"materials/{id}/stock",
             new { Quantity = quantity, SetAbsolute = true });
     }
+
+    public async Task AdjustBowlStockAsync(Guid id, int topQuantity, int bottomQuantity, bool setAbsolute)
+    {
+        await _api.PatchAsync<object, object?>(
+            $"materials/{id}/bowl-stock",
+            new { TopQuantity = topQuantity, BottomQuantity = bottomQuantity, SetAbsolute = setAbsolute });
+    }
 }

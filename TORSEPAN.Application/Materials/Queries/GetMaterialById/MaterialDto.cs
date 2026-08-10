@@ -9,4 +9,8 @@ public sealed class MaterialDto
     public int Category { get; set; }
 
     public int Quantity { get; set; }
+
+    public int TopBowlQuantity { get; set; }
+
+    public int BottomBowlQuantity { get; set; }
 }
