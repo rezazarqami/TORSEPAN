@@ -1,4 +1,4 @@
-﻿using TORSEPAN.Domain.Common;
+using TORSEPAN.Domain.Common;
 using TORSEPAN.Domain.Enums;
 using TORSEPAN.Domain.Production;
 
@@ -43,6 +43,17 @@ public class Handpan : Entity
     public DateTime CreatedAt { get; private set; }
 
     public DateTime? UpdatedAt { get; private set; }
+    public string? BuyerName { get; private set; }
+    public DateTime? SoldAt { get; private set; }
+    public Guid? SoldByUserId { get; private set; }
+
+    public void Sell(string buyerName, Guid soldByUserId)
+    {
+        if (Stage != ProductionStage.FinishedWarehouse) throw new InvalidOperationException("Handpan is not in warehouse.");
+        if (string.IsNullOrWhiteSpace(buyerName)) throw new ArgumentException("Buyer name is required.");
+        BuyerName = buyerName.Trim(); SoldByUserId = soldByUserId; SoldAt = DateTime.UtcNow;
+        Stage = ProductionStage.Sold; UpdatedAt = SoldAt;
+    }
 
     public IReadOnlyCollection<ProductionEvent> ProductionEvents => _productionEvents;
 
@@ -97,3 +108,4 @@ public class Handpan : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 }
+
