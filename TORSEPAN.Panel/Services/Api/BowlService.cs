@@ -39,7 +39,7 @@ public sealed class BowlService
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
         {
-            throw new Exception("کد تولید قبلاً ثبت شده است.");
+            throw new Exception("کد تولید تکراری است یا موجودی کاسه انتخاب‌شده کافی نیست.");
         }
     }
 

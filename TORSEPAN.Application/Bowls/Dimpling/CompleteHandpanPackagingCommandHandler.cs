@@ -76,7 +76,8 @@ public sealed class CompleteHandpanPackagingCommandHandler
 
         await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(
             handpan.Id, assembly.Id, null, userId, ProductionAction.Packaging,
-            EventResult.Completed, null, "بسته‌بندی انجام شد و ساز وارد انبار شد"));
+            EventResult.Completed, null,
+            $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}"));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(

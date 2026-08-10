@@ -60,6 +60,15 @@ public sealed class GetWarehouseInventoryQueryHandler
                 };
             }).ToList();
 
+            var packagingItems = x.ProductionEvents
+                .Where(e => e.Action == ProductionAction.Packaging &&
+                    e.Description.StartsWith("PACKAGING_ITEMS:"))
+                .OrderByDescending(e => e.EventDate)
+                .SelectMany(e => e.Description["PACKAGING_ITEMS:".Length..]
+                    .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Distinct()
+                .ToList();
+
             return new GetWarehouseInventoryResponse
             {
                 HandpanId = x.Id,
@@ -71,7 +80,8 @@ public sealed class GetWarehouseInventoryQueryHandler
                 ScaleName = x.Scale?.Name ?? "تعیین نشده",
                 CreatedAt = x.CreatedAt,
                 WarehouseEntryDate = x.UpdatedAt,
-                Operations = operations
+                Operations = operations,
+                PackagingItems = packagingItems
             };
         }).ToList();
     }

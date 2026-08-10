@@ -75,6 +75,20 @@ public sealed class Material
         TopBowlQuantity = topQuantity;
         BottomBowlQuantity = bottomQuantity;
     }
+
+    public bool TryConsumeBowl(bool isTop)
+    {
+        if (isTop)
+        {
+            if (TopBowlQuantity < 1) return false;
+            TopBowlQuantity--;
+            return true;
+        }
+
+        if (BottomBowlQuantity < 1) return false;
+        BottomBowlQuantity--;
+        return true;
+    }
 }
 
 public enum MaterialCategory
