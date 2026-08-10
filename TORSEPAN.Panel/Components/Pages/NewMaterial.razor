@@ -48,7 +48,7 @@
                 _error = "ثبت ماده اولیه انجام نشد.";
                 return;
             }
-            Navigation.NavigateTo("/warehouse/materials");
+            Navigation.NavigateTo("/warehouse/materials/manage");
         }
         catch
         {
@@ -57,5 +57,5 @@
         finally { _saving = false; }
     }
 
-    private void BackToList() => Navigation.NavigateTo("/warehouse/materials");
+    private void BackToList() => Navigation.NavigateTo("/warehouse/materials/manage");
 }

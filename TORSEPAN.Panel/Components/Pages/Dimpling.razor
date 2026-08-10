@@ -424,9 +424,24 @@
     private void TogglePackagingMaterial(Guid id, bool selected)
     {
         if (selected)
+        {
+            var selectedItem = _packagingMaterials.FirstOrDefault(x => x.Id == id);
+            if (selectedItem is not null && IsExclusiveCase(selectedItem.Name))
+            {
+                foreach (var otherCase in _packagingMaterials.Where(x => x.Id != id && IsExclusiveCase(x.Name)))
+                    _selectedPackagingMaterialIds.Remove(otherCase.Id);
+            }
             _selectedPackagingMaterialIds.Add(id);
+        }
         else
             _selectedPackagingMaterialIds.Remove(id);
+    }
+
+    private static bool IsExclusiveCase(string name)
+    {
+        var normalized = name.Trim().ToLowerInvariant();
+        return normalized is "سافت کیس" or "میدل کیس" or "هارد کیس"
+            or "soft case" or "middle case" or "hard case";
     }
 
     private void SetOperationResult(

@@ -53,6 +53,9 @@ public sealed class CompleteHandpanPackagingCommandHandler
             : (await _unitOfWork.Materials.FindAsync(
                 x => selectedMaterialIds.Contains(x.Id))).ToList();
 
+        if (selectedMaterials.Count(x => IsExclusiveCase(x.Name)) > 1)
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
+
         if (selectedMaterials.Count != selectedMaterialIds.Length ||
             selectedMaterials.Any(x => x.Category != MaterialCategory.Other || x.Quantity < 1))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
@@ -82,5 +85,12 @@ public sealed class CompleteHandpanPackagingCommandHandler
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(
             bowls.Single(x => x.Id == bowl.Id)));
+    }
+
+    private static bool IsExclusiveCase(string name)
+    {
+        var normalized = name.Trim().ToLowerInvariant();
+        return normalized is "سافت کیس" or "میدل کیس" or "هارد کیس"
+            or "soft case" or "middle case" or "hard case";
     }
 }

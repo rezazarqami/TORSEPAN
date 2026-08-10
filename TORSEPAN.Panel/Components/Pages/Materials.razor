@@ -1,5 +1,5 @@
 @page "/materials"
-@page "/warehouse/materials"
+@page "/warehouse/materials/manage"
 
 @using TORSEPAN.Panel.Models
 @using Microsoft.AspNetCore.Components.Authorization
@@ -13,7 +13,8 @@
 
 <PageHeader Title="انبار مواد اولیه" SubTitle="مدیریت موجودی کاسه‌ها و اقلام مصرفی تولید و بسته‌بندی">
     <Actions>
-        <PrimaryButton Text="افزودن ماده اولیه جدید" OnClick="NewMaterial" />
+            <PrimaryButton Text="افزودن ماده اولیه جدید" OnClick="NewMaterial" />
+            <button class="btn btn-outline-secondary me-2" @onclick="BackToOverview">بازگشت به نمای موجودی</button>
     </Actions>
 </PageHeader>
 
@@ -123,4 +124,5 @@ else
     }
 
     private void NewMaterial() => Navigation.NavigateTo("/warehouse/materials/new");
+    private void BackToOverview() => Navigation.NavigateTo("/warehouse/materials");
 }
