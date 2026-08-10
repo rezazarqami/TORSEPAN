@@ -69,7 +69,7 @@ public class HandpanRepository
     {
         return await _dbSet
             .AsNoTracking()
-            .Where(x => x.Stage != ProductionStage.FinishedWarehouse)
+            .Where(x => x.Stage != ProductionStage.FinishedWarehouse && x.Stage != ProductionStage.Sold)
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.TopBowl)
                     .ThenInclude(x => x.Material)
