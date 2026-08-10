@@ -1,4 +1,4 @@
-﻿using TORSEPAN.Domain.Entities;
+using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.Application.Interfaces;
@@ -16,4 +16,6 @@ public interface IHandpanRepository : IRepository<Handpan>
     Task<IEnumerable<Handpan>> GetWarehouseInventoryAsync();
 
     Task<IEnumerable<Handpan>> GetAllWithAssemblyAsync();
+    Task<IEnumerable<Handpan>> GetSoldInventoryAsync();
 }
+
