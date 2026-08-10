@@ -106,12 +106,12 @@ public sealed class BowlService
             new { });
     }
 
-    public Task<DimpleBowlDto?> CompleteFinalTuneAsync(string productionCode)
+    public Task<DimpleBowlDto?> CompleteFinalTuneAsync(string productionCode, int duration)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/final-tune/complete",
-            new { });
+            new { Duration = duration });
     }
 
     public Task<DimpleBowlDto?> CompleteQualityControlAsync(

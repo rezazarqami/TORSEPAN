@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Entities;
+using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.Infrastructure.Persistence.Repositories;
 
@@ -34,6 +35,26 @@ public sealed class ProductionEventRepository
         ProductionEvent productionEvent)
     {
         await _context.ProductionEvents.AddAsync(productionEvent);
+    }
+
+    public async Task<List<ProductionEvent>> GetReportAsync(
+        DateTime? from, DateTime? to, Guid? userId,
+        ProductionAction? action, EventResult? result)
+    {
+        var query = _context.ProductionEvents
+            .AsNoTracking()
+            .Include(x => x.User)
+            .Include(x => x.Bowl)
+            .Include(x => x.Handpan)
+            .AsQueryable();
+
+        if (from.HasValue) query = query.Where(x => x.EventDate >= from.Value);
+        if (to.HasValue) query = query.Where(x => x.EventDate < to.Value);
+        if (userId.HasValue) query = query.Where(x => x.UserId == userId.Value);
+        if (action.HasValue) query = query.Where(x => x.Action == action.Value);
+        if (result.HasValue) query = query.Where(x => x.Result == result.Value);
+
+        return await query.OrderByDescending(x => x.EventDate).ToListAsync();
     }
 
     public void Update(

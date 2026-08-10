@@ -1,89 +1,48 @@
-﻿@page "/reports"
-
+@page "/reports"
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
-
 @inject ReportService ReportService
 
 <PageTitle>گزارش‌ها</PageTitle>
+<PageHeader Title="گزارش‌های مدیریتی" SubTitle="گزارش کامل فعالیت کاربران و مراحل تولید" />
 
-<PageHeader Title="گزارش‌ها"
-            SubTitle="آمار و گزارش تولید" />
+<div class="card border-0 shadow-sm mb-4"><div class="card-body">
+    <div class="row g-3 align-items-end">
+        <div class="col-lg-2 col-md-4"><label class="form-label">از تاریخ</label><InputDate TValue="DateTime?" class="form-control" @bind-Value="_from" /></div>
+        <div class="col-lg-2 col-md-4"><label class="form-label">تا تاریخ</label><InputDate TValue="DateTime?" class="form-control" @bind-Value="_to" /></div>
+        <div class="col-lg-2 col-md-4"><label class="form-label">کاربر</label><select class="form-select" @bind="_user"><option value="">همه کاربران</option>@foreach (var u in _report.Users){<option value="@u.Id">@(string.IsNullOrWhiteSpace(u.FullName) ? u.UserName : u.FullName)</option>}</select></div>
+        <div class="col-lg-2 col-md-4"><label class="form-label">عملیات</label><select class="form-select" @bind="_action"><option value="">همه عملیات‌ها</option>@foreach(var a in Actions){<option value="@a.Id">@a.Title</option>}</select></div>
+        <div class="col-lg-2 col-md-4"><label class="form-label">نتیجه</label><select class="form-select" @bind="_result"><option value="">همه نتایج</option><option value="1">تکمیل‌شده</option><option value="2">ناموفق</option><option value="3">ردشده</option><option value="4">ردشده از مرحله</option></select></div>
+        <div class="col-lg-2 col-md-4 d-flex gap-2"><button class="btn btn-primary flex-grow-1" @onclick="LoadAsync" disabled="@_loading">نمایش گزارش</button><button class="btn btn-outline-secondary" @onclick="ClearAsync">پاک‌کردن</button></div>
+    </div>
+</div></div>
 
-@if (_loading)
-{
-    <div class="spinner-border"></div>
-}
+@if (_loading){<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>}
 else
 {
-    <div class="row g-4">
-
-        <div class="col-md-3">
-            <StatCard Title="تعداد گزارش‌ها"
-                      Value="@_reports.Count.ToString()" />
-        </div>
-
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">کل عملیات</small><h2 class="mt-2 mb-0">@_report.TotalOperations</h2></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">عملیات موفق</small><h2 class="mt-2 mb-0 text-success">@_report.CompletedOperations</h2></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">ناموفق یا برگشتی</small><h2 class="mt-2 mb-0 text-danger">@_report.RejectedOrFailedOperations</h2></div></div></div>
+        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">مجموع زمان ثبت‌شده</small><h2 class="mt-2 mb-0">@_report.TotalDurationMinutes <small class="fs-6">دقیقه</small></h2></div></div></div>
     </div>
 
-    <Card Class="mt-4">
+    <div class="card border-0 shadow-sm mb-4"><div class="card-header bg-white py-3"><h5 class="mb-0">عملکرد کاربران</h5></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>کاربر</th><th>تعداد عملیات</th><th>تکمیل‌شده</th><th>زمان ثبت‌شده</th></tr></thead><tbody>
+    @if (_report.UserPerformance.Count == 0){<tr><td colspan="4" class="text-center text-muted py-4">در بازه انتخاب‌شده اطلاعاتی وجود ندارد.</td></tr>}
+    @foreach(var user in _report.UserPerformance){<tr><td><strong>@(string.IsNullOrWhiteSpace(user.FullName) ? user.UserName : user.FullName)</strong><div class="small text-muted">@user.UserName</div></td><td>@user.OperationCount</td><td>@user.CompletedCount</td><td>@user.DurationMinutes دقیقه</td></tr>}
+    </tbody></table></div></div>
 
-        @if (_reports.Count == 0)
-        {
-            <EmptyState Title="گزارشی وجود ندارد"
-                        Description="هنوز اطلاعاتی برای نمایش ثبت نشده است." />
-        }
-        else
-        {
-            <table class="table">
-
-                <thead>
-
-                    <tr>
-                        <th>عنوان</th>
-                        <th>توضیح</th>
-                        <th>تاریخ</th>
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    @foreach (var item in _reports)
-                    {
-                        <tr>
-
-                            <td>@item.Title</td>
-
-                            <td>@item.Description</td>
-
-                            <td>@item.CreatedAt.ToString("yyyy/MM/dd")</td>
-
-                        </tr>
-                    }
-
-                </tbody>
-
-            </table>
-        }
-
-    </Card>
+    <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3 d-flex justify-content-between"><h5 class="mb-0">ریز فعالیت‌ها</h5><span class="badge bg-primary rounded-pill">@_report.Activities.Count مورد</span></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>تاریخ و ساعت</th><th>کاربر</th><th>عملیات</th><th>کد ساز/کاسه</th><th>نتیجه</th><th>مدت</th><th>توضیحات</th></tr></thead><tbody>
+    @if (_report.Activities.Count == 0){<tr><td colspan="7" class="text-center text-muted py-5">فعالیتی با این فیلترها پیدا نشد.</td></tr>}
+    @foreach(var item in _report.Activities){<tr><td class="text-nowrap">@item.EventDate.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td><td>@(string.IsNullOrWhiteSpace(item.FullName) ? item.UserName : item.FullName)</td><td><span class="badge text-bg-light">@item.ActionTitle</span></td><td>@(string.IsNullOrWhiteSpace(item.ProductionCode) ? "—" : item.ProductionCode)</td><td><span class="@(item.Result == 1 ? "text-success" : "text-danger")">@item.ResultTitle</span></td><td class="text-nowrap">@item.DurationTitle</td><td class="small">@(string.IsNullOrWhiteSpace(item.Description) ? "—" : item.Description)</td></tr>}
+    </tbody></table></div></div>
 }
 
-@code
-{
-    private readonly List<ReportItemDto> _reports = [];
-
-    private bool _loading = true;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            _reports.AddRange(await ReportService.GetAsync());
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
+@code {
+    private ProductionReportDto _report = new(); private bool _loading = true;
+    private DateTime? _from, _to; private string _user = "", _action = "", _result = "";
+    private static readonly (int Id,string Title)[] Actions = [(1,"ثبت اولیه"),(2,"دیمپل"),(3,"شیپ"),(4,"پخت"),(5,"چسب"),(6,"تیون"),(7,"فاین‌تیون"),(8,"کنترل کیفیت"),(9,"بسته‌بندی"),(10,"ورود به انبار"),(11,"برگشتی")];
+    protected override Task OnInitializedAsync() => LoadAsync();
+    private async Task LoadAsync(){_loading=true; try { Guid? user=Guid.TryParse(_user,out var u)?u:null; int? action=int.TryParse(_action,out var a)?a:null; int? result=int.TryParse(_result,out var r)?r:null; _report=await ReportService.GetAsync(_from,_to,user,action,result); } finally {_loading=false;}}
+    private async Task ClearAsync(){_from=_to=null; _user=_action=_result=""; await LoadAsync();}
 }

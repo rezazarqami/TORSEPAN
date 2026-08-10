@@ -168,10 +168,11 @@ public sealed class BowlsController : ControllerBase
     [Authorize(Roles = "FineTuner,Administrator")]
     public async Task<ActionResult> CompleteFinalTune(
         string productionCode,
+        [FromBody] CompleteBowlDimpleRequest request,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new CompleteHandpanFinalTuneCommand(productionCode),
+            new CompleteHandpanFinalTuneCommand(productionCode, request.Duration),
             cancellationToken);
 
         return this.ToActionResult(result);

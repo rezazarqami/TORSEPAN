@@ -21,6 +21,7 @@ using TORSEPAN.Application.ProductionEvents.Queries.GetReadyForPackaging;
 using TORSEPAN.Application.ProductionEvents.Queries.GetRejectedHandpans;
 using TORSEPAN.Application.ProductionEvents.Queries.GetStageWorkload;
 using TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory;
+using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -70,8 +71,9 @@ public sealed class ProductionController : ControllerBase
         => Ok(await _mediator.Send(new GetProductionCountByStatusQuery()));
 
     [HttpGet("report")]
-    public async Task<IActionResult> Report()
-        => Ok(await _mediator.Send(new GetProductionReportQuery()));
+    public async Task<IActionResult> Report([FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        [FromQuery] Guid? userId, [FromQuery] ProductionAction? action, [FromQuery] EventResult? result)
+        => Ok(await _mediator.Send(new GetProductionReportQuery(from, to, userId, action, result)));
 
     [HttpGet("stage-summary")]
     public async Task<IActionResult> StageSummary()

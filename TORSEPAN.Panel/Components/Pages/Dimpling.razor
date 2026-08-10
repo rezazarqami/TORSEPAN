@@ -164,11 +164,24 @@
             }
             else if (_bowl.Stage == 12)
             {
+                <div class="row align-items-end mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label">مدت زمان انجام فاین تیون</label>
+                        <select class="form-select" @bind="_duration">
+                            @foreach (var option in DurationOptions)
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
                 <button class="btn btn-success mt-3"
                         disabled="@_loading"
                         @onclick="CompleteFinalTuneAsync">
                     فاین تیون انجام شد
                 </button>
+                    </div>
+                </div>
             }
             else if (_bowl.Stage == 14)
             {
@@ -383,7 +396,7 @@
     {
         await ExecuteAsync(async () =>
         {
-            var result = await BowlService.CompleteFinalTuneAsync(_productionCode);
+            var result = await BowlService.CompleteFinalTuneAsync(_productionCode, _duration);
             SetOperationResult(result, "فاین تیون با موفقیت انجام شد و ساز در انتظار QC قرار گرفت.", "ثبت پایان فاین تیون انجام نشد.");
         });
     }
