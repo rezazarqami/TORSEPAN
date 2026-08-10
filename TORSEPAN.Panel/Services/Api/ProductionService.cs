@@ -1,4 +1,4 @@
-﻿using TORSEPAN.Panel.Models;
+using TORSEPAN.Panel.Models;
 
 namespace TORSEPAN.Panel.Services.Api;
 
@@ -38,4 +38,7 @@ public sealed class ProductionService
         return await _api.GetAsync<List<WarehouseHandpanDto>>(
             "production/warehouse") ?? [];
     }
+    public async Task SellAsync(Guid id,string buyerName) => await _api.PostAsync<object,object?>($"production/{id}/sell",new { BuyerName=buyerName });
+    public async Task<IReadOnlyList<SaleItemDto>> GetSalesAsync() => await _api.GetAsync<List<SaleItemDto>>("production/sales") ?? [];
 }
+
