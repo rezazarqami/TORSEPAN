@@ -4,6 +4,7 @@ using TORSEPAN.Panel.Components;
 using TORSEPAN.Panel.Services;
 using TORSEPAN.Panel.Services.Api;
 using TORSEPAN.Panel.Services.Auth;
+using System.Net.Http.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,7 @@ builder.Services.AddRazorComponents()
     });
 
 builder.Services.AddAuthorizationCore();
+builder.Services.AddHttpClient();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -97,4 +99,28 @@ app.MapRazorComponents<App>()
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
+app.MapPost("/api/internal/telegram-inventory-alert", async (
+    HttpRequest request, TelegramRelayRequest alert, IConfiguration configuration,
+    IHttpClientFactory httpClientFactory, CancellationToken cancellationToken) =>
+{
+    var expectedSecret = configuration["TelegramRelay:Secret"];
+    if (string.IsNullOrWhiteSpace(expectedSecret) ||
+        request.Headers["X-Relay-Secret"] != expectedSecret)
+        return Results.Unauthorized();
+
+    var token = configuration["TelegramRelay:BotToken"];
+    var chatId = configuration["TelegramRelay:ChatId"];
+    if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chatId))
+        return Results.Problem("Telegram relay is not configured.");
+
+    var text = $"âš ï¸ Ù‡Ø´Ø¯Ø§Ø± Ù…ÙˆØ¬ÙˆØ¯ÛŒ Ø§Ù†Ø¨Ø§Ø± Ù…ÙˆØ§Ø¯ Ø§ÙˆÙ„ÛŒÙ‡\n{alert.ItemName} - {alert.StockType}\nÙ…ÙˆØ¬ÙˆØ¯ÛŒ ÙØ¹Ù„ÛŒ: {alert.Quantity}\nØ­Ø¯ Ù‡Ø´Ø¯Ø§Ø±: {alert.Threshold}";
+    var response = await httpClientFactory.CreateClient().PostAsJsonAsync(
+        $"https://api.telegram.org/bot{token}/sendMessage",
+        new { chat_id = chatId, text }, cancellationToken);
+    return response.IsSuccessStatusCode ? Results.Ok() : Results.StatusCode((int)response.StatusCode);
+}).DisableAntiforgery();
+
 app.Run();
+
+public sealed record TelegramRelayRequest(string ItemName, string StockType, int Quantity, int Threshold);
+
