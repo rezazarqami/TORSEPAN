@@ -29,7 +29,7 @@ public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand
             return Result<Guid>.Failure(
                 new Error(
                     "ProductionCode",
-                    "کد تولید قبلاً ثبت شده است."));
+                    "Ú©Ø¯ ØªÙˆÙ„ÛŒØ¯ Ù‚Ø¨Ù„Ø§Ù‹ Ø«Ø¨Øª Ø´Ø¯Ù‡ Ø§Ø³Øª."));
         }
 
         var material = await _unitOfWork.Materials.GetByIdAsync(request.MaterialId);
@@ -40,7 +40,7 @@ public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand
         {
             return Result<Guid>.Failure(new Error(
                 "BowlStock",
-                "موجودی کاسه انتخاب‌شده برای این متریال کافی نیست."));
+                "Ù…ÙˆØ¬ÙˆØ¯ÛŒ Ú©Ø§Ø³Ù‡ Ø§Ù†ØªØ®Ø§Ø¨â€ŒØ´Ø¯Ù‡ Ø¨Ø±Ø§ÛŒ Ø§ÛŒÙ† Ù…ØªØ±ÛŒØ§Ù„ Ú©Ø§ÙÛŒ Ù†ÛŒØ³Øª."));
         }
 
         _unitOfWork.Materials.Update(material);
@@ -56,9 +56,10 @@ public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var threshold = isTop ? material.TopBowlLowStockThreshold : material.BottomBowlLowStockThreshold;
         var current = isTop ? material.TopBowlQuantity : material.BottomBowlQuantity;
-        if (threshold > 0 && previous > threshold && current <= threshold)
-            await _alerts.SendLowStockAsync(material.Name, isTop ? "کاسه رو" : "کاسه زیر", current, threshold, cancellationToken);
+        if (threshold > 0 && previous >= threshold && current < threshold)
+            await _alerts.SendLowStockAsync(material.Name, isTop ? "Ú©Ø§Ø³Ù‡ Ø±Ùˆ" : "Ú©Ø§Ø³Ù‡ Ø²ÛŒØ±", current, threshold, cancellationToken);
 
         return Result<Guid>.Success(bowl.Id);
     }
 }
+
