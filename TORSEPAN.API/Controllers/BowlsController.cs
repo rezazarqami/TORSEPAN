@@ -9,6 +9,7 @@ using TORSEPAN.Application.Common.Pagination;
 using TORSEPAN.Application.Features.Bowls.Commands.CreateBowl;
 using TORSEPAN.API.Contracts.Bowls;
 using TORSEPAN.Application.Interfaces;
+using TORSEPAN.Application.Bowls.Queries.GetExportWarehouse;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -134,6 +135,23 @@ public sealed class BowlsController : ControllerBase
 
         return this.ToActionResult(result);
     }
+
+    [HttpPost("production/{productionCode}/tune/export")]
+    [Authorize(Roles = "Tuner,Administrator")]
+    public async Task<ActionResult> CompleteTuneForExport(string productionCode,
+        [FromBody] CompleteBowlDimpleRequest request, CancellationToken cancellationToken)
+        => this.ToActionResult(await _mediator.Send(
+            new CompleteBowlTuneForExportCommand(productionCode, request.Duration), cancellationToken));
+
+    [HttpPost("production/{productionCode}/export-packaging/complete")]
+    [Authorize(Roles = "Workshop,Administrator")]
+    public async Task<ActionResult> CompleteExportPackaging(string productionCode, CancellationToken cancellationToken)
+        => this.ToActionResult(await _mediator.Send(
+            new CompleteExportPackagingCommand(productionCode), cancellationToken));
+
+    [HttpGet("export-warehouse")]
+    public async Task<IActionResult> ExportWarehouse(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetExportWarehouseQuery(), cancellationToken));
 
     [HttpPost("production/{productionCode}/glue/complete")]
     [Authorize(Roles = "Workshop,Administrator")]
