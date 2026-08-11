@@ -8,6 +8,7 @@ using TORSEPAN.Application.Bowls.Dimpling;
 using TORSEPAN.Application.Common.Pagination;
 using TORSEPAN.Application.Features.Bowls.Commands.CreateBowl;
 using TORSEPAN.API.Contracts.Bowls;
+using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.API.Controllers;
 
