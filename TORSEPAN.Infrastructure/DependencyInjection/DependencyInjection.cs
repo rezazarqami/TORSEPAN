@@ -71,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<IUserContext, UserContext>();
 
         services.AddScoped<ICodeGenerator, ProductionCodeGenerator>();
+        services.AddScoped<IProductionDeletionService, ProductionDeletionService>();
 
         services.AddScoped<IBowlQueryService, BowlQueryService>();
         services.AddHttpClient<IInventoryAlertService, TelegramInventoryAlertService>(client =>
