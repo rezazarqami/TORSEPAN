@@ -31,6 +31,7 @@ public sealed class GetProductionDashboardQueryHandler
                 BowlQueue("آماده دیمپل", ProductionStage.WaitingForDimple),
                 BowlQueue("آماده شیپ", ProductionStage.WaitingForShape),
                 BowlQueue("آماده تیون", ProductionStage.WaitingForTune),
+                BowlQueue("آماده بسته‌بندی صادراتی", ProductionStage.WaitingForExportPackaging),
                 HandpanQueue("آماده فاین تیون", ProductionStage.WaitingForFinalTune),
                 HandpanQueue("آماده کنترل کیفیت (QC)", ProductionStage.WaitingForQualityControl),
                 HandpanQueue("آماده بسته‌بندی", ProductionStage.WaitingForPackaging)
