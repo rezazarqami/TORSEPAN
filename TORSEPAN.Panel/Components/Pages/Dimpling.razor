@@ -128,6 +128,13 @@
                     </div>
                 </div>
             }
+            else if (_bowl.Stage == 21)
+            {
+                <div class="alert alert-info mt-3">این کاسه برای بسته‌بندی صادراتی آماده است.</div>
+                <button class="btn btn-success mt-3" disabled="@_loading" @onclick="CompleteExportPackagingAsync">
+                    بسته‌بندی صادراتی انجام شد
+                </button>
+            }
             else if (_bowl.Stage == 10)
             {
                 <div class="mt-3">
@@ -362,6 +369,24 @@
         {
             var result = await BowlService.CompleteTuneAsync(_productionCode, _duration);
             SetOperationResult(result, "تیون با موفقیت انجام شد.", "ثبت پایان تیون انجام نشد.");
+        });
+    }
+
+    private async Task CompleteTuneForExportAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            var result = await BowlService.CompleteTuneForExportAsync(_productionCode, _duration);
+            SetOperationResult(result, "تیون انجام شد و کاسه برای بسته‌بندی صادراتی آماده است.", "ثبت مسیر صادراتی انجام نشد.");
+        });
+    }
+
+    private async Task CompleteExportPackagingAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            var result = await BowlService.CompleteExportPackagingAsync(_productionCode);
+            SetOperationResult(result, "بسته‌بندی انجام شد و کاسه وارد انبار صادراتی شد.", "ثبت بسته‌بندی صادراتی انجام نشد.");
         });
     }
 
