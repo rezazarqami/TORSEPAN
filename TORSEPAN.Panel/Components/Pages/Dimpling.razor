@@ -124,8 +124,17 @@
                         <button class="btn btn-success w-100"
                                 disabled="@_loading"
                                 @onclick="CompleteTuneAsync">
-                            تیون انجام شد
+                            تیون انجام شد و ادامه مسیر عادی
                         </button>
+                        <div class="export-route-box mt-3">
+                            <div class="export-route-title">✈ مسیر صادراتی</div>
+                            <div class="small mb-2">این کاسه بدون چسب، فاین تیون و QC مستقیماً بسته‌بندی می‌شود.</div>
+                            <button class="btn btn-warning w-100"
+                                    disabled="@_loading"
+                                    @onclick="CompleteTuneForExportAsync">
+                                تیون انجام شد؛ ارسال به بسته‌بندی صادراتی
+                            </button>
+                        </div>
                     </div>
                 </div>
             }
