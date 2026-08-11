@@ -31,6 +31,8 @@ public sealed class HandpanService
                ?? [];
     }
 
+    public Task DeleteAsync(Guid id) => _api.DeleteAsync($"production/{id}");
+
     public async Task<IReadOnlyList<HandpanDto>> GetAllAsync()
     {
         return await _api.GetAsync<IReadOnlyList<HandpanDto>>("handpans")
