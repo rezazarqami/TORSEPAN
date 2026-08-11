@@ -1,112 +1,86 @@
-﻿@page "/login"
-
+@page "/login"
+@layout LoginLayout
 @using TORSEPAN.Application.Auth.Commands.Login
 @using TORSEPAN.Panel.Services.Auth
 
-<PageTitle>ورود</PageTitle>
+<PageTitle>ورود به سامانه مدیریت تورسپن</PageTitle>
 
-<PageContainer>
+<div class="torsepan-login-shell">
+    <section class="login-showcase">
+        <div class="showcase-overlay"></div>
+        <div class="showcase-brand">
+            <img src="/images/brand/torsepan-logo.webp" alt="لوگوی تورسپن" class="showcase-logo" />
+            <div class="brand-line"></div>
+            <p>صدایی که با دست ساخته می‌شود</p>
+        </div>
+        <div class="showcase-copy">
+            <span class="showcase-kicker">TORSEPAN WORKSHOP</span>
+            <h1>مدیریت دقیق،<br />برای ساخت یک صدای ماندگار</h1>
+            <p>از نخستین کاسه تا آخرین نت؛ تمام مسیر تولید در یک سامانه یکپارچه.</p>
+            <div class="showcase-features">
+                <span>کنترل مراحل تولید</span><span>مدیریت موجودی</span><span>گزارش دقیق</span>
+            </div>
+        </div>
+        <div class="product-orbit product-orbit-one"><img src="/images/brand/handpan-dark.webp" alt="هنگدرام تورسپن" /></div>
+        <div class="product-orbit product-orbit-two"><img src="/images/brand/handpan-light.webp" alt="هنگدرام تورسپن" /></div>
+    </section>
 
-    <PageHeader Title="ورود به سامانه"
-                SubTitle="احراز هویت">
-    </PageHeader>
-
-    <PageCard>
-
-        <FormSection Title="اطلاعات ورود">
-
-            <ErrorAlert Visible="@(!string.IsNullOrWhiteSpace(ErrorMessage))"
-                        Message="@ErrorMessage" />
-
-            <div class="mb-3">
-                <label class="form-label">نام کاربری</label>
-
-                <input class="form-control"
-                       autocomplete="username"
-                       @ref="UsernameInput" />
+    <section class="login-form-side">
+        <div class="login-mobile-logo"><img src="/images/brand/torsepan-logo.webp" alt="TORSEPAN" /></div>
+        <div class="login-card-modern">
+            <div class="login-welcome-icon">♪</div>
+            <div class="login-heading">
+                <span class="login-eyebrow">سامانه مدیریت تولید</span>
+                <h2>به سامانه مدیریت تورسپن خوش آمدید</h2>
+                <p>برای ورود به فضای کار، اطلاعات حساب خود را وارد کنید.</p>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">رمز عبور</label>
+            <ErrorAlert Visible="@(!string.IsNullOrWhiteSpace(ErrorMessage))" Message="@ErrorMessage" />
 
-                <input class="form-control"
-                       type="password"
-                       autocomplete="current-password"
-                       @ref="PasswordInput" />
+            <div class="modern-field">
+                <label>نام کاربری</label>
+                <div class="field-wrap"><span>👤</span><input autocomplete="username" placeholder="نام کاربری خود را وارد کنید" @ref="UsernameInput" /></div>
+            </div>
+            <div class="modern-field">
+                <label>رمز عبور</label>
+                <div class="field-wrap"><span>🔒</span><input type="password" autocomplete="current-password" placeholder="رمز عبور خود را وارد کنید" @ref="PasswordInput" @onkeydown="HandleKeyDown" /></div>
             </div>
 
-            <FormActions>
+            <button class="modern-login-button" disabled="@IsSubmitting" @onclick="LoginUser">
+                @if (IsSubmitting) { <span class="spinner-border spinner-border-sm"></span> }
+                <span>@(IsSubmitting ? "در حال ورود..." : "ورود به سامانه")</span><span class="login-arrow">←</span>
+            </button>
 
-                <PrimaryButton Text="@(IsSubmitting ? "در حال ورود..." : "ورود")"
-                               Disabled="@IsSubmitting"
-                               OnClick="LoginUser" />
-
-            </FormActions>
-
-        </FormSection>
-
-    </PageCard>
-
-</PageContainer>
+            <div class="login-help">دسترسی به سامانه فقط برای اعضای مجاز کارگاه امکان‌پذیر است.</div>
+        </div>
+        <a class="official-site-link" href="https://torsepan.com" target="_blank">torsepan.com</a>
+    </section>
+</div>
 
 @code {
-
-    [Inject]
-    NavigationManager Navigation { get; set; } = default!;
-
-    [Inject]
-    IAuthService AuthenticationService { get; set; } = default!;
-
-    [Inject]
-    IJSRuntime JS { get; set; } = default!;
-
+    [Inject] NavigationManager Navigation { get; set; } = default!;
+    [Inject] IAuthService AuthenticationService { get; set; } = default!;
+    [Inject] IJSRuntime JS { get; set; } = default!;
     ElementReference UsernameInput;
-
     ElementReference PasswordInput;
-
     string ErrorMessage = "";
-
     bool IsSubmitting;
 
+    async Task HandleKeyDown(KeyboardEventArgs args) { if (args.Key == "Enter") await LoginUser(); }
     async Task LoginUser()
     {
-        ErrorMessage = "";
-        IsSubmitting = true;
-
+        if (IsSubmitting) return;
+        ErrorMessage = ""; IsSubmitting = true;
         try
         {
-            var credentials = await JS.InvokeAsync<LoginCredentials>(
-                "torsepanLogin.readCredentials",
-                UsernameInput,
-                PasswordInput);
-
-            var result = await AuthenticationService.LoginAsync(
-                new LoginCommand(
-                    credentials.Username.Trim(),
-                    credentials.Password));
-
-            if (result.Success)
-            {
-                Navigation.NavigateTo("/");
-                return;
-            }
-
+            var credentials = await JS.InvokeAsync<LoginCredentials>("torsepanLogin.readCredentials", UsernameInput, PasswordInput);
+            var result = await AuthenticationService.LoginAsync(new LoginCommand(credentials.Username.Trim(), credentials.Password));
+            if (result.Success) { Navigation.NavigateTo("/"); return; }
             ErrorMessage = "نام کاربری یا رمز عبور صحیح نیست.";
         }
-        catch (HttpRequestException)
-        {
-            ErrorMessage = "ارتباط با سرویس ورود برقرار نشد. لطفاً دوباره تلاش کنید.";
-        }
-        catch
-        {
-            ErrorMessage = "ورود انجام نشد. لطفاً اطلاعات خود را بررسی و دوباره تلاش کنید.";
-        }
-        finally
-        {
-            IsSubmitting = false;
-        }
+        catch (HttpRequestException) { ErrorMessage = "ارتباط با سرویس ورود برقرار نشد. لطفاً دوباره تلاش کنید."; }
+        catch { ErrorMessage = "ورود انجام نشد. لطفاً اطلاعات خود را بررسی و دوباره تلاش کنید."; }
+        finally { IsSubmitting = false; }
     }
-
     sealed record LoginCredentials(string Username, string Password);
-
 }
