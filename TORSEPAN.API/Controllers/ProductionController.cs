@@ -23,6 +23,8 @@ using TORSEPAN.Application.ProductionEvents.Queries.GetStageWorkload;
 using TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory;
 using TORSEPAN.Domain.Enums;
 using TORSEPAN.Application.Sales;
+using Microsoft.AspNetCore.Authorization;
+using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -134,6 +136,11 @@ public sealed class ProductionController : ControllerBase
 
     [HttpGet("sales")]
     public async Task<IActionResult> Sales() => Ok(await _mediator.Send(new GetSalesQuery()));
+
+    [HttpDelete("{handpanId:guid}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Delete(Guid handpanId, CancellationToken cancellationToken)
+        => await _deletionService.DeleteHandpanAsync(handpanId, cancellationToken) ? NoContent() : NotFound();
 }
 public sealed record SellHandpanRequest(string BuyerName);
 
