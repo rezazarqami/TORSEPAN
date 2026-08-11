@@ -1,9 +1,10 @@
 Exit code: 0
-Wall time: 0.5 seconds
+Wall time: 0.9 seconds
 Output:
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@implements IDisposable
 
 <div class="topbar-left">
     <img class="topbar-brandmark" src="/images/brand/torsepan-logo.webp" alt="TORSEPAN" />
@@ -30,13 +31,38 @@ Output:
 
     protected override async Task OnInitializedAsync()
     {
+        AuthenticationStateProvider.AuthenticationStateChanged += AuthenticationStateChanged;
         var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        SetUser(user);
+    }
+
+    private void SetUser(ClaimsPrincipal user)
+    {
+        if (user.Identity?.IsAuthenticated != true)
+            return;
+
         DisplayName = user.FindFirst("FullName")?.Value
             ?? user.FindFirst(ClaimTypes.GivenName)?.Value
             ?? user.Identity?.Name
             ?? "کاربر";
         RoleTitle = ResolveRoleTitle(user.FindAll(ClaimTypes.Role).Select(x => x.Value));
     }
+
+    private async void AuthenticationStateChanged(Task<AuthenticationState> stateTask)
+    {
+        try
+        {
+            SetUser((await stateTask).User);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch
+        {
+            // Authentication changes must never break the layout.
+        }
+    }
+
+    public void Dispose()
+        => AuthenticationStateProvider.AuthenticationStateChanged -= AuthenticationStateChanged;
 
     private static string ResolveRoleTitle(IEnumerable<string> roles)
     {
