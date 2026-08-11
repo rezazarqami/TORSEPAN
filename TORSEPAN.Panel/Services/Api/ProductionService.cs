@@ -40,5 +40,6 @@ public sealed class ProductionService
     }
     public async Task SellAsync(Guid id,string buyerName) => await _api.PostAsync<object,object?>($"production/{id}/sell",new { BuyerName=buyerName });
     public async Task<IReadOnlyList<SaleItemDto>> GetSalesAsync() => await _api.GetAsync<List<SaleItemDto>>("production/sales") ?? [];
+    public Task DeleteAsync(Guid id) => _api.DeleteAsync($"production/{id}");
 }
 
