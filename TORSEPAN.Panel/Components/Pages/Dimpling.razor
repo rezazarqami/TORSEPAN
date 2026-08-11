@@ -9,6 +9,7 @@
 @inject ScaleService ScaleService
 @inject MaterialService MaterialService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>تولید</PageTitle>
 
@@ -374,6 +375,7 @@
 
     private async Task CompleteTuneForExportAsync()
     {
+        if (!await JS.InvokeAsync<bool>("confirm", "تیون انجام شده و کاسه مستقیماً به بسته‌بندی صادراتی ارسال شود؟")) return;
         await ExecuteAsync(async () =>
         {
             var result = await BowlService.CompleteTuneForExportAsync(_productionCode, _duration);
