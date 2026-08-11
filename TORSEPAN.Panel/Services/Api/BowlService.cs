@@ -89,6 +89,21 @@ public sealed class BowlService
             new { Duration = duration });
     }
 
+    public Task<DimpleBowlDto?> CompleteTuneForExportAsync(string productionCode, int duration)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>($"bowls/production/{code}/tune/export", new { Duration = duration });
+    }
+
+    public Task<DimpleBowlDto?> CompleteExportPackagingAsync(string productionCode)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>($"bowls/production/{code}/export-packaging/complete", new { });
+    }
+
+    public async Task<IReadOnlyList<ExportWarehouseItemDto>> GetExportWarehouseAsync()
+        => await _api.GetAsync<List<ExportWarehouseItemDto>>("bowls/export-warehouse") ?? [];
+
     public Task<DimpleBowlDto?> CompleteGlueAsync(
         string productionCode,
         string pairedProductionCode,
