@@ -19,6 +19,8 @@ public sealed class BowlService
         return result?.Items ?? [];
     }
 
+    public Task DeleteAsync(Guid id) => _api.DeleteAsync($"bowls/{id}");
+
     public async Task<Guid?> CreateAsync(CreateBowlRequest request)
     {
         try
