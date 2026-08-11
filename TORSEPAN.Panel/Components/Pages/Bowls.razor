@@ -6,6 +6,7 @@
 @inject BowlService BowlService
 @inject HandpanService HandpanService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>تولید</PageTitle>
 
@@ -35,7 +36,7 @@ else
             <thead>
                 <tr>
                     <th style="width: 48px;"></th>
-                    <th>کد</th><th>نوع کاسه</th><th>دارای نت</th><th>متریال</th><th>وضعیت</th>
+                    <th>کد</th><th>نوع کاسه</th><th>دارای نت</th><th>متریال</th><th>وضعیت</th><th>حذف</th>
                 </tr>
             </thead>
             <tbody>
@@ -48,11 +49,12 @@ else
                         <td>@(bowl.HasNotes ? "بله" : "خیر")</td>
                         <td>@bowl.MaterialName</td>
                         <td><span class="badge bg-primary">@StageText(bowl.Stage)</span></td>
+                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBowlAsync(bowl)">حذف</button></AuthorizeView></td>
                     </tr>
                     @if (_expandedBowls.Contains(bowl.Id))
                     {
                         <tr class="table-light">
-                            <td></td><td colspan="5"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی کاسه {bowl.ProductionCode}")" Operations="bowl.Operations" /></td>
+                            <td></td><td colspan="7"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی کاسه {bowl.ProductionCode}")" Operations="bowl.Operations" /></td>
                         </tr>
                     }
                 }
@@ -71,7 +73,7 @@ else
             <thead>
                 <tr>
                     <th style="width: 48px;"></th>
-                    <th>کد ساز</th><th>کد کاسه بالا</th><th>کد کاسه پایین</th><th>متریال</th><th>اسکیل</th><th>وضعیت</th>
+                    <th>کد ساز</th><th>کد کاسه بالا</th><th>کد کاسه پایین</th><th>متریال</th><th>اسکیل</th><th>وضعیت</th><th>حذف</th>
                 </tr>
             </thead>
             <tbody>
@@ -82,6 +84,7 @@ else
                         <td>@handpan.SerialNumber</td><td>@handpan.TopBowlCode</td><td>@handpan.BottomBowlCode</td>
                         <td>@handpan.MaterialName</td><td>@handpan.ScaleName</td>
                         <td><span class="badge bg-primary">@StageText(handpan.Stage)</span></td>
+                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteHandpanAsync(handpan)">حذف</button></AuthorizeView></td>
                     </tr>
                     @if (_expandedHandpans.Contains(handpan.Id))
                     {
@@ -123,6 +126,22 @@ else
     private void ToggleBowlDetails(Guid id) { if (!_expandedBowls.Add(id)) _expandedBowls.Remove(id); }
     private void ToggleHandpanDetails(Guid id) { if (!_expandedHandpans.Add(id)) _expandedHandpans.Remove(id); }
     private void NewBowl() => Navigation.NavigateTo("/bowls/new");
+
+    private async Task DeleteBowlAsync(BowlDto bowl)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"کاسه {bowl.ProductionCode} و تمام سوابق مرتبط برای همیشه حذف شود؟")) return;
+        await BowlService.DeleteAsync(bowl.Id);
+        _bowls.Remove(bowl);
+        _handpans = (await HandpanService.GetAllAsync()).ToList();
+    }
+
+    private async Task DeleteHandpanAsync(HandpanDto handpan)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"ساز {handpan.SerialNumber}، کاسه‌ها و تمام سوابق آن برای همیشه حذف شود؟")) return;
+        await HandpanService.DeleteAsync(handpan.Id);
+        _handpans.Remove(handpan);
+        _bowls = (await BowlService.GetAsync()).ToList();
+    }
 
     private static string StageText(int stage) => stage switch
     {
