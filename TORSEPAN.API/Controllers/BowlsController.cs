@@ -1,4 +1,7 @@
-﻿using MediatR;
+Exit code: 0
+Wall time: 0.5 seconds
+Output:
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.API.Common.Extensions;
@@ -10,6 +13,7 @@ using TORSEPAN.Application.Features.Bowls.Commands.CreateBowl;
 using TORSEPAN.API.Contracts.Bowls;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Application.Bowls.Queries.GetExportWarehouse;
+using TORSEPAN.Application.Sales;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -19,11 +23,18 @@ namespace TORSEPAN.API.Controllers;
 public sealed class BowlsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IProductionDeletionService _deletionService;
 
-    public BowlsController(IMediator mediator)
+    public BowlsController(IMediator mediator, IProductionDeletionService deletionService)
     {
         _mediator = mediator;
+        _deletionService = deletionService;
     }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+        => await _deletionService.DeleteBowlAsync(id, cancellationToken) ? NoContent() : NotFound();
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<BowlDto>>> GetAll(
@@ -153,6 +164,14 @@ public sealed class BowlsController : ControllerBase
     public async Task<IActionResult> ExportWarehouse(CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetExportWarehouseQuery(), cancellationToken));
 
+    [HttpPost("export-warehouse/{id:guid}/ship")]
+    [Authorize(Roles = "Workshop,Administrator")]
+    public async Task<IActionResult> ShipExportBowl(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new ShipExportBowlCommand(id), cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("production/{productionCode}/glue/complete")]
     [Authorize(Roles = "Workshop,Administrator")]
     public async Task<ActionResult> CompleteGlue(
@@ -229,3 +248,4 @@ public sealed class BowlsController : ControllerBase
         return this.ToActionResult(result);
     }
 }
+
