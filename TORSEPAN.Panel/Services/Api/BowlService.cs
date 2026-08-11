@@ -1,4 +1,7 @@
-﻿using System.Net;
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
+using System.Net;
 using System.Text.Json;
 using TORSEPAN.Panel.Models;
 
@@ -104,6 +107,9 @@ public sealed class BowlService
     public async Task<IReadOnlyList<ExportWarehouseItemDto>> GetExportWarehouseAsync()
         => await _api.GetAsync<List<ExportWarehouseItemDto>>("bowls/export-warehouse") ?? [];
 
+    public Task ShipExportBowlAsync(Guid id)
+        => _api.PostAsync<object, object?>($"bowls/export-warehouse/{id}/ship", new { });
+
     public Task<DimpleBowlDto?> CompleteGlueAsync(
         string productionCode,
         string pairedProductionCode,
@@ -151,3 +157,4 @@ public sealed class BowlService
             new { MaterialIds = materialIds });
     }
 }
+
