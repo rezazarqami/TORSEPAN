@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 @page "/"
 
 @inject ProductionService ProductionService
@@ -22,6 +25,8 @@ else
         </div>
     </div>
 
+    <div class="row g-4 align-items-start">
+    <div class="col-xl-7">
     <Card>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
@@ -33,7 +38,7 @@ else
 
         <DataTable>
             <thead>
-                <tr><th style="width:260px">مرحله آماده</th><th style="width:90px">تعداد</th><th>کدها</th></tr>
+                <tr><th style="width:210px">مرحله آماده</th><th style="width:70px">تعداد</th><th>کدها</th></tr>
             </thead>
             <tbody>
                 @foreach (var queue in _dashboard.Queues)
@@ -50,7 +55,7 @@ else
                             {
                                 @foreach (var itemCode in queue.Codes)
                                 {
-                                    <span class="badge bg-light text-dark border me-1 mb-1 fs-6">@itemCode</span>
+                                    <span class="badge bg-light text-dark border me-1 mb-1 dashboard-code">@itemCode</span>
                                 }
                             }
                         </td>
@@ -59,6 +64,21 @@ else
             </tbody>
         </DataTable>
     </Card>
+    </div>
+    <div class="col-xl-5">
+        <Card>
+            <div class="mb-3"><h4 class="mb-1">خلاصه عملکرد کاربران</h4><div class="text-muted small">از ابتدای @_dashboard.CurrentPersianMonthTitle تا امروز</div></div>
+            @if (_dashboard.MonthlyUserOperations.Count == 0)
+            { <div class="text-center text-muted py-4">هنوز عملیاتی در این ماه ثبت نشده است.</div> }
+            else
+            {
+                <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>کاربر</th><th>عملیات</th><th class="text-center">تعداد</th></tr></thead><tbody>
+                @foreach(var item in _dashboard.MonthlyUserOperations){<tr><td class="small fw-semibold">@item.UserName</td><td><span class="badge bg-light text-dark border">@item.Operation</span></td><td class="text-center"><strong>@item.Count</strong></td></tr>}
+                </tbody></table></div>
+            }
+        </Card>
+    </div>
+    </div>
 }
 
 @code {
@@ -87,3 +107,4 @@ else
         if (args.Key == "Enter") OpenProduction();
     }
 }
+
