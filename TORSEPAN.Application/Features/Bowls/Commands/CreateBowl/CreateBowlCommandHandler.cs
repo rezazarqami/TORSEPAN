@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 using MediatR;
 using TORSEPAN.Application.Common.Results;
 using TORSEPAN.Application.Interfaces;
@@ -20,8 +23,9 @@ public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand
         CreateBowlCommand request,
         CancellationToken cancellationToken)
     {
+        var normalizedCode = ProductionCodeNormalizer.Normalize(request.ProductionCode);
         var exists = await _unitOfWork.Bowls.AnyAsync(
-            b => b.ProductionCode.Trim() == request.ProductionCode.Trim(),
+            b => b.ProductionCode.Trim() == normalizedCode,
             cancellationToken);
 
         if (exists)
@@ -29,7 +33,7 @@ public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand
             return Result<Guid>.Failure(
                 new Error(
                     "ProductionCode",
-                    "Ú©Ø¯ ØªÙˆÙ„ÛŒØ¯ Ù‚Ø¨Ù„Ø§Ù‹ Ø«Ø¨Øª Ø´Ø¯Ù‡ Ø§Ø³Øª."));
+                    "کد تولید قبلاً ثبت شده است."));
         }
 
         var material = await _unitOfWork.Materials.GetByIdAsync(request.MaterialId);
@@ -40,13 +44,13 @@ public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand
         {
             return Result<Guid>.Failure(new Error(
                 "BowlStock",
-                "Ù…ÙˆØ¬ÙˆØ¯ÛŒ Ú©Ø§Ø³Ù‡ Ø§Ù†ØªØ®Ø§Ø¨â€ŒØ´Ø¯Ù‡ Ø¨Ø±Ø§ÛŒ Ø§ÛŒÙ† Ù…ØªØ±ÛŒØ§Ù„ Ú©Ø§ÙÛŒ Ù†ÛŒØ³Øª."));
+                "موجودی کاسه انتخاب‌شده برای این متریال کافی نیست."));
         }
 
         _unitOfWork.Materials.Update(material);
 
         var bowl = new Bowl(
-            request.ProductionCode.Trim(),
+            normalizedCode,
             request.BowlType,
             request.HasNotes,
             request.InstrumentType,
@@ -57,7 +61,7 @@ public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand
         var threshold = isTop ? material.TopBowlLowStockThreshold : material.BottomBowlLowStockThreshold;
         var current = isTop ? material.TopBowlQuantity : material.BottomBowlQuantity;
         if (threshold > 0 && previous >= threshold && current < threshold)
-            await _alerts.SendLowStockAsync(material.Name, isTop ? "Ú©Ø§Ø³Ù‡ Ø±Ùˆ" : "Ú©Ø§Ø³Ù‡ Ø²ÛŒØ±", current, threshold, cancellationToken);
+            await _alerts.SendLowStockAsync(material.Name, isTop ? "کاسه رو" : "کاسه زیر", current, threshold, cancellationToken);
 
         return Result<Guid>.Success(bowl.Id);
     }
