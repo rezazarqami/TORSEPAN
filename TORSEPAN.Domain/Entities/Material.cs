@@ -1,4 +1,7 @@
-﻿namespace TORSEPAN.Domain.Entities;
+Exit code: 0
+Wall time: 0.7 seconds
+Output:
+namespace TORSEPAN.Domain.Entities;
 
 public sealed class Material
 {
@@ -28,6 +31,14 @@ public sealed class Material
     public int LowStockThreshold { get; private set; }
     public int TopBowlLowStockThreshold { get; private set; }
     public int BottomBowlLowStockThreshold { get; private set; }
+    public string TopBowlCodeTemplate { get; private set; } = string.Empty;
+    public string BottomBowlCodeTemplate { get; private set; } = string.Empty;
+
+    public void SetBowlCodeTemplates(string? topTemplate, string? bottomTemplate)
+    {
+        TopBowlCodeTemplate = topTemplate?.Trim().ToUpperInvariant() ?? string.Empty;
+        BottomBowlCodeTemplate = bottomTemplate?.Trim().ToUpperInvariant() ?? string.Empty;
+    }
 
     public void SetLowStockThresholds(int quantity, int top, int bottom)
     {
@@ -107,3 +118,4 @@ public enum MaterialCategory
     Other = 3,
     BowlMaterial = 4
 }
+
