@@ -37,6 +37,11 @@ public class BowlConfiguration : IEntityTypeConfiguration<Bowl>
         builder.Property(x => x.Stage)
             .IsRequired();
 
+        builder.HasOne(x => x.Scale)
+            .WithMany()
+            .HasForeignKey(x => x.ScaleId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // -----------------------------
         // Production Events
         // -----------------------------

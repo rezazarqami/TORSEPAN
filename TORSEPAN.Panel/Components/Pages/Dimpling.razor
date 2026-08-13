@@ -91,7 +91,7 @@
             else if (_bowl.Stage == 4)
             {
                 <div class="row align-items-end mt-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">مدت زمان انجام شیپ</label>
                         <select class="form-select" @bind="_duration">
                             @foreach (var option in DurationOptions)
@@ -100,9 +100,19 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-6 mt-3 mt-md-0">
+                    <div class="col-md-4">
+                        <label class="form-label">اسکیل کاسه</label>
+                        <select class="form-select" @bind="_scaleId">
+                            <option value="@Guid.Empty">انتخاب کنید...</option>
+                            @foreach (var scale in _scales)
+                            {
+                                <option value="@scale.Id">@scale.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4 mt-3 mt-md-0">
                         <button class="btn btn-success w-100"
-                                disabled="@_loading"
+                                disabled="@(_loading || _scaleId == Guid.Empty)"
                                 @onclick="CompleteShapeAsync">
                             شیپ انجام شد
                         </button>
@@ -371,7 +381,7 @@
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
-            var result = await BowlService.CompleteShapeAsync(_productionCode, _duration);
+            var result = await BowlService.CompleteShapeAsync(_productionCode, _duration, _scaleId);
             SetOperationResult(result, "شیپ با موفقیت انجام شد.", "ثبت پایان شیپ انجام نشد.");
         });
     }

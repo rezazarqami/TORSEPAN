@@ -10,10 +10,12 @@ public class Bowl : Entity
     public bool HasNotes { get; private set; }
     public InstrumentType InstrumentType { get; private set; }
     public Guid MaterialId { get; private set; }
+    public Guid? ScaleId { get; private set; }
     public ProductionStatus Status { get; private set; }
     public ProductionStage Stage { get; private set; }
 
     public Material Material { get; private set; } = null!;
+    public Scale? Scale { get; private set; }
 
     public ICollection<ProductionEvent> ProductionEvents { get; private set; } = new List<ProductionEvent>();
     public ICollection<HandpanAssembly> TopAssemblies { get; private set; } = new List<HandpanAssembly>();
@@ -45,4 +47,9 @@ public class Bowl : Entity
     public void ChangeStage(ProductionStage stage)=> Stage=stage;
     public void CompleteProduction()=> Status=ProductionStatus.Completed;
     public void Reject()=> Status=ProductionStatus.Rejected;
+    public void SetScale(Guid scaleId)
+    {
+        if (scaleId == Guid.Empty) throw new ArgumentException("Scale is required.");
+        ScaleId = scaleId;
+    }
 }

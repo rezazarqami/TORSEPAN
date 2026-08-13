@@ -69,12 +69,13 @@ public sealed class BowlService
 
     public Task<DimpleBowlDto?> CompleteShapeAsync(
         string productionCode,
-        int duration)
+        int duration,
+        Guid scaleId)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/shape/complete",
-            new { Duration = duration });
+            new { Duration = duration, ScaleId = scaleId });
     }
 
     public Task<DimpleBowlDto?> CompleteBakeAsync(string productionCode)

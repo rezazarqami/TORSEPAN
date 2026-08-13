@@ -36,7 +36,8 @@ public sealed class CompleteBowlShapeCommandHandler
             return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(bowl));
 
         if (bowl.Stage != ProductionStage.WaitingForShape ||
-            !Enum.IsDefined(request.Duration))
+            !Enum.IsDefined(request.Duration) || request.ScaleId == Guid.Empty ||
+            !await _unitOfWork.Scales.ExistsAsync(request.ScaleId))
         {
             return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidStage);
         }
@@ -45,6 +46,7 @@ public sealed class CompleteBowlShapeCommandHandler
             throw new UnauthorizedAccessException();
 
         bowl.MarkAsWaiting();
+        bowl.SetScale(request.ScaleId);
         bowl.ChangeStage(ProductionStage.WaitingForBake);
         _unitOfWork.Bowls.Update(bowl);
 

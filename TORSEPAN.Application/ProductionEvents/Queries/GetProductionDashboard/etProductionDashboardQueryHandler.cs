@@ -31,7 +31,11 @@ public sealed class GetProductionDashboardQueryHandler
             .Select(x => new MonthlyUserOperationResponse
             {
                 UserName = string.IsNullOrWhiteSpace(x.Key.FullName) ? x.Key.UserName : x.Key.FullName,
-                Operation = OperationTitle(x.Key.Action), Count = x.Count(), DisplayOrder=x.Key.DisplayOrder
+                Operation = OperationTitle(x.Key.Action),
+                Count = x.Key.Action == ProductionAction.Glue
+                    ? x.Where(e => e.HandpanId.HasValue).Select(e => e.HandpanId).Distinct().Count()
+                    : x.Count(),
+                DisplayOrder=x.Key.DisplayOrder
             }).OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ThenBy(x => x.Operation).ToList();
 
         return new GetProductionDashboardResponse

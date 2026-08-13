@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Authorization
 @inject PayrollService PayrollService
 @inject MaterialService MaterialService
+@inject ScaleService ScaleService
 
 <PageTitle>محاسبه دستمزد تولید</PageTitle>
 <PageHeader Title="محاسبه دستمزد تولید" SubTitle="محاسبه دستمزد اعضا بر اساس عملیات ثبت‌شده" />
@@ -36,7 +37,7 @@ else
                             {
                                 <tr>
                                     <td>@(first ? user.Name : "")</td>
-                                    <td>@line.ActionTitle — @line.MaterialName @(line.BowlType == 1 ? "— کاسه رو" : line.BowlType == 2 ? "— کاسه زیر" : "")</td>
+                                    <td>@line.ActionTitle — @line.MaterialName @(line.BowlType == 1 ? "— کاسه رو" : line.BowlType == 2 ? "— کاسه زیر" : "") @(string.IsNullOrWhiteSpace(line.ScaleName) ? "" : $"— {line.ScaleName}")</td>
                                     <td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td>
                                 </tr>
                                 first = false;
@@ -57,12 +58,14 @@ else
                 <select class="form-select" @bind="_rateMaterial"><option value="">همه متریال‌ها</option>@foreach (var m in _materials) { <option value="@m.Id">@m.Name</option> }</select>
                 <label class="form-label mt-2">نوع کاسه</label>
                 <select class="form-select" @bind="_rateBowlType"><option value="">بدون تفکیک</option><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></select>
+                <label class="form-label mt-2">اسکیل کاسه</label>
+                <select class="form-select" @bind="_rateScale"><option value="">همه اسکیل‌ها</option>@foreach (var scale in _scales) { <option value="@scale.Id">@scale.Name</option> }</select>
                 <label class="form-label mt-2">نرخ واحد</label><input type="number" min="0" class="form-control" @bind="_rateAmount" />
                 <button class="btn btn-success w-100 mt-3" @onclick="SaveRateAsync">ثبت نرخ</button>
                 <hr /><h5>نرخ‌های ثبت‌شده</h5>
                 @foreach (var rate in _payroll.Rates)
                 {
-                    <div class="small border-bottom py-2">@rate.ActionTitle — @rate.MaterialName @(rate.BowlType == 1 ? "— رو" : rate.BowlType == 2 ? "— زیر" : ""): <strong>@rate.Amount.ToString("N0")</strong></div>
+                    <div class="small border-bottom py-2">@rate.ActionTitle — @rate.MaterialName @(rate.BowlType == 1 ? "— رو" : rate.BowlType == 2 ? "— زیر" : "") @(string.IsNullOrWhiteSpace(rate.ScaleName) ? "" : $"— {rate.ScaleName}"): <strong>@rate.Amount.ToString("N0")</strong></div>
                 }
             </Card>
         </div>
@@ -78,16 +81,17 @@ else
 @code {
     private PayrollDto _payroll = new();
     private List<MaterialDto> _materials = [];
+    private List<ScaleDto> _scales = [];
     private bool _loading = true;
     private DateTime? _from, _to;
     private int _rateAction = 2;
-    private string _rateMaterial = "", _rateBowlType = "";
+    private string _rateMaterial = "", _rateBowlType = "", _rateScale = "";
     private decimal _rateAmount;
     private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
     private IEnumerable<UserPayrollGroup> UserGroups => _payroll.Lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.ToList()));
-    protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); await LoadAsync(); }
+    protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); _scales = (await ScaleService.GetAsync()).ToList(); await LoadAsync(); }
     private async Task LoadAsync() { _loading = true; try { _payroll = await PayrollService.GetAsync(_from, _to) ?? new(); if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
-    private async Task SaveRateAsync() { Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null; int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null; await PayrollService.SaveRateAsync(_rateAction, material, bowl, _rateAmount); await LoadAsync(); }
+    private async Task SaveRateAsync() { Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null; int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null; Guid? scale = Guid.TryParse(_rateScale, out var s) ? s : null; await PayrollService.SaveRateAsync(_rateAction, material, bowl, scale, _rateAmount); await LoadAsync(); }
     private async Task SaveOrderAsync() { await PayrollService.SaveOrderAsync(_payroll.Users); await LoadAsync(); }
     private sealed record UserPayrollGroup(string Name, List<PayrollLineDto> Lines);
 }
