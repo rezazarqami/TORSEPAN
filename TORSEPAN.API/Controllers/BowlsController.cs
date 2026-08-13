@@ -1,5 +1,5 @@
 Exit code: 0
-Wall time: 0.5 seconds
+Wall time: 0.6 seconds
 Output:
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -12,6 +12,7 @@ using TORSEPAN.Application.Common.Pagination;
 using TORSEPAN.Application.Features.Bowls.Commands.CreateBowl;
 using TORSEPAN.API.Contracts.Bowls;
 using TORSEPAN.Application.Interfaces;
+using TORSEPAN.Application;
 using TORSEPAN.Application.Bowls.Queries.GetExportWarehouse;
 using TORSEPAN.Application.Sales;
 
@@ -24,11 +25,13 @@ public sealed class BowlsController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IProductionDeletionService _deletionService;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public BowlsController(IMediator mediator, IProductionDeletionService deletionService)
+    public BowlsController(IMediator mediator, IProductionDeletionService deletionService, IUnitOfWork unitOfWork)
     {
         _mediator = mediator;
         _deletionService = deletionService;
+        _unitOfWork = unitOfWork;
     }
 
     [HttpDelete("{id:guid}")]
@@ -91,6 +94,23 @@ public sealed class BowlsController : ControllerBase
 
         return this.ToActionResult(result);
     }
+
+    [HttpGet("suggested-code")]
+    public async Task<IActionResult> SuggestedCode(CancellationToken cancellationToken)
+    {
+        var bowls = await _unitOfWork.Bowls.GetAllAsync(cancellationToken);
+        var codes = bowls.Select(x => ProductionCodeNormalizer.Normalize(x.ProductionCode)).ToList();
+        var last = codes.FirstOrDefault() ?? "—";
+        var max = codes.Select(x => int.TryParse(x, out var n) ? n : 0).DefaultIfEmpty().Max();
+        return Ok(new { LastCode = last, SuggestedCode = (max + 1).ToString() });
+    }
+
+    [HttpPost("production/{productionCode}/notes")]
+    [Authorize(Roles = "Shaper,Workshop,Tuner,FineTuner,QualityControl,Administrator")]
+    public async Task<ActionResult> AddNote(string productionCode, [FromBody] ProductionNoteRequest request,
+        CancellationToken cancellationToken)
+        => this.ToActionResult(await _mediator.Send(
+            new AddProductionNoteCommand(productionCode, request.Description ?? string.Empty), cancellationToken));
 
     [HttpPost("dimpling/{productionCode}/complete")]
     [Authorize(Roles = "Dimpler,Shaper,Administrator")]
@@ -248,4 +268,6 @@ public sealed class BowlsController : ControllerBase
         return this.ToActionResult(result);
     }
 }
+
+public sealed record ProductionNoteRequest(string? Description);
 
