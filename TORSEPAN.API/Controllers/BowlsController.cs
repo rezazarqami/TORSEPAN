@@ -1,5 +1,5 @@
 Exit code: 0
-Wall time: 0.6 seconds
+Wall time: 0.5 seconds
 Output:
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -96,13 +96,29 @@ public sealed class BowlsController : ControllerBase
     }
 
     [HttpGet("suggested-code")]
-    public async Task<IActionResult> SuggestedCode(CancellationToken cancellationToken)
+    public async Task<IActionResult> SuggestedCode([FromQuery] Guid? materialId, [FromQuery] int? bowlType, CancellationToken cancellationToken)
     {
         var bowls = await _unitOfWork.Bowls.GetAllAsync(cancellationToken);
         var codes = bowls.Select(x => ProductionCodeNormalizer.Normalize(x.ProductionCode)).ToList();
         var last = codes.FirstOrDefault() ?? "—";
         var max = codes.Select(x => int.TryParse(x, out var n) ? n : 0).DefaultIfEmpty().Max();
-        return Ok(new { LastCode = last, SuggestedCode = (max + 1).ToString() });
+        var suggested = (max + 1).ToString(); var template = string.Empty;
+        if (materialId.HasValue && bowlType.HasValue)
+        {
+            var material = await _unitOfWork.Materials.GetByIdAsync(materialId.Value);
+            template = bowlType.Value == 1 ? material?.TopBowlCodeTemplate ?? "" : material?.BottomBowlCodeTemplate ?? "";
+            if (!string.IsNullOrWhiteSpace(template))
+            {
+                var prefix = template[..^5];
+                var matching = bowls.Where(x => x.MaterialId == materialId && (int)x.BowlType == bowlType &&
+                    x.ProductionCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    .Select(x => x.ProductionCode).Where(x => x.Length == prefix.Length + 5).ToList();
+                last = matching.FirstOrDefault() ?? "—";
+                var sequence = matching.Select(x => int.TryParse(x[^5..], out var n) ? n : 0).DefaultIfEmpty().Max() + 1;
+                suggested = $"{prefix}{sequence:00000}";
+            }
+        }
+        return Ok(new { LastCode = last, SuggestedCode = suggested, Template = template });
     }
 
     [HttpPost("production/{productionCode}/notes")]
