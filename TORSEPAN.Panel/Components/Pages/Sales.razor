@@ -1,5 +1,5 @@
 Exit code: 0
-Wall time: 0.5 seconds
+Wall time: 0.6 seconds
 Output:
 @page "/sales"
 @inject ProductionService ProductionService
@@ -14,8 +14,8 @@ Output:
     else if (!Items.Any()) { <EmptyState Title="هنوز فروشی ثبت نشده است" Description="سازهای فروخته‌شده و کاسه‌های صادراتی ارسال‌شده اینجا نمایش داده می‌شوند." /> }
     else
     {
-        <DataTable><thead><tr><th>نوع</th><th>کد</th><th>خریدار/مقصد</th><th>متریال</th><th>اسکیل</th><th>کاسه رو</th><th>کاسه زیر</th><th>ثبت‌کننده</th><th>تاریخ</th><th>حذف</th></tr></thead>
-        <tbody>@foreach(var item in Items){<tr><td><span class="badge @(item.IsBowl ? "bg-warning text-dark" : "bg-primary")">@item.ItemType</span></td><td><strong>@item.SerialNumber</strong></td><td>@item.BuyerName</td><td>@item.MaterialName</td><td>@item.ScaleName</td><td>@item.TopBowlCode</td><td>@item.BottomBowlCode</td><td>@item.SoldBy</td><td>@PersianDateTime.FormatDateTime(item.SoldAt)</td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></td></tr>}</tbody></DataTable>
+        <DataTable><thead><tr><th>نوع</th><th>کد</th><th>خریدار</th><th>قیمت</th><th>مقصد</th><th>متریال</th><th>اسکیل</th><th>ثبت‌کننده</th><th>تاریخ</th><th>حذف</th></tr></thead>
+        <tbody>@foreach(var item in Items){<tr><td><span class="badge @(item.IsBowl ? "bg-warning text-dark" : "bg-primary")">@item.ItemType</span></td><td><strong>@item.SerialNumber</strong></td><td>@item.BuyerName</td><td>@(item.Price?.ToString("N0") ?? "—")</td><td>@(string.IsNullOrWhiteSpace(item.Destination)?"—":item.Destination)</td><td>@item.MaterialName</td><td>@item.ScaleName</td><td>@item.SoldBy</td><td>@PersianDateTime.FormatDateTime(item.SoldAt)</td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></td></tr>}</tbody></DataTable>
     }
 </Card>
 
