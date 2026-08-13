@@ -174,6 +174,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<string>("TopBowlCodeTemplate").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)").HasDefaultValue("");
+                    b.Property<string>("BottomBowlCodeTemplate").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)").HasDefaultValue("");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
