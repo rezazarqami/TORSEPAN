@@ -22,8 +22,11 @@ public sealed class BowlService
         return result?.Items ?? [];
     }
 
-    public Task<SuggestedBowlCodeDto?> GetSuggestedCodeAsync()
-        => _api.GetAsync<SuggestedBowlCodeDto>("bowls/suggested-code");
+    public Task<SuggestedBowlCodeDto?> GetSuggestedCodeAsync(Guid? materialId=null,int? bowlType=null)
+    {
+        var query=materialId.HasValue&&bowlType.HasValue?$"?materialId={materialId}&bowlType={bowlType}":"";
+        return _api.GetAsync<SuggestedBowlCodeDto>($"bowls/suggested-code{query}");
+    }
 
     public Task DeleteAsync(Guid id) => _api.DeleteAsync($"bowls/{id}");
 
