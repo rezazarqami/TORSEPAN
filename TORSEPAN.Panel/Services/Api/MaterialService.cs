@@ -1,4 +1,7 @@
-﻿using TORSEPAN.Panel.Models;
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
+using TORSEPAN.Panel.Models;
 
 namespace TORSEPAN.Panel.Services.Api;
 
@@ -49,4 +52,10 @@ public sealed class MaterialService
         await _api.PatchAsync<object, object?>($"materials/{id}/low-stock-threshold",
             new { Quantity = quantity, TopQuantity = top, BottomQuantity = bottom });
     }
+    public async Task SetBowlCodeTemplatesAsync(Guid id,string topTemplate,string bottomTemplate)
+    {
+        await _api.PatchAsync<object,object?>($"materials/{id}/bowl-code-templates",
+            new { TopTemplate=topTemplate, BottomTemplate=bottomTemplate });
+    }
 }
+
