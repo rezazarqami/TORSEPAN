@@ -1,0 +1,74 @@
+@page "/warehouse/materials"
+
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+@inject MaterialService MaterialService
+@inject NavigationManager Navigation
+
+<PageTitle>انبار مواد اولیه</PageTitle>
+<PageHeader Title="انبار مواد اولیه" SubTitle="نمای سریع موجودی فعلی کاسه‌ها و اقلام بسته‌بندی">
+    <Actions>
+        <PrimaryButton Text="مدیریت موجودی و افزودن قلم" OnClick="OpenManagement" />
+    </Actions>
+</PageHeader>
+
+@if (_loading)
+{
+    <div class="text-center p-5"><div class="spinner-border"></div></div>
+}
+else if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else
+{
+    <Card>
+        <h5 class="mb-3">موجودی کاسه‌ها بر اساس متریال</h5>
+        <DataTable>
+            <thead><tr><th>متریال</th><th>کاسه رو</th><th>کاسه زیر</th></tr></thead>
+            <tbody>
+                @foreach (var item in _items.Where(x => x.Category == 4).OrderBy(x => x.Name))
+                {
+                    <tr>
+                        <td><strong>@item.Name</strong></td>
+                        <td><span class="badge bg-primary fs-6">@item.TopBowlQuantity</span></td>
+                        <td><span class="badge bg-primary fs-6">@item.BottomBowlQuantity</span></td>
+                    </tr>
+                }
+            </tbody>
+        </DataTable>
+    </Card>
+
+    <div class="mt-4">
+        <Card>
+            <h5 class="mb-3">سایر مواد اولیه و اقلام بسته‌بندی</h5>
+            <DataTable>
+                <thead><tr><th>نام قلم</th><th>موجودی فعلی</th></tr></thead>
+                <tbody>
+                    @foreach (var item in _items.Where(x => x.Category == 3).OrderBy(x => x.Name))
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td><span class="badge @(item.Quantity == 0 ? "bg-danger" : "bg-success") fs-6">@item.Quantity</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </DataTable>
+        </Card>
+    </div>
+}
+
+@code {
+    private readonly List<MaterialDto> _items = [];
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _items.AddRange(await MaterialService.GetAsync()); }
+        catch { _error = "دریافت موجودی انبار انجام نشد."; }
+        finally { _loading = false; }
+    }
+
+    private void OpenManagement() => Navigation.NavigateTo("/warehouse/materials/manage");
+}

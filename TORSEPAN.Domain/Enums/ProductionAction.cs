@@ -20,5 +20,6 @@ public enum ProductionAction
     WarehouseEntry = 10,
 
     // General
-    Reject = 11
+    Reject = 11,
+    Sale = 12
 }

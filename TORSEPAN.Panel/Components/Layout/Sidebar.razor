@@ -1,5 +1,5 @@
-﻿<div class="sidebar-header">
-    <div class="logo">T</div>
+<div class="sidebar-header">
+    <div class="logo brand-logo"><img src="/images/brand/torsepan-logo.webp" alt="Torsepan" /></div>
 
     <div>
         <div class="sidebar-title">
@@ -36,8 +36,20 @@
 
     <NavLink href="/warehouse/list">
         <span>📦</span>
-        <span>انبار</span>
+        <span>انبار سازها</span>
     </NavLink>
+
+    <NavLink href="/warehouse/materials">
+        <span>🧱</span>
+        <span>انبار مواد اولیه</span>
+    </NavLink>
+
+    <NavLink href="/warehouse/export">
+        <span>✈️</span>
+        <span>انبار صادراتی</span>
+    </NavLink>
+
+    <NavLink href="/sales"><span>💰</span><span>فروش</span></NavLink>
 
     <NavLink href="/users/list">
         <span>👤</span>
@@ -48,6 +60,7 @@
         <span>📊</span>
         <span>گزارش‌ها</span>
     </NavLink>
+    <AuthorizeView Roles="Administrator,ProductionManager"><NavLink href="/reports/payroll"><span>🧮</span><span>دستمزد تولید</span></NavLink></AuthorizeView>
 
 </nav>
 

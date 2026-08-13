@@ -23,4 +23,35 @@ public sealed class MaterialService
             "materials",
             request);
     }
+
+    public Task<int> AddStockAsync(Guid id, int quantity)
+    {
+        return _api.PatchAsync<object, int>(
+            $"materials/{id}/stock",
+            new { Quantity = quantity, SetAbsolute = false });
+    }
+
+    public Task<int> SetStockAsync(Guid id, int quantity)
+    {
+        return _api.PatchAsync<object, int>(
+            $"materials/{id}/stock",
+            new { Quantity = quantity, SetAbsolute = true });
+    }
+
+    public async Task AdjustBowlStockAsync(Guid id, int topQuantity, int bottomQuantity, bool setAbsolute)
+    {
+        await _api.PatchAsync<object, object?>(
+            $"materials/{id}/bowl-stock",
+            new { TopQuantity = topQuantity, BottomQuantity = bottomQuantity, SetAbsolute = setAbsolute });
+    }
+    public async Task SetLowStockThresholdAsync(Guid id, int quantity, int top, int bottom)
+    {
+        await _api.PatchAsync<object, object?>($"materials/{id}/low-stock-threshold",
+            new { Quantity = quantity, TopQuantity = top, BottomQuantity = bottom });
+    }
+    public async Task SetBowlCodeTemplatesAsync(Guid id,string topTemplate,string bottomTemplate)
+    {
+        await _api.PatchAsync<object,object?>($"materials/{id}/bowl-code-templates",
+            new { TopTemplate=topTemplate, BottomTemplate=bottomTemplate });
+    }
 }

@@ -1,0 +1,93 @@
+@page "/reports/payroll"
+@attribute [Authorize(Roles = "Administrator,ProductionManager")]
+@using Microsoft.AspNetCore.Authorization
+@inject PayrollService PayrollService
+@inject MaterialService MaterialService
+
+<PageTitle>محاسبه دستمزد تولید</PageTitle>
+<PageHeader Title="محاسبه دستمزد تولید" SubTitle="محاسبه دستمزد اعضا بر اساس عملیات ثبت‌شده" />
+
+<div class="card p-3 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3"><label class="form-label">از تاریخ</label><PersianDatePicker @bind-Value="_from" /></div>
+        <div class="col-md-3"><label class="form-label">تا تاریخ</label><PersianDatePicker @bind-Value="_to" /></div>
+        <div class="col-md-3"><button class="btn btn-primary w-100" @onclick="LoadAsync">محاسبه</button></div>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <div class="text-center p-5"><div class="spinner-border"></div></div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <Card>
+                <h4>خلاصه دستمزد</h4>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
+                        <tbody>
+                        @foreach (var user in UserGroups)
+                        {
+                            var first = true;
+                            @foreach (var line in user.Lines)
+                            {
+                                <tr>
+                                    <td>@(first ? user.Name : "")</td>
+                                    <td>@line.ActionTitle — @line.MaterialName @(line.BowlType == 1 ? "— کاسه رو" : line.BowlType == 2 ? "— کاسه زیر" : "")</td>
+                                    <td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td>
+                                </tr>
+                                first = false;
+                            }
+                            <tr class="table-light"><td colspan="4"><strong>جمع @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </Card>
+        </div>
+        <div class="col-xl-4">
+            <Card>
+                <h4>تعریف نرخ عملیات</h4>
+                <label class="form-label mt-2">عملیات</label>
+                <select class="form-select" @bind="_rateAction">@foreach (var a in Actions) { <option value="@a.Id">@a.Title</option> }</select>
+                <label class="form-label mt-2">متریال</label>
+                <select class="form-select" @bind="_rateMaterial"><option value="">همه متریال‌ها</option>@foreach (var m in _materials) { <option value="@m.Id">@m.Name</option> }</select>
+                <label class="form-label mt-2">نوع کاسه</label>
+                <select class="form-select" @bind="_rateBowlType"><option value="">بدون تفکیک</option><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></select>
+                <label class="form-label mt-2">نرخ واحد</label><input type="number" min="0" class="form-control" @bind="_rateAmount" />
+                <button class="btn btn-success w-100 mt-3" @onclick="SaveRateAsync">ثبت نرخ</button>
+                <hr /><h5>نرخ‌های ثبت‌شده</h5>
+                @foreach (var rate in _payroll.Rates)
+                {
+                    <div class="small border-bottom py-2">@rate.ActionTitle — @rate.MaterialName @(rate.BowlType == 1 ? "— رو" : rate.BowlType == 2 ? "— زیر" : ""): <strong>@rate.Amount.ToString("N0")</strong></div>
+                }
+            </Card>
+        </div>
+    </div>
+    <Card>
+        <h4>ترتیب نمایش کاربران در داشبورد</h4>
+        <div class="row g-2">@foreach (var user in _payroll.Users) { <div class="col-md-4"><label class="form-label">@user.FullName</label><input type="number" min="0" class="form-control" @bind="user.DisplayOrder" /></div> }</div>
+        <button class="btn btn-outline-primary mt-3" @onclick="SaveOrderAsync">ثبت ترتیب نمایش</button>
+        <div class="small text-muted mt-2">عدد کمتر، جایگاه بالاتری در جدول داشبورد دارد.</div>
+    </Card>
+}
+
+@code {
+    private PayrollDto _payroll = new();
+    private List<MaterialDto> _materials = [];
+    private bool _loading = true;
+    private DateTime? _from, _to;
+    private int _rateAction = 2;
+    private string _rateMaterial = "", _rateBowlType = "";
+    private decimal _rateAmount;
+    private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
+    private IEnumerable<UserPayrollGroup> UserGroups => _payroll.Lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.ToList()));
+    protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); await LoadAsync(); }
+    private async Task LoadAsync() { _loading = true; try { _payroll = await PayrollService.GetAsync(_from, _to) ?? new(); if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
+    private async Task SaveRateAsync() { Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null; int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null; await PayrollService.SaveRateAsync(_rateAction, material, bowl, _rateAmount); await LoadAsync(); }
+    private async Task SaveOrderAsync() { await PayrollService.SaveOrderAsync(_payroll.Users); await LoadAsync(); }
+    private sealed record UserPayrollGroup(string Name, List<PayrollLineDto> Lines);
+}

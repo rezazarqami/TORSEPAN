@@ -25,7 +25,11 @@ public sealed class GetMaterialByIdHandler
         return new MaterialDto
         {
             Id = material.Id,
-            Name = material.Name
+            Name = material.Name,
+            Category = (int)material.Category,
+            Quantity = material.Quantity,
+            TopBowlQuantity = material.TopBowlQuantity,
+            BottomBowlQuantity = material.BottomBowlQuantity
         };
     }
 }

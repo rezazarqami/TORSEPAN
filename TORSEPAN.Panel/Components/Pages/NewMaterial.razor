@@ -1,48 +1,61 @@
-﻿@page "/materials/new"
+@page "/materials/new"
+@page "/warehouse/materials/new"
 
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
-
 @inject MaterialService MaterialService
 @inject NavigationManager Navigation
 
-<PageTitle>New Material</PageTitle>
+<PageTitle>افزودن ماده اولیه</PageTitle>
+<PageHeader Title="افزودن ماده اولیه جدید" SubTitle="تعریف قلم جدید در بخش سایر مواد اولیه و اقلام بسته‌بندی" />
 
-<h3 class="mb-4">New Material</h3>
+    <Card>
+        <EditForm Model="_model" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="alert alert-danger">@_error</div>
+            }
+            <div class="mb-3">
+                <label class="form-label">نام ماده اولیه یا قلم بسته‌بندی</label>
+                <InputText class="form-control" placeholder="مثلاً جعبه هدیه" @bind-Value="_model.Name" />
+                <ValidationMessage For="@(() => _model.Name)" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">تعداد اولیه موجود در انبار</label>
+                <InputNumber class="form-control" min="0" @bind-Value="_model.InitialQuantity" />
+                <ValidationMessage For="@(() => _model.InitialQuantity)" />
+            </div>
+            <button class="btn btn-success" type="submit" disabled="@_saving">ثبت در انبار مواد اولیه</button>
+            <button class="btn btn-outline-secondary me-2" type="button" @onclick="BackToList">انصراف</button>
+        </EditForm>
+    </Card>
 
-<EditForm Model="_model"
-          OnValidSubmit="SaveAsync">
-
-    <DataAnnotationsValidator />
-
-    <ValidationSummary />
-
-    <div class="mb-3">
-
-        <label class="form-label">
-            Name
-        </label>
-
-        <InputText class="form-control"
-                   @bind-Value="_model.Name" />
-
-    </div>
-
-    <button class="btn btn-success"
-            type="submit">
-        Save
-    </button>
-
-</EditForm>
-
-@code
-{
-    private readonly CreateMaterialRequest _model = new();
+@code {
+    private readonly CreateMaterialRequest _model = new() { Category = 3 };
+    private bool _saving;
+    private string? _error;
 
     private async Task SaveAsync()
     {
-        await MaterialService.CreateMaterialAsync(_model);
-
-        Navigation.NavigateTo("/materials");
+        _saving = true;
+        _error = null;
+        try
+        {
+            if (await MaterialService.CreateMaterialAsync(_model) is null)
+            {
+                _error = "ثبت ماده اولیه انجام نشد.";
+                return;
+            }
+            Navigation.NavigateTo("/warehouse/materials/manage");
+        }
+        catch
+        {
+            _error = "ثبت انجام نشد؛ نام قلم نباید تکراری باشد.";
+        }
+        finally { _saving = false; }
     }
+
+    private void BackToList() => Navigation.NavigateTo("/warehouse/materials/manage");
 }

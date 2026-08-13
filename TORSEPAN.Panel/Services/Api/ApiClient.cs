@@ -57,6 +57,12 @@ public class ApiClient
         return await ReadResponseAsync<TResult>(response);
     }
 
+    public async Task<TResult?> PatchAsync<TRequest, TResult>(string url, TRequest request)
+    {
+        var response = await SendWithRefreshAsync(() => _http.PatchAsJsonAsync(url, request));
+        return await ReadResponseAsync<TResult>(response);
+    }
+
     public async Task DeleteAsync(string url)
     {
         var response = await SendWithRefreshAsync(() => _http.DeleteAsync(url));

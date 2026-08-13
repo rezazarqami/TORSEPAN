@@ -9,4 +9,5 @@ public sealed class BowlDimpleDto
     public int InstrumentType { get; init; }
     public int Status { get; init; }
     public int Stage { get; init; }
+    public List<string> Notes { get; init; } = [];
 }

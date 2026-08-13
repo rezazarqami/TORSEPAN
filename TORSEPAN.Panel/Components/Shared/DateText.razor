@@ -1,6 +1,6 @@
 ﻿<span>
 
-    @(Value?.ToString("yyyy/MM/dd") ?? "-")
+    @(Value.HasValue ? PersianDateTime.FormatDate(Value.Value) : "-")
 
 </span>
 

@@ -1,202 +1,118 @@
-﻿@page "/"
+@page "/"
 
 @inject ProductionService ProductionService
 @inject NavigationManager Navigation
+@using System.Net
 
-<PageTitle>داشبورد</PageTitle>
+<PageTitle>داشبورد تولید</PageTitle>
 
 @if (_loading)
 {
-    <div class="text-center mt-5">
-        <div class="spinner-border text-primary"></div>
-    </div>
+    <div class="text-center mt-5"><div class="spinner-border text-primary"></div></div>
 }
 else
 {
-    <div class="d-flex justify-content-center mb-5">
-        <div class="card shadow-sm w-100" style="max-width: 900px;">
-            <div class="card-body p-5 text-center">
-                <h3 class="fw-bold mb-4">ورود به عملیات تولید</h3>
-                <label class="form-label fs-5">کد ساز را وارد کنید</label>
-                <div class="input-group input-group-lg mt-2">
-                    <input class="form-control text-center"
-                           placeholder="کد ساز را وارد کنید"
-                           @bind="_dimplingCode"
-                           @bind:event="oninput"
-                           @onkeydown="OpenDimplingOnEnter" />
-                    <button class="btn btn-primary px-5" @onclick="OpenDimpling">
-                        ورود
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-
-        <div class="col-xl-3 col-md-6">
-            <div class="dashboard-card">
-                <div class="dashboard-icon blue">🥁</div>
-                <div>
-                    <div class="dashboard-title">
-                        کل هنگدرام‌ها
-                    </div>
-                    <div class="dashboard-value">
-                        @_dashboard.TotalHandpans
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="dashboard-card">
-                <div class="dashboard-icon orange">⚙️</div>
-                <div>
-                    <div class="dashboard-title">
-                        در حال تولید
-                    </div>
-                    <div class="dashboard-value">
-                        @_dashboard.InProduction
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="dashboard-card">
-                <div class="dashboard-icon green">✅</div>
-                <div>
-                    <div class="dashboard-title">
-                        تکمیل شده
-                    </div>
-                    <div class="dashboard-value">
-                        @_dashboard.Finished
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6">
-            <div class="dashboard-card">
-                <div class="dashboard-icon red">❌</div>
-                <div>
-                    <div class="dashboard-title">
-                        برگشتی
-                    </div>
-                    <div class="dashboard-value">
-                        @_dashboard.Rejected
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="card mt-4">
-
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error <button class="btn btn-sm btn-outline-danger me-2" @onclick="ReloadAsync">تلاش دوباره</button></div>
+    }
+    <div class="card shadow-sm mb-4">
         <div class="card-body p-4">
-
-            <div class="d-flex justify-content-between align-items-center mb-3">
-
-                <h5 class="fw-bold mb-0">
-                    پیشرفت تولید
-                </h5>
-
-                <strong>
-                    @_dashboard.CompletionRate%
-                </strong>
-
+            <h4 class="fw-bold mb-3">ورود به عملیات تولید</h4>
+            <div class="input-group input-group-lg">
+                <input class="form-control" placeholder="کد کاسه یا ساز را وارد کنید"
+                       @bind="_productionCode" @bind:event="oninput" @onkeydown="OpenProductionOnEnter" />
+                <button class="btn btn-primary px-5" @onclick="OpenProduction">ورود</button>
             </div>
-
-            <div class="progress">
-
-                <div class="progress-bar"
-                     role="progressbar"
-                     style="width:@($"{_dashboard.CompletionRate}%")">
-                </div>
-
-            </div>
-
         </div>
-
     </div>
 
-    <div class="card mt-4">
-
-        <div class="card-header">
-            خلاصه وضعیت سیستم
-        </div>
-
-        <div class="card-body">
-
-            <div class="row text-center">
-
-                <div class="col-md-4">
-                    <h2 class="fw-bold text-primary">
-                        @_dashboard.TotalHandpans
-                    </h2>
-                    <div class="text-secondary">
-                        کل تولید
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <h2 class="fw-bold text-success">
-                        @_dashboard.Finished
-                    </h2>
-                    <div class="text-secondary">
-                        آماده تحویل
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <h2 class="fw-bold text-warning">
-                        @_dashboard.InProduction
-                    </h2>
-                    <div class="text-secondary">
-                        داخل کارگاه
-                    </div>
-                </div>
-
+    <div class="row g-4 align-items-start">
+    <div class="col-xl-7">
+    <Card>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="mb-1">صف‌های آماده تولید</h4>
+                <div class="text-muted">کد کاسه‌ها و سازهایی که منتظر مرحله بعد هستند</div>
             </div>
-
+            <button class="btn btn-outline-primary" @onclick="ReloadAsync">به‌روزرسانی</button>
         </div>
 
+        <DataTable>
+            <thead>
+                <tr><th style="width:210px">مرحله آماده</th><th style="width:70px">تعداد</th><th>کدها</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var queue in _dashboard.Queues)
+                {
+                    <tr>
+                        <td><strong>@queue.Stage</strong></td>
+                        <td><span class="badge @(queue.Codes.Count == 0 ? "bg-secondary" : "bg-primary") fs-6">@queue.Codes.Count</span></td>
+                        <td>
+                            @if (queue.Codes.Count == 0)
+                            {
+                                <span class="text-muted">موردی وجود ندارد</span>
+                            }
+                            else
+                            {
+                                @foreach (var itemCode in queue.Codes)
+                                {
+                                    <span class="badge bg-light text-dark border me-1 mb-1 dashboard-code">@itemCode</span>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </DataTable>
+    </Card>
+    </div>
+    <div class="col-xl-5">
+        <Card>
+            <div class="mb-3"><h4 class="mb-1">خلاصه عملکرد کاربران</h4><div class="text-muted small">از ابتدای @_dashboard.CurrentPersianMonthTitle تا امروز</div></div>
+            @if (_dashboard.MonthlyUserOperations.Count == 0)
+            { <div class="text-center text-muted py-4">هنوز عملیاتی در این ماه ثبت نشده است.</div> }
+            else
+            {
+                <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>کاربر</th><th>عملیات</th><th class="text-center">تعداد</th></tr></thead><tbody>
+                @foreach(var user in MonthlyUsers){<tr><td class="small fw-semibold">@user.UserName</td><td>@foreach(var op in user.Operations){<span class="badge bg-light text-dark border me-1 mb-1">@op.Operation: <strong>@op.Count</strong></span>}</td><td class="text-center"><strong>@user.Operations.Sum(x=>x.Count)</strong></td></tr>}
+                </tbody></table></div>
+            }
+        </Card>
+    </div>
     </div>
 }
 
-@code
-{
+@code {
     private bool _loading = true;
-
     private ProductionDashboardDto _dashboard = new();
-    private string _dimplingCode = string.Empty;
+    private string _productionCode = string.Empty;
+    private string? _error;
+    private IEnumerable<UserMonthlyGroup> MonthlyUsers => _dashboard.MonthlyUserOperations.GroupBy(x=>new{x.UserName,x.DisplayOrder}).OrderBy(x=>x.Key.DisplayOrder).ThenBy(x=>x.Key.UserName).Select(x=>new UserMonthlyGroup(x.Key.UserName,x.ToList()));
+    private sealed record UserMonthlyGroup(string UserName,List<MonthlyUserOperationDto> Operations);
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
     {
-        try
-        {
-            _dashboard = await ProductionService.GetDashboardAsync() ?? new();
-        }
+        _loading = true;
+        _error = null;
+        try { _dashboard = await ProductionService.GetDashboardAsync() ?? new(); }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        { Navigation.NavigateTo("/login", true); }
         catch
-        {
-            Navigation.NavigateTo("/login", true);
-        }
-        finally
-        {
-            _loading = false;
-        }
+        { _error = "دریافت اطلاعات داشبورد انجام نشد. لطفاً دوباره تلاش کنید."; }
+        finally { _loading = false; }
     }
 
-    private void OpenDimpling()
+    private void OpenProduction()
     {
-        if (!string.IsNullOrWhiteSpace(_dimplingCode))
-            Navigation.NavigateTo($"/production/process?code={Uri.EscapeDataString(_dimplingCode.Trim())}");
+        if (!string.IsNullOrWhiteSpace(_productionCode))
+            Navigation.NavigateTo($"/production/process?code={Uri.EscapeDataString(_productionCode.Trim())}");
     }
 
-    private void OpenDimplingOnEnter(KeyboardEventArgs args)
+    private void OpenProductionOnEnter(KeyboardEventArgs args)
     {
-        if (args.Key == "Enter")
-            OpenDimpling();
+        if (args.Key == "Enter") OpenProduction();
     }
 }

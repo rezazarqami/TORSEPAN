@@ -1,0 +1,5 @@
+namespace TORSEPAN.Panel.Models;
+public sealed class PayrollDto{public DateTime From{get;set;}public DateTime To{get;set;}public List<PayrollLineDto> Lines{get;set;}=[];public List<PayrollUserDto> Users{get;set;}=[];public List<PayrollRateDto> Rates{get;set;}=[];}
+public sealed class PayrollLineDto{public Guid UserId{get;set;}public string UserName{get;set;}="";public int DisplayOrder{get;set;}public int Action{get;set;}public string ActionTitle{get;set;}="";public Guid? MaterialId{get;set;}public string MaterialName{get;set;}="";public int? BowlType{get;set;}public int Count{get;set;}public decimal Rate{get;set;}public decimal Total{get;set;}}
+public sealed class PayrollUserDto{public Guid Id{get;set;}public string FullName{get;set;}="";public int DisplayOrder{get;set;}}
+public sealed class PayrollRateDto{public Guid Id{get;set;}public int Action{get;set;}public string ActionTitle{get;set;}="";public Guid? MaterialId{get;set;}public string MaterialName{get;set;}="";public int? BowlType{get;set;}public decimal Amount{get;set;}}

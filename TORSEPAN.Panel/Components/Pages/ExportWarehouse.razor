@@ -1,0 +1,27 @@
+@page "/warehouse/export"
+@inject BowlService BowlService
+@inject IJSRuntime JS
+
+<PageTitle>انبار صادراتی</PageTitle>
+<PageHeader Title="انبار صادراتی" SubTitle="کاسه‌های تیون و بسته‌بندی‌شده برای ارسال خارجی" />
+
+<div class="mb-4"><input class="form-control" placeholder="جست‌وجوی کد کاسه یا متریال..." @bind="_search" @bind:event="oninput" /></div>
+<Card>
+    @if (_loading) { <div class="text-center p-5"><div class="spinner-border"></div></div> }
+    else if (!Items.Any()) { <EmptyState Title="انبار صادراتی خالی است" Description="پس از تکمیل بسته‌بندی صادراتی، کاسه‌ها در این قسمت قرار می‌گیرند." /> }
+    else
+    {
+        <DataTable><thead><tr><th>کد کاسه</th><th>نوع کاسه</th><th>متریال</th><th>وضعیت</th><th>ارسال</th><th>حذف</th></tr></thead>
+        <tbody>@foreach (var item in Items) { <tr><td><strong>@item.ProductionCode</strong></td><td>@(item.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</td><td>@item.MaterialName</td><td><span class="badge bg-success">آماده ارسال</span></td><td><button class="btn btn-sm btn-success" @onclick="()=>ShipAsync(item)">ارسال شد</button></td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></td></tr> }</tbody></DataTable>
+    }
+</Card>
+
+@code {
+    private List<ExportWarehouseItemDto> _items = [];
+    private bool _loading = true;
+    private string _search = "";
+    private IEnumerable<ExportWarehouseItemDto> Items => string.IsNullOrWhiteSpace(_search) ? _items : _items.Where(x => x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.MaterialName.Contains(_search, StringComparison.OrdinalIgnoreCase));
+    protected override async Task OnAfterRenderAsync(bool firstRender) { if (!firstRender) return; _items = (await BowlService.GetExportWarehouseAsync()).ToList(); _loading = false; StateHasChanged(); }
+    private async Task ShipAsync(ExportWarehouseItemDto item) { if (!await JS.InvokeAsync<bool>("confirm", $"ارسال کاسه صادراتی {item.ProductionCode} تأیید شود؟ این کاسه از انبار خارج و در فروش ثبت می‌شود.")) return; await BowlService.ShipExportBowlAsync(item.Id); _items.Remove(item); }
+    private async Task DeleteAsync(ExportWarehouseItemDto item) { if (!await JS.InvokeAsync<bool>("confirm", $"کاسه صادراتی {item.ProductionCode} برای همیشه حذف شود؟")) return; await BowlService.DeleteAsync(item.Id); _items.Remove(item); }
+}

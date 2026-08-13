@@ -11,4 +11,22 @@ public sealed class GetProductionDashboardResponse
     public int Rejected { get; set; }
 
     public double CompletionRate { get; set; }
+
+    public IReadOnlyList<ProductionQueueItemResponse> Queues { get; set; } = [];
+    public IReadOnlyList<MonthlyUserOperationResponse> MonthlyUserOperations { get; set; } = [];
+    public string CurrentPersianMonthTitle { get; set; } = string.Empty;
+}
+
+public sealed class MonthlyUserOperationResponse
+{
+    public string UserName { get; set; } = string.Empty;
+    public string Operation { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+public sealed class ProductionQueueItemResponse
+{
+    public string Stage { get; set; } = string.Empty;
+    public IReadOnlyList<string> Codes { get; set; } = [];
 }

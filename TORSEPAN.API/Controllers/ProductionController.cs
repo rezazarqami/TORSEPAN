@@ -21,6 +21,10 @@ using TORSEPAN.Application.ProductionEvents.Queries.GetReadyForPackaging;
 using TORSEPAN.Application.ProductionEvents.Queries.GetRejectedHandpans;
 using TORSEPAN.Application.ProductionEvents.Queries.GetStageWorkload;
 using TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory;
+using TORSEPAN.Domain.Enums;
+using TORSEPAN.Application.Sales;
+using Microsoft.AspNetCore.Authorization;
+using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -29,10 +33,12 @@ namespace TORSEPAN.API.Controllers;
 public sealed class ProductionController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IProductionDeletionService _deletionService;
 
-    public ProductionController(IMediator mediator)
+    public ProductionController(IMediator mediator, IProductionDeletionService deletionService)
     {
         _mediator = mediator;
+        _deletionService = deletionService;
     }
 
     [HttpPost("event")]
@@ -70,8 +76,9 @@ public sealed class ProductionController : ControllerBase
         => Ok(await _mediator.Send(new GetProductionCountByStatusQuery()));
 
     [HttpGet("report")]
-    public async Task<IActionResult> Report()
-        => Ok(await _mediator.Send(new GetProductionReportQuery()));
+    public async Task<IActionResult> Report([FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        [FromQuery] Guid? userId, [FromQuery] ProductionAction? action, [FromQuery] EventResult? result)
+        => Ok(await _mediator.Send(new GetProductionReportQuery(from, to, userId, action, result)));
 
     [HttpGet("stage-summary")]
     public async Task<IActionResult> StageSummary()
@@ -124,4 +131,17 @@ public sealed class ProductionController : ControllerBase
     [HttpGet("{serialNumber}/current-stage")]
     public async Task<IActionResult> GetCurrentStage(string serialNumber)
         => Ok(await _mediator.Send(new GetCurrentProductionStageQuery(serialNumber)));
+
+    [HttpPost("{handpanId:guid}/sell")]
+    public async Task<IActionResult> Sell(Guid handpanId, [FromBody] SellHandpanRequest request)
+    { await _mediator.Send(new SellHandpanCommand(handpanId, request.BuyerName, request.Price, request.Destination)); return NoContent(); }
+
+    [HttpGet("sales")]
+    public async Task<IActionResult> Sales() => Ok(await _mediator.Send(new GetSalesQuery()));
+
+    [HttpDelete("{handpanId:guid}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Delete(Guid handpanId, CancellationToken cancellationToken)
+        => await _deletionService.DeleteHandpanAsync(handpanId, cancellationToken) ? NoContent() : NotFound();
 }
+public sealed record SellHandpanRequest(string BuyerName, decimal Price, string Destination);

@@ -8,6 +8,10 @@ using TORSEPAN.Application.Bowls.Dimpling;
 using TORSEPAN.Application.Common.Pagination;
 using TORSEPAN.Application.Features.Bowls.Commands.CreateBowl;
 using TORSEPAN.API.Contracts.Bowls;
+using TORSEPAN.Application.Interfaces;
+using TORSEPAN.Application;
+using TORSEPAN.Application.Bowls.Queries.GetExportWarehouse;
+using TORSEPAN.Application.Sales;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -17,11 +21,20 @@ namespace TORSEPAN.API.Controllers;
 public sealed class BowlsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IProductionDeletionService _deletionService;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public BowlsController(IMediator mediator)
+    public BowlsController(IMediator mediator, IProductionDeletionService deletionService, IUnitOfWork unitOfWork)
     {
         _mediator = mediator;
+        _deletionService = deletionService;
+        _unitOfWork = unitOfWork;
     }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+        => await _deletionService.DeleteBowlAsync(id, cancellationToken) ? NoContent() : NotFound();
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<BowlDto>>> GetAll(
@@ -79,6 +92,39 @@ public sealed class BowlsController : ControllerBase
         return this.ToActionResult(result);
     }
 
+    [HttpGet("suggested-code")]
+    public async Task<IActionResult> SuggestedCode([FromQuery] Guid? materialId, [FromQuery] int? bowlType, CancellationToken cancellationToken)
+    {
+        var bowls = await _unitOfWork.Bowls.GetAllAsync(cancellationToken);
+        var codes = bowls.Select(x => ProductionCodeNormalizer.Normalize(x.ProductionCode)).ToList();
+        var last = codes.FirstOrDefault() ?? "—";
+        var max = codes.Select(x => int.TryParse(x, out var n) ? n : 0).DefaultIfEmpty().Max();
+        var suggested = (max + 1).ToString(); var template = string.Empty;
+        if (materialId.HasValue && bowlType.HasValue)
+        {
+            var material = await _unitOfWork.Materials.GetByIdAsync(materialId.Value);
+            template = bowlType.Value == 1 ? material?.TopBowlCodeTemplate ?? "" : material?.BottomBowlCodeTemplate ?? "";
+            if (!string.IsNullOrWhiteSpace(template))
+            {
+                var prefix = template[..^5];
+                var matching = bowls.Where(x => x.MaterialId == materialId && (int)x.BowlType == bowlType &&
+                    x.ProductionCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    .Select(x => x.ProductionCode).Where(x => x.Length == prefix.Length + 5).ToList();
+                last = matching.FirstOrDefault() ?? "—";
+                var sequence = matching.Select(x => int.TryParse(x[^5..], out var n) ? n : 0).DefaultIfEmpty().Max() + 1;
+                suggested = $"{prefix}{sequence:00000}";
+            }
+        }
+        return Ok(new { LastCode = last, SuggestedCode = suggested, Template = template });
+    }
+
+    [HttpPost("production/{productionCode}/notes")]
+    [Authorize(Roles = "Shaper,Workshop,Tuner,FineTuner,QualityControl,Administrator")]
+    public async Task<ActionResult> AddNote(string productionCode, [FromBody] ProductionNoteRequest request,
+        CancellationToken cancellationToken)
+        => this.ToActionResult(await _mediator.Send(
+            new AddProductionNoteCommand(productionCode, request.Description ?? string.Empty), cancellationToken));
+
     [HttpPost("dimpling/{productionCode}/complete")]
     [Authorize(Roles = "Dimpler,Shaper,Administrator")]
     public async Task<ActionResult> CompleteDimpling(
@@ -134,6 +180,31 @@ public sealed class BowlsController : ControllerBase
         return this.ToActionResult(result);
     }
 
+    [HttpPost("production/{productionCode}/tune/export")]
+    [Authorize(Roles = "Tuner,Administrator")]
+    public async Task<ActionResult> CompleteTuneForExport(string productionCode,
+        [FromBody] CompleteBowlDimpleRequest request, CancellationToken cancellationToken)
+        => this.ToActionResult(await _mediator.Send(
+            new CompleteBowlTuneForExportCommand(productionCode, request.Duration), cancellationToken));
+
+    [HttpPost("production/{productionCode}/export-packaging/complete")]
+    [Authorize(Roles = "Workshop,Administrator")]
+    public async Task<ActionResult> CompleteExportPackaging(string productionCode, CancellationToken cancellationToken)
+        => this.ToActionResult(await _mediator.Send(
+            new CompleteExportPackagingCommand(productionCode), cancellationToken));
+
+    [HttpGet("export-warehouse")]
+    public async Task<IActionResult> ExportWarehouse(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetExportWarehouseQuery(), cancellationToken));
+
+    [HttpPost("export-warehouse/{id:guid}/ship")]
+    [Authorize(Roles = "Workshop,Administrator")]
+    public async Task<IActionResult> ShipExportBowl(Guid id, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new ShipExportBowlCommand(id), cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("production/{productionCode}/glue/complete")]
     [Authorize(Roles = "Workshop,Administrator")]
     public async Task<ActionResult> CompleteGlue(
@@ -168,10 +239,11 @@ public sealed class BowlsController : ControllerBase
     [Authorize(Roles = "FineTuner,Administrator")]
     public async Task<ActionResult> CompleteFinalTune(
         string productionCode,
+        [FromBody] CompleteBowlDimpleRequest request,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new CompleteHandpanFinalTuneCommand(productionCode),
+            new CompleteHandpanFinalTuneCommand(productionCode, request.Duration),
             cancellationToken);
 
         return this.ToActionResult(result);
@@ -199,12 +271,15 @@ public sealed class BowlsController : ControllerBase
     [Authorize(Roles = "Workshop,Administrator")]
     public async Task<ActionResult> CompletePackaging(
         string productionCode,
+        [FromBody] CompletePackagingRequest request,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new CompleteHandpanPackagingCommand(productionCode),
+            new CompleteHandpanPackagingCommand(productionCode, request.MaterialIds ?? []),
             cancellationToken);
 
         return this.ToActionResult(result);
     }
 }
+
+public sealed record ProductionNoteRequest(string? Description);

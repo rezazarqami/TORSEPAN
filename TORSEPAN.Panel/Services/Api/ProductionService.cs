@@ -38,4 +38,7 @@ public sealed class ProductionService
         return await _api.GetAsync<List<WarehouseHandpanDto>>(
             "production/warehouse") ?? [];
     }
+    public async Task SellAsync(Guid id,string buyerName,decimal price,string destination) => await _api.PostAsync<object,object?>($"production/{id}/sell",new { BuyerName=buyerName, Price=price, Destination=destination });
+    public async Task<IReadOnlyList<SaleItemDto>> GetSalesAsync() => await _api.GetAsync<List<SaleItemDto>>("production/sales") ?? [];
+    public Task DeleteAsync(Guid id) => _api.DeleteAsync($"production/{id}");
 }

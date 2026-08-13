@@ -68,6 +68,14 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid>("AssemblyId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BuyerName").HasMaxLength(200).HasColumnType("character varying(200)");
+                    b.Property<string>("SaleDestination").HasMaxLength(200).HasColumnType("character varying(200)");
+                    b.Property<decimal?>("SalePrice").HasPrecision(18, 2).HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("SoldAt").HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SoldByUserId").HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -132,10 +140,39 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("BottomBowlQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("BottomBowlLowStockThreshold").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0);
+
+                    b.Property<int>("LowStockThreshold").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0);
+
+                    b.Property<int>("TopBowlLowStockThreshold").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0);
+
+                    b.Property<int>("Category")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Quantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("TopBowlQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("TopBowlCodeTemplate").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)").HasDefaultValue("");
+                    b.Property<string>("BottomBowlCodeTemplate").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)").HasDefaultValue("");
 
                     b.HasKey("Id");
 

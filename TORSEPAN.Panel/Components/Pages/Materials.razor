@@ -1,69 +1,115 @@
-﻿@page "/materials"
+@page "/materials"
+@page "/warehouse/materials/manage"
 
 @using TORSEPAN.Panel.Models
+@using Microsoft.AspNetCore.Components.Authorization
 @using TORSEPAN.Panel.Services.Api
 
 @inject MaterialService MaterialService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Materials</PageTitle>
+<PageTitle>انبار مواد اولیه</PageTitle>
 
-<h3 class="mb-4">Materials</h3>
+<PageHeader Title="انبار مواد اولیه" SubTitle="مدیریت موجودی کاسه‌ها و اقلام مصرفی تولید و بسته‌بندی">
+    <Actions>
+            <PrimaryButton Text="افزودن ماده اولیه جدید" OnClick="NewMaterial" />
+            <button class="btn btn-outline-secondary me-2" @onclick="BackToOverview">بازگشت به نمای موجودی</button>
+    </Actions>
+</PageHeader>
 
-<button class="btn btn-primary mb-3"
-        @onclick="NewMaterial">
-    New Material
-</button>
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert alert-success">@_message</div>
+}
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
 
 @if (_loading)
 {
-    <div class="spinner-border"></div>
-}
-else if (_items.Count == 0)
-{
-    <div class="alert alert-warning">
-        هیچ متریالی ثبت نشده است.
-    </div>
+    <div class="text-center p-5"><div class="spinner-border"></div></div>
 }
 else
 {
-    <table class="table table-striped">
+    <h4 class="mb-3">کاسه‌ها</h4>
+    <div class="row g-3 mb-5">
+        @foreach (var item in BowlItems)
+        {
+            <div class="col-md-6">
+                <div class="card shadow-sm h-100 p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">@item.Name</h4>
+                    </div>
+                    <div class="row text-center mt-3">
+                        <div class="col-6"><div class="text-muted">کاسه رو</div><div class="display-6 text-primary">@item.TopBowlQuantity</div></div>
+                        <div class="col-6"><div class="text-muted">کاسه زیر</div><div class="display-6 text-primary">@item.BottomBowlQuantity</div></div>
+                    </div>
+                    <BowlStockControls Item="item" OnSaved="StockSaved" />
+                </div>
+            </div>
+        }
+    </div>
 
-        <thead>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">سایر مواد اولیه و اقلام بسته‌بندی</h4>
+        <input class="form-control" style="max-width:320px" placeholder="جست‌وجوی ماده اولیه..."
+               @bind="_search" @bind:event="oninput" />
+    </div>
 
-            <tr>
-                <th>Name</th>
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-            @foreach (var item in _items)
-            {
-                <tr>
-
-                    <td>@item.Name</td>
-
-                </tr>
-            }
-
-        </tbody>
-
-    </table>
+    <div class="row g-3">
+        @foreach (var item in OtherItems)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="card shadow-sm h-100 p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>@item.Name</strong>
+                        <span class="badge bg-primary fs-6">@item.Quantity عدد</span>
+                    </div>
+                    <StockControls Item="item" OnSaved="StockSaved" />
+                </div>
+            </div>
+        }
+    </div>
 }
 
-@code
-{
+@code {
     private readonly List<MaterialDto> _items = [];
-
     private bool _loading = true;
+    private bool _isAdministrator;
+    private string _search = string.Empty;
+    private string? _error;
+    private string? _message;
+
+    private IEnumerable<MaterialDto> BowlItems => _items
+        .Where(x => x.Category == 4)
+        .OrderBy(x => x.Name);
+
+    private IEnumerable<MaterialDto> OtherItems => _items
+        .Where(x => x.Category == 3 &&
+            (string.IsNullOrWhiteSpace(_search) || x.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)))
+        .OrderBy(x => x.Name);
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _isAdministrator = state.User.IsInRole("Administrator");
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
         try
         {
+            _items.Clear();
             _items.AddRange(await MaterialService.GetAsync());
+        }
+        catch
+        {
+            _error = "دریافت موجودی انبار انجام نشد.";
         }
         finally
         {
@@ -71,8 +117,12 @@ else
         }
     }
 
-    private void NewMaterial()
+    private async Task StockSaved()
     {
-        Navigation.NavigateTo("/materials/new");
+        _message = "موجودی با موفقیت به‌روزرسانی شد.";
+        await LoadAsync();
     }
+
+    private void NewMaterial() => Navigation.NavigateTo("/warehouse/materials/new");
+    private void BackToOverview() => Navigation.NavigateTo("/warehouse/materials");
 }

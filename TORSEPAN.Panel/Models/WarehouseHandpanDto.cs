@@ -11,6 +11,7 @@ public sealed class WarehouseHandpanDto
     public DateTime CreatedAt { get; set; }
     public DateTime? WarehouseEntryDate { get; set; }
     public List<WarehouseOperationDto> Operations { get; set; } = [];
+    public List<string> PackagingItems { get; set; } = [];
 }
 
 public sealed class WarehouseOperationDto

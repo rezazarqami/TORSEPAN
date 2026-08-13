@@ -33,4 +33,22 @@ public sealed class ProductionDashboardDto
     public int WaitingForQualityControl { get; set; }
 
     public int WaitingForPackaging { get; set; }
+
+    public List<ProductionQueueItemDto> Queues { get; set; } = [];
+    public List<MonthlyUserOperationDto> MonthlyUserOperations { get; set; } = [];
+    public string CurrentPersianMonthTitle { get; set; } = string.Empty;
+}
+
+public sealed class MonthlyUserOperationDto
+{
+    public string UserName { get; set; } = string.Empty;
+    public string Operation { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public int DisplayOrder { get; set; }
+}
+
+public sealed class ProductionQueueItemDto
+{
+    public string Stage { get; set; } = string.Empty;
+    public List<string> Codes { get; set; } = [];
 }

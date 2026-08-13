@@ -34,5 +34,8 @@ public enum ProductionStage
 
     FinishedWarehouse = 18,
 
-    Rejected = 19
+    Rejected = 19,
+    Sold = 20,
+    WaitingForExportPackaging = 21,
+    ExportWarehouse = 22
 }

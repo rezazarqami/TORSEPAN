@@ -63,7 +63,7 @@ public sealed class CompleteHandpanFinalTuneCommandHandler
 
         await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(
             handpan.Id, assembly.Id, null, userId, ProductionAction.FineTune,
-            EventResult.Completed, null, "Final tune completed"));
+            EventResult.Completed, request.Duration, "Final tune completed"));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(

@@ -19,6 +19,14 @@ public sealed class BowlService
         return result?.Items ?? [];
     }
 
+    public Task<SuggestedBowlCodeDto?> GetSuggestedCodeAsync(Guid? materialId=null,int? bowlType=null)
+    {
+        var query=materialId.HasValue&&bowlType.HasValue?$"?materialId={materialId}&bowlType={bowlType}":"";
+        return _api.GetAsync<SuggestedBowlCodeDto>($"bowls/suggested-code{query}");
+    }
+
+    public Task DeleteAsync(Guid id) => _api.DeleteAsync($"bowls/{id}");
+
     public async Task<Guid?> CreateAsync(CreateBowlRequest request)
     {
         try
@@ -39,7 +47,7 @@ public sealed class BowlService
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
         {
-            throw new Exception("کد تولید قبلاً ثبت شده است.");
+            throw new Exception("کد تولید تکراری است یا موجودی کاسه انتخاب‌شده کافی نیست.");
         }
     }
 
@@ -87,6 +95,30 @@ public sealed class BowlService
             new { Duration = duration });
     }
 
+    public Task<bool> AddProductionNoteAsync(string productionCode, string description)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, bool>($"bowls/production/{code}/notes", new { Description = description });
+    }
+
+    public Task<DimpleBowlDto?> CompleteTuneForExportAsync(string productionCode, int duration)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>($"bowls/production/{code}/tune/export", new { Duration = duration });
+    }
+
+    public Task<DimpleBowlDto?> CompleteExportPackagingAsync(string productionCode)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>($"bowls/production/{code}/export-packaging/complete", new { });
+    }
+
+    public async Task<IReadOnlyList<ExportWarehouseItemDto>> GetExportWarehouseAsync()
+        => await _api.GetAsync<List<ExportWarehouseItemDto>>("bowls/export-warehouse") ?? [];
+
+    public Task ShipExportBowlAsync(Guid id)
+        => _api.PostAsync<object, object?>($"bowls/export-warehouse/{id}/ship", new { });
+
     public Task<DimpleBowlDto?> CompleteGlueAsync(
         string productionCode,
         string pairedProductionCode,
@@ -106,12 +138,12 @@ public sealed class BowlService
             new { });
     }
 
-    public Task<DimpleBowlDto?> CompleteFinalTuneAsync(string productionCode)
+    public Task<DimpleBowlDto?> CompleteFinalTuneAsync(string productionCode, int duration)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/final-tune/complete",
-            new { });
+            new { Duration = duration });
     }
 
     public Task<DimpleBowlDto?> CompleteQualityControlAsync(
@@ -126,11 +158,11 @@ public sealed class BowlService
             new { Approved = approved, RejectionReason = rejectionReason, Details = details });
     }
 
-    public Task<DimpleBowlDto?> CompletePackagingAsync(string productionCode)
+    public Task<DimpleBowlDto?> CompletePackagingAsync(string productionCode, IReadOnlyCollection<Guid> materialIds)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/packaging/complete",
-            new { });
+            new { MaterialIds = materialIds });
     }
 }

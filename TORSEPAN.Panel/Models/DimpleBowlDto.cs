@@ -9,4 +9,5 @@ public sealed class DimpleBowlDto
     public int InstrumentType { get; set; }
     public int Status { get; set; }
     public int Stage { get; set; }
+    public List<string> Notes { get; set; } = [];
 }
