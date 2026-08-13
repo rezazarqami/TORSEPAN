@@ -1,4 +1,7 @@
-﻿using MediatR;
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.Application.Materials.Commands.CreateMaterial;
@@ -9,6 +12,8 @@ using TORSEPAN.Application.Materials.Commands.AdjustBowlStock;
 using TORSEPAN.Application.Materials.Commands.SetLowStockThreshold;
 using TORSEPAN.Application.Materials.Queries.GetAllMaterials;
 using TORSEPAN.Application.Materials.Queries.GetMaterialById;
+using TORSEPAN.Application.Interfaces;
+using System.Text.RegularExpressions;
 
 using GetAllMaterialDto = TORSEPAN.Application.Materials.Queries.GetAllMaterials.MaterialDto;
 using GetByIdMaterialDto = TORSEPAN.Application.Materials.Queries.GetMaterialById.MaterialDto;
@@ -21,10 +26,12 @@ namespace TORSEPAN.API.Controllers;
 public sealed class MaterialsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public MaterialsController(IMediator mediator)
+    public MaterialsController(IMediator mediator, IUnitOfWork unitOfWork)
     {
         _mediator = mediator;
+        _unitOfWork = unitOfWork;
     }
 
     [HttpGet]
@@ -141,8 +148,27 @@ public sealed class MaterialsController : ControllerBase
         await _mediator.Send(new SetLowStockThresholdCommand(id, request.Quantity, request.TopQuantity, request.BottomQuantity), cancellationToken);
         return NoContent();
     }
+
+    [HttpPatch("{id:guid}/bowl-code-templates")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> SetBowlCodeTemplates(Guid id, [FromBody] BowlCodeTemplatesRequest request,
+        CancellationToken cancellationToken)
+    {
+        static bool Valid(string? value) => string.IsNullOrWhiteSpace(value) ||
+            Regex.IsMatch(value.Trim(), "^[A-Za-z]{2}-0{5}$");
+        if (!Valid(request.TopTemplate) || !Valid(request.BottomTemplate))
+            return BadRequest("Template must look like AB-00000.");
+        var material = await _unitOfWork.Materials.GetByIdAsync(id);
+        if (material is null) return NotFound();
+        material.SetBowlCodeTemplates(request.TopTemplate, request.BottomTemplate);
+        _unitOfWork.Materials.Update(material);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
 }
 
 public sealed record AdjustStockRequest(int Quantity, bool SetAbsolute = false);
 public sealed record AdjustBowlStockRequest(int TopQuantity, int BottomQuantity, bool SetAbsolute = false);
 public sealed record LowStockThresholdRequest(int Quantity, int TopQuantity, int BottomQuantity);
+public sealed record BowlCodeTemplatesRequest(string? TopTemplate, string? BottomTemplate);
+
