@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 namespace TORSEPAN.Application.Bowls.Dimpling;
 
 public sealed class BowlDimpleDto
@@ -9,4 +12,6 @@ public sealed class BowlDimpleDto
     public int InstrumentType { get; init; }
     public int Status { get; init; }
     public int Stage { get; init; }
+    public List<string> Notes { get; init; } = [];
 }
+
