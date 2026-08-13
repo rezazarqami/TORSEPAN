@@ -1,4 +1,7 @@
-﻿using MediatR;
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
+using MediatR;
 using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.Application.Materials.Queries.GetAllMaterials;
@@ -30,8 +33,11 @@ public sealed class GetAllMaterialsHandler
                 BottomBowlQuantity = x.BottomBowlQuantity,
                 LowStockThreshold = x.LowStockThreshold,
                 TopBowlLowStockThreshold = x.TopBowlLowStockThreshold,
-                BottomBowlLowStockThreshold = x.BottomBowlLowStockThreshold
+                BottomBowlLowStockThreshold = x.BottomBowlLowStockThreshold,
+                TopBowlCodeTemplate = x.TopBowlCodeTemplate,
+                BottomBowlCodeTemplate = x.BottomBowlCodeTemplate
             })
             .ToList();
     }
 }
+
