@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TORSEPAN.Domain.Entities;
 
@@ -30,8 +33,11 @@ public sealed class MaterialConfiguration : IEntityTypeConfiguration<Material>
         builder.Property(x => x.LowStockThreshold).HasDefaultValue(0).IsRequired();
         builder.Property(x => x.TopBowlLowStockThreshold).HasDefaultValue(0).IsRequired();
         builder.Property(x => x.BottomBowlLowStockThreshold).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.TopBowlCodeTemplate).HasMaxLength(20).HasDefaultValue("").IsRequired();
+        builder.Property(x => x.BottomBowlCodeTemplate).HasMaxLength(20).HasDefaultValue("").IsRequired();
 
         builder.HasIndex(x => x.Name)
             .IsUnique();
     }
 }
+
