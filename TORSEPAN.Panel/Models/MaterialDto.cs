@@ -1,4 +1,7 @@
-﻿namespace TORSEPAN.Panel.Models;
+Exit code: 0
+Wall time: 0.7 seconds
+Output:
+namespace TORSEPAN.Panel.Models;
 
 public sealed class MaterialDto
 {
@@ -16,4 +19,7 @@ public sealed class MaterialDto
     public int LowStockThreshold { get; set; }
     public int TopBowlLowStockThreshold { get; set; }
     public int BottomBowlLowStockThreshold { get; set; }
+    public string TopBowlCodeTemplate { get; set; } = string.Empty;
+    public string BottomBowlCodeTemplate { get; set; } = string.Empty;
 }
+
