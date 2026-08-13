@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 namespace TORSEPAN.Panel.Models;
 
 public sealed class DimpleBowlDto
@@ -9,4 +12,6 @@ public sealed class DimpleBowlDto
     public int InstrumentType { get; set; }
     public int Status { get; set; }
     public int Stage { get; set; }
+    public List<string> Notes { get; set; } = [];
 }
+
