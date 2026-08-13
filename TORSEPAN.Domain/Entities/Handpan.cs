@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 using TORSEPAN.Domain.Common;
 using TORSEPAN.Domain.Enums;
 using TORSEPAN.Domain.Production;
@@ -46,12 +49,16 @@ public class Handpan : Entity
     public string? BuyerName { get; private set; }
     public DateTime? SoldAt { get; private set; }
     public Guid? SoldByUserId { get; private set; }
+    public decimal? SalePrice { get; private set; }
+    public string? SaleDestination { get; private set; }
 
-    public void Sell(string buyerName, Guid soldByUserId)
+    public void Sell(string buyerName, decimal price, string destination, Guid soldByUserId)
     {
         if (Stage != ProductionStage.FinishedWarehouse) throw new InvalidOperationException("Handpan is not in warehouse.");
         if (string.IsNullOrWhiteSpace(buyerName)) throw new ArgumentException("Buyer name is required.");
-        BuyerName = buyerName.Trim(); SoldByUserId = soldByUserId; SoldAt = DateTime.UtcNow;
+        if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
+        if (string.IsNullOrWhiteSpace(destination)) throw new ArgumentException("Destination is required.");
+        BuyerName = buyerName.Trim(); SalePrice = price; SaleDestination = destination.Trim(); SoldByUserId = soldByUserId; SoldAt = DateTime.UtcNow;
         Stage = ProductionStage.Sold; UpdatedAt = SoldAt;
     }
 
