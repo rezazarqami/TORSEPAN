@@ -1,4 +1,7 @@
-﻿namespace TORSEPAN.Application.Materials.Queries.GetAllMaterials;
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
+namespace TORSEPAN.Application.Materials.Queries.GetAllMaterials;
 
 public sealed class MaterialDto
 {
@@ -16,4 +19,7 @@ public sealed class MaterialDto
     public int LowStockThreshold { get; set; }
     public int TopBowlLowStockThreshold { get; set; }
     public int BottomBowlLowStockThreshold { get; set; }
+    public string TopBowlCodeTemplate { get; set; } = string.Empty;
+    public string BottomBowlCodeTemplate { get; set; } = string.Empty;
 }
+
