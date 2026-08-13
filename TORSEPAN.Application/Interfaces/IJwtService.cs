@@ -6,6 +6,7 @@ public interface IJwtService
         Guid userId,
         string userName,
         string fullName,
+        string title,
         IEnumerable<string> roles);
 
     string GenerateRefreshToken();

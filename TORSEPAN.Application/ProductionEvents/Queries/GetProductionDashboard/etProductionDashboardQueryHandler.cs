@@ -25,7 +25,7 @@ public sealed class GetProductionDashboardQueryHandler
         var monthStartTehran = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
         var monthStartUtc = DateTime.SpecifyKind(monthStartTehran.AddHours(-3.5), DateTimeKind.Utc);
         var events = await _unitOfWork.ProductionEvents.GetReportAsync(monthStartUtc, null, null, null, EventResult.Completed);
-        var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune };
+        var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune };
         var monthly = events.Where(x => tracked.Contains(x.Action) && !x.Description.StartsWith("NOTE:"))
             .GroupBy(x => new { x.UserId, x.User.UserName, x.User.FullName, x.User.DisplayOrder, x.Action })
             .Select(x => new MonthlyUserOperationResponse
@@ -81,6 +81,6 @@ public sealed class GetProductionDashboardQueryHandler
     }
 
     private static string OperationTitle(ProductionAction action) => action switch
-    { ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",ProductionAction.Glue=>"چسب",ProductionAction.Tune=>"تیون",ProductionAction.FineTune=>"فاین تیون",_=>action.ToString() };
+    { ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",ProductionAction.Furnace=>"پخت",ProductionAction.Glue=>"چسب",ProductionAction.Tune=>"تیون",ProductionAction.FineTune=>"فاین تیون",_=>action.ToString() };
     private static string PersianMonthName(int month) => new[] { "", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند" }[month];
 }

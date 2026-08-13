@@ -52,6 +52,7 @@ public sealed class LoginQueryHandler
                 user.Id,
                 user.UserName,
                 user.FullName,
+                user.Title,
                 roles),
 
             RefreshToken = refreshToken.Token

@@ -42,6 +42,7 @@ public sealed class LoginCommandHandler
             user.Id,
             user.UserName,
             user.FullName,
+            user.Title,
             roles);
 
         // A separate refresh token is stored for every login/device.  Its

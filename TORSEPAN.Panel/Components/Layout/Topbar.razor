@@ -9,12 +9,9 @@
 </div>
 
 <div class="topbar-right">
-    <button type="button" class="logout-button" title="خروج از حساب کاربری" disabled="@isLoggingOut" @onclick="LogoutAsync"><span aria-hidden="true">🚪</span><span>@(isLoggingOut ? "در حال خروج..." : "خروج")</span></button>
-    <button class="icon-button">🔔</button>
-    <button class="icon-button">⚙️</button>
-    <div class="user-box">
-        <div class="avatar">@AvatarLetter</div>
-        <div><div class="user-name">@DisplayName</div><div class="user-role">@RoleTitle</div></div>
+    <button type="button" class="logout-button" title="خروج از حساب کاربری" disabled="@isLoggingOut" @onclick="LogoutAsync"><span>@(isLoggingOut ? "در حال خروج..." : "خروج")</span></button>
+    <div class="user-box user-box-clean">
+        <div><div class="user-name">@DisplayName</div><div class="user-role">@UserTitle</div></div>
     </div>
 </div>
 
@@ -23,59 +20,38 @@
     [Inject] private NavigationManager Navigation { get; set; } = default!;
     private bool isLoggingOut;
     private string DisplayName { get; set; } = "کاربر";
-    private string RoleTitle { get; set; } = "همکار TORSEPAN";
-    private string AvatarLetter => string.IsNullOrWhiteSpace(DisplayName) ? "T" : DisplayName.Trim()[0].ToString();
+    private string UserTitle { get; set; } = "همکار TORSEPAN";
 
     protected override async Task OnInitializedAsync()
     {
         AuthenticationStateProvider.AuthenticationStateChanged += AuthenticationStateChanged;
-        var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
-        SetUser(user);
+        SetUser((await AuthenticationStateProvider.GetAuthenticationStateAsync()).User);
     }
 
     private void SetUser(ClaimsPrincipal user)
     {
-        if (user.Identity?.IsAuthenticated != true)
-            return;
-
-        DisplayName = user.FindFirst("FullName")?.Value
-            ?? user.FindFirst(ClaimTypes.GivenName)?.Value
-            ?? user.Identity?.Name
-            ?? "کاربر";
-        RoleTitle = ResolveRoleTitle(user.FindAll(ClaimTypes.Role).Select(x => x.Value));
+        if (user.Identity?.IsAuthenticated != true) return;
+        DisplayName = user.FindFirst("FullName")?.Value ?? user.FindFirst(ClaimTypes.GivenName)?.Value ?? user.Identity?.Name ?? "کاربر";
+        var customTitle = user.FindFirst("Title")?.Value;
+        UserTitle = !string.IsNullOrWhiteSpace(customTitle) ? customTitle : ResolveRoleTitle(user.FindAll(ClaimTypes.Role).Select(x => x.Value));
     }
 
     private async void AuthenticationStateChanged(Task<AuthenticationState> stateTask)
     {
-        try
-        {
-            SetUser((await stateTask).User);
-            await InvokeAsync(StateHasChanged);
-        }
-        catch
-        {
-            // Authentication changes must never break the layout.
-        }
+        try { SetUser((await stateTask).User); await InvokeAsync(StateHasChanged); } catch { }
     }
 
-    public void Dispose()
-        => AuthenticationStateProvider.AuthenticationStateChanged -= AuthenticationStateChanged;
+    public void Dispose() => AuthenticationStateProvider.AuthenticationStateChanged -= AuthenticationStateChanged;
 
     private static string ResolveRoleTitle(IEnumerable<string> roles)
     {
         var titles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["Administrator"] = "مدیر سیستم",
-            ["ProductionManager"] = "مدیر تولید",
-            ["Workshop"] = "کارگاه و بسته‌بندی",
-            ["Dimpler"] = "دیمپل‌کار",
-            ["Shaper"] = "شیپر",
-            ["Tuner"] = "تیونر",
-            ["FineTuner"] = "فاین تیونر",
-            ["QualityControl"] = "کنترل کیفیت"
+            ["Administrator"] = "مدیر سیستم", ["ProductionManager"] = "مدیر تولید", ["Workshop"] = "کارگاه و بسته‌بندی",
+            ["Dimpler"] = "دیمپل‌کار", ["Shaper"] = "شیپر", ["Tuner"] = "تیونر", ["FineTuner"] = "فاین تیونر", ["QualityControl"] = "کنترل کیفیت"
         };
         return roles.Select(role => titles.GetValueOrDefault(role, role)).FirstOrDefault() ?? "همکار TORSEPAN";
     }
 
-    private async Task LogoutAsync(){if(isLoggingOut)return;isLoggingOut=true;await AuthenticationService.LogoutAsync();Navigation.NavigateTo("/login",forceLoad:true);}
+    private async Task LogoutAsync() { if (isLoggingOut) return; isLoggingOut = true; await AuthenticationService.LogoutAsync(); Navigation.NavigateTo("/login", forceLoad: true); }
 }

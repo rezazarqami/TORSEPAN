@@ -26,6 +26,7 @@ public sealed class GetUsersQueryHandler
                 Id = x.Id,
                 UserName = x.UserName,
                 FullName = x.FullName,
+                Title = x.Title,
                 IsActive = x.IsActive,
                 Role = string.Empty,
                 Roles = x.UserRoles

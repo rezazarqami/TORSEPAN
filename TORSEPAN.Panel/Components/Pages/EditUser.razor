@@ -33,6 +33,10 @@
                     <label class="form-label">نام کامل</label>
                     <InputText class="form-control" @bind-Value="_model.FullName" />
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label">عنوان</label>
+                    <InputText class="form-control" @bind-Value="_model.Title" placeholder="مثلاً مدیر تولید، شیپر یا مسئول کارگاه" />
+                </div>
 
                 <div class="col-12">
                     <label class="form-label">نقش‌ها</label>
@@ -90,6 +94,7 @@
 
         _model.UserName = user.UserName;
         _model.FullName = user.FullName;
+        _model.Title = user.Title;
 
         var selectedRoleIds = user.RoleIds.ToHashSet();
         _roles = (await rolesTask)
@@ -116,6 +121,7 @@
                 UserId,
                 _model.UserName,
                 _model.FullName,
+                _model.Title,
                 _roles.Where(x => x.IsSelected).Select(x => x.Id).ToList()));
 
             Navigation.NavigateTo("/users/list");
@@ -136,6 +142,7 @@
     {
         public string UserName { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
     }
 
     private sealed class RoleOption

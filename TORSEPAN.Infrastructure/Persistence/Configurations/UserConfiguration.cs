@@ -29,6 +29,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.IsActive)
             .IsRequired();
         builder.Property(x => x.DisplayOrder).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.Title).HasMaxLength(100).HasDefaultValue("").IsRequired();
 
         builder.HasMany(x => x.ProductionEvents)
             .WithOne(x => x.User)

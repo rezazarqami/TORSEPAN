@@ -133,7 +133,7 @@ public sealed class BowlsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new CompleteBowlDimpleCommand(productionCode, request.Duration),
+            new CompleteBowlDimpleCommand(productionCode, request.Duration, request.ScaleId),
             cancellationToken);
 
         return this.ToActionResult(result);
@@ -147,7 +147,7 @@ public sealed class BowlsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new CompleteBowlShapeCommand(productionCode, request.Duration, request.ScaleId),
+            new CompleteBowlShapeCommand(productionCode, request.Duration),
             cancellationToken);
 
         return this.ToActionResult(result);

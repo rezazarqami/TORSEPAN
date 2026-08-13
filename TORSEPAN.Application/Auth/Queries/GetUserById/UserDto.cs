@@ -7,6 +7,7 @@ public sealed class UserDto
     public string UserName { get; set; } = string.Empty;
 
     public string FullName { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
 
     public List<Guid> RoleIds { get; set; } = new();
 

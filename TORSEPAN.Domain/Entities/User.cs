@@ -7,6 +7,7 @@ public sealed class User : Entity
     public string UserName { get; private set; } = string.Empty;
 
     public string FullName { get; private set; } = string.Empty;
+    public string Title { get; private set; } = string.Empty;
 
     public string PasswordHash { get; private set; } = string.Empty;
 
@@ -56,6 +57,7 @@ public sealed class User : Entity
     {
         FullName = fullName;
     }
+    public void ChangeTitle(string? title) => Title = title?.Trim() ?? string.Empty;
 
     public void SetPassword(string password)
     {

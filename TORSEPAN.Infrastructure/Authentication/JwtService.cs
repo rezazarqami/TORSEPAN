@@ -21,6 +21,7 @@ public sealed class JwtService : IJwtService
         Guid userId,
         string userName,
         string fullName,
+        string title,
         IEnumerable<string> roles)
     {
         var key = new SymmetricSecurityKey(
@@ -36,6 +37,7 @@ public sealed class JwtService : IJwtService
             new(ClaimTypes.Name, userName),
             new(ClaimTypes.GivenName, fullName),
             new("FullName", fullName),
+            new("Title", title ?? string.Empty),
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new(JwtRegisteredClaimNames.UniqueName, userName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())

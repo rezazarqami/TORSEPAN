@@ -32,6 +32,7 @@
 
                 <th>Username</th>
                 <th>Full Name</th>
+                <th>عنوان</th>
                 <th>Roles</th>
                 <th>Status</th>
                 <th></th>
@@ -49,6 +50,7 @@
                     <td>@user.UserName</td>
 
                     <td>@user.FullName</td>
+                    <td>@(string.IsNullOrWhiteSpace(user.Title) ? "—" : user.Title)</td>
 
                     <td>
                         @(user.Roles.Count > 0

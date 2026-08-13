@@ -7,6 +7,7 @@ public sealed class UserDto
     public string UserName { get; set; } = string.Empty;
 
     public string FullName { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
 
     // موقتاً تا تکمیل UI چندنقشی
     public string Role { get; set; } = string.Empty;

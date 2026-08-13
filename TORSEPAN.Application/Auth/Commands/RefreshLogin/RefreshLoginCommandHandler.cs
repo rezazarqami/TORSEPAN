@@ -64,6 +64,7 @@ public sealed class RefreshLoginCommandHandler
                 user.Id,
                 user.UserName,
                 user.FullName,
+                user.Title,
                 roles),
 
             RefreshToken = newRefreshToken.Token
