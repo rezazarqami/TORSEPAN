@@ -26,7 +26,7 @@ public sealed class GetProductionDashboardQueryHandler
         var calendar = new PersianCalendar();
         var year = calendar.GetYear(tehranNow); var month = calendar.GetMonth(tehranNow);
         var monthStartTehran = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
-        var monthStartUtc = monthStartTehran.AddHours(-3.5);
+        var monthStartUtc = DateTime.SpecifyKind(monthStartTehran.AddHours(-3.5), DateTimeKind.Utc);
         var events = await _unitOfWork.ProductionEvents.GetReportAsync(monthStartUtc, null, null, null, EventResult.Completed);
         var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune };
         var monthly = events.Where(x => tracked.Contains(x.Action) && !x.Description.StartsWith("NOTE:"))
