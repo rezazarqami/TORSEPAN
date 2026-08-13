@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TORSEPAN.Domain.Entities;
@@ -33,6 +36,8 @@ public class HandpanConfiguration : IEntityTypeConfiguration<Handpan>
         builder.Property(x => x.Stage)
             .IsRequired();
         builder.Property(x => x.BuyerName).HasMaxLength(200);
+        builder.Property(x => x.SalePrice).HasPrecision(18, 2);
+        builder.Property(x => x.SaleDestination).HasMaxLength(200);
 
         // -----------------------------
         // Assembly (One-To-One)
