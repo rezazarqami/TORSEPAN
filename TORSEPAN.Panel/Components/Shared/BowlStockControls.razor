@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 @inject MaterialService MaterialService
@@ -22,6 +25,11 @@
         <button class="btn btn-outline-primary flex-fill" disabled="@_saving" @onclick="AddAsync">افزایش موجودی</button>
         <button class="btn btn-outline-secondary flex-fill" disabled="@_saving" @onclick="SetAsync">ثبت موجودی دقیق</button>
     </div>
+    <div class="row g-2 mt-3 pt-3 border-top">
+        <div class="col-6"><label class="form-label">قالب کد کاسه رو</label><input class="form-control" maxlength="8" placeholder="مثلاً VT-00000" @bind="_topTemplate" /></div>
+        <div class="col-6"><label class="form-label">قالب کد کاسه زیر</label><input class="form-control" maxlength="8" placeholder="مثلاً VB-00000" @bind="_bottomTemplate" /></div>
+        <div class="col-12"><small class="text-muted">قالب باید شامل دو حرف انگلیسی، خط تیره و پنج صفر باشد.</small><button class="btn btn-outline-success w-100 mt-2" disabled="@_saving" @onclick="SaveTemplatesAsync">ثبت قالب‌های پیشنهاد کد</button></div>
+    </div>
     @if (!string.IsNullOrWhiteSpace(_error)) { <small class="text-danger">@_error</small> }
 </div>
 
@@ -30,11 +38,12 @@
     [Parameter] public EventCallback OnSaved { get; set; }
     private int _top;
     private int _bottom;
-    private int _topThreshold; private int _bottomThreshold;
+    private int _topThreshold; private int _bottomThreshold; private string _topTemplate="",_bottomTemplate="";
     private bool _saving;
     private string? _error;
     private Guid _loadedItemId;
-    protected override void OnParametersSet(){if(_loadedItemId!=Item.Id){_loadedItemId=Item.Id;_topThreshold=Item.TopBowlLowStockThreshold;_bottomThreshold=Item.BottomBowlLowStockThreshold;}}
+    protected override void OnParametersSet(){if(_loadedItemId!=Item.Id){_loadedItemId=Item.Id;_topThreshold=Item.TopBowlLowStockThreshold;_bottomThreshold=Item.BottomBowlLowStockThreshold;_topTemplate=Item.TopBowlCodeTemplate;_bottomTemplate=Item.BottomBowlCodeTemplate;}}
+    private async Task SaveTemplatesAsync(){_saving=true;_error=null;try{await MaterialService.SetBowlCodeTemplatesAsync(Item.Id,_topTemplate,_bottomTemplate);await OnSaved.InvokeAsync();}catch{_error="قالب باید مانند AB-00000 باشد.";}finally{_saving=false;}}
     private async Task SaveThresholdAsync(){_saving=true;try{await MaterialService.SetLowStockThresholdAsync(Item.Id,0,_topThreshold,_bottomThreshold);await OnSaved.InvokeAsync();}catch{_error="ثبت حد هشدار انجام نشد.";}finally{_saving=false;}}
 
     private Task AddAsync() => SaveAsync(false);
@@ -58,3 +67,4 @@
         finally { _saving = false; }
     }
 }
+
