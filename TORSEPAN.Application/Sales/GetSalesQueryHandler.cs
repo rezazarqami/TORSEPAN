@@ -25,6 +25,8 @@ public sealed class GetSalesQueryHandler(IUnitOfWork unitOfWork)
                 ItemType = "ساز",
                 SerialNumber = x.SerialNumber,
                 BuyerName = x.BuyerName ?? "",
+                Price = x.SalePrice,
+                Destination = x.SaleDestination ?? "",
                 SoldAt = x.SoldAt ?? x.UpdatedAt ?? x.CreatedAt,
                 SoldBy = UserName(user),
                 MaterialName = x.Assembly.TopBowl.Material.Name,
