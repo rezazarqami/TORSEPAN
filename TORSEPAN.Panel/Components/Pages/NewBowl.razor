@@ -14,19 +14,20 @@ Output:
  <DataAnnotationsValidator /><ValidationSummary />
  @if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
  <div class="card p-4">
-  <div class="mb-3"><label class="form-label">متریال</label><InputSelect class="form-select" @bind-Value="_model.MaterialId"><option value="@Guid.Empty">انتخاب کنید...</option>@foreach(var material in _materials){<option value="@material.Id">@material.Name</option>}</InputSelect></div>
-  <div class="mb-3"><label class="form-label">نوع کاسه</label><InputSelect class="form-select" @bind-Value="_model.BowlType"><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></InputSelect></div>
+  <div class="mb-3"><label class="form-label">متریال</label><InputSelect class="form-select" @bind-Value="_model.MaterialId" @bind-Value:after="RefreshSuggestionAsync"><option value="@Guid.Empty">انتخاب کنید...</option>@foreach(var material in _materials){<option value="@material.Id">@material.Name</option>}</InputSelect></div>
+  <div class="mb-3"><label class="form-label">نوع کاسه</label><InputSelect class="form-select" @bind-Value="_model.BowlType" @bind-Value:after="RefreshSuggestionAsync"><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></InputSelect></div>
   <div class="mb-3"><label class="form-label">وضعیت نت</label>@if(_model.BowlType==1){<div class="form-control bg-light">کاسه رو همیشه دارای نت است</div>}else{<div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="_model.HasNotes"/><label class="form-check-label">دارای نت</label></div>}</div>
   <div class="mb-2"><label class="form-label">کد کاسه</label><InputText class="form-control" @bind-Value="_model.ProductionCode" /></div>
-  <div class="alert alert-light border"><div>آخرین کد ثبت‌شده: <strong>@_lastCode</strong></div><div>کد پیشنهادی: <strong>@_suggestedCode</strong> <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="UseSuggestedCode">استفاده از کد پیشنهادی</button></div><small class="text-muted">استفاده از کد پیشنهادی الزامی نیست.</small></div>
+  <div class="alert alert-light border">@if(!string.IsNullOrWhiteSpace(_template)){<div>قالب این انتخاب: <strong dir="ltr">@_template</strong></div>}<div>آخرین کد ثبت‌شده با این انتخاب: <strong dir="ltr">@_lastCode</strong></div><div>کد پیشنهادی: <strong dir="ltr">@_suggestedCode</strong> <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="UseSuggestedCode">استفاده از کد پیشنهادی</button></div><small class="text-muted">استفاده از کد پیشنهادی الزامی نیست و کد دلخواه نیز پذیرفته می‌شود.</small></div>
   <button class="btn btn-primary" type="submit">ثبت کاسه</button>
  </div>
 </EditForm>
 
 @code{
- private readonly CreateBowlRequest _model=new(); private readonly List<MaterialDto> _materials=[]; private string? _error; private string _lastCode="—",_suggestedCode="";
+ private readonly CreateBowlRequest _model=new(); private readonly List<MaterialDto> _materials=[]; private string? _error; private string _lastCode="—",_suggestedCode="",_template="";
  protected override async Task OnInitializedAsync(){_model.HasNotes=true;_model.BowlType=1;_model.InstrumentType=1;_materials.AddRange((await MaterialService.GetAsync()).Where(x=>x.Category==4));var suggestion=await BowlService.GetSuggestedCodeAsync();if(suggestion is not null){_lastCode=suggestion.LastCode;_suggestedCode=suggestion.SuggestedCode;_model.ProductionCode=_suggestedCode;}}
  private void UseSuggestedCode()=>_model.ProductionCode=_suggestedCode;
+ private async Task RefreshSuggestionAsync(){var suggestion=await BowlService.GetSuggestedCodeAsync(_model.MaterialId==Guid.Empty?null:_model.MaterialId,_model.BowlType);if(suggestion is null)return;_lastCode=suggestion.LastCode;_suggestedCode=suggestion.SuggestedCode;_template=suggestion.Template;_model.ProductionCode=_suggestedCode;}
  private async Task SaveAsync(){try{_error=null;if(_model.BowlType==1)_model.HasNotes=true;var id=await BowlService.CreateAsync(_model);if(id.HasValue){Navigation.NavigateTo("/bowls",true);return;}_error="ثبت انجام نشد.";}catch(Exception ex){_error=ex.Message;}}
 }
 
