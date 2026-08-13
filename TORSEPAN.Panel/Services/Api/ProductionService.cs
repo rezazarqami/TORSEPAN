@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 using TORSEPAN.Panel.Models;
 
 namespace TORSEPAN.Panel.Services.Api;
@@ -38,7 +41,7 @@ public sealed class ProductionService
         return await _api.GetAsync<List<WarehouseHandpanDto>>(
             "production/warehouse") ?? [];
     }
-    public async Task SellAsync(Guid id,string buyerName) => await _api.PostAsync<object,object?>($"production/{id}/sell",new { BuyerName=buyerName });
+    public async Task SellAsync(Guid id,string buyerName,decimal price,string destination) => await _api.PostAsync<object,object?>($"production/{id}/sell",new { BuyerName=buyerName, Price=price, Destination=destination });
     public async Task<IReadOnlyList<SaleItemDto>> GetSalesAsync() => await _api.GetAsync<List<SaleItemDto>>("production/sales") ?? [];
     public Task DeleteAsync(Guid id) => _api.DeleteAsync($"production/{id}");
 }
