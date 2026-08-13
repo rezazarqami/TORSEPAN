@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
@@ -76,6 +79,8 @@ public static class DependencyInjection
         services.AddScoped<IBowlQueryService, BowlQueryService>();
         services.AddHttpClient<IInventoryAlertService, TelegramInventoryAlertService>(client =>
             client.Timeout = TimeSpan.FromMinutes(4));
+        services.AddHttpClient();
+        services.AddHostedService<NightlyDatabaseBackupService>();
 
         return services;
     }
@@ -115,3 +120,4 @@ public static class DependencyInjection
                 "Set DATABASE_URL or ConnectionStrings__DefaultConnection.");
     }
 }
+
