@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.7 seconds
+Output:
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.Application.Handpans.Queries.GetCurrentProductionStage;
@@ -33,10 +36,12 @@ namespace TORSEPAN.API.Controllers;
 public sealed class ProductionController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IProductionDeletionService _deletionService;
 
-    public ProductionController(IMediator mediator)
+    public ProductionController(IMediator mediator, IProductionDeletionService deletionService)
     {
         _mediator = mediator;
+        _deletionService = deletionService;
     }
 
     [HttpPost("event")]
@@ -132,7 +137,7 @@ public sealed class ProductionController : ControllerBase
 
     [HttpPost("{handpanId:guid}/sell")]
     public async Task<IActionResult> Sell(Guid handpanId, [FromBody] SellHandpanRequest request)
-    { await _mediator.Send(new SellHandpanCommand(handpanId, request.BuyerName)); return NoContent(); }
+    { await _mediator.Send(new SellHandpanCommand(handpanId, request.BuyerName, request.Price, request.Destination)); return NoContent(); }
 
     [HttpGet("sales")]
     public async Task<IActionResult> Sales() => Ok(await _mediator.Send(new GetSalesQuery()));
@@ -142,5 +147,5 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Delete(Guid handpanId, CancellationToken cancellationToken)
         => await _deletionService.DeleteHandpanAsync(handpanId, cancellationToken) ? NoContent() : NotFound();
 }
-public sealed record SellHandpanRequest(string BuyerName);
+public sealed record SellHandpanRequest(string BuyerName, decimal Price, string Destination);
 
