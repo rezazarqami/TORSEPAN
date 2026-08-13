@@ -22,6 +22,9 @@ public sealed class BowlService
         return result?.Items ?? [];
     }
 
+    public Task<SuggestedBowlCodeDto?> GetSuggestedCodeAsync()
+        => _api.GetAsync<SuggestedBowlCodeDto>("bowls/suggested-code");
+
     public Task DeleteAsync(Guid id) => _api.DeleteAsync($"bowls/{id}");
 
     public async Task<Guid?> CreateAsync(CreateBowlRequest request)
@@ -90,6 +93,12 @@ public sealed class BowlService
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/tune/complete",
             new { Duration = duration });
+    }
+
+    public Task<bool> AddProductionNoteAsync(string productionCode, string description)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, bool>($"bowls/production/{code}/notes", new { Description = description });
     }
 
     public Task<DimpleBowlDto?> CompleteTuneForExportAsync(string productionCode, int duration)
