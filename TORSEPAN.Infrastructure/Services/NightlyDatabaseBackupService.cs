@@ -5,23 +5,52 @@ using Microsoft.Extensions.Logging;
 
 namespace TORSEPAN.Infrastructure.Services;
 
-public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpClientFactory clients, ILogger<NightlyDatabaseBackupService> logger) : BackgroundService
+public sealed class DatabaseBackupStatus
+{
+    public DateTimeOffset? LastAttemptUtc { get; internal set; }
+    public DateTimeOffset? LastSuccessUtc { get; internal set; }
+    public string State { get; internal set; } = "not-started";
+    public string? Error { get; internal set; }
+}
+
+public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpClientFactory clients,
+    DatabaseBackupStatus status, ILogger<NightlyDatabaseBackupService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         // Run once when a fresh container starts. Besides providing an immediate
         // safety copy, this makes deployment/configuration failures visible now
         // instead of waiting until the next night.
-        try { await BackupAsync(ct); }
-        catch (Exception ex) { logger.LogError(ex, "Initial database backup failed."); }
+        await TryBackupAsync("Initial", ct);
 
         while (!ct.IsCancellationRequested)
         {
             var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3.5));
             await Task.Delay(now.Date.AddDays(1).AddHours(2) - now, ct);
-            try { await BackupAsync(ct); } catch (Exception ex) { logger.LogError(ex, "Nightly database backup failed."); }
+            await TryBackupAsync("Nightly", ct);
         }
     }
+
+    private async Task TryBackupAsync(string runType, CancellationToken ct)
+    {
+        status.LastAttemptUtc = DateTimeOffset.UtcNow;
+        status.State = "running";
+        status.Error = null;
+        try
+        {
+            await BackupAsync(ct);
+            status.LastSuccessUtc = DateTimeOffset.UtcNow;
+            status.State = "succeeded";
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            status.State = "failed";
+            status.Error = $"{ex.GetType().Name}: {ex.Message}";
+            logger.LogError(ex, "{RunType} database backup failed.", runType);
+        }
+    }
+
     private async Task BackupAsync(CancellationToken ct)
     {
         var db = config["DATABASE_URL"] ?? config.GetConnectionString("DefaultConnection");

@@ -79,6 +79,7 @@ public static class DependencyInjection
         services.AddHttpClient<IInventoryAlertService, TelegramInventoryAlertService>(client =>
             client.Timeout = TimeSpan.FromMinutes(4));
         services.AddHttpClient();
+        services.AddSingleton<DatabaseBackupStatus>();
         services.AddHostedService<NightlyDatabaseBackupService>();
 
         return services;

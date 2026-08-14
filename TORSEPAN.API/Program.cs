@@ -4,6 +4,7 @@ using TORSEPAN.Application;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Infrastructure.DependencyInjection;
 using TORSEPAN.Infrastructure.Persistence;
+using TORSEPAN.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,6 +96,16 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapGet("/health", (DatabaseBackupStatus backup) => Results.Ok(new
+{
+    status = "healthy",
+    databaseBackup = new
+    {
+        backup.State,
+        backup.LastAttemptUtc,
+        backup.LastSuccessUtc,
+        backup.Error
+    }
+}));
 
 app.Run();
