@@ -55,12 +55,14 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
     private async Task BackupAsync(CancellationToken ct)
     {
         var db = config["DATABASE_URL"] ?? config.GetConnectionString("DefaultConnection");
-        var relay = config["Telegram:RelayUrl"];
+        var relay = config["Telegram:BackupRelayUrl"] ?? config["Telegram:RelayUrl"];
         if (string.IsNullOrWhiteSpace(db))
             throw new InvalidOperationException("Database backup connection is not configured.");
         if (string.IsNullOrWhiteSpace(relay))
             throw new InvalidOperationException("Telegram backup relay is not configured.");
-        var url = relay.Replace("telegram-inventory-alert", "telegram-database-backup", StringComparison.OrdinalIgnoreCase);
+        var url = relay.Contains("telegram-inventory-alert", StringComparison.OrdinalIgnoreCase)
+            ? relay.Replace("telegram-inventory-alert", "telegram-database-backup", StringComparison.OrdinalIgnoreCase)
+            : relay;
         var tehranNow = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3.5));
         var file = Path.Combine(Path.GetTempPath(), $"TORSEPAN-{tehranNow:yyyy-MM-dd-HHmm}.dump");
         try

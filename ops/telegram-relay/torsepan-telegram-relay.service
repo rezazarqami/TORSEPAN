@@ -1,0 +1,20 @@
+[Unit]
+Description=TORSEPAN Telegram Relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/torsepan-telegram-relay
+EnvironmentFile=/etc/torsepan-telegram-relay.env
+ExecStart=/usr/bin/python3 /opt/torsepan-telegram-relay/relay.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
