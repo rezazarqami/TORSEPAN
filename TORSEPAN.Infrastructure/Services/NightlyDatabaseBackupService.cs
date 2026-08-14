@@ -81,7 +81,9 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             using var form=new MultipartFormDataContent(); await using var stream=File.OpenRead(file);
             form.Add(new StreamContent(stream),"backup",Path.GetFileName(file));
             using var request=new HttpRequestMessage(HttpMethod.Post,url){Content=form}; request.Headers.Add("X-Relay-Secret",config["Telegram:RelaySecret"]);
-            using var response=await clients.CreateClient().SendAsync(request,ct); response.EnsureSuccessStatusCode();
+            var client = clients.CreateClient();
+            client.Timeout = TimeSpan.FromMinutes(10);
+            using var response=await client.SendAsync(request,ct); response.EnsureSuccessStatusCode();
             logger.LogInformation("Database backup sent successfully at {BackupTime} Tehran time.", tehranNow);
         }
         finally { if(File.Exists(file)) File.Delete(file); }
