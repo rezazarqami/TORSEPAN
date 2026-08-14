@@ -3,6 +3,7 @@
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 @inject ScaleService ScaleService
+@inject IJSRuntime JS
 
 <PageTitle>اسکیل‌ها</PageTitle>
 
@@ -23,11 +24,11 @@
 </div>
 
 <table class="table table-striped">
-    <thead><tr><th>اسکیل‌های قابل انتخاب هنگام چسب‌کاری</th></tr></thead>
+    <thead><tr><th>اسکیل‌های فعال و قابل انتخاب</th><th style="width:120px">مدیریت</th></tr></thead>
     <tbody>
         @foreach (var scale in _scales)
         {
-            <tr><td>@scale.Name</td></tr>
+            <tr><td>@scale.Name</td><td><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(scale)">حذف</button></td></tr>
         }
     </tbody>
 </table>
@@ -64,5 +65,10 @@
     {
         _scales.Clear();
         _scales.AddRange(await ScaleService.GetAsync());
+    }
+    private async Task DeleteAsync(ScaleDto scale)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"اسکیل «{scale.Name}» از انتخاب‌های جدید حذف شود؟ اطلاعات قبلی حفظ می‌شود.")) return;
+        await ScaleService.DeleteAsync(scale.Id); await ReloadAsync();
     }
 }

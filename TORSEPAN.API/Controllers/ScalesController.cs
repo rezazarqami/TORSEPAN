@@ -24,4 +24,8 @@ public sealed class ScalesController : ControllerBase
         var id = await _mediator.Send(command, cancellationToken);
         return Ok(id);
     }
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    { await _mediator.Send(new DeactivateScaleCommand(id), cancellationToken); return NoContent(); }
 }

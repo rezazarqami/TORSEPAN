@@ -12,4 +12,5 @@ public sealed class ScaleService
 
     public Task<Guid> CreateAsync(string name) =>
         _api.PostAsync<object, Guid>("scales", new { Name = name.Trim() });
+    public Task DeleteAsync(Guid id) => _api.DeleteAsync($"scales/{id}");
 }

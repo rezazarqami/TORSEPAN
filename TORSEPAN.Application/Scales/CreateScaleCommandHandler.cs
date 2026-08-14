@@ -13,8 +13,14 @@ public sealed class CreateScaleCommandHandler : IRequestHandler<CreateScaleComma
     public async Task<Guid> Handle(CreateScaleCommand request, CancellationToken cancellationToken)
     {
         var name = request.Name.Trim();
-        if ((await _unitOfWork.Scales.FindAsync(x => x.Name == name)).Any())
-            throw new InvalidOperationException("این اسکیل قبلاً ثبت شده است.");
+        var existing = (await _unitOfWork.Scales.FindAsync(x => x.Name == name)).FirstOrDefault();
+        if (existing is not null)
+        {
+            existing.Activate();
+            _unitOfWork.Scales.Update(existing);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            return existing.Id;
+        }
 
         var scale = new Scale(name);
         await _unitOfWork.Scales.AddAsync(scale);

@@ -15,5 +15,8 @@ public sealed class Scale
 
     public Guid Id { get; private set; }
     public string Name { get; private set; } = string.Empty;
+    public bool IsActive { get; private set; } = true;
+    public void Deactivate() => IsActive = false;
+    public void Activate() => IsActive = true;
     public ICollection<Handpan> Handpans { get; private set; } = new List<Handpan>();
 }

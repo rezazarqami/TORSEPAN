@@ -36,7 +36,7 @@ else
             <thead>
                 <tr>
                     <th style="width: 48px;"></th>
-                    <th>کد</th><th>نوع کاسه</th><th>دارای نت</th><th>متریال</th><th>وضعیت</th><th>حذف</th>
+                    <th>کد</th><th>نوع کاسه</th><th>دارای نت</th><th>متریال</th><th>اسکیل کاسه</th><th>وضعیت</th><th>حذف</th>
                 </tr>
             </thead>
             <tbody>
@@ -48,6 +48,7 @@ else
                         <td>@(bowl.BowlType == 1 ? "کاسه بالا" : "کاسه پایین")</td>
                         <td>@(bowl.HasNotes ? "بله" : "خیر")</td>
                         <td>@bowl.MaterialName</td>
+                        <td>@bowl.ScaleName</td>
                         <td><span class="badge bg-primary">@StageText(bowl.Stage)</span></td>
                         <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBowlAsync(bowl)">حذف</button></AuthorizeView></td>
                     </tr>

@@ -33,6 +33,7 @@ public sealed class BowlQueryService : IBowlQueryService
                 InstrumentType = (int)x.InstrumentType,
                 MaterialId = x.MaterialId,
                 MaterialName = x.Material.Name,
+                ScaleName = x.Scale != null ? x.Scale.Name : "نامشخص",
                 Status = (int)x.Status,
                 Stage = (int)x.Stage,
                 Operations = x.ProductionEvents
