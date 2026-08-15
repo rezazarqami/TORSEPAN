@@ -29,4 +29,11 @@ public sealed class ProductionQueueItemResponse
 {
     public string Stage { get; set; } = string.Empty;
     public IReadOnlyList<string> Codes { get; set; } = [];
+    public IReadOnlyList<ProductionQueueGroupResponse> Groups { get; set; } = [];
+}
+
+public sealed class ProductionQueueGroupResponse
+{
+    public string UserName { get; set; } = string.Empty;
+    public IReadOnlyList<string> Codes { get; set; } = [];
 }

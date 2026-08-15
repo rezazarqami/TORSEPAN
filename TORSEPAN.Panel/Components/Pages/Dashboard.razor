@@ -53,6 +53,19 @@ else
                             {
                                 <span class="text-muted">موردی وجود ندارد</span>
                             }
+                            else if (queue.Groups.Count > 0)
+                            {
+                                @foreach (var group in queue.Groups)
+                                {
+                                    <div class="mb-2">
+                                        <strong class="small ms-2">@group.UserName:</strong>
+                                        @foreach (var itemCode in group.Codes)
+                                        {
+                                            <span class="badge bg-light text-dark border me-1 mb-1 dashboard-code">@itemCode</span>
+                                        }
+                                    </div>
+                                }
+                            }
                             else
                             {
                                 @foreach (var itemCode in queue.Codes)

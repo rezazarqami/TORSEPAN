@@ -10,4 +10,13 @@ public sealed class BowlDimpleDto
     public int Status { get; init; }
     public int Stage { get; init; }
     public List<string> Notes { get; init; } = [];
+    public List<BowlStageHistoryDto> History { get; init; } = [];
+}
+
+public sealed class BowlStageHistoryDto
+{
+    public int Action { get; init; }
+    public string ActionTitle { get; init; } = string.Empty;
+    public string PerformedBy { get; init; } = string.Empty;
+    public DateTime PerformedAt { get; init; }
 }

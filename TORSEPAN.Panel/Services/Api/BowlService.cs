@@ -19,6 +19,9 @@ public sealed class BowlService
         return result?.Items ?? [];
     }
 
+    public Task<PagedResult<BowlDto>?> GetPageAsync(int page, int pageSize = 20)
+        => _api.GetAsync<PagedResult<BowlDto>>($"bowls?page={page}&pageSize={pageSize}");
+
     public Task<SuggestedBowlCodeDto?> GetSuggestedCodeAsync(Guid? materialId=null,int? bowlType=null)
     {
         var query=materialId.HasValue&&bowlType.HasValue?$"?materialId={materialId}&bowlType={bowlType}":"";

@@ -16,15 +16,17 @@ public sealed class GetProductionDashboardQueryHandler
         CancellationToken cancellationToken)
     {
         var bowls = (await _unitOfWork.Bowls.GetAllAsync()).ToList();
-        var handpans = (await _unitOfWork.Handpans.GetAllAsync()).ToList();
-        var finished = handpans.Count(x => x.Stage == ProductionStage.FinishedWarehouse);
-        var rejected = handpans.Count(x => x.Stage == ProductionStage.Rejected);
+        var allHandpans = (await _unitOfWork.Handpans.GetAllAsync()).ToList();
+        var handpans = (await _unitOfWork.Handpans.GetAllWithAssemblyAsync()).ToList();
+        var finished = allHandpans.Count(x => x.Stage == ProductionStage.FinishedWarehouse);
+        var rejected = allHandpans.Count(x => x.Stage == ProductionStage.Rejected);
         var tehranNow = DateTime.UtcNow.AddHours(3.5);
         var calendar = new PersianCalendar();
         var year = calendar.GetYear(tehranNow); var month = calendar.GetMonth(tehranNow);
         var monthStartTehran = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
         var monthStartUtc = DateTime.SpecifyKind(monthStartTehran.AddHours(-3.5), DateTimeKind.Utc);
-        var events = await _unitOfWork.ProductionEvents.GetReportAsync(monthStartUtc, null, null, null, EventResult.Completed);
+        var allEvents = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, EventResult.Completed);
+        var events = allEvents.Where(x => x.EventDate >= monthStartUtc).ToList();
         var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune };
         var monthly = events.Where(x => tracked.Contains(x.Action) && !x.Description.StartsWith("NOTE:"))
             .GroupBy(x => new { x.UserId, x.User.UserName, x.User.FullName, x.User.DisplayOrder, x.Action })
@@ -42,22 +44,22 @@ public sealed class GetProductionDashboardQueryHandler
 
         return new GetProductionDashboardResponse
         {
-            TotalHandpans = handpans.Count,
+            TotalHandpans = allHandpans.Count,
             Finished = finished,
             Rejected = rejected,
-            InProduction = handpans.Count - finished - rejected,
-            CompletionRate = handpans.Count == 0 ? 0 : Math.Round((double)finished / handpans.Count * 100, 2),
+            InProduction = allHandpans.Count - finished - rejected,
+            CompletionRate = allHandpans.Count == 0 ? 0 : Math.Round((double)finished / allHandpans.Count * 100, 2),
             CurrentPersianMonthTitle = $"{PersianMonthName(month)} {year}",
             MonthlyUserOperations = monthly,
             Queues =
             [
                 BowlQueue("آماده دیمپل", ProductionStage.WaitingForDimple),
                 BowlQueue("آماده شیپ", ProductionStage.WaitingForShape),
-                BowlQueue("آماده تیون", ProductionStage.WaitingForTune),
-                BowlQueueByType("آماده چسب — کاسه رو", ProductionStage.WaitingForGlue, BowlType.Top),
-                BowlQueueByType("آماده چسب — کاسه زیر", ProductionStage.WaitingForGlue, BowlType.Bottom),
+                GroupedBowlQueue("آماده تیون", ProductionStage.WaitingForTune, ProductionAction.Shape),
+                GroupedBowlQueue("آماده چسب — کاسه رو", ProductionStage.WaitingForGlue, ProductionAction.Tune, BowlType.Top),
+                GroupedBowlQueue("آماده چسب — کاسه زیر", ProductionStage.WaitingForGlue, ProductionAction.Tune, BowlType.Bottom),
                 BowlQueue("آماده بسته‌بندی صادراتی", ProductionStage.WaitingForExportPackaging),
-                HandpanQueue("آماده فاین تیون", ProductionStage.WaitingForFinalTune),
+                GroupedHandpanQueue("آماده فاین تیون", ProductionStage.WaitingForFinalTune),
                 HandpanQueue("آماده کنترل کیفیت (QC)", ProductionStage.WaitingForQualityControl),
                 HandpanQueue("آماده بسته‌بندی", ProductionStage.WaitingForPackaging)
             ]
@@ -75,11 +77,54 @@ public sealed class GetProductionDashboardQueryHandler
             Codes = handpans.Where(x => x.Stage == stage).Select(x => x.SerialNumber).OrderBy(x => x).ToList()
         };
 
-        ProductionQueueItemResponse BowlQueueByType(string title, ProductionStage stage, BowlType type) => new()
+        ProductionQueueItemResponse GroupedBowlQueue(string title, ProductionStage stage,
+            ProductionAction action, BowlType? type = null)
         {
-            Stage = title,
-            Codes = bowls.Where(x => x.Stage == stage && x.BowlType == type).Select(x => x.ProductionCode).OrderBy(x => x).ToList()
-        };
+            var items = bowls.Where(x => x.Stage == stage && (!type.HasValue || x.BowlType == type.Value)).ToList();
+            return new ProductionQueueItemResponse
+            {
+                Stage = title,
+                Codes = items.Select(x => x.ProductionCode).OrderBy(x => x).ToList(),
+                Groups = items.GroupBy(x => PerformerForBowl(x.Id, action))
+                    .OrderBy(x => x.Key)
+                    .Select(x => new ProductionQueueGroupResponse
+                    {
+                        UserName = x.Key,
+                        Codes = x.Select(b => b.ProductionCode).OrderBy(code => code).ToList()
+                    }).ToList()
+            };
+        }
+
+        ProductionQueueItemResponse GroupedHandpanQueue(string title, ProductionStage stage)
+        {
+            var items = handpans.Where(x => x.Stage == stage).ToList();
+            return new ProductionQueueItemResponse
+            {
+                Stage = title,
+                Codes = items.Select(x => x.SerialNumber).OrderBy(x => x).ToList(),
+                Groups = items.GroupBy(x =>
+                    string.Join(" / ", new[] { x.Assembly.TopBowlId, x.Assembly.BottomBowlId }
+                        .Select(id => PerformerForBowl(id, ProductionAction.Tune))
+                        .Distinct().OrderBy(name => name)))
+                    .OrderBy(x => x.Key)
+                    .Select(x => new ProductionQueueGroupResponse
+                    {
+                        UserName = string.IsNullOrWhiteSpace(x.Key) ? "نامشخص" : x.Key,
+                        Codes = x.Select(h => h.SerialNumber).OrderBy(code => code).ToList()
+                    }).ToList()
+            };
+        }
+
+        string PerformerForBowl(Guid bowlId, ProductionAction action)
+        {
+            var productionEvent = allEvents.Where(x => x.BowlId == bowlId && x.Action == action &&
+                                                        !x.Description.StartsWith("NOTE:"))
+                .OrderByDescending(x => x.EventDate).FirstOrDefault();
+            if (productionEvent is null) return "نامشخص";
+            return string.IsNullOrWhiteSpace(productionEvent.User.FullName)
+                ? productionEvent.User.UserName
+                : productionEvent.User.FullName;
+        }
     }
 
     private static string OperationTitle(ProductionAction action) => action switch

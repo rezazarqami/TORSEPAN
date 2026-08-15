@@ -58,6 +58,26 @@
             <div><strong>نوع کاسه:</strong> @BowlTypeText(_bowl.BowlType)</div>
             <div><strong>وضعیت:</strong> @StageText(_bowl.Stage)</div>
 
+            @if (_bowl.History.Count > 0)
+            {
+                <div class="card bg-light border-0 mt-3">
+                    <div class="card-body py-3">
+                        <strong>مراحل انجام‌شده تا این لحظه</strong>
+                        <div class="table-responsive mt-2">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>مرحله</th><th>انجام‌دهنده</th><th>زمان انجام</th></tr></thead>
+                                <tbody>
+                                @foreach (var item in _bowl.History)
+                                {
+                                    <tr><td>@item.ActionTitle</td><td>@item.PerformedBy</td><td>@PersianDateTime.FormatDateTime(item.PerformedAt)</td></tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+
             @if (_bowl.Stage is >= 4 and <= 14)
             {
                 @if (_bowl.Notes.Count > 0)

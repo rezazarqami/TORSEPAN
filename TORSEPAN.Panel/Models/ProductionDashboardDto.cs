@@ -51,4 +51,11 @@ public sealed class ProductionQueueItemDto
 {
     public string Stage { get; set; } = string.Empty;
     public List<string> Codes { get; set; } = [];
+    public List<ProductionQueueGroupDto> Groups { get; set; } = [];
+}
+
+public sealed class ProductionQueueGroupDto
+{
+    public string UserName { get; set; } = string.Empty;
+    public List<string> Codes { get; set; } = [];
 }
