@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using TORSEPAN.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace TORSEPAN.Infrastructure.Migrations;
 
+[DbContext(typeof(TORSEPANDbContext))]
 [Migration("20260816020000_AddPayrollPayments")]
 public partial class AddPayrollPayments : Migration
 {
