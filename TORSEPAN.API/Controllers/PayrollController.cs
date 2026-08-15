@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,45 +13,32 @@ namespace TORSEPAN.API.Controllers;
 public sealed class PayrollController(TORSEPANDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
+    public async Task<IActionResult> Get([FromQuery] DateTime? from, [FromQuery] DateTime? to,
+        [FromQuery] bool onlyWarehouseAndSales = false, CancellationToken ct = default)
+        => Ok(await CalculateAsync(from, to, onlyWarehouseAndSales, ct));
+
+    [HttpPost("payments")]
+    public async Task<IActionResult> MarkPaid(PayrollPaymentRequest request, CancellationToken ct)
     {
-        var now = DateTime.UtcNow.AddHours(3.5);
-        var pc = new PersianCalendar();
-        var start = from?.Date ?? pc.ToDateTime(pc.GetYear(now), pc.GetMonth(now), 1, 0, 0, 0, 0);
-        var end = to?.Date.AddDays(1) ?? now.AddDays(1).Date;
-        var startUtc = DateTime.SpecifyKind(start.AddHours(-3.5), DateTimeKind.Utc);
-        var endUtc = DateTime.SpecifyKind(end.AddHours(-3.5), DateTimeKind.Utc);
+        var calculation = await CalculateAsync(request.From, request.To, true, ct);
+        if (calculation.HandpanIds.Count == 0 || calculation.Lines.Count == 0)
+            return BadRequest("ساز پرداخت‌نشده‌ای در این بازه وجود ندارد.");
+        var payment = new PayrollPayment(
+            DateTime.SpecifyKind(calculation.From, DateTimeKind.Utc), DateTime.SpecifyKind(calculation.To, DateTimeKind.Utc),
+            User.Identity?.Name ?? "کاربر سیستم", calculation.Lines.Sum(x => x.Total),
+            JsonSerializer.Serialize(calculation.HandpanIds), JsonSerializer.Serialize(calculation.HandpanCodes),
+            JsonSerializer.Serialize(calculation.Lines));
+        db.PayrollPayments.Add(payment);
+        await db.SaveChangesAsync(ct);
+        return Ok(new { payment.Id });
+    }
 
-        var events = await db.ProductionEvents.AsNoTracking()
-            .Include(x => x.User)
-            .Include(x => x.Bowl)!.ThenInclude(x => x.Material)
-            .Include(x => x.Bowl)!.ThenInclude(x => x.Scale)
-            .Include(x => x.Assembly)!.ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
-            .Include(x => x.Handpan)!.ThenInclude(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
-            .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
-                (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Glue || x.Action == ProductionAction.Tune || x.Action == ProductionAction.FineTune))
-            .ToListAsync(ct);
-
-        var rates = await db.PayrollRates.AsNoTracking().Include(x => x.Material).Include(x => x.Scale).ToListAsync(ct);
-        var lines = events.GroupBy(x => new
-        {
-            x.UserId, x.User.FullName, x.User.UserName, x.User.DisplayOrder, x.Action,
-            MaterialId = x.Action == ProductionAction.Glue && x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Bowl != null ? x.Bowl.MaterialId : x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Handpan != null ? x.Handpan.Assembly.TopBowl.MaterialId : (Guid?)null,
-            Material = x.Action == ProductionAction.Glue && x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
-            BowlType = x.Action == ProductionAction.Glue || x.Bowl == null ? (int?)null : (int)x.Bowl.BowlType,
-            ScaleId = x.Action == ProductionAction.Shape && x.Bowl != null ? x.Bowl.ScaleId : (Guid?)null,
-            Scale = x.Action == ProductionAction.Shape && x.Bowl != null && x.Bowl.Scale != null ? x.Bowl.Scale.Name : ""
-        }).Select(g =>
-        {
-            var rate = rates.Where(r => r.Action == g.Key.Action && (!r.MaterialId.HasValue || r.MaterialId == g.Key.MaterialId) && (!r.BowlType.HasValue || (int)r.BowlType == g.Key.BowlType) && (!r.ScaleId.HasValue || r.ScaleId == g.Key.ScaleId))
-                .OrderByDescending(r => r.MaterialId.HasValue).ThenByDescending(r => r.BowlType.HasValue).ThenByDescending(r => r.ScaleId.HasValue).FirstOrDefault()?.Amount ?? 0;
-            // Glue creates two bowl events for traceability, but represents one completed handpan job.
-            var count = g.Key.Action == ProductionAction.Glue ? g.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId).Distinct().Count() : g.Count();
-            return new PayrollLine(g.Key.UserId, string.IsNullOrWhiteSpace(g.Key.FullName) ? g.Key.UserName : g.Key.FullName, g.Key.DisplayOrder, (int)g.Key.Action, Title(g.Key.Action), g.Key.MaterialId, g.Key.Material, g.Key.BowlType, g.Key.ScaleId, g.Key.Scale, count, rate, count * rate);
-        }).ToList();
-
-        var users = await db.Users.AsNoTracking().OrderBy(x => x.DisplayOrder).ThenBy(x => x.FullName).Select(x => new PayrollUser(x.Id, x.FullName, x.DisplayOrder)).ToListAsync(ct);
-        return Ok(new { From = start, To = end.AddDays(-1), Lines = lines.OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName), Users = users, Rates = rates.Select(r => new PayrollRateDto(r.Id, (int)r.Action, Title(r.Action), r.MaterialId, r.Material?.Name ?? "همه متریال‌ها", r.BowlType.HasValue ? (int)r.BowlType : null, r.ScaleId, r.Scale?.Name ?? "", r.Amount)) });
+    [HttpGet("payments")]
+    public async Task<IActionResult> Payments(CancellationToken ct)
+    {
+        var payments = await db.PayrollPayments.AsNoTracking().OrderByDescending(x => x.PaidAt).ToListAsync(ct);
+        return Ok(payments.Select(x => new PayrollPaymentDto(x.Id, x.From, x.To, x.PaidAt, x.PaidBy,
+            x.TotalAmount, Deserialize<string>(x.HandpanCodesJson), Deserialize<PayrollLine>(x.LinesJson))));
     }
 
     [HttpPost("rates")]
@@ -72,11 +60,81 @@ public sealed class PayrollController(TORSEPANDbContext db) : ControllerBase
         await db.SaveChangesAsync(ct); return NoContent();
     }
 
+    private async Task<PayrollCalculation> CalculateAsync(DateTime? from, DateTime? to, bool onlyWarehouseAndSales, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow.AddHours(3.5);
+        var pc = new PersianCalendar();
+        var start = from?.Date ?? pc.ToDateTime(pc.GetYear(now), pc.GetMonth(now), 1, 0, 0, 0, 0);
+        var end = to?.Date.AddDays(1) ?? now.AddDays(1).Date;
+        var startUtc = DateTime.SpecifyKind(start.AddHours(-3.5), DateTimeKind.Utc);
+        var endUtc = DateTime.SpecifyKind(end.AddHours(-3.5), DateTimeKind.Utc);
+
+        var handpanIds = new List<Guid>();
+        var handpanCodes = new List<string>();
+        var assemblyIds = new List<Guid>();
+        var bowlIds = new List<Guid>();
+        if (onlyWarehouseAndSales)
+        {
+            var alreadyPaid = (await db.PayrollPayments.AsNoTracking().Select(x => x.HandpanIdsJson).ToListAsync(ct))
+                .SelectMany(Deserialize<Guid>).ToHashSet();
+            var enteredIds = await db.ProductionEvents.AsNoTracking()
+                .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed &&
+                            x.Action == ProductionAction.Packaging && x.HandpanId.HasValue)
+                .Select(x => x.HandpanId!.Value).Distinct().ToListAsync(ct);
+            handpanIds = enteredIds.Where(x => !alreadyPaid.Contains(x)).ToList();
+            var handpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly)
+                .Where(x => handpanIds.Contains(x.Id)).ToListAsync(ct);
+            handpanCodes = handpans.Select(x => x.SerialNumber).OrderBy(x => x).ToList();
+            assemblyIds = handpans.Select(x => x.AssemblyId).ToList();
+            bowlIds = handpans.SelectMany(x => new[] { x.Assembly.TopBowlId, x.Assembly.BottomBowlId }).ToList();
+        }
+
+        var eventQuery = db.ProductionEvents.AsNoTracking()
+            .Include(x => x.User).Include(x => x.Bowl)!.ThenInclude(x => x.Material)
+            .Include(x => x.Bowl)!.ThenInclude(x => x.Scale)
+            .Include(x => x.Assembly)!.ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
+            .Include(x => x.Handpan)!.ThenInclude(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
+            .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
+                (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Glue || x.Action == ProductionAction.Tune || x.Action == ProductionAction.FineTune));
+        eventQuery = onlyWarehouseAndSales
+            ? eventQuery.Where(x => (x.HandpanId.HasValue && handpanIds.Contains(x.HandpanId.Value)) ||
+                                    (x.AssemblyId.HasValue && assemblyIds.Contains(x.AssemblyId.Value)) ||
+                                    (x.BowlId.HasValue && bowlIds.Contains(x.BowlId.Value)))
+            : eventQuery.Where(x => x.EventDate >= startUtc && x.EventDate < endUtc);
+
+        var events = await eventQuery.ToListAsync(ct);
+        var rates = await db.PayrollRates.AsNoTracking().Include(x => x.Material).Include(x => x.Scale).ToListAsync(ct);
+        var lines = events.GroupBy(x => new
+        {
+            x.UserId, x.User.FullName, x.User.UserName, x.User.DisplayOrder, x.Action,
+            MaterialId = x.Action == ProductionAction.Glue && x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Bowl != null ? x.Bowl.MaterialId : x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Handpan != null ? x.Handpan.Assembly.TopBowl.MaterialId : (Guid?)null,
+            Material = x.Action == ProductionAction.Glue && x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
+            BowlType = x.Action == ProductionAction.Glue || x.Bowl == null ? (int?)null : (int)x.Bowl.BowlType,
+            ScaleId = x.Action == ProductionAction.Shape && x.Bowl != null ? x.Bowl.ScaleId : (Guid?)null,
+            Scale = x.Action == ProductionAction.Shape && x.Bowl != null && x.Bowl.Scale != null ? x.Bowl.Scale.Name : ""
+        }).Select(g =>
+        {
+            var rate = rates.Where(r => r.Action == g.Key.Action && (!r.MaterialId.HasValue || r.MaterialId == g.Key.MaterialId) && (!r.BowlType.HasValue || (int)r.BowlType == g.Key.BowlType) && (!r.ScaleId.HasValue || r.ScaleId == g.Key.ScaleId))
+                .OrderByDescending(r => r.MaterialId.HasValue).ThenByDescending(r => r.BowlType.HasValue).ThenByDescending(r => r.ScaleId.HasValue).FirstOrDefault()?.Amount ?? 0;
+            var count = g.Key.Action == ProductionAction.Glue ? g.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId).Distinct().Count() : g.Count();
+            return new PayrollLine(g.Key.UserId, string.IsNullOrWhiteSpace(g.Key.FullName) ? g.Key.UserName : g.Key.FullName, g.Key.DisplayOrder, (int)g.Key.Action, Title(g.Key.Action), g.Key.MaterialId, g.Key.Material, g.Key.BowlType, g.Key.ScaleId, g.Key.Scale, count, rate, count * rate);
+        }).OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ToList();
+
+        var users = await db.Users.AsNoTracking().OrderBy(x => x.DisplayOrder).ThenBy(x => x.FullName).Select(x => new PayrollUser(x.Id, x.FullName, x.DisplayOrder)).ToListAsync(ct);
+        return new PayrollCalculation(start, end.AddDays(-1), lines, users,
+            rates.Select(r => new PayrollRateDto(r.Id, (int)r.Action, Title(r.Action), r.MaterialId, r.Material?.Name ?? "همه متریال‌ها", r.BowlType.HasValue ? (int)r.BowlType : null, r.ScaleId, r.Scale?.Name ?? "", r.Amount)).ToList(),
+            handpanIds, handpanCodes, onlyWarehouseAndSales);
+    }
+
+    private static List<T> Deserialize<T>(string json) { try { return JsonSerializer.Deserialize<List<T>>(json) ?? []; } catch { return []; } }
     private static string Title(ProductionAction action) => action switch { ProductionAction.Dimple => "دیمپل", ProductionAction.Shape => "شیپ", ProductionAction.Glue => "چسب", ProductionAction.Tune => "تیون", ProductionAction.FineTune => "فاین تیون", _ => action.ToString() };
 }
 
+public sealed record PayrollCalculation(DateTime From, DateTime To, List<PayrollLine> Lines, List<PayrollUser> Users, List<PayrollRateDto> Rates, List<Guid> HandpanIds, List<string> HandpanCodes, bool OnlyWarehouseAndSales);
 public sealed record PayrollLine(Guid UserId, string UserName, int DisplayOrder, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, int Count, decimal Rate, decimal Total);
 public sealed record PayrollUser(Guid Id, string FullName, int DisplayOrder);
 public sealed record PayrollRateDto(Guid Id, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, decimal Amount);
 public sealed record PayrollRateRequest(int Action, Guid? MaterialId, int? BowlType, Guid? ScaleId, decimal Amount);
 public sealed record UserOrderRequest(Guid UserId, int Order);
+public sealed record PayrollPaymentRequest(DateTime From, DateTime To);
+public sealed record PayrollPaymentDto(Guid Id, DateTime From, DateTime To, DateTime PaidAt, string PaidBy, decimal TotalAmount, List<string> HandpanCodes, List<PayrollLine> Lines);

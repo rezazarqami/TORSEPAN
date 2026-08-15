@@ -1,0 +1,25 @@
+@page "/reports/payroll/payments"
+@attribute [Authorize(Roles = "Administrator,ProductionManager")]
+@using Microsoft.AspNetCore.Authorization
+@inject PayrollService PayrollService
+@inject NavigationManager Navigation
+
+<PageTitle>سوابق پرداخت دستمزد</PageTitle>
+<PageHeader Title="سوابق پرداخت دستمزد" SubTitle="اسناد ثبت‌شده پرداخت تولید بر اساس سازهای واردشده به انبار" />
+<button class="btn btn-outline-primary mb-3" @onclick='() => Navigation.NavigateTo("/reports/payroll")'>بازگشت به محاسبه دستمزد</button>
+
+@if (_loading){<div class="text-center p-5"><div class="spinner-border"></div></div>}
+else if (_payments.Count==0){<div class="alert alert-info">هنوز پرداختی ثبت نشده است.</div>}
+else
+{
+    @foreach(var payment in _payments)
+    {
+        <Card>
+            <div class="d-flex justify-content-between flex-wrap gap-2"><div><strong>پرداخت @PersianDateTime.FormatDateTime(payment.PaidAt)</strong><div class="text-muted small">بازه: @PersianDateTime.FormatDate(payment.From) تا @PersianDateTime.FormatDate(payment.To) — ثبت‌کننده: @payment.PaidBy</div></div><div class="fs-5 fw-bold">@payment.TotalAmount.ToString("N0")</div></div>
+            <div class="my-3"><strong>سازهای تسویه‌شده:</strong> @string.Join("، ",payment.HandpanCodes)</div>
+            <div class="table-responsive"><table class="table table-sm"><thead><tr><th>عضو</th><th>عملیات</th><th>تعداد</th><th>نرخ</th><th>جمع</th></tr></thead><tbody>@foreach(var line in payment.Lines){<tr><td>@line.UserName</td><td>@line.ActionTitle — @line.MaterialName</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td>@line.Total.ToString("N0")</td></tr>}</tbody></table></div>
+        </Card>
+    }
+}
+
+@code{private bool _loading=true;private List<PayrollPaymentDto> _payments=[];protected override async Task OnInitializedAsync(){try{_payments=(await PayrollService.GetPaymentsAsync()).ToList();}finally{_loading=false;}}}

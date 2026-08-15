@@ -22,6 +22,7 @@ public class TORSEPANDbContext : DbContext
     public DbSet<ProductionEvent> ProductionEvents => Set<ProductionEvent>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PayrollRate> PayrollRates => Set<PayrollRate>();
+    public DbSet<PayrollPayment> PayrollPayments => Set<PayrollPayment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -4,6 +4,8 @@
 @inject PayrollService PayrollService
 @inject MaterialService MaterialService
 @inject ScaleService ScaleService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>محاسبه دستمزد تولید</PageTitle>
 <PageHeader Title="محاسبه دستمزد تولید" SubTitle="محاسبه دستمزد اعضا بر اساس عملیات ثبت‌شده" />
@@ -13,7 +15,9 @@
         <div class="col-md-3"><label class="form-label">از تاریخ</label><PersianDatePicker @bind-Value="_from" /></div>
         <div class="col-md-3"><label class="form-label">تا تاریخ</label><PersianDatePicker @bind-Value="_to" /></div>
         <div class="col-md-3"><button class="btn btn-primary w-100" @onclick="LoadAsync">محاسبه</button></div>
+        <div class="col-md-3"><div class="form-check form-switch border rounded p-3"><input class="form-check-input" type="checkbox" id="warehouseOnly" @bind="_onlyWarehouseAndSales" /><label class="form-check-label" for="warehouseOnly">فقط سازهای واردشده به انبار و فروش</label></div></div>
     </div>
+    <div class="mt-3"><button class="btn btn-outline-secondary" @onclick='() => Navigation.NavigateTo("/reports/payroll/payments")'>مشاهده سوابق پرداخت‌ها</button></div>
 </div>
 
 @if (_loading)
@@ -22,6 +26,10 @@
 }
 else
 {
+    @if (_onlyWarehouseAndSales)
+    {
+        <div class="alert alert-info"><strong>مبنای محاسبه:</strong> فقط سازهایی که در این بازه وارد انبار شده‌اند و قبلاً پرداخت نشده‌اند. <div class="mt-2">کد سازها: @( _payroll.HandpanCodes.Count == 0 ? "موردی وجود ندارد" : string.Join("، ", _payroll.HandpanCodes))</div></div>
+    }
     <div class="row g-4">
         <div class="col-xl-8">
             <Card>
@@ -48,6 +56,10 @@ else
                     </table>
                 </div>
             </Card>
+            @if (_onlyWarehouseAndSales)
+            {
+                <button class="btn btn-success btn-lg w-100 mt-3" disabled="@(_savingPayment || _payroll.HandpanCodes.Count == 0 || _payroll.Lines.Count == 0)" @onclick="MarkPaidAsync">@(_savingPayment ? "در حال ثبت..." : "پرداخت شد و ثبت در سوابق")</button>
+            }
         </div>
         <div class="col-xl-4">
             <Card>
@@ -82,7 +94,7 @@ else
     private PayrollDto _payroll = new();
     private List<MaterialDto> _materials = [];
     private List<ScaleDto> _scales = [];
-    private bool _loading = true;
+    private bool _loading = true, _onlyWarehouseAndSales, _savingPayment;
     private DateTime? _from, _to;
     private int _rateAction = 2;
     private string _rateMaterial = "", _rateBowlType = "", _rateScale = "";
@@ -90,8 +102,9 @@ else
     private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
     private IEnumerable<UserPayrollGroup> UserGroups => _payroll.Lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.ToList()));
     protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); _scales = (await ScaleService.GetAsync()).ToList(); await LoadAsync(); }
-    private async Task LoadAsync() { _loading = true; try { _payroll = await PayrollService.GetAsync(_from, _to) ?? new(); if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
+    private async Task LoadAsync() { _loading = true; try { _payroll = await PayrollService.GetAsync(_from, _to, _onlyWarehouseAndSales) ?? new(); if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
     private async Task SaveRateAsync() { Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null; int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null; Guid? scale = Guid.TryParse(_rateScale, out var s) ? s : null; await PayrollService.SaveRateAsync(_rateAction, material, bowl, scale, _rateAmount); await LoadAsync(); }
     private async Task SaveOrderAsync() { await PayrollService.SaveOrderAsync(_payroll.Users); await LoadAsync(); }
+    private async Task MarkPaidAsync(){if(!_from.HasValue||!_to.HasValue)return;if(!await JS.InvokeAsync<bool>("confirm",$"دستمزد {_payroll.HandpanCodes.Count} ساز با مبلغ کل {_payroll.Lines.Sum(x=>x.Total):N0} به‌عنوان پرداخت‌شده ثبت شود؟"))return;_savingPayment=true;try{await PayrollService.MarkPaidAsync(_from.Value,_to.Value);await LoadAsync();Navigation.NavigateTo("/reports/payroll/payments");}finally{_savingPayment=false;}}
     private sealed record UserPayrollGroup(string Name, List<PayrollLineDto> Lines);
 }
