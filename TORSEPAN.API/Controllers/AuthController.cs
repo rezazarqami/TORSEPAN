@@ -54,12 +54,14 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("users")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<Guid>> CreateUser([FromBody] CreateUserCommand command)
     {
         return Ok(await _mediator.Send(command));
     }
 
     [HttpPut("users/{id:guid}")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> UpdateUser(
         Guid id,
         [FromBody] UpdateUserCommand command)
@@ -69,6 +71,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPut("users/{id:guid}/status")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> UpdateStatus(
         Guid id,
         [FromBody] bool isActive)
@@ -78,18 +81,21 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("users")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<List<TORSEPAN.Application.Auth.Queries.GetUsers.UserDto>>> GetUsers()
     {
         return Ok(await _mediator.Send(new GetUsersQuery()));
     }
 
     [HttpGet("roles")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<List<RoleDto>>> GetRoles()
     {
         return Ok(await _mediator.Send(new GetRolesQuery()));
     }
 
     [HttpGet("users/paged")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<GetUsersPagedResponse>> GetUsersPaged(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
@@ -99,6 +105,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("users/search")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<List<TORSEPAN.Application.Auth.Queries.SearchUsers.UserDto>>> SearchUsers(
         [FromQuery] string keyword)
     {
@@ -106,12 +113,14 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("users/active")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<List<TORSEPAN.Application.Auth.Queries.GetActiveUsers.UserDto>>> GetActiveUsers()
     {
         return Ok(await _mediator.Send(new GetActiveUsers()));
     }
 
     [HttpGet("users/inactive")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<List<TORSEPAN.Application.Auth.Queries.GetInactiveUsers.UserDto>>> GetInactiveUsers()
     {
         return Ok(await _mediator.Send(new GetInactiveUsers()));
@@ -147,24 +156,28 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("users/count")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<UserCountResponse>> GetUserCount()
     {
         return Ok(await _mediator.Send(new UserCountQuery()));
     }
 
     [HttpGet("users/statistics")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<UserStatisticsResponse>> GetStatistics()
     {
         return Ok(await _mediator.Send(new UserStatisticsQuery()));
     }
 
     [HttpGet("users/summary")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<UserSummaryResponse>> GetSummary()
     {
         return Ok(await _mediator.Send(new UserSummaryQuery()));
     }
 
     [HttpDelete("users/{id:guid}")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
         await _mediator.Send(new DeleteUserCommand(id));

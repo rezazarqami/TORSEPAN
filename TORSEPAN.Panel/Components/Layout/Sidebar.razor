@@ -29,10 +29,12 @@
         <span>تولید</span>
     </NavLink>
 
+    <AuthorizeView Roles="Administrator,ProductionManager">
     <NavLink href="/scales">
         <span>🎵</span>
         <span>اسکیل‌ها</span>
     </NavLink>
+    </AuthorizeView>
 
     <NavLink href="/warehouse/list">
         <span>📦</span>
@@ -49,6 +51,7 @@
         <span>انبار صادراتی</span>
     </NavLink>
 
+    <AuthorizeView Roles="Administrator,ProductionManager">
     <NavLink href="/sales"><span>💰</span><span>فروش</span></NavLink>
 
     <NavLink href="/users/list">
@@ -60,7 +63,8 @@
         <span>📊</span>
         <span>گزارش‌ها</span>
     </NavLink>
-    <AuthorizeView Roles="Administrator,ProductionManager"><NavLink href="/reports/payroll"><span>🧮</span><span>دستمزد تولید</span></NavLink></AuthorizeView>
+    <NavLink href="/reports/payroll"><span>🧮</span><span>دستمزد تولید</span></NavLink>
+    </AuthorizeView>
 
 </nav>
 

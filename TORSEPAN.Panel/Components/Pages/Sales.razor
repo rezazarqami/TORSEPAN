@@ -1,4 +1,6 @@
 @page "/sales"
+@attribute [Authorize(Roles = "Administrator,ProductionManager")]
+@using Microsoft.AspNetCore.Authorization
 @inject ProductionService ProductionService
 @inject BowlService BowlService
 @inject IJSRuntime JS

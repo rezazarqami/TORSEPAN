@@ -1,4 +1,6 @@
 ﻿@page "/users"
+@attribute [Authorize(Roles = "Administrator,ProductionManager")]
+@using Microsoft.AspNetCore.Authorization
 
 @inject NavigationManager Navigation
 

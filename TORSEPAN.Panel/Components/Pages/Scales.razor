@@ -1,4 +1,6 @@
 @page "/scales"
+@attribute [Authorize(Roles = "Administrator,ProductionManager")]
+@using Microsoft.AspNetCore.Authorization
 
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api

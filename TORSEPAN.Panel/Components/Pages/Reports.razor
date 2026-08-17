@@ -1,4 +1,6 @@
 @page "/reports"
+@attribute [Authorize(Roles = "Administrator,ProductionManager")]
+@using Microsoft.AspNetCore.Authorization
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 @inject ReportService ReportService
@@ -46,5 +48,4 @@ else
     private async Task LoadAsync(){_loading=true; try { Guid? user=Guid.TryParse(_user,out var u)?u:null; int? action=int.TryParse(_action,out var a)?a:null; int? result=int.TryParse(_result,out var r)?r:null; _report=await ReportService.GetAsync(_from,_to,user,action,result); } finally {_loading=false;}}
     private async Task ClearAsync(){_from=_to=null; _user=_action=_result=""; await LoadAsync();}
 }
-
 

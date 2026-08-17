@@ -1,4 +1,6 @@
 ﻿@page "/users/list"
+@attribute [Authorize(Roles = "Administrator,ProductionManager")]
+@using Microsoft.AspNetCore.Authorization
 
 @using TORSEPAN.Panel.Services
 @using TORSEPAN.Application.Auth.Queries.GetUsers

@@ -18,19 +18,19 @@ public sealed class ScalesController : ControllerBase
         Ok(await _mediator.Send(new GetAllScalesQuery(), cancellationToken));
 
     [HttpPost]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<Guid>> Create(CreateScaleCommand command, CancellationToken cancellationToken)
     {
         var id = await _mediator.Send(command, cancellationToken);
         return Ok(id);
     }
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> Delete(Guid id, [FromQuery] int usage, CancellationToken cancellationToken)
     { await _mediator.Send(new DeactivateScaleCommand(id, usage), cancellationToken); return NoContent(); }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> Rename(Guid id, RenameScaleRequest request, CancellationToken cancellationToken)
     { await _mediator.Send(new RenameScaleCommand(id, request.Name), cancellationToken); return NoContent(); }
 }

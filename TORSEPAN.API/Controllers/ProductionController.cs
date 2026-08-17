@@ -76,6 +76,7 @@ public sealed class ProductionController : ControllerBase
         => Ok(await _mediator.Send(new GetProductionCountByStatusQuery()));
 
     [HttpGet("report")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> Report([FromQuery] DateTime? from, [FromQuery] DateTime? to,
         [FromQuery] Guid? userId, [FromQuery] ProductionAction? action, [FromQuery] EventResult? result)
         => Ok(await _mediator.Send(new GetProductionReportQuery(from, to, userId, action, result)));
@@ -133,10 +134,12 @@ public sealed class ProductionController : ControllerBase
         => Ok(await _mediator.Send(new GetCurrentProductionStageQuery(serialNumber)));
 
     [HttpPost("{handpanId:guid}/sell")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> Sell(Guid handpanId, [FromBody] SellHandpanRequest request)
     { await _mediator.Send(new SellHandpanCommand(handpanId, request.BuyerName, request.Price, request.Destination)); return NoContent(); }
 
     [HttpGet("sales")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> Sales() => Ok(await _mediator.Send(new GetSalesQuery()));
 
     [HttpDelete("{handpanId:guid}")]
