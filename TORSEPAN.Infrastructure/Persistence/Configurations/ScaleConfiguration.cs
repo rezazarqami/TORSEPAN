@@ -12,6 +12,7 @@ public sealed class ScaleConfiguration : IEntityTypeConfiguration<Scale>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(100);
         builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
+        builder.Property(x => x.Usage).HasConversion<int>().IsRequired().HasDefaultValue(TORSEPAN.Domain.Enums.ScaleUsage.All);
         builder.HasIndex(x => x.Name).IsUnique();
     }
 }

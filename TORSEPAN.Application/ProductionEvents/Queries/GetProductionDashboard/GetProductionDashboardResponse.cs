@@ -35,5 +35,6 @@ public sealed class ProductionQueueItemResponse
 public sealed class ProductionQueueGroupResponse
 {
     public string UserName { get; set; } = string.Empty;
+    public string BowlTypeLabel { get; set; } = string.Empty;
     public IReadOnlyList<string> Codes { get; set; } = [];
 }

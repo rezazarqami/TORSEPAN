@@ -55,13 +55,22 @@ else
                             }
                             else if (queue.Groups.Count > 0)
                             {
-                                @foreach (var group in queue.Groups)
+                                @foreach (var userGroups in queue.Groups.GroupBy(x => x.UserName))
                                 {
                                     <div class="mb-2">
-                                        <strong class="small ms-2">@group.UserName:</strong>
-                                        @foreach (var itemCode in group.Codes)
+                                        <strong class="small ms-2">@userGroups.Key:</strong>
+                                        @foreach (var group in userGroups)
                                         {
-                                            <span class="badge bg-light text-dark border me-1 mb-1 dashboard-code">@itemCode</span>
+                                            <div class="@(string.IsNullOrWhiteSpace(group.BowlTypeLabel) ? "d-inline" : "me-3 mt-1")">
+                                                @if (!string.IsNullOrWhiteSpace(group.BowlTypeLabel))
+                                                {
+                                                    <span class="text-muted small ms-2">@group.BowlTypeLabel:</span>
+                                                }
+                                                @foreach (var itemCode in group.Codes)
+                                                {
+                                                    <span class="badge bg-light text-dark border me-1 mb-1 dashboard-code">@itemCode</span>
+                                                }
+                                            </div>
                                         }
                                     </div>
                                 }

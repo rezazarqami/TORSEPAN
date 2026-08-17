@@ -104,7 +104,7 @@
                         <label class="form-label">اسکیل کاسه</label>
                         <select class="form-select" @bind="_scaleId">
                             <option value="@Guid.Empty">انتخاب کنید...</option>
-                            @foreach (var scale in _scales)
+                            @foreach (var scale in DimpleScales)
                             {
                                 <option value="@scale.Id">@scale.Name</option>
                             }
@@ -196,7 +196,7 @@
                     <label class="form-label mt-3">اسکیل ساز</label>
                     <select class="form-select" @bind="_scaleId">
                         <option value="@Guid.Empty">انتخاب کنید...</option>
-                        @foreach (var scale in _scales)
+                        @foreach (var scale in HandpanScales)
                         {
                             <option value="@scale.Id">@scale.Name</option>
                         }
@@ -328,6 +328,10 @@
     private string _pairedProductionCode = string.Empty;
     private Guid _scaleId;
     private readonly List<ScaleDto> _scales = [];
+    private IEnumerable<ScaleDto> DimpleScales => _bowl is null
+        ? []
+        : _scales.Where(x => (x.Usage & (_bowl.BowlType == 1 ? 1 : 2)) != 0);
+    private IEnumerable<ScaleDto> HandpanScales => _scales.Where(x => (x.Usage & 4) != 0);
     private readonly List<MaterialDto> _packagingMaterials = [];
     private readonly HashSet<Guid> _selectedPackagingMaterialIds = [];
     private string? _successMessage;
@@ -383,6 +387,10 @@
             _showQcRejection = false;
             _stageNote = string.Empty;
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
+            if (_bowl?.Stage == 2)
+                _scaleId = DimpleScales.FirstOrDefault()?.Id ?? Guid.Empty;
+            else if (_bowl?.Stage == 10)
+                _scaleId = HandpanScales.FirstOrDefault()?.Id ?? Guid.Empty;
             if (_bowl is null)
                 _error = "کاسه پیدا نشد.";
         });

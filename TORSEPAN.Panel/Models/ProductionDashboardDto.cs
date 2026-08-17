@@ -57,5 +57,6 @@ public sealed class ProductionQueueItemDto
 public sealed class ProductionQueueGroupDto
 {
     public string UserName { get; set; } = string.Empty;
+    public string BowlTypeLabel { get; set; } = string.Empty;
     public List<string> Codes { get; set; } = [];
 }

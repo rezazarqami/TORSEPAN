@@ -64,7 +64,8 @@ public sealed class CompleteBowlGlueCommandHandler
         if (alreadyUsed)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
-        if (!await _unitOfWork.Scales.ExistsAsync(request.ScaleId))
+        var scale = await _unitOfWork.Scales.GetByIdAsync(request.ScaleId);
+        if (scale is null || !scale.IsActive || !scale.Usage.HasFlag(ScaleUsage.Handpan))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
         if (_userContext.UserId is not Guid userId)

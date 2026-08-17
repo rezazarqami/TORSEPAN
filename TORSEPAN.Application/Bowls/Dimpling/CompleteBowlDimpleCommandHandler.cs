@@ -35,9 +35,11 @@ public sealed class CompleteBowlDimpleCommandHandler
         if (bowl.Stage == ProductionStage.WaitingForShape)
             return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(bowl));
 
+        var scale = request.ScaleId == Guid.Empty ? null : await _unitOfWork.Scales.GetByIdAsync(request.ScaleId);
+        var requiredUsage = bowl.BowlType == BowlType.Top ? ScaleUsage.TopBowl : ScaleUsage.BottomBowl;
         if (bowl.Stage != ProductionStage.WaitingForDimple ||
-            !Enum.IsDefined(request.Duration) || request.ScaleId == Guid.Empty ||
-            !await _unitOfWork.Scales.ExistsAsync(request.ScaleId))
+            !Enum.IsDefined(request.Duration) || scale is null || !scale.IsActive ||
+            !scale.Usage.HasFlag(requiredUsage))
         {
             return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidStage);
         }

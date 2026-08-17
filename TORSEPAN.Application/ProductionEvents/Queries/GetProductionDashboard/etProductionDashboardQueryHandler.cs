@@ -31,11 +31,17 @@ public sealed class GetProductionDashboardQueryHandler
         var monthly = events.Where(x => tracked.Contains(x.Action) &&
                                         !x.Description.StartsWith("NOTE:") &&
                                         x.Description != "Released from glue room")
-            .GroupBy(x => new { x.UserId, x.User.UserName, x.User.FullName, x.User.DisplayOrder, x.Action })
+            .GroupBy(x => new
+            {
+                x.UserId, x.User.UserName, x.User.FullName, x.User.DisplayOrder, x.Action,
+                BowlType = x.Action is ProductionAction.Dimple or ProductionAction.Shape or ProductionAction.Tune
+                    ? x.Bowl == null ? (BowlType?)null : x.Bowl.BowlType
+                    : null
+            })
             .Select(x => new MonthlyUserOperationResponse
             {
                 UserName = string.IsNullOrWhiteSpace(x.Key.FullName) ? x.Key.UserName : x.Key.FullName,
-                Operation = OperationTitle(x.Key.Action),
+                Operation = OperationTitle(x.Key.Action) + BowlTypeSuffix(x.Key.BowlType),
                 Count = x.Key.Action == ProductionAction.Glue
                     ? x.Where(e => e.HandpanId.HasValue &&
                                    e.Description.StartsWith("Glued with bowl"))
@@ -58,8 +64,8 @@ public sealed class GetProductionDashboardQueryHandler
             Queues =
             [
                 BowlQueue("آماده دیمپل", ProductionStage.WaitingForDimple),
-                BowlQueue("آماده شیپ", ProductionStage.WaitingForShape),
-                GroupedBowlQueue("آماده تیون", ProductionStage.WaitingForTune, ProductionAction.Shape),
+                GroupedBowlQueue("آماده شیپ", ProductionStage.WaitingForShape, ProductionAction.Dimple, splitByBowlType: true),
+                GroupedBowlQueue("آماده تیون", ProductionStage.WaitingForTune, ProductionAction.Shape, splitByBowlType: true),
                 GroupedBowlQueue("آماده چسب — کاسه رو", ProductionStage.WaitingForGlue, ProductionAction.Tune, BowlType.Top),
                 GroupedBowlQueue("آماده چسب — کاسه زیر", ProductionStage.WaitingForGlue, ProductionAction.Tune, BowlType.Bottom),
                 BowlQueue("آماده بسته‌بندی صادراتی", ProductionStage.WaitingForExportPackaging),
@@ -82,18 +88,25 @@ public sealed class GetProductionDashboardQueryHandler
         };
 
         ProductionQueueItemResponse GroupedBowlQueue(string title, ProductionStage stage,
-            ProductionAction action, BowlType? type = null)
+            ProductionAction action, BowlType? type = null, bool splitByBowlType = false)
         {
             var items = bowls.Where(x => x.Stage == stage && (!type.HasValue || x.BowlType == type.Value)).ToList();
             return new ProductionQueueItemResponse
             {
                 Stage = title,
                 Codes = items.Select(x => x.ProductionCode).OrderBy(x => x).ToList(),
-                Groups = items.GroupBy(x => PerformerForBowl(x.Id, action))
-                    .OrderBy(x => x.Key)
+                Groups = items.GroupBy(x => new
+                    {
+                        UserName = PerformerForBowl(x.Id, action),
+                        BowlType = splitByBowlType ? x.BowlType : (BowlType?)null
+                    })
+                    .OrderBy(x => x.Key.UserName).ThenBy(x => x.Key.BowlType)
                     .Select(x => new ProductionQueueGroupResponse
                     {
-                        UserName = x.Key,
+                        UserName = x.Key.UserName,
+                        BowlTypeLabel = x.Key.BowlType.HasValue
+                            ? x.Key.BowlType == BowlType.Top ? "کاسه رو" : "کاسه زیر"
+                            : string.Empty,
                         Codes = x.Select(b => b.ProductionCode).OrderBy(code => code).ToList()
                     }).ToList()
             };
@@ -133,5 +146,7 @@ public sealed class GetProductionDashboardQueryHandler
 
     private static string OperationTitle(ProductionAction action) => action switch
     { ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",ProductionAction.Furnace=>"پخت",ProductionAction.Glue=>"چسب",ProductionAction.Tune=>"تیون",ProductionAction.FineTune=>"فاین تیون",_=>action.ToString() };
+    private static string BowlTypeSuffix(BowlType? bowlType) => bowlType switch
+    { BowlType.Top => " کاسه رو", BowlType.Bottom => " کاسه زیر", _ => string.Empty };
     private static string PersianMonthName(int month) => new[] { "", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند" }[month];
 }

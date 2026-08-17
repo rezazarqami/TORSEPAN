@@ -11,11 +11,22 @@
 
 <div class="card p-4 mb-4">
     <label class="form-label">نام اسکیل جدید</label>
-    <div class="input-group">
+    <div class="row g-2">
+        <div class="col-md-7">
         <input class="form-control" placeholder="مثلاً ۹ نت، ۱۰ نت یا ۱۲ نت" @bind="_name" />
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="_usage">
+                <option value="1">اسکیل کاسه رو</option>
+                <option value="2">اسکیل کاسه زیر</option>
+                <option value="4">اسکیل ساز</option>
+            </select>
+        </div>
+        <div class="col-md-2">
         <button class="btn btn-primary" disabled="@(_loading || string.IsNullOrWhiteSpace(_name))" @onclick="CreateAsync">
             ثبت اسکیل
         </button>
+        </div>
     </div>
     @if (!string.IsNullOrWhiteSpace(_error))
     {
@@ -23,19 +34,26 @@
     }
 </div>
 
-<table class="table table-striped">
-    <thead><tr><th>اسکیل‌های فعال و قابل انتخاب</th><th style="width:120px">مدیریت</th></tr></thead>
-    <tbody>
-        @foreach (var scale in _scales)
+@foreach (var category in Categories)
+{
+<div class="card p-3 mb-3">
+    <h5 class="mb-3">@category.Title</h5>
+    <table class="table table-striped mb-0">
+        <thead><tr><th>اسکیل‌های فعال و قابل انتخاب</th><th style="width:120px">مدیریت</th></tr></thead>
+        <tbody>
+        @foreach (var scale in _scales.Where(x => (x.Usage & category.Usage) != 0))
         {
             <tr><td>@scale.Name</td><td><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(scale)">حذف</button></td></tr>
         }
-    </tbody>
-</table>
+        </tbody>
+    </table>
+</div>
+}
 
 @code {
     private readonly List<ScaleDto> _scales = [];
     private string _name = string.Empty;
+    private int _usage = 1;
     private string? _error;
     private bool _loading;
 
@@ -47,7 +65,7 @@
         _error = null;
         try
         {
-            await ScaleService.CreateAsync(_name);
+            await ScaleService.CreateAsync(_name, _usage);
             _name = string.Empty;
             await ReloadAsync();
         }
@@ -66,6 +84,8 @@
         _scales.Clear();
         _scales.AddRange(await ScaleService.GetAsync());
     }
+    private static readonly (int Usage, string Title)[] Categories =
+        [(1, "اسکیل‌های کاسه رو"), (2, "اسکیل‌های کاسه زیر"), (4, "اسکیل‌های ساز")];
     private async Task DeleteAsync(ScaleDto scale)
     {
         if (!await JS.InvokeAsync<bool>("confirm", $"اسکیل «{scale.Name}» از انتخاب‌های جدید حذف شود؟ اطلاعات قبلی حفظ می‌شود.")) return;
