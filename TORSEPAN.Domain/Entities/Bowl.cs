@@ -52,4 +52,5 @@ public class Bowl : Entity
         if (scaleId == Guid.Empty) throw new ArgumentException("Scale is required.");
         ScaleId = scaleId;
     }
+    public void ClearScale() => ScaleId = null;
 }

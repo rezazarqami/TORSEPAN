@@ -38,4 +38,5 @@ public sealed class HandpanService
     }
 
     public Task DeleteAsync(Guid id) => _api.DeleteAsync($"production/{id}");
+    public Task RollbackAsync(Guid id) => _api.PostAsync<object, object?>($"production/{id}/rollback", new { });
 }

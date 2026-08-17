@@ -15,6 +15,7 @@ public sealed class BowlDto
     public Guid MaterialId { get; set; }
 
     public string MaterialName { get; set; } = string.Empty;
+    public Guid? ScaleId { get; set; }
     public string ScaleName { get; set; } = string.Empty;
 
     public int Status { get; set; }

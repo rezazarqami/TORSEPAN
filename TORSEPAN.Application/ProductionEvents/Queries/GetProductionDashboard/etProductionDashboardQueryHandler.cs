@@ -119,10 +119,7 @@ public sealed class GetProductionDashboardQueryHandler
             {
                 Stage = title,
                 Codes = items.Select(x => x.SerialNumber).OrderBy(x => x).ToList(),
-                Groups = items.GroupBy(x =>
-                    string.Join(" / ", new[] { x.Assembly.TopBowlId, x.Assembly.BottomBowlId }
-                        .Select(id => PerformerForBowl(id, ProductionAction.Tune))
-                        .Distinct().OrderBy(name => name)))
+                Groups = items.GroupBy(x => PerformerForBowl(x.Assembly.TopBowlId, ProductionAction.Tune))
                     .OrderBy(x => x.Key)
                     .Select(x => new ProductionQueueGroupResponse
                     {

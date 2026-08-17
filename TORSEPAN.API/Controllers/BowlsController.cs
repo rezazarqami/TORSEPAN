@@ -23,12 +23,14 @@ public sealed class BowlsController : ControllerBase
     private readonly IMediator _mediator;
     private readonly IProductionDeletionService _deletionService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IProductionRollbackService _rollbackService;
 
-    public BowlsController(IMediator mediator, IProductionDeletionService deletionService, IUnitOfWork unitOfWork)
+    public BowlsController(IMediator mediator, IProductionDeletionService deletionService, IUnitOfWork unitOfWork, IProductionRollbackService rollbackService)
     {
         _mediator = mediator;
         _deletionService = deletionService;
         _unitOfWork = unitOfWork;
+        _rollbackService = rollbackService;
     }
 
     [HttpDelete("{id:guid}")]
@@ -36,14 +38,22 @@ public sealed class BowlsController : ControllerBase
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
         => await _deletionService.DeleteBowlAsync(id, cancellationToken) ? NoContent() : NotFound();
 
+    [HttpPost("{id:guid}/rollback")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Rollback(Guid id, CancellationToken cancellationToken)
+        => await _rollbackService.RollbackBowlAsync(id, cancellationToken) ? NoContent() : BadRequest();
+
     [HttpGet]
     public async Task<ActionResult<PagedResult<BowlDto>>> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] int? bowlType = null, [FromQuery] bool? hasNotes = null,
+        [FromQuery] Guid? materialId = null, [FromQuery] Guid? scaleId = null,
+        [FromQuery] int? stage = null,
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(
-            new GetAllBowlsQuery(new PageRequest(page, pageSize)),
+            new GetAllBowlsQuery(new PageRequest(page, pageSize), bowlType, hasNotes, materialId, scaleId, stage),
             cancellationToken);
 
         return Ok(result);

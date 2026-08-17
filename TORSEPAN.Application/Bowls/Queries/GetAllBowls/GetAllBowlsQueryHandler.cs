@@ -19,7 +19,8 @@ public sealed class GetAllBowlsQueryHandler
         CancellationToken cancellationToken)
     {
         return await _queryService.GetAllAsync(
-            request.PageRequest,
+            request.PageRequest, request.BowlType, request.HasNotes,
+            request.MaterialId, request.ScaleId, request.Stage,
             cancellationToken);
     }
 }

@@ -5,6 +5,8 @@
 
 @inject BowlService BowlService
 @inject HandpanService HandpanService
+@inject MaterialService MaterialService
+@inject ScaleService ScaleService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
@@ -26,6 +28,16 @@ else if (!string.IsNullOrWhiteSpace(_error))
 else
 {
     <h4 class="mb-3">کاسه‌ها</h4>
+    <div class="card p-3 mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-2"><label class="form-label">نوع کاسه</label><select class="form-select" @bind="_bowlTypeFilter"><option value="">همه کاسه‌ها</option><option value="1">کاسه بالا</option><option value="2">کاسه پایین</option></select></div>
+            <div class="col-md-2"><label class="form-label">وضعیت نوت</label><select class="form-select" @bind="_notesFilter"><option value="">همه</option><option value="true">دارای نوت</option><option value="false">بدون نوت</option></select></div>
+            <div class="col-md-2"><label class="form-label">متریال</label><select class="form-select" @bind="_materialFilter"><option value="">همه متریال‌ها</option>@foreach(var item in _materials){<option value="@item.Id">@item.Name</option>}</select></div>
+            <div class="col-md-2"><label class="form-label">اسکیل کاسه</label><select class="form-select" @bind="_scaleFilter"><option value="">همه اسکیل‌ها</option>@foreach(var item in _scales.Where(x => (x.Usage & 3) != 0)){<option value="@item.Id">@item.Name</option>}</select></div>
+            <div class="col-md-2"><label class="form-label">وضعیت تولید</label><select class="form-select" @bind="_stageFilter"><option value="">همه وضعیت‌ها</option>@foreach(var item in StageOptions){<option value="@item.Value">@item.Text</option>}</select></div>
+            <div class="col-md-2 d-flex gap-1"><button class="btn btn-primary flex-grow-1" @onclick="ApplyFiltersAsync">اعمال فیلتر</button><button class="btn btn-outline-secondary" @onclick="ClearFiltersAsync">پاک کردن</button></div>
+        </div>
+    </div>
     @if (_bowls.Count == 0)
     {
         <div class="alert alert-info">هیچ کاسه‌ای ثبت نشده است.</div>
@@ -36,7 +48,7 @@ else
             <thead>
                 <tr>
                     <th style="width: 48px;"></th>
-                    <th>کد</th><th>نوع کاسه</th><th>دارای نت</th><th>متریال</th><th>اسکیل کاسه</th><th>وضعیت</th><th>حذف</th>
+                    <th>کد</th><th>نوع کاسه</th><th>دارای نت</th><th>متریال</th><th>اسکیل کاسه</th><th>وضعیت</th><th>مدیریت</th>
                 </tr>
             </thead>
             <tbody>
@@ -50,7 +62,7 @@ else
                         <td>@bowl.MaterialName</td>
                         <td>@bowl.ScaleName</td>
                         <td><span class="badge bg-primary">@StageText(bowl.Stage)</span></td>
-                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBowlAsync(bowl)">حذف</button></AuthorizeView></td>
+                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => RollbackBowlAsync(bowl)">مرحله قبل</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBowlAsync(bowl)">حذف</button></AuthorizeView></td>
                     </tr>
                     @if (_expandedBowls.Contains(bowl.Id))
                     {
@@ -84,7 +96,7 @@ else
             <thead>
                 <tr>
                     <th style="width: 48px;"></th>
-                    <th>کد ساز</th><th>کد کاسه بالا</th><th>کد کاسه پایین</th><th>متریال</th><th>اسکیل</th><th>وضعیت</th><th>حذف</th>
+                    <th>کد ساز</th><th>کد کاسه بالا</th><th>کد کاسه پایین</th><th>متریال</th><th>اسکیل</th><th>وضعیت</th><th>مدیریت</th>
                 </tr>
             </thead>
             <tbody>
@@ -95,7 +107,7 @@ else
                         <td>@handpan.SerialNumber</td><td>@handpan.TopBowlCode</td><td>@handpan.BottomBowlCode</td>
                         <td>@handpan.MaterialName</td><td>@handpan.ScaleName</td>
                         <td><span class="badge bg-primary">@StageText(handpan.Stage)</span></td>
-                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteHandpanAsync(handpan)">حذف</button></AuthorizeView></td>
+                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => RollbackHandpanAsync(handpan)">مرحله قبل</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteHandpanAsync(handpan)">حذف</button></AuthorizeView></td>
                     </tr>
                     @if (_expandedHandpans.Contains(handpan.Id))
                     {
@@ -132,6 +144,9 @@ else
     private int HandpanTotalPages => (int)Math.Ceiling((double)_handpans.Count / PageSize);
     private readonly HashSet<Guid> _expandedBowls = [];
     private readonly HashSet<Guid> _expandedHandpans = [];
+    private readonly List<MaterialDto> _materials = [];
+    private readonly List<ScaleDto> _scales = [];
+    private string _bowlTypeFilter="", _notesFilter="", _materialFilter="", _scaleFilter="", _stageFilter="";
 
     protected override async Task OnInitializedAsync()
     {
@@ -139,6 +154,8 @@ else
         {
             await LoadBowlPageAsync(1);
             _handpans = (await HandpanService.GetAllAsync()).ToList();
+            _materials.AddRange(await MaterialService.GetAsync());
+            _scales.AddRange(await ScaleService.GetAsync());
         }
         catch (Exception ex)
         {
@@ -156,7 +173,12 @@ else
 
     private async Task LoadBowlPageAsync(int page)
     {
-        var result = await BowlService.GetPageAsync(page, PageSize);
+        var result = await BowlService.GetPageAsync(page, PageSize,
+            int.TryParse(_bowlTypeFilter,out var bt)?bt:null,
+            bool.TryParse(_notesFilter,out var notes)?notes:null,
+            Guid.TryParse(_materialFilter,out var material)?material:null,
+            Guid.TryParse(_scaleFilter,out var scale)?scale:null,
+            int.TryParse(_stageFilter,out var stage)?stage:null);
         _bowlPage = result?.Page ?? page;
         _bowlTotalPages = result?.TotalPages ?? 0;
         _bowls = result?.Items.ToList() ?? [];
@@ -186,6 +208,11 @@ else
         if (_handpanPage > HandpanTotalPages && _handpanPage > 1) _handpanPage--;
         await LoadBowlPageAsync(_bowlPage);
     }
+    private Task ApplyFiltersAsync() => LoadBowlPageAsync(1);
+    private async Task ClearFiltersAsync(){_bowlTypeFilter=_notesFilter=_materialFilter=_scaleFilter=_stageFilter="";await LoadBowlPageAsync(1);}
+    private async Task RollbackBowlAsync(BowlDto bowl){if(!await JS.InvokeAsync<bool>("confirm",$"کاسه {bowl.ProductionCode} به مرحله قبل برگردد؟ سابقه همان مرحله نیز برگردانده می‌شود."))return;try{await BowlService.RollbackAsync(bowl.Id);await LoadBowlPageAsync(_bowlPage);_handpans=(await HandpanService.GetAllAsync()).ToList();}catch{_error="بازگشت این کاسه در وضعیت فعلی امکان‌پذیر نیست.";}}
+    private async Task RollbackHandpanAsync(HandpanDto handpan){if(!await JS.InvokeAsync<bool>("confirm",$"ساز {handpan.SerialNumber} به مرحله قبل برگردد؟"))return;try{await HandpanService.RollbackAsync(handpan.Id);await LoadBowlPageAsync(_bowlPage);_handpans=(await HandpanService.GetAllAsync()).ToList();}catch{_error="بازگشت این ساز در وضعیت فعلی امکان‌پذیر نیست.";}}
+    private static readonly (int Value,string Text)[] StageOptions=[(2,"در انتظار دیمپل"),(4,"در انتظار شیپ"),(6,"در انتظار پخت"),(8,"در انتظار تیون"),(10,"در انتظار چسب"),(11,"اتاق چسب"),(12,"در انتظار فاین تیون"),(14,"در انتظار QC"),(16,"در انتظار بسته‌بندی"),(21,"در انتظار بسته‌بندی صادراتی"),(22,"انبار صادراتی")];
 
     private static string StageText(int stage) => stage switch
     {

@@ -34,11 +34,13 @@ public sealed class ProductionController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IProductionDeletionService _deletionService;
+    private readonly IProductionRollbackService _rollbackService;
 
-    public ProductionController(IMediator mediator, IProductionDeletionService deletionService)
+    public ProductionController(IMediator mediator, IProductionDeletionService deletionService, IProductionRollbackService rollbackService)
     {
         _mediator = mediator;
         _deletionService = deletionService;
+        _rollbackService = rollbackService;
     }
 
     [HttpPost("event")]
@@ -146,5 +148,10 @@ public sealed class ProductionController : ControllerBase
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Delete(Guid handpanId, CancellationToken cancellationToken)
         => await _deletionService.DeleteHandpanAsync(handpanId, cancellationToken) ? NoContent() : NotFound();
+
+    [HttpPost("{handpanId:guid}/rollback")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Rollback(Guid handpanId, CancellationToken cancellationToken)
+        => await _rollbackService.RollbackHandpanAsync(handpanId, cancellationToken) ? NoContent() : BadRequest();
 }
 public sealed record SellHandpanRequest(string BuyerName, decimal Price, string Destination);

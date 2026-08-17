@@ -7,7 +7,8 @@ namespace TORSEPAN.Application.Interfaces;
 public interface IBowlQueryService
 {
     Task<PagedResult<BowlDto>> GetAllAsync(
-        PageRequest pageRequest,
+        PageRequest pageRequest, int? bowlType, bool? hasNotes,
+        Guid? materialId, Guid? scaleId, int? stage,
         CancellationToken cancellationToken);
 
     Task<BowlDetailDto?> GetByIdAsync(

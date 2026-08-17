@@ -17,12 +17,19 @@ public sealed class BowlQueryService : IBowlQueryService
     }
 
     public async Task<PagedResult<BowlDto>> GetAllAsync(
-        PageRequest pageRequest,
+        PageRequest pageRequest, int? bowlType, bool? hasNotes,
+        Guid? materialId, Guid? scaleId, int? stage,
         CancellationToken cancellationToken)
     {
-        var query = _context.Bowls
+        var bowls = _context.Bowls
             .AsNoTracking()
-            .Where(x => !x.TopAssemblies.Any() && !x.BottomAssemblies.Any())
+            .Where(x => !x.TopAssemblies.Any() && !x.BottomAssemblies.Any());
+        if (bowlType.HasValue) bowls = bowls.Where(x => (int)x.BowlType == bowlType.Value);
+        if (hasNotes.HasValue) bowls = bowls.Where(x => x.HasNotes == hasNotes.Value);
+        if (materialId.HasValue) bowls = bowls.Where(x => x.MaterialId == materialId.Value);
+        if (scaleId.HasValue) bowls = bowls.Where(x => x.ScaleId == scaleId.Value);
+        if (stage.HasValue) bowls = bowls.Where(x => (int)x.Stage == stage.Value);
+        var query = bowls
             .OrderByDescending(x => x.ProductionCode)
             .Select(x => new BowlDto
             {
@@ -33,6 +40,7 @@ public sealed class BowlQueryService : IBowlQueryService
                 InstrumentType = (int)x.InstrumentType,
                 MaterialId = x.MaterialId,
                 MaterialName = x.Material.Name,
+                ScaleId = x.ScaleId,
                 ScaleName = x.Scale != null ? x.Scale.Name : "نامشخص",
                 Status = (int)x.Status,
                 Stage = (int)x.Stage,

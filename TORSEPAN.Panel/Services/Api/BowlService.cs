@@ -19,8 +19,19 @@ public sealed class BowlService
         return result?.Items ?? [];
     }
 
-    public Task<PagedResult<BowlDto>?> GetPageAsync(int page, int pageSize = 20)
-        => _api.GetAsync<PagedResult<BowlDto>>($"bowls?page={page}&pageSize={pageSize}");
+    public Task<PagedResult<BowlDto>?> GetPageAsync(int page, int pageSize = 20,
+        int? bowlType = null, bool? hasNotes = null, Guid? materialId = null, Guid? scaleId = null, int? stage = null)
+    {
+        var values = new List<string> { $"page={page}", $"pageSize={pageSize}" };
+        if (bowlType.HasValue) values.Add($"bowlType={bowlType}");
+        if (hasNotes.HasValue) values.Add($"hasNotes={hasNotes.Value.ToString().ToLowerInvariant()}");
+        if (materialId.HasValue) values.Add($"materialId={materialId}");
+        if (scaleId.HasValue) values.Add($"scaleId={scaleId}");
+        if (stage.HasValue) values.Add($"stage={stage}");
+        return _api.GetAsync<PagedResult<BowlDto>>("bowls?" + string.Join("&", values));
+    }
+
+    public Task RollbackAsync(Guid id) => _api.PostAsync<object, object?>($"bowls/{id}/rollback", new { });
 
     public Task<SuggestedBowlCodeDto?> GetSuggestedCodeAsync(Guid? materialId=null,int? bowlType=null)
     {
