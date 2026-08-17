@@ -17,8 +17,13 @@ public sealed class AddProductionNoteCommandHandler(IUnitOfWork unitOfWork, IUse
         if (bowl is null) return Result<bool>.Failure(ErrorCodes.BowlNotFound);
         if (string.IsNullOrWhiteSpace(request.Description)) return Result<bool>.Success(true);
         if (userContext.UserId is not Guid userId) throw new UnauthorizedAccessException();
+        var normalizedDescription = $"NOTE:{request.Description.Trim()}";
+        var recentDuplicate = (await unitOfWork.ProductionEvents.GetReportAsync(
+                DateTime.UtcNow.AddMinutes(-1), null, userId, null, EventResult.Completed))
+            .Any(x => x.BowlId == bowl.Id && x.Description == normalizedDescription);
+        if (recentDuplicate) return Result<bool>.Success(true);
         await unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(null, null, bowl.Id, userId,
-            ProductionAction.Shape, EventResult.Completed, null, $"NOTE:{request.Description.Trim()}"));
+            ProductionAction.Shape, EventResult.Completed, null, normalizedDescription));
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result<bool>.Success(true);
     }

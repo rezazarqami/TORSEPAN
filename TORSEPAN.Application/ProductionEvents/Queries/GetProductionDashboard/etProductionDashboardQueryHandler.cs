@@ -28,7 +28,9 @@ public sealed class GetProductionDashboardQueryHandler
         var allEvents = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, EventResult.Completed);
         var events = allEvents.Where(x => x.EventDate >= monthStartUtc).ToList();
         var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune };
-        var monthly = events.Where(x => tracked.Contains(x.Action) && !x.Description.StartsWith("NOTE:"))
+        var monthly = events.Where(x => tracked.Contains(x.Action) &&
+                                        !x.Description.StartsWith("NOTE:") &&
+                                        x.Description != "Released from glue room")
             .GroupBy(x => new { x.UserId, x.User.UserName, x.User.FullName, x.User.DisplayOrder, x.Action })
             .Select(x => new MonthlyUserOperationResponse
             {
@@ -40,7 +42,9 @@ public sealed class GetProductionDashboardQueryHandler
                         .Select(e => e.HandpanId).Distinct().Count()
                     : x.Count(),
                 DisplayOrder=x.Key.DisplayOrder
-            }).OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ThenBy(x => x.Operation).ToList();
+            })
+            .Where(x => x.Count > 0)
+            .OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ThenBy(x => x.Operation).ToList();
 
         return new GetProductionDashboardResponse
         {

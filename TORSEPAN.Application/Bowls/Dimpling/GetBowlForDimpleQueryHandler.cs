@@ -30,7 +30,8 @@ public sealed class GetBowlForDimpleQueryHandler
         var events = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, null);
         dto.Notes.AddRange(events.Where(x => x.BowlId == bowl.Id && x.Description.StartsWith("NOTE:"))
             .OrderBy(x => x.EventDate)
-            .Select(x => $"{(string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)}: {x.Description[5..]}"));
+            .Select(x => $"{(string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)}: {x.Description[5..]}")
+            .Distinct());
 
         var relatedBowlIds = new HashSet<Guid> { bowl.Id };
         Guid? handpanId = null;
