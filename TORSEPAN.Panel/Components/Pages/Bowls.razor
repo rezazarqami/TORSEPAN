@@ -98,6 +98,13 @@ else
                     <th style="width: 48px;"></th>
                     <th>کد ساز</th><th>کد کاسه بالا</th><th>کد کاسه پایین</th><th>متریال</th><th>اسکیل</th><th>وضعیت</th><th>مدیریت</th>
                 </tr>
+                <tr class="align-middle">
+                    <th></th><th></th><th></th><th></th>
+                    <th><select class="form-select form-select-sm" @bind="_handpanMaterialFilter"><option value="">همه متریال‌ها</option>@foreach(var name in _handpans.Select(x=>x.MaterialName).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x=>x)){<option value="@name">@name</option>}</select></th>
+                    <th><select class="form-select form-select-sm" @bind="_handpanScaleFilter"><option value="">همه اسکیل‌ها</option>@foreach(var name in _handpans.Select(x=>x.ScaleName).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x=>x)){<option value="@name">@name</option>}</select></th>
+                    <th><select class="form-select form-select-sm" @bind="_handpanStageFilter"><option value="">همه وضعیت‌ها</option>@foreach(var item in HandpanStageOptions){<option value="@item.Value">@item.Text</option>}</select></th>
+                    <th><div class="d-flex gap-1"><button class="btn btn-sm btn-primary text-nowrap" @onclick="ApplyHandpanFilters">اعمال</button><button class="btn btn-sm btn-outline-secondary text-nowrap" @onclick="ClearHandpanFilters">پاک کردن</button></div></th>
+                </tr>
             </thead>
             <tbody>
                 @foreach (var handpan in PagedHandpans)
@@ -140,13 +147,18 @@ else
     private int _bowlPage = 1;
     private int _bowlTotalPages;
     private int _handpanPage = 1;
-    private IEnumerable<HandpanDto> PagedHandpans => _handpans.Skip((_handpanPage - 1) * PageSize).Take(PageSize);
-    private int HandpanTotalPages => (int)Math.Ceiling((double)_handpans.Count / PageSize);
+    private IEnumerable<HandpanDto> FilteredHandpans => _handpans.Where(x =>
+        (string.IsNullOrWhiteSpace(_handpanMaterialFilter) || x.MaterialName == _handpanMaterialFilter) &&
+        (string.IsNullOrWhiteSpace(_handpanScaleFilter) || x.ScaleName == _handpanScaleFilter) &&
+        (!int.TryParse(_handpanStageFilter, out var stage) || x.Stage == stage));
+    private IEnumerable<HandpanDto> PagedHandpans => FilteredHandpans.Skip((_handpanPage - 1) * PageSize).Take(PageSize);
+    private int HandpanTotalPages => (int)Math.Ceiling((double)FilteredHandpans.Count() / PageSize);
     private readonly HashSet<Guid> _expandedBowls = [];
     private readonly HashSet<Guid> _expandedHandpans = [];
     private readonly List<MaterialDto> _materials = [];
     private readonly List<ScaleDto> _scales = [];
     private string _bowlTypeFilter="", _notesFilter="", _materialFilter="", _scaleFilter="", _stageFilter="";
+    private string _handpanMaterialFilter="", _handpanScaleFilter="", _handpanStageFilter="";
 
     protected override async Task OnInitializedAsync()
     {
@@ -190,6 +202,8 @@ else
         _handpanPage = page;
         _expandedHandpans.Clear();
     }
+    private void ApplyHandpanFilters(){_handpanPage=1;_expandedHandpans.Clear();}
+    private void ClearHandpanFilters(){_handpanMaterialFilter=_handpanScaleFilter=_handpanStageFilter="";ApplyHandpanFilters();}
 
     private async Task DeleteBowlAsync(BowlDto bowl)
     {
@@ -213,6 +227,7 @@ else
     private async Task RollbackBowlAsync(BowlDto bowl){if(!await JS.InvokeAsync<bool>("confirm",$"کاسه {bowl.ProductionCode} به مرحله قبل برگردد؟ سابقه همان مرحله نیز برگردانده می‌شود."))return;try{await BowlService.RollbackAsync(bowl.Id);await LoadBowlPageAsync(_bowlPage);_handpans=(await HandpanService.GetAllAsync()).ToList();}catch{_error="بازگشت این کاسه در وضعیت فعلی امکان‌پذیر نیست.";}}
     private async Task RollbackHandpanAsync(HandpanDto handpan){if(!await JS.InvokeAsync<bool>("confirm",$"ساز {handpan.SerialNumber} به مرحله قبل برگردد؟"))return;try{await HandpanService.RollbackAsync(handpan.Id);await LoadBowlPageAsync(_bowlPage);_handpans=(await HandpanService.GetAllAsync()).ToList();}catch{_error="بازگشت این ساز در وضعیت فعلی امکان‌پذیر نیست.";}}
     private static readonly (int Value,string Text)[] StageOptions=[(2,"در انتظار دیمپل"),(4,"در انتظار شیپ"),(6,"در انتظار پخت"),(8,"در انتظار تیون"),(10,"در انتظار چسب"),(11,"اتاق چسب"),(12,"در انتظار فاین تیون"),(14,"در انتظار QC"),(16,"در انتظار بسته‌بندی"),(21,"در انتظار بسته‌بندی صادراتی"),(22,"انبار صادراتی")];
+    private static readonly (int Value,string Text)[] HandpanStageOptions=[(11,"اتاق چسب"),(12,"در انتظار فاین تیون"),(14,"در انتظار QC"),(16,"در انتظار بسته‌بندی")];
 
     private static string StageText(int stage) => stage switch
     {
