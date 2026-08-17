@@ -28,16 +28,6 @@ else if (!string.IsNullOrWhiteSpace(_error))
 else
 {
     <h4 class="mb-3">کاسه‌ها</h4>
-    <div class="card p-3 mb-3">
-        <div class="row g-2 align-items-end">
-            <div class="col-md-2"><label class="form-label">نوع کاسه</label><select class="form-select" @bind="_bowlTypeFilter"><option value="">همه کاسه‌ها</option><option value="1">کاسه بالا</option><option value="2">کاسه پایین</option></select></div>
-            <div class="col-md-2"><label class="form-label">وضعیت نوت</label><select class="form-select" @bind="_notesFilter"><option value="">همه</option><option value="true">دارای نوت</option><option value="false">بدون نوت</option></select></div>
-            <div class="col-md-2"><label class="form-label">متریال</label><select class="form-select" @bind="_materialFilter"><option value="">همه متریال‌ها</option>@foreach(var item in _materials){<option value="@item.Id">@item.Name</option>}</select></div>
-            <div class="col-md-2"><label class="form-label">اسکیل کاسه</label><select class="form-select" @bind="_scaleFilter"><option value="">همه اسکیل‌ها</option>@foreach(var item in _scales.Where(x => (x.Usage & 3) != 0)){<option value="@item.Id">@item.Name</option>}</select></div>
-            <div class="col-md-2"><label class="form-label">وضعیت تولید</label><select class="form-select" @bind="_stageFilter"><option value="">همه وضعیت‌ها</option>@foreach(var item in StageOptions){<option value="@item.Value">@item.Text</option>}</select></div>
-            <div class="col-md-2 d-flex gap-1"><button class="btn btn-primary flex-grow-1" @onclick="ApplyFiltersAsync">اعمال فیلتر</button><button class="btn btn-outline-secondary" @onclick="ClearFiltersAsync">پاک کردن</button></div>
-        </div>
-    </div>
     @if (_bowls.Count == 0)
     {
         <div class="alert alert-info">هیچ کاسه‌ای ثبت نشده است.</div>
@@ -49,6 +39,16 @@ else
                 <tr>
                     <th style="width: 48px;"></th>
                     <th>کد</th><th>نوع کاسه</th><th>دارای نت</th><th>متریال</th><th>اسکیل کاسه</th><th>وضعیت</th><th>مدیریت</th>
+                </tr>
+                <tr class="align-middle">
+                    <th></th>
+                    <th></th>
+                    <th><select class="form-select form-select-sm" @bind="_bowlTypeFilter"><option value="">همه کاسه‌ها</option><option value="1">کاسه بالا</option><option value="2">کاسه پایین</option></select></th>
+                    <th><select class="form-select form-select-sm" @bind="_notesFilter"><option value="">همه</option><option value="true">دارای نوت</option><option value="false">بدون نوت</option></select></th>
+                    <th><select class="form-select form-select-sm" @bind="_materialFilter"><option value="">همه متریال‌ها</option>@foreach(var item in _materials){<option value="@item.Id">@item.Name</option>}</select></th>
+                    <th><select class="form-select form-select-sm" @bind="_scaleFilter"><option value="">همه اسکیل‌ها</option>@foreach(var item in _scales.Where(x => (x.Usage & 3) != 0)){<option value="@item.Id">@item.Name</option>}</select></th>
+                    <th><select class="form-select form-select-sm" @bind="_stageFilter"><option value="">همه وضعیت‌ها</option>@foreach(var item in StageOptions){<option value="@item.Value">@item.Text</option>}</select></th>
+                    <th><div class="d-flex gap-1"><button class="btn btn-sm btn-primary text-nowrap" @onclick="ApplyFiltersAsync">اعمال</button><button class="btn btn-sm btn-outline-secondary text-nowrap" @onclick="ClearFiltersAsync">پاک کردن</button></div></th>
                 </tr>
             </thead>
             <tbody>

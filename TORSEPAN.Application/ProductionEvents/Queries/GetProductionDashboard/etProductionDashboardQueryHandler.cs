@@ -68,6 +68,7 @@ public sealed class GetProductionDashboardQueryHandler
                 GroupedBowlQueue("آماده تیون", ProductionStage.WaitingForTune, ProductionAction.Shape, splitByBowlType: true),
                 GroupedBowlQueue("آماده چسب — کاسه رو", ProductionStage.WaitingForGlue, ProductionAction.Tune, BowlType.Top),
                 GroupedBowlQueue("آماده چسب — کاسه زیر", ProductionStage.WaitingForGlue, ProductionAction.Tune, BowlType.Bottom),
+                HandpanQueue("اتاق چسب", ProductionStage.GlueRoom),
                 BowlQueue("آماده بسته‌بندی صادراتی", ProductionStage.WaitingForExportPackaging),
                 GroupedHandpanQueue("آماده فاین تیون", ProductionStage.WaitingForFinalTune),
                 HandpanQueue("آماده کنترل کیفیت (QC)", ProductionStage.WaitingForQualityControl),
