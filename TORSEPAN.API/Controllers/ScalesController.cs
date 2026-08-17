@@ -26,6 +26,13 @@ public sealed class ScalesController : ControllerBase
     }
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
-    { await _mediator.Send(new DeactivateScaleCommand(id), cancellationToken); return NoContent(); }
+    public async Task<IActionResult> Delete(Guid id, [FromQuery] int usage, CancellationToken cancellationToken)
+    { await _mediator.Send(new DeactivateScaleCommand(id, usage), cancellationToken); return NoContent(); }
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Rename(Guid id, RenameScaleRequest request, CancellationToken cancellationToken)
+    { await _mediator.Send(new RenameScaleCommand(id, request.Name), cancellationToken); return NoContent(); }
 }
+
+public sealed record RenameScaleRequest(string Name);

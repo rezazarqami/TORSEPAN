@@ -39,11 +39,14 @@
 <div class="card p-3 mb-3">
     <h5 class="mb-3">@category.Title</h5>
     <table class="table table-striped mb-0">
-        <thead><tr><th>اسکیل‌های فعال و قابل انتخاب</th><th style="width:120px">مدیریت</th></tr></thead>
+        <thead><tr><th>اسکیل‌های فعال و قابل انتخاب</th><th style="width:190px">مدیریت</th></tr></thead>
         <tbody>
         @foreach (var scale in _scales.Where(x => (x.Usage & category.Usage) != 0))
         {
-            <tr><td>@scale.Name</td><td><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(scale)">حذف</button></td></tr>
+            <tr><td>@scale.Name</td><td>
+                <button class="btn btn-sm btn-outline-primary ms-1" @onclick="()=>RenameAsync(scale)">ویرایش</button>
+                <button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(scale, category.Usage, category.Title)">حذف از این دسته</button>
+            </td></tr>
         }
         </tbody>
     </table>
@@ -86,9 +89,16 @@
     }
     private static readonly (int Usage, string Title)[] Categories =
         [(1, "اسکیل‌های کاسه رو"), (2, "اسکیل‌های کاسه زیر"), (4, "اسکیل‌های ساز")];
-    private async Task DeleteAsync(ScaleDto scale)
+    private async Task DeleteAsync(ScaleDto scale, int usage, string categoryTitle)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"اسکیل «{scale.Name}» از انتخاب‌های جدید حذف شود؟ اطلاعات قبلی حفظ می‌شود.")) return;
-        await ScaleService.DeleteAsync(scale.Id); await ReloadAsync();
+        if (!await JS.InvokeAsync<bool>("confirm", $"اسکیل «{scale.Name}» فقط از «{categoryTitle}» حذف شود؟ سایر دسته‌ها و اطلاعات قبلی حفظ می‌شوند.")) return;
+        await ScaleService.DeleteAsync(scale.Id, usage); await ReloadAsync();
+    }
+    private async Task RenameAsync(ScaleDto scale)
+    {
+        var name = await JS.InvokeAsync<string?>("prompt", "نام جدید اسکیل را وارد کنید:", scale.Name);
+        if (string.IsNullOrWhiteSpace(name) || name.Trim() == scale.Name) return;
+        try { await ScaleService.RenameAsync(scale.Id, name); await ReloadAsync(); }
+        catch (Exception ex) { _error = ex.Message; }
     }
 }

@@ -23,6 +23,16 @@ public sealed class Scale
     public void Deactivate() => IsActive = false;
     public void Activate() => IsActive = true;
     public void AddUsage(ScaleUsage usage) => SetUsage(Usage | usage);
+    public void RemoveUsage(ScaleUsage usage)
+    {
+        Usage &= ~usage;
+        if (Usage == ScaleUsage.None) Deactivate();
+    }
+    public void Rename(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Scale name is required.");
+        Name = name.Trim();
+    }
     private void SetUsage(ScaleUsage usage)
     {
         if (usage == ScaleUsage.None || (usage & ~ScaleUsage.All) != 0)
