@@ -57,6 +57,7 @@
             <div><strong>کد:</strong> @_bowl.ProductionCode</div>
             <div><strong>نوع کاسه:</strong> @BowlTypeText(_bowl.BowlType)</div>
             <div><strong>وضعیت:</strong> @StageText(_bowl.Stage)</div>
+            <div><strong>@(_bowl.IsHandpanScale ? "اسکیل ساز" : "اسکیل کاسه"):</strong> @_bowl.ScaleName</div>
 
             @if (_bowl.History.Count > 0)
             {

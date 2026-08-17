@@ -25,6 +25,8 @@ public sealed class GetBowlForDimpleQueryHandler
 
         if (bowl is null) return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);
         var dto = BowlDimpleMapper.Map(bowl);
+        if (bowl.ScaleId.HasValue)
+            dto.ScaleName = (await _unitOfWork.Scales.GetByIdAsync(bowl.ScaleId.Value))?.Name ?? "نامشخص";
         var events = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, null);
         dto.Notes.AddRange(events.Where(x => x.BowlId == bowl.Id && x.Description.StartsWith("NOTE:"))
             .OrderBy(x => x.EventDate)
@@ -40,8 +42,18 @@ public sealed class GetBowlForDimpleQueryHandler
             relatedBowlIds.Add(assembly.BottomBowlId);
             var topBowl = (await _unitOfWork.Bowls.FindAsync(x => x.Id == assembly.TopBowlId)).SingleOrDefault();
             if (topBowl is not null)
-                handpanId = (await _unitOfWork.Handpans.FindAsync(x => x.SerialNumber == topBowl.ProductionCode))
-                    .SingleOrDefault()?.Id;
+            {
+                var handpan = (await _unitOfWork.Handpans.FindAsync(x => x.SerialNumber == topBowl.ProductionCode))
+                    .SingleOrDefault();
+                handpanId = handpan?.Id;
+                if (bowl.Stage >= ProductionStage.GlueRoom && handpan is not null)
+                {
+                    dto.IsHandpanScale = true;
+                    dto.ScaleName = handpan.ScaleId.HasValue
+                        ? (await _unitOfWork.Scales.GetByIdAsync(handpan.ScaleId.Value))?.Name ?? "نامشخص"
+                        : "نامشخص";
+                }
+            }
         }
 
         dto.History.AddRange(events

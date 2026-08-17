@@ -9,6 +9,8 @@ public sealed class DimpleBowlDto
     public int InstrumentType { get; set; }
     public int Status { get; set; }
     public int Stage { get; set; }
+    public string ScaleName { get; set; } = "نامشخص";
+    public bool IsHandpanScale { get; set; }
     public List<string> Notes { get; set; } = [];
     public List<BowlStageHistoryDto> History { get; set; } = [];
 }
