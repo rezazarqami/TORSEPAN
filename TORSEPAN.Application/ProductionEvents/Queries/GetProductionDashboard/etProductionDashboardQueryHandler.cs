@@ -86,7 +86,7 @@ public sealed class GetProductionDashboardQueryHandler
         ProductionQueueItemResponse HandpanQueue(string title, ProductionStage stage) => new()
         {
             Stage = title,
-            Codes = handpans.Where(x => x.Stage == stage).Select(x => x.SerialNumber).OrderBy(x => x).ToList()
+            Codes = allHandpans.Where(x => x.Stage == stage).Select(x => x.SerialNumber).OrderBy(x => x).ToList()
         };
 
         ProductionQueueItemResponse GroupedBowlQueue(string title, ProductionStage stage,
