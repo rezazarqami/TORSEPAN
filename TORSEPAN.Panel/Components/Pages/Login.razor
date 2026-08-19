@@ -26,13 +26,10 @@
     </section>
 
     <section class="login-form-side">
-        <div class="login-mobile-logo"><img src="/images/brand/torsepan-logo.webp" alt="TORSEPAN" /></div>
         <div class="login-card-modern">
-            <div class="login-welcome-icon">♪</div>
+            <div class="login-card-logo"><img src="/images/brand/torsepan-logo.webp" alt="TORSEPAN" /></div>
             <div class="login-heading">
-                <span class="login-eyebrow">سامانه مدیریت تولید</span>
                 <h2>به سامانه مدیریت TORSEPAN خوش آمدید</h2>
-                <p>برای ورود به فضای کار، اطلاعات حساب خود را وارد کنید.</p>
             </div>
 
             <ErrorAlert Visible="@(!string.IsNullOrWhiteSpace(ErrorMessage))" Message="@ErrorMessage" />
@@ -43,7 +40,7 @@
             </div>
             <div class="modern-field">
                 <label>رمز عبور</label>
-                <div class="field-wrap"><span>🔒</span><input type="password" autocomplete="current-password" placeholder="رمز عبور خود را وارد کنید" @ref="PasswordInput" @onkeydown="HandleKeyDown" /></div>
+                <div class="field-wrap"><span>🔒</span><input type="@(_showPassword ? "text" : "password")" autocomplete="current-password" placeholder="رمز عبور خود را وارد کنید" @ref="PasswordInput" @onkeydown="HandleKeyDown" /><button type="button" class="password-visibility" title="@(_showPassword ? "مخفی کردن رمز عبور" : "نمایش رمز عبور")" aria-label="@(_showPassword ? "مخفی کردن رمز عبور" : "نمایش رمز عبور")" @onclick="TogglePassword">@(_showPassword ? "🙈" : "👁️")</button></div>
             </div>
 
             <button class="modern-login-button" disabled="@IsSubmitting" @onclick="LoginUser">
@@ -65,7 +62,9 @@
     ElementReference PasswordInput;
     string ErrorMessage = "";
     bool IsSubmitting;
+    bool _showPassword;
 
+    void TogglePassword() => _showPassword = !_showPassword;
     async Task HandleKeyDown(KeyboardEventArgs args) { if (args.Key == "Enter") await LoginUser(); }
     async Task LoginUser()
     {
@@ -84,4 +83,3 @@
     }
     sealed record LoginCredentials(string Username, string Password);
 }
-
