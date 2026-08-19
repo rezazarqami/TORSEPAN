@@ -33,6 +33,15 @@
     opacity: .65;
 }
 
+.logout-power-icon {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.25;
+    stroke-linecap: round;
+}
+
 @media (max-width: 768px) {
     .logout-button {
         min-height: 40px;
@@ -43,13 +52,27 @@
 }
 
 @media (max-width: 480px) {
-    .logout-button span:last-child {
+    .logout-label {
         display: none;
     }
 
     .logout-button {
-        width: 40px;
+        width: 44px;
+        height: 44px;
         padding: 0;
-        font-size: 17px;
+        border: 0;
+        border-radius: 50%;
+        background: #dc2626;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(220, 38, 38, .28);
+    }
+
+    .logout-button:hover:not(:disabled) {
+        background: #b91c1c;
+    }
+
+    .logout-power-icon {
+        width: 24px;
+        height: 24px;
     }
 }

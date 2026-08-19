@@ -10,7 +10,12 @@
 </div>
 
 <div class="topbar-right">
-    <button type="button" class="logout-button" title="خروج از حساب کاربری" disabled="@isLoggingOut" @onclick="LogoutAsync"><span>@(isLoggingOut ? "در حال خروج..." : "خروج")</span></button>
+    <button type="button" class="logout-button" title="خروج از حساب کاربری" aria-label="خروج از حساب کاربری" disabled="@isLoggingOut" @onclick="LogoutAsync">
+        <svg class="logout-power-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2v10M6.34 5.34a8 8 0 1 0 11.32 0" />
+        </svg>
+        <span class="logout-label">@(isLoggingOut ? "در حال خروج..." : "خروج")</span>
+    </button>
     <div class="user-box user-box-clean">
         <div><div class="user-name">@DisplayName</div><div class="user-role">@UserTitle</div></div>
     </div>

@@ -397,8 +397,7 @@ button, input, select, textarea { font-family: inherit; }
 
 @media (max-width: 480px) {
     .sidebar-subtitle,
-    .page-subtitle,
-    .user-role {
+    .page-subtitle {
         display: none;
     }
 
@@ -410,6 +409,19 @@ button, input, select, textarea { font-family: inherit; }
 
     .topbar-right {
         justify-content: flex-start;
+    }
+
+    .user-box-clean {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .user-box-clean .user-role {
+        display: block;
+        margin-top: 2px;
+        font-size: 10px;
+        line-height: 1.4;
+        white-space: normal;
     }
 
     .content {
