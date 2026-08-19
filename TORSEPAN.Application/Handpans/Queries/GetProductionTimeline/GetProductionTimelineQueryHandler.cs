@@ -35,7 +35,7 @@ public sealed class GetProductionTimelineQueryHandler
             CurrentStage = handpan.Stage.ToString()
         };
 
-        foreach (var item in events)
+        foreach (var item in events.Where(x => x.Description != "Released from glue room"))
         {
             dto.Operations.Add(new ProductionTimelineItemDto
             {

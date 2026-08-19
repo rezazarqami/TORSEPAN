@@ -13,7 +13,7 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
         var events = await unitOfWork.ProductionEvents.GetReportAsync(request.From?.Date,
             request.To?.Date.AddDays(1), request.UserId, request.Action, request.Result);
         var users = (await unitOfWork.Users.GetAllAsync()).OrderBy(x => x.FullName).ToList();
-        var activities = events.Select(x => new ProductionActivityItem
+        var activities = events.Where(x => x.Description != "Released from glue room").Select(x => new ProductionActivityItem
         {
             Id = x.Id, EventDate = x.EventDate, UserId = x.UserId, UserName = x.User.UserName,
             FullName = x.User.FullName, Action = (int)x.Action, ActionTitle = ActionTitle(x.Action),

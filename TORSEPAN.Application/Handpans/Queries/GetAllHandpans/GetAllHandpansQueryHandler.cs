@@ -25,7 +25,7 @@ public sealed class GetAllHandpansQueryHandler
             var operations = x.ProductionEvents
                 .Concat(x.Assembly.TopBowl.ProductionEvents)
                 .Concat(x.Assembly.BottomBowl.ProductionEvents)
-                .Where(e => e.Result == EventResult.Completed)
+                .Where(e => e.Result == EventResult.Completed && e.Description != "Released from glue room")
                 .GroupBy(e => e.Action)
                 .Select(group => new HandpanOperationDto(
                     (int)group.Key,

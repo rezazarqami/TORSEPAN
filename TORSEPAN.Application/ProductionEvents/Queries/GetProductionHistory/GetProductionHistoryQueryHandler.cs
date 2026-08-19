@@ -21,6 +21,7 @@ public sealed class GetProductionHistoryQueryHandler
             .GetByHandpanIdAsync(request.HandpanId);
 
         return events
+            .Where(x => x.Description != "Released from glue room")
             .OrderByDescending(x => x.EventDate)
             .Select(x => new GetProductionHistoryResponse
             {

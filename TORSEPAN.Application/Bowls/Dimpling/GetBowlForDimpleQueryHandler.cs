@@ -59,6 +59,7 @@ public sealed class GetBowlForDimpleQueryHandler
 
         dto.History.AddRange(events
             .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
+                        x.Description != "Released from glue room" &&
                         ((x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value)) ||
                          (handpanId.HasValue && x.HandpanId == handpanId)))
             .GroupBy(x => x.Action)

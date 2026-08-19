@@ -72,7 +72,8 @@ public sealed class GetProductionDashboardQueryHandler
                 BowlQueue("آماده بسته‌بندی صادراتی", ProductionStage.WaitingForExportPackaging),
                 GroupedHandpanQueue("آماده فاین تیون", ProductionStage.WaitingForFinalTune),
                 HandpanQueue("آماده کنترل کیفیت (QC)", ProductionStage.WaitingForQualityControl),
-                HandpanQueue("آماده بسته‌بندی", ProductionStage.WaitingForPackaging)
+                HandpanQueue("آماده بسته‌بندی", ProductionStage.WaitingForPackaging),
+                HandpanQueue("انبار سازها", ProductionStage.FinishedWarehouse)
             ]
         };
 

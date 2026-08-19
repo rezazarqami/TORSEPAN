@@ -11,14 +11,10 @@ public sealed class ReleaseBowlFromGlueRoomCommandHandler
     : IRequestHandler<ReleaseBowlFromGlueRoomCommand, Result<BowlDimpleDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IUserContext _userContext;
-
     public ReleaseBowlFromGlueRoomCommandHandler(
-        IUnitOfWork unitOfWork,
-        IUserContext userContext)
+        IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
-        _userContext = userContext;
     }
 
     public async Task<Result<BowlDimpleDto>> Handle(
@@ -50,9 +46,6 @@ public sealed class ReleaseBowlFromGlueRoomCommandHandler
         if (pairedBowls.Count != 2 || pairedBowls.Any(x => x.Stage != ProductionStage.GlueRoom))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
-        if (_userContext.UserId is not Guid userId)
-            throw new UnauthorizedAccessException();
-
         var topBowl = pairedBowls.Single(x => x.Id == assembly.TopBowlId);
         var handpan = await _unitOfWork.Handpans.GetBySerialNumberAsync(
             topBowl.ProductionCode);
@@ -69,16 +62,6 @@ public sealed class ReleaseBowlFromGlueRoomCommandHandler
             pairedBowl.MarkAsWaiting();
             pairedBowl.ChangeStage(ProductionStage.WaitingForFinalTune);
             _unitOfWork.Bowls.Update(pairedBowl);
-
-            await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(
-                handpanId: handpan.Id,
-                assemblyId: assembly.Id,
-                bowlId: pairedBowl.Id,
-                userId: userId,
-                action: ProductionAction.Glue,
-                result: EventResult.Completed,
-                duration: null,
-                description: "Released from glue room"));
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
