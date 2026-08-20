@@ -1,0 +1,28 @@
+.production-highlights {
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-top:14px;
+}
+
+.production-highlight {
+    display:flex;
+    align-items:center;
+    gap:9px;
+    min-width:220px;
+    padding:11px 15px;
+    border-radius:14px;
+    border:1px solid rgba(28,81,66,.14);
+    background:linear-gradient(135deg,#f0f7f4,#e4f0eb);
+    box-shadow:0 7px 18px rgba(28,81,66,.08);
+}
+
+.production-highlight span { color:#667b73; font-size:.82rem; font-weight:700; }
+.production-highlight strong { color:#174c3e; font-size:1.18rem; font-weight:850; }
+.scale-highlight { border-color:rgba(190,151,58,.25); background:linear-gradient(135deg,#fffaf0,#f8edd1); }
+.scale-highlight strong { color:#725715; }
+
+@media(max-width:576px) {
+    .production-highlight { width:100%; min-width:0; justify-content:space-between; }
+    .production-highlight strong { font-size:1.08rem; }
+}

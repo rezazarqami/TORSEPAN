@@ -56,8 +56,14 @@
         <div class="border rounded p-3 mt-2">
             <div><strong>کد:</strong> @_bowl.ProductionCode</div>
             <div><strong>نوع کاسه:</strong> @BowlTypeText(_bowl.BowlType)</div>
-            <div><strong>وضعیت:</strong> @StageText(_bowl.Stage)</div>
-            <div><strong>@(_bowl.IsHandpanScale ? "اسکیل ساز" : "اسکیل کاسه"):</strong> @_bowl.ScaleName</div>
+            <div class="production-highlights">
+                <div class="production-highlight status-highlight">
+                    <span>وضعیت</span><strong>@StageText(_bowl.Stage)</strong>
+                </div>
+                <div class="production-highlight scale-highlight">
+                    <span>@(_bowl.IsHandpanScale ? "اسکیل ساز" : "اسکیل کاسه")</span><strong>@_bowl.ScaleName</strong>
+                </div>
+            </div>
 
             @if (_bowl.History.Count > 0)
             {
@@ -398,6 +404,7 @@
 
     private async Task CompleteAsync()
     {
+        if (!await ConfirmOperationAsync("دیمپل", $"کد کاسه: {_productionCode}\nاسکیل کاسه: {SelectedScaleName()}\nمدت زمان: {DurationText()}")) return;
         await ExecuteAsync(async () =>
         {
             var result = await BowlService.CompleteDimplingAsync(_productionCode, _duration, _scaleId);
@@ -407,6 +414,7 @@
 
     private async Task CompleteShapeAsync()
     {
+        if (!await ConfirmOperationAsync("شیپ", $"کد کاسه: {_productionCode}\nاسکیل کاسه: {_bowl?.ScaleName ?? "نامشخص"}\nمدت زمان: {DurationText()}")) return;
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
@@ -427,6 +435,7 @@
 
     private async Task CompleteTuneAsync()
     {
+        if (!await ConfirmOperationAsync("تیون", $"کد کاسه: {_productionCode}\nاسکیل کاسه: {_bowl?.ScaleName ?? "نامشخص"}\nمدت زمان: {DurationText()}")) return;
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
@@ -463,6 +472,10 @@
             return;
         }
 
+        var topCode = _bowl?.BowlType == 1 ? _productionCode : _pairedProductionCode;
+        var bottomCode = _bowl?.BowlType == 1 ? _pairedProductionCode : _productionCode;
+        if (!await ConfirmOperationAsync("چسب", $"کد کاسه بالا: {topCode}\nکد کاسه پایین: {bottomCode}\nاسکیل ساز: {SelectedScaleName()}")) return;
+
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
@@ -486,6 +499,7 @@
 
     private async Task CompleteFinalTuneAsync()
     {
+        if (!await ConfirmOperationAsync("فاین تیون", $"کد ساز: {_productionCode}\nاسکیل ساز: {_bowl?.ScaleName ?? "نامشخص"}\nمدت زمان: {DurationText()}")) return;
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
@@ -558,6 +572,15 @@
         return normalized is "سافت کیس" or "میدل کیس" or "هارد کیس"
             or "soft case" or "middle case" or "hard case";
     }
+
+    private ValueTask<bool> ConfirmOperationAsync(string operation, string details) =>
+        JS.InvokeAsync<bool>("confirm", $"آیا از ثبت عملیات «{operation} انجام شد» مطمئن هستید؟\n\n{details}");
+
+    private string SelectedScaleName() =>
+        _scales.FirstOrDefault(x => x.Id == _scaleId)?.Name ?? _bowl?.ScaleName ?? "نامشخص";
+
+    private string DurationText() =>
+        DurationOptions.FirstOrDefault(x => x.Value == _duration).Text ?? "نامشخص";
 
     private void SetOperationResult(
         DimpleBowlDto? result,
