@@ -33,6 +33,32 @@
     </div>
 }
 
+@if (_showOperationConfirmation)
+{
+    <div class="operation-confirm-backdrop" role="presentation">
+        <div class="operation-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="operation-confirm-title">
+            <div class="operation-confirm-icon">✓</div>
+            <div class="operation-confirm-heading">
+                <small>تأیید نهایی عملیات</small>
+                <h4 id="operation-confirm-title">@_confirmationTitle</h4>
+                <p>لطفاً اطلاعات زیر را بررسی کنید. پس از تأیید، عملیات ثبت خواهد شد.</p>
+            </div>
+            <div class="operation-confirm-details">
+                @foreach (var detail in _confirmationDetails)
+                {
+                    <div><span>@detail.Label</span><strong>@detail.Value</strong></div>
+                }
+            </div>
+            <div class="operation-confirm-actions">
+                <button type="button" class="btn btn-outline-secondary" disabled="@_confirmingOperation" @onclick="CancelOperationConfirmation">انصراف</button>
+                <button type="button" class="btn btn-success" disabled="@_confirmingOperation" @onclick="ConfirmOperationAsync">
+                    @(_confirmingOperation ? "در حال ثبت..." : "تأیید و ثبت عملیات")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 <div class="card p-4">
     <label class="form-label">کد ساز را وارد کنید</label>
     <div class="input-group mb-3">
@@ -345,6 +371,11 @@
     private string _qcRejectionReason = "OutOfTune";
     private string _qcDetails = string.Empty;
     private string _stageNote = string.Empty;
+    private bool _showOperationConfirmation;
+    private bool _confirmingOperation;
+    private string _confirmationTitle = string.Empty;
+    private List<ConfirmationDetail> _confirmationDetails = [];
+    private Func<Task>? _confirmedOperation;
 
     private static readonly (int Value, string Text)[] DurationOptions =
     [
@@ -402,9 +433,16 @@
         });
     }
 
-    private async Task CompleteAsync()
+    private Task CompleteAsync()
     {
-        if (!await ConfirmOperationAsync("دیمپل", $"کد کاسه: {_productionCode}\nاسکیل کاسه: {SelectedScaleName()}\nمدت زمان: {DurationText()}")) return;
+        ShowOperationConfirmation("دیمپل انجام شد",
+            [("کد کاسه", _productionCode), ("اسکیل کاسه", SelectedScaleName()), ("مدت زمان", DurationText())],
+            CompleteDimpleConfirmedAsync);
+        return Task.CompletedTask;
+    }
+
+    private async Task CompleteDimpleConfirmedAsync()
+    {
         await ExecuteAsync(async () =>
         {
             var result = await BowlService.CompleteDimplingAsync(_productionCode, _duration, _scaleId);
@@ -412,9 +450,16 @@
         });
     }
 
-    private async Task CompleteShapeAsync()
+    private Task CompleteShapeAsync()
     {
-        if (!await ConfirmOperationAsync("شیپ", $"کد کاسه: {_productionCode}\nاسکیل کاسه: {_bowl?.ScaleName ?? "نامشخص"}\nمدت زمان: {DurationText()}")) return;
+        ShowOperationConfirmation("شیپ انجام شد",
+            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
+            CompleteShapeConfirmedAsync);
+        return Task.CompletedTask;
+    }
+
+    private async Task CompleteShapeConfirmedAsync()
+    {
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
@@ -433,9 +478,16 @@
         });
     }
 
-    private async Task CompleteTuneAsync()
+    private Task CompleteTuneAsync()
     {
-        if (!await ConfirmOperationAsync("تیون", $"کد کاسه: {_productionCode}\nاسکیل کاسه: {_bowl?.ScaleName ?? "نامشخص"}\nمدت زمان: {DurationText()}")) return;
+        ShowOperationConfirmation("تیون انجام شد",
+            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
+            CompleteTuneConfirmedAsync);
+        return Task.CompletedTask;
+    }
+
+    private async Task CompleteTuneConfirmedAsync()
+    {
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
@@ -444,9 +496,16 @@
         });
     }
 
-    private async Task CompleteTuneForExportAsync()
+    private Task CompleteTuneForExportAsync()
     {
-        if (!await JS.InvokeAsync<bool>("confirm", "تیون انجام شده و کاسه مستقیماً به بسته‌بندی صادراتی ارسال شود؟")) return;
+        ShowOperationConfirmation("تیون و ارسال به بسته‌بندی صادراتی",
+            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مسیر", "بسته‌بندی صادراتی")],
+            CompleteTuneForExportConfirmedAsync);
+        return Task.CompletedTask;
+    }
+
+    private async Task CompleteTuneForExportConfirmedAsync()
+    {
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
@@ -464,18 +523,24 @@
         });
     }
 
-    private async Task CompleteGlueAsync()
+    private Task CompleteGlueAsync()
     {
         if (string.IsNullOrWhiteSpace(_pairedProductionCode) || _scaleId == Guid.Empty)
         {
             _error = "کد کاسه مکمل را وارد کنید.";
-            return;
+            return Task.CompletedTask;
         }
 
         var topCode = _bowl?.BowlType == 1 ? _productionCode : _pairedProductionCode;
         var bottomCode = _bowl?.BowlType == 1 ? _pairedProductionCode : _productionCode;
-        if (!await ConfirmOperationAsync("چسب", $"کد کاسه بالا: {topCode}\nکد کاسه پایین: {bottomCode}\nاسکیل ساز: {SelectedScaleName()}")) return;
+        ShowOperationConfirmation("چسب انجام شد",
+            [("کد کاسه بالا", topCode), ("کد کاسه پایین", bottomCode), ("اسکیل ساز", SelectedScaleName())],
+            CompleteGlueConfirmedAsync);
+        return Task.CompletedTask;
+    }
 
+    private async Task CompleteGlueConfirmedAsync()
+    {
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
@@ -497,9 +562,16 @@
         });
     }
 
-    private async Task CompleteFinalTuneAsync()
+    private Task CompleteFinalTuneAsync()
     {
-        if (!await ConfirmOperationAsync("فاین تیون", $"کد ساز: {_productionCode}\nاسکیل ساز: {_bowl?.ScaleName ?? "نامشخص"}\nمدت زمان: {DurationText()}")) return;
+        ShowOperationConfirmation("فاین تیون انجام شد",
+            [("کد ساز", _productionCode), ("اسکیل ساز", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
+            CompleteFinalTuneConfirmedAsync);
+        return Task.CompletedTask;
+    }
+
+    private async Task CompleteFinalTuneConfirmedAsync()
+    {
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
@@ -573,14 +645,42 @@
             or "soft case" or "middle case" or "hard case";
     }
 
-    private ValueTask<bool> ConfirmOperationAsync(string operation, string details) =>
-        JS.InvokeAsync<bool>("confirm", $"آیا از ثبت عملیات «{operation} انجام شد» مطمئن هستید؟\n\n{details}");
+    private void ShowOperationConfirmation(string title, IEnumerable<(string Label, string Value)> details, Func<Task> confirmedOperation)
+    {
+        _confirmationTitle = title;
+        _confirmationDetails = details.Select(x => new ConfirmationDetail(x.Label, x.Value)).ToList();
+        _confirmedOperation = confirmedOperation;
+        _showOperationConfirmation = true;
+    }
+
+    private void CancelOperationConfirmation()
+    {
+        if (_confirmingOperation) return;
+        _showOperationConfirmation = false;
+        _confirmedOperation = null;
+    }
+
+    private async Task ConfirmOperationAsync()
+    {
+        if (_confirmedOperation is null || _confirmingOperation) return;
+        _confirmingOperation = true;
+        var operation = _confirmedOperation;
+        try
+        {
+            _showOperationConfirmation = false;
+            _confirmedOperation = null;
+            await operation();
+        }
+        finally { _confirmingOperation = false; }
+    }
 
     private string SelectedScaleName() =>
         _scales.FirstOrDefault(x => x.Id == _scaleId)?.Name ?? _bowl?.ScaleName ?? "نامشخص";
 
     private string DurationText() =>
         DurationOptions.FirstOrDefault(x => x.Value == _duration).Text ?? "نامشخص";
+
+    private sealed record ConfirmationDetail(string Label, string Value);
 
     private void SetOperationResult(
         DimpleBowlDto? result,
