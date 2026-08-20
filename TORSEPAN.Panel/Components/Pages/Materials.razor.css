@@ -36,6 +36,33 @@
 ::deep .inventory-management-table .form-control,
 ::deep .inventory-management-table .input-group-text,
 ::deep .inventory-management-table .btn { min-height: 34px; padding: 5px 8px; font-size: .76rem; }
+::deep .inventory-management-table .btn {
+    border-width: 0;
+    border-radius: 10px;
+    font-weight: 750;
+    transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+::deep .inventory-management-table .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(.97); }
+::deep .inventory-management-table .btn-outline-primary {
+    color: #fff;
+    background: linear-gradient(135deg,#27735d,#1b5847);
+    box-shadow: 0 5px 13px rgba(27,88,71,.2);
+}
+::deep .inventory-management-table .btn-outline-secondary {
+    color: #34433e;
+    background: linear-gradient(135deg,#eef3f1,#dfe8e4);
+    box-shadow: 0 5px 12px rgba(52,67,62,.12);
+}
+::deep .inventory-management-table .btn-outline-danger {
+    color: #a82525;
+    background: linear-gradient(135deg,#fff1f1,#fbdede);
+    box-shadow: 0 5px 12px rgba(168,37,37,.12);
+}
+::deep .inventory-management-table .btn-outline-success {
+    color: #fff;
+    background: linear-gradient(135deg,#bc943a,#d5b35e);
+    box-shadow: 0 5px 13px rgba(162,124,34,.2);
+}
 
 @media (max-width: 768px) {
     .inventory-actions { align-items: stretch; flex-direction: column; padding: 14px; }
