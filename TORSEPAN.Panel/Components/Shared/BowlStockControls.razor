@@ -2,31 +2,18 @@
 @using TORSEPAN.Panel.Services.Api
 @inject MaterialService MaterialService
 
-<div class="mt-3 pt-3 border-top">
-    <div class="row g-2">
-        <div class="col-6">
-            <label class="form-label">تعداد کاسه رو</label>
-            <input type="number" min="0" class="form-control" @bind="_top" />
-        </div>
-        <div class="col-6">
-            <label class="form-label">تعداد کاسه زیر</label>
-            <input type="number" min="0" class="form-control" @bind="_bottom" />
-        </div>
-    </div>
-    <div class="row g-2 mt-2">
-        <div class="col-6"><label class="form-label text-danger">حد هشدار کاسه رو</label><input type="number" min="0" class="form-control" @bind="_topThreshold" /></div>
-        <div class="col-6"><label class="form-label text-danger">حد هشدار کاسه زیر</label><input type="number" min="0" class="form-control" @bind="_bottomThreshold" /></div>
-        <div class="col-12"><button class="btn btn-outline-danger w-100" disabled="@_saving" @onclick="SaveThresholdAsync">ثبت حد هشدار موجودی</button></div>
-    </div>
-    <div class="d-flex gap-2 mt-2">
-        <button class="btn btn-outline-primary flex-fill" disabled="@_saving" @onclick="AddAsync">افزایش موجودی</button>
-        <button class="btn btn-outline-secondary flex-fill" disabled="@_saving" @onclick="SetAsync">ثبت موجودی دقیق</button>
-    </div>
-    <div class="row g-2 mt-3 pt-3 border-top">
-        <div class="col-6"><label class="form-label">قالب کد کاسه رو</label><input class="form-control" maxlength="8" placeholder="مثلاً VT-00000" @bind="_topTemplate" /></div>
-        <div class="col-6"><label class="form-label">قالب کد کاسه زیر</label><input class="form-control" maxlength="8" placeholder="مثلاً VB-00000" @bind="_bottomTemplate" /></div>
-        <div class="col-12"><small class="text-muted">قالب باید شامل دو حرف انگلیسی، خط تیره و پنج صفر باشد.</small><button class="btn btn-outline-success w-100 mt-2" disabled="@_saving" @onclick="SaveTemplatesAsync">ثبت قالب‌های پیشنهاد کد</button></div>
-    </div>
+<div class="bowl-stock-inline">
+    <div class="compact-field"><label class="form-label">تعداد رو</label><input type="number" min="0" class="form-control" @bind="_top" /></div>
+    <div class="compact-field"><label class="form-label">تعداد زیر</label><input type="number" min="0" class="form-control" @bind="_bottom" /></div>
+    <div class="compact-actions"><button class="btn btn-outline-primary" disabled="@_saving" @onclick="AddAsync">افزایش</button><button class="btn btn-outline-secondary" disabled="@_saving" @onclick="SetAsync">ثبت دقیق</button></div>
+    <div class="compact-separator"></div>
+    <div class="compact-field"><label class="form-label text-danger">هشدار رو</label><input type="number" min="0" class="form-control" @bind="_topThreshold" /></div>
+    <div class="compact-field"><label class="form-label text-danger">هشدار زیر</label><input type="number" min="0" class="form-control" @bind="_bottomThreshold" /></div>
+    <button class="btn btn-outline-danger compact-save" disabled="@_saving" @onclick="SaveThresholdAsync">ثبت هشدار</button>
+    <div class="compact-separator"></div>
+    <div class="compact-field template-field"><label class="form-label">قالب رو</label><input class="form-control" maxlength="8" placeholder="VT-00000" @bind="_topTemplate" /></div>
+    <div class="compact-field template-field"><label class="form-label">قالب زیر</label><input class="form-control" maxlength="8" placeholder="VB-00000" @bind="_bottomTemplate" /></div>
+    <button class="btn btn-outline-success compact-save" disabled="@_saving" @onclick="SaveTemplatesAsync">ثبت قالب</button>
     @if (!string.IsNullOrWhiteSpace(_error)) { <small class="text-danger">@_error</small> }
 </div>
 

@@ -1,0 +1,4 @@
+.other-stock-inline { display:flex; align-items:center; gap:12px; min-width:570px; }
+.stock-adjust-group { width:310px; }
+.threshold-group { width:245px; }
+.other-stock-inline small { max-width:130px; }

@@ -43,22 +43,25 @@
 else
 {
     <h5 class="inventory-section-title">موجودی کاسه‌ها</h5>
-    <div class="row g-3 mb-4 inventory-grid">
-        @foreach (var item in BowlItems)
-        {
-            <div class="col-lg-6">
-                <div class="card h-100 p-3 inventory-card bowl-inventory-card">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">@item.Name</h5>
-                    </div>
-                    <div class="row text-center mt-3 stock-summary">
-                        <div class="col-6"><div class="text-muted">کاسه رو</div><strong>@item.TopBowlQuantity</strong></div>
-                        <div class="col-6"><div class="text-muted">کاسه زیر</div><strong>@item.BottomBowlQuantity</strong></div>
-                    </div>
-                    <BowlStockControls Item="item" OnSaved="StockSaved" />
-                </div>
-            </div>
-        }
+    <div class="inventory-table-shell mb-4">
+        <table class="inventory-management-table">
+            <thead><tr><th>متریال</th><th>موجودی فعلی</th><th>مدیریت موجودی، هشدار و قالب کد</th></tr></thead>
+            <tbody>
+                @foreach (var item in BowlItems)
+                {
+                    <tr>
+                        <td class="material-name"><strong>@item.Name</strong></td>
+                        <td>
+                            <div class="stock-summary compact-stock-summary">
+                                <span><small>کاسه رو</small><strong>@item.TopBowlQuantity</strong></span>
+                                <span><small>کاسه زیر</small><strong>@item.BottomBowlQuantity</strong></span>
+                            </div>
+                        </td>
+                        <td><BowlStockControls Item="item" OnSaved="StockSaved" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 
     <div class="inventory-list-heading">
@@ -67,19 +70,20 @@ else
                @bind="_search" @bind:event="oninput" />
     </div>
 
-    <div class="row g-3">
-        @foreach (var item in OtherItems)
-        {
-            <div class="col-md-6 col-xl-4">
-                <div class="card h-100 p-3 inventory-card other-inventory-card">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong>@item.Name</strong>
-                        <span class="badge bg-primary fs-6">@item.Quantity عدد</span>
-                    </div>
-                    <StockControls Item="item" OnSaved="StockSaved" />
-                </div>
-            </div>
-        }
+    <div class="inventory-table-shell">
+        <table class="inventory-management-table other-items-table">
+            <thead><tr><th>نام قلم</th><th>موجودی فعلی</th><th>افزایش یا ثبت موجودی</th><th>حد هشدار</th></tr></thead>
+            <tbody>
+                @foreach (var item in OtherItems)
+                {
+                    <tr>
+                        <td class="material-name"><strong>@item.Name</strong></td>
+                        <td><span class="current-quantity">@item.Quantity</span></td>
+                        <td colspan="2"><StockControls Item="item" OnSaved="StockSaved" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 }
 

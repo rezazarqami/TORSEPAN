@@ -16,23 +16,31 @@
 .inventory-actions small { margin-top: 4px; color: #70847c; }
 .add-material-button { min-width: 165px; font-weight: 700; }
 .inventory-section-title { margin-bottom: 14px; color: #173e34; }
-.inventory-card { padding: 16px !important; box-shadow: 0 9px 26px rgba(18, 55, 45, .06) !important; }
-.stock-summary { margin-inline: 0; padding: 10px 0; border-radius: 14px; background: #f4f8f6; }
-.stock-summary > div + div { border-right: 1px solid #dbe8e3; }
-.stock-summary strong { display: block; margin-top: 2px; color: #1d6754; font-size: 1.5rem; }
+.inventory-table-shell { overflow-x: auto; border: 1px solid #dfeae5; border-radius: 18px; background: #fff; box-shadow: 0 9px 26px rgba(18,55,45,.06); }
+.inventory-management-table { width: 100%; min-width: 1050px; border-collapse: collapse; }
+.inventory-management-table th { padding: 11px 12px; background: #edf4f1; color: #1b493d; font-size: .86rem; white-space: nowrap; }
+.inventory-management-table td { padding: 10px 12px; border-top: 1px solid #e7efeb; vertical-align: middle; }
+.inventory-management-table tbody tr:hover { background: #fbfdfc; }
+.material-name { width: 145px; white-space: nowrap; color: #173e34; }
+.stock-summary { border-radius: 12px; background: #f4f8f6; }
+.compact-stock-summary { display: flex; min-width: 150px; padding: 6px; text-align: center; }
+.compact-stock-summary span { flex: 1; padding-inline: 8px; }
+.compact-stock-summary span + span { border-right: 1px solid #dbe8e3; }
+.compact-stock-summary small { display: block; color: #70847c; font-size: .72rem; white-space: nowrap; }
+.compact-stock-summary strong,.current-quantity { display: block; color: #1d6754; font-size: 1.5rem; line-height: 1.25; }
+.current-quantity { min-width: 70px; text-align: center; font-weight: 800; }
 .inventory-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
 .inventory-list-heading input { max-width: 290px !important; }
 
-::deep .inventory-card .form-label { margin-bottom: 4px; font-size: .82rem; }
-::deep .inventory-card .form-control,
-::deep .inventory-card .input-group-text,
-::deep .inventory-card .btn { min-height: 38px; padding-block: 7px; font-size: .86rem; }
-::deep .bowl-inventory-card .row { align-items: end; }
+::deep .inventory-management-table .form-label { margin-bottom: 3px; font-size: .72rem; white-space: nowrap; }
+::deep .inventory-management-table .form-control,
+::deep .inventory-management-table .input-group-text,
+::deep .inventory-management-table .btn { min-height: 34px; padding: 5px 8px; font-size: .76rem; }
 
 @media (max-width: 768px) {
     .inventory-actions { align-items: stretch; flex-direction: column; padding: 14px; }
     .add-material-button { width: 100%; }
     .inventory-list-heading { align-items: stretch; flex-direction: column; }
     .inventory-list-heading input { max-width: none !important; }
-    .inventory-card { padding: 13px !important; }
+    .inventory-management-table { min-width: 980px; }
 }

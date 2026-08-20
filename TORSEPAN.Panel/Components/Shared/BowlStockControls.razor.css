@@ -1,0 +1,8 @@
+.bowl-stock-inline { display:flex; align-items:flex-end; gap:7px; min-width:760px; }
+.compact-field { width:68px; flex:0 0 68px; }
+.template-field { width:86px; flex-basis:86px; }
+.compact-actions { display:flex; gap:4px; }
+.compact-actions .btn { white-space:nowrap; }
+.compact-save { white-space:nowrap; }
+.compact-separator { align-self:stretch; width:1px; margin:0 2px; background:#e1eae6; }
+.bowl-stock-inline > small { align-self:center; max-width:120px; }
