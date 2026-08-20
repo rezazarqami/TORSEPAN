@@ -25,7 +25,7 @@ public sealed class GetAllHandpansQueryHandler
             var operations = x.ProductionEvents
                 .Concat(x.Assembly.TopBowl.ProductionEvents)
                 .Concat(x.Assembly.BottomBowl.ProductionEvents)
-                .Where(e => e.Result == EventResult.Completed && e.Description != "Released from glue room")
+                .Where(e => e.Result == EventResult.Completed && e.Description != "Released from glue room" && e.Action != ProductionAction.Shape)
                 .GroupBy(e => e.Action)
                 .Select(group => new HandpanOperationDto(
                     (int)group.Key,
@@ -36,8 +36,38 @@ public sealed class GetAllHandpansQueryHandler
                         .Where(name => !string.IsNullOrWhiteSpace(name))
                         .Distinct()),
                     group.Max(e => e.EventDate)))
-                .OrderBy(e => e.PerformedAt)
                 .ToList();
+
+            var topShapeEvents = x.Assembly.TopBowl.ProductionEvents
+                .Where(e => e.Result == EventResult.Completed && e.Action == ProductionAction.Shape)
+                .ToList();
+            var bottomShapeEvents = x.Assembly.BottomBowl.ProductionEvents
+                .Where(e => e.Result == EventResult.Completed && e.Action == ProductionAction.Shape)
+                .ToList();
+
+            if (topShapeEvents.Count > 0)
+            {
+                operations.Add(new HandpanOperationDto(
+                    (int)ProductionAction.Shape,
+                    string.Join("، ", topShapeEvents
+                        .Select(e => string.IsNullOrWhiteSpace(e.User.FullName) ? e.User.UserName : e.User.FullName)
+                        .Where(name => !string.IsNullOrWhiteSpace(name)).Distinct()),
+                    topShapeEvents.Max(e => e.EventDate),
+                    bottomShapeEvents.Count > 0 ? "شیپ کاسه رو" : "شیپ"));
+            }
+
+            if (bottomShapeEvents.Count > 0)
+            {
+                operations.Add(new HandpanOperationDto(
+                    (int)ProductionAction.Shape,
+                    string.Join("، ", bottomShapeEvents
+                        .Select(e => string.IsNullOrWhiteSpace(e.User.FullName) ? e.User.UserName : e.User.FullName)
+                        .Where(name => !string.IsNullOrWhiteSpace(name)).Distinct()),
+                    bottomShapeEvents.Max(e => e.EventDate),
+                    "شیپ کاسه زیر"));
+            }
+
+            operations = operations.OrderBy(e => e.PerformedAt).ToList();
 
             return new HandpanDto(
                 x.Id,

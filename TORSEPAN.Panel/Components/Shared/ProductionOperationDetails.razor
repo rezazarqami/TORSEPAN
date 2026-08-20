@@ -14,7 +14,7 @@
                 @foreach (var operation in Operations)
                 {
                     <tr>
-                        <td>@ActionText(operation.Action)</td>
+                        <td>@(!string.IsNullOrWhiteSpace(operation.DisplayTitle) ? operation.DisplayTitle : ActionText(operation.Action))</td>
                         <td>@operation.PerformedBy</td>
                         <td>@PersianDateTime.FormatDateTime(operation.PerformedAt)</td>
                     </tr>

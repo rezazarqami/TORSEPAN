@@ -15,4 +15,5 @@ public sealed record HandpanDto(
 public sealed record HandpanOperationDto(
     int Action,
     string PerformedBy,
-    DateTime PerformedAt);
+    DateTime PerformedAt,
+    string? DisplayTitle = null);

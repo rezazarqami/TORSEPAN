@@ -13,10 +13,19 @@
 
 <PageHeader Title="انبار مواد اولیه" SubTitle="مدیریت موجودی کاسه‌ها و اقلام مصرفی تولید و بسته‌بندی">
     <Actions>
-            <PrimaryButton Text="افزودن ماده اولیه جدید" OnClick="NewMaterial" />
-            <button class="btn btn-outline-secondary me-2" @onclick="BackToOverview">بازگشت به نمای موجودی</button>
+        <button class="btn btn-outline-secondary" @onclick="BackToOverview">بازگشت به نمای موجودی</button>
     </Actions>
 </PageHeader>
+
+<div class="inventory-actions">
+    <div>
+        <strong>مدیریت موجودی انبار</strong>
+        <small>موجودی، حد هشدار و قالب کدها را از کارت‌های زیر تنظیم کنید.</small>
+    </div>
+    <button type="button" class="btn btn-success add-material-button" @onclick="NewMaterial">
+        <span aria-hidden="true">＋</span> افزودن قلم جدید
+    </button>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(_message))
 {
@@ -33,18 +42,18 @@
 }
 else
 {
-    <h4 class="mb-3">کاسه‌ها</h4>
-    <div class="row g-3 mb-5">
+    <h5 class="inventory-section-title">موجودی کاسه‌ها</h5>
+    <div class="row g-3 mb-4 inventory-grid">
         @foreach (var item in BowlItems)
         {
-            <div class="col-md-6">
-                <div class="card shadow-sm h-100 p-4">
+            <div class="col-lg-6">
+                <div class="card h-100 p-3 inventory-card bowl-inventory-card">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0">@item.Name</h4>
+                        <h5 class="mb-0">@item.Name</h5>
                     </div>
-                    <div class="row text-center mt-3">
-                        <div class="col-6"><div class="text-muted">کاسه رو</div><div class="display-6 text-primary">@item.TopBowlQuantity</div></div>
-                        <div class="col-6"><div class="text-muted">کاسه زیر</div><div class="display-6 text-primary">@item.BottomBowlQuantity</div></div>
+                    <div class="row text-center mt-3 stock-summary">
+                        <div class="col-6"><div class="text-muted">کاسه رو</div><strong>@item.TopBowlQuantity</strong></div>
+                        <div class="col-6"><div class="text-muted">کاسه زیر</div><strong>@item.BottomBowlQuantity</strong></div>
                     </div>
                     <BowlStockControls Item="item" OnSaved="StockSaved" />
                 </div>
@@ -52,8 +61,8 @@ else
         }
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">سایر مواد اولیه و اقلام بسته‌بندی</h4>
+    <div class="inventory-list-heading">
+        <h5 class="mb-0">سایر مواد اولیه و اقلام بسته‌بندی</h5>
         <input class="form-control" style="max-width:320px" placeholder="جست‌وجوی ماده اولیه..."
                @bind="_search" @bind:event="oninput" />
     </div>
@@ -62,7 +71,7 @@ else
         @foreach (var item in OtherItems)
         {
             <div class="col-md-6 col-xl-4">
-                <div class="card shadow-sm h-100 p-3">
+                <div class="card h-100 p-3 inventory-card other-inventory-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <strong>@item.Name</strong>
                         <span class="badge bg-primary fs-6">@item.Quantity عدد</span>
