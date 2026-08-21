@@ -1,0 +1,22 @@
+.warehouse-filter-bar {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:fit-content;
+    max-width:100%;
+    margin:0 0 14px auto;
+    padding:10px;
+    border:1px solid rgba(28,81,66,.12);
+    border-radius:15px;
+    background:rgba(255,255,255,.82);
+    box-shadow:0 8px 22px rgba(18,55,45,.06);
+}
+
+.warehouse-filter-bar .form-select { width:190px; min-height:42px; }
+.warehouse-filter-bar .btn { min-width:86px; min-height:42px; }
+
+@media(max-width:600px) {
+    .warehouse-filter-bar { width:100%; margin-inline:0; }
+    .warehouse-filter-bar .form-select { min-width:0; width:auto; flex:1; }
+    .warehouse-filter-bar .btn { min-width:72px; }
+}
