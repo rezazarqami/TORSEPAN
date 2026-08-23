@@ -719,6 +719,13 @@ body { background:#eef3f0; color:var(--torsepan-ink); }
 .sidebar-menu a.active { background:linear-gradient(135deg,#276553,#183f35); box-shadow:0 12px 28px rgba(4,21,16,.35),inset 0 0 0 1px rgba(218,188,113,.3); }
 .sidebar-menu a.active::after { content:""; width:4px; height:24px; margin-right:auto; border-radius:9px; background:var(--torsepan-gold); }
 .sidebar-footer { border-top-color:rgba(200,168,88,.18); color:#aabdb5; letter-spacing:1px; }
+@media (min-width:769px) {
+    .sidebar-menu { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(200,168,88,.45) transparent; padding-top:12px; padding-bottom:12px; gap:4px; }
+    .sidebar-menu::-webkit-scrollbar { width:6px; }
+    .sidebar-menu::-webkit-scrollbar-thumb { background:rgba(200,168,88,.45); border-radius:10px; }
+    .sidebar-menu a { padding:11px 16px; }
+    .sidebar-footer { flex:0 0 auto; padding:12px; }
+}
 .topbar { height:82px; background:rgba(255,255,255,.88); border-bottom:1px solid rgba(26,76,62,.1); box-shadow:0 8px 30px rgba(13,45,36,.06); backdrop-filter:blur(14px); }
 .topbar-left { gap:14px; }
 .topbar-brandmark { width:48px; height:48px; object-fit:contain; padding:5px; border-radius:14px; background:linear-gradient(145deg,#173e34,#2f6d5c); filter:none; }
