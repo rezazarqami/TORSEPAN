@@ -63,6 +63,30 @@ else
                     </table>
                 </div>
             </Card>
+            @if (ExportUserGroups.Any())
+            {
+                <Card Class="mt-4">
+                    <h4>دستمزد تولید صادراتی</h4>
+                    <div class="alert alert-light border">این بخش فقط مربوط به کاسه‌هایی است که واقعاً در مسیر صادراتی قرار دارند.</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
+                            <tbody>
+                            @foreach (var user in ExportUserGroups)
+                            {
+                                var first = true;
+                                @foreach (var line in user.Lines)
+                                {
+                                    <tr><td>@(first ? user.Name : "")</td><td>@LineDescription(line)</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td></tr>
+                                    first = false;
+                                }
+                                <tr class="table-light"><td colspan="4"><strong>جمع صادراتی @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            }
             @if (HasStageFilter)
             {
                 <button class="btn btn-success btn-lg w-100 mt-3" disabled="@(_savingPayment || _payroll.HandpanCodes.Count == 0 || _payroll.Lines.Count == 0)" @onclick="MarkPaidAsync">@(_savingPayment ? "در حال ثبت..." : "پرداخت شد و ثبت در سوابق")</button>
@@ -107,7 +131,9 @@ else
     private string _rateMaterial = "", _rateBowlType = "", _rateScale = "";
     private decimal _rateAmount;
     private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
-    private IEnumerable<UserPayrollGroup> UserGroups => _payroll.Lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.OrderBy(y => ActionOrder(y.Action)).ThenBy(y => y.MaterialName).ThenBy(y => y.BowlType).ThenBy(y => y.ScaleName).ToList()));
+    private IEnumerable<UserPayrollGroup> UserGroups => GroupLines(_payroll.Lines.Where(x => !x.IsExport));
+    private IEnumerable<UserPayrollGroup> ExportUserGroups => GroupLines(_payroll.Lines.Where(x => x.IsExport));
+    private static IEnumerable<UserPayrollGroup> GroupLines(IEnumerable<PayrollLineDto> lines) => lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.OrderBy(y => ActionOrder(y.Action)).ThenBy(y => y.MaterialName).ThenBy(y => y.BowlType).ThenBy(y => y.ScaleName).ToList()));
     protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); _scales = (await ScaleService.GetAsync()).ToList(); await LoadAsync(); }
     private bool HasStageFilter => _readyForQc || _readyForPackaging || _enteredWarehouse || _readyForExportPackaging || _exportWarehouse;
     private bool IsHandpanRate => _rateAction == 7;

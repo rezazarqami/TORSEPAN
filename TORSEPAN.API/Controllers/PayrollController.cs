@@ -114,13 +114,12 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         {
             var alreadyPaid = (await db.PayrollPayments.AsNoTracking().Select(x => x.HandpanIdsJson).ToListAsync(ct))
                 .SelectMany(Deserialize<Guid>).ToHashSet();
-            var selectedActions = new List<ProductionAction>();
-            if (readyForQc) selectedActions.Add(ProductionAction.FineTune);
-            if (readyForPackaging) selectedActions.Add(ProductionAction.QualityCheck);
-            if (enteredWarehouse) selectedActions.Add(ProductionAction.Packaging);
             var enteredIds = await db.ProductionEvents.AsNoTracking()
                 .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed &&
-                            selectedActions.Contains(x.Action) && x.HandpanId.HasValue)
+                            x.HandpanId.HasValue && x.Handpan != null &&
+                            ((readyForQc && x.Action == ProductionAction.FineTune && x.Handpan.Stage == ProductionStage.WaitingForQualityControl) ||
+                             (readyForPackaging && x.Action == ProductionAction.QualityCheck && x.Handpan.Stage == ProductionStage.WaitingForPackaging) ||
+                             (enteredWarehouse && x.Action == ProductionAction.Packaging && x.Handpan.Stage == ProductionStage.FinishedWarehouse)))
                 .Select(x => x.HandpanId!.Value).Distinct().ToListAsync(ct);
             handpanIds = enteredIds.Where(x => !alreadyPaid.Contains(x)).ToList();
             var handpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly)
@@ -128,14 +127,13 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             handpanCodes = handpans.Select(x => x.SerialNumber).OrderBy(x => x).ToList();
             assemblyIds = handpans.Select(x => x.AssemblyId).ToList();
             bowlIds = handpans.SelectMany(x => new[] { x.Assembly.TopBowlId, x.Assembly.BottomBowlId }).ToList();
-            var exportActions = new List<ProductionAction>();
-            if (readyForExportPackaging) exportActions.Add(ProductionAction.Tune);
-            if (exportWarehouse) exportActions.Add(ProductionAction.Packaging);
-            if (exportActions.Count > 0)
+            if (readyForExportPackaging || exportWarehouse)
             {
                 exportBowlIds = await db.ProductionEvents.AsNoTracking()
                     .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed &&
-                                exportActions.Contains(x.Action) && x.BowlId.HasValue && !x.HandpanId.HasValue)
+                                x.BowlId.HasValue && !x.HandpanId.HasValue && x.Bowl != null &&
+                                ((readyForExportPackaging && x.Action == ProductionAction.Tune && x.Bowl.Stage == ProductionStage.WaitingForExportPackaging) ||
+                                 (exportWarehouse && x.Action == ProductionAction.Packaging && x.Bowl.Stage == ProductionStage.ExportWarehouse)))
                     .Select(x => x.BowlId!.Value).Distinct().ToListAsync(ct);
                 exportBowlIds = exportBowlIds.Where(x => !alreadyPaid.Contains(x)).ToList();
                 bowlIds.AddRange(exportBowlIds);
@@ -165,6 +163,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var lines = events.GroupBy(x => new
         {
             x.UserId, x.User.FullName, x.User.UserName, x.User.DisplayOrder, x.Action,
+            IsExport = x.BowlId.HasValue && exportBowlIds.Contains(x.BowlId.Value),
             MaterialId = x.Action == ProductionAction.Glue ? (Guid?)null : x.Bowl != null ? x.Bowl.MaterialId : x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Handpan != null ? x.Handpan.Assembly.TopBowl.MaterialId : (Guid?)null,
             Material = x.Action == ProductionAction.Glue ? "" : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
             BowlType = x.Action == ProductionAction.Glue || x.Bowl == null ? (int?)null : (int)x.Bowl.BowlType,
@@ -177,7 +176,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             var rate = rates.Where(r => r.Action == g.Key.Action && (!r.MaterialId.HasValue || r.MaterialId == g.Key.MaterialId) && (!r.BowlType.HasValue || (int)r.BowlType == g.Key.BowlType) && (!r.ScaleId.HasValue || r.ScaleId == g.Key.ScaleId))
                 .OrderByDescending(r => r.MaterialId.HasValue).ThenByDescending(r => r.BowlType.HasValue).ThenByDescending(r => r.ScaleId.HasValue).FirstOrDefault()?.Amount ?? 0;
             var count = g.Key.Action == ProductionAction.Glue ? g.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId).Distinct().Count() : g.Count();
-            return new PayrollLine(g.Key.UserId, string.IsNullOrWhiteSpace(g.Key.FullName) ? g.Key.UserName : g.Key.FullName, g.Key.DisplayOrder, (int)g.Key.Action, Title(g.Key.Action), g.Key.MaterialId, g.Key.Material, g.Key.BowlType, g.Key.ScaleId, g.Key.Scale, count, rate, count * rate);
+            return new PayrollLine(g.Key.UserId, string.IsNullOrWhiteSpace(g.Key.FullName) ? g.Key.UserName : g.Key.FullName, g.Key.DisplayOrder, (int)g.Key.Action, Title(g.Key.Action), g.Key.MaterialId, g.Key.Material, g.Key.BowlType, g.Key.ScaleId, g.Key.Scale, count, rate, count * rate, g.Key.IsExport);
         }).OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName)
             .ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)
             .ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ToList();
@@ -206,7 +205,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
 }
 
 public sealed record PayrollCalculation(DateTime From, DateTime To, List<PayrollLine> Lines, List<PayrollUser> Users, List<PayrollRateDto> Rates, List<Guid> HandpanIds, List<string> HandpanCodes, bool ReadyForQc, bool ReadyForPackaging, bool EnteredWarehouse, bool ReadyForExportPackaging, bool ExportWarehouse);
-public sealed record PayrollLine(Guid UserId, string UserName, int DisplayOrder, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, int Count, decimal Rate, decimal Total);
+public sealed record PayrollLine(Guid UserId, string UserName, int DisplayOrder, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, int Count, decimal Rate, decimal Total, bool IsExport = false);
 public sealed record PayrollUser(Guid Id, string FullName, int DisplayOrder);
 public sealed record PayrollRateDto(Guid Id, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, decimal Amount);
 public sealed record PayrollRateRequest(int Action, Guid? MaterialId, int? BowlType, Guid? ScaleId, decimal Amount);
