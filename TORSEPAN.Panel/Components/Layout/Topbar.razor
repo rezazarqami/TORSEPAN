@@ -54,7 +54,7 @@
         var titles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["Administrator"] = "مدیر سیستم", ["ProductionManager"] = "مدیر تولید", ["Workshop"] = "کارگاه و بسته‌بندی",
-            ["Dimpler"] = "دیمپل‌کار", ["Shaper"] = "شیپر", ["Tuner"] = "تیونر", ["FineTuner"] = "فاین تیونر", ["QualityControl"] = "کنترل کیفیت"
+            ["Dimpler"] = "دیمپل‌کار", ["Shaper"] = "شیپر", ["Tuner"] = "تیونر", ["FineTuner"] = "فاین تیونر", ["QualityControl"] = "کنترل کیفیت", ["Marketer"] = "بازاریاب"
         };
         return roles.Select(role => titles.GetValueOrDefault(role, role)).FirstOrDefault() ?? "همکار TORSEPAN";
     }

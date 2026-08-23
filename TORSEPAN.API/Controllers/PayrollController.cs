@@ -70,9 +70,17 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     public async Task<IActionResult> SaveRate(PayrollRateRequest request, CancellationToken ct)
     {
         var action = (ProductionAction)request.Action;
-        var bowlType = request.BowlType.HasValue ? (BowlType?)request.BowlType.Value : null;
-        var rate = await db.PayrollRates.FirstOrDefaultAsync(x => x.Action == action && x.MaterialId == request.MaterialId && x.BowlType == bowlType && x.ScaleId == request.ScaleId, ct);
-        if (rate is null) db.PayrollRates.Add(new PayrollRate(action, request.MaterialId, bowlType, request.ScaleId, request.Amount)); else rate.SetAmount(request.Amount);
+        var materialId = action == ProductionAction.Glue ? null : request.MaterialId;
+        var bowlType = action == ProductionAction.Glue ? null : request.BowlType.HasValue ? (BowlType?)request.BowlType.Value : null;
+        var scaleId = action == ProductionAction.Glue ? null : request.ScaleId;
+        if (action == ProductionAction.Glue)
+        {
+            var duplicateRates = await db.PayrollRates.Where(x => x.Action == action &&
+                (x.MaterialId != null || x.BowlType != null || x.ScaleId != null)).ToListAsync(ct);
+            db.PayrollRates.RemoveRange(duplicateRates);
+        }
+        var rate = await db.PayrollRates.FirstOrDefaultAsync(x => x.Action == action && x.MaterialId == materialId && x.BowlType == bowlType && x.ScaleId == scaleId, ct);
+        if (rate is null) db.PayrollRates.Add(new PayrollRate(action, materialId, bowlType, scaleId, request.Amount)); else rate.SetAmount(request.Amount);
         await db.SaveChangesAsync(ct); return NoContent();
     }
 
@@ -157,8 +165,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var lines = events.GroupBy(x => new
         {
             x.UserId, x.User.FullName, x.User.UserName, x.User.DisplayOrder, x.Action,
-            MaterialId = x.Action == ProductionAction.Glue && x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Bowl != null ? x.Bowl.MaterialId : x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Handpan != null ? x.Handpan.Assembly.TopBowl.MaterialId : (Guid?)null,
-            Material = x.Action == ProductionAction.Glue && x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
+            MaterialId = x.Action == ProductionAction.Glue ? (Guid?)null : x.Bowl != null ? x.Bowl.MaterialId : x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Handpan != null ? x.Handpan.Assembly.TopBowl.MaterialId : (Guid?)null,
+            Material = x.Action == ProductionAction.Glue ? "" : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
             BowlType = x.Action == ProductionAction.Glue || x.Bowl == null ? (int?)null : (int)x.Bowl.BowlType,
             ScaleId = x.Action == ProductionAction.FineTune && x.Handpan != null ? x.Handpan.ScaleId
                 : (x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null ? x.Bowl.ScaleId : (Guid?)null,

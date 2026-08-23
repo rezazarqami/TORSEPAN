@@ -10,5 +10,6 @@ public enum SystemRole
     FineTuner = 6,
     QualityControl = 7,
     Workshop = 8,
-    Warehouse = 9
+    Warehouse = 9,
+    Marketer = 10
 }

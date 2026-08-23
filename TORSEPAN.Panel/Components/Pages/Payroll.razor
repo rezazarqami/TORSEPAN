@@ -73,15 +73,18 @@ else
                 <h4>تعریف نرخ عملیات</h4>
                 <label class="form-label mt-2">عملیات</label>
                 <select class="form-select" @bind="_rateAction" @bind:after="RateFilterChanged">@foreach (var a in Actions) { <option value="@a.Id">@a.Title</option> }</select>
-                <label class="form-label mt-2">متریال</label>
-                <select class="form-select" @bind="_rateMaterial"><option value="">همه متریال‌ها</option>@foreach (var m in _materials) { <option value="@m.Id">@m.Name</option> }</select>
-                @if (!IsHandpanRate)
+                @if (!IsSimpleRate)
                 {
-                    <label class="form-label mt-2">نوع کاسه</label>
-                    <select class="form-select" @bind="_rateBowlType" @bind:after="RateFilterChanged"><option value="">بدون تفکیک</option><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></select>
+                    <label class="form-label mt-2">متریال</label>
+                    <select class="form-select" @bind="_rateMaterial"><option value="">همه متریال‌ها</option>@foreach (var m in _materials) { <option value="@m.Id">@m.Name</option> }</select>
+                    @if (!IsHandpanRate)
+                    {
+                        <label class="form-label mt-2">نوع کاسه</label>
+                        <select class="form-select" @bind="_rateBowlType" @bind:after="RateFilterChanged"><option value="">بدون تفکیک</option><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></select>
+                    }
+                    <label class="form-label mt-2">@(IsHandpanRate ? "اسکیل ساز" : "اسکیل کاسه")</label>
+                    <select class="form-select" @bind="_rateScale"><option value="">همه اسکیل‌ها</option>@foreach (var scale in AvailableRateScales) { <option value="@scale.Id">@scale.Name</option> }</select>
                 }
-                <label class="form-label mt-2">@(IsHandpanRate ? "اسکیل ساز" : "اسکیل کاسه")</label>
-                <select class="form-select" @bind="_rateScale"><option value="">همه اسکیل‌ها</option>@foreach (var scale in AvailableRateScales) { <option value="@scale.Id">@scale.Name</option> }</select>
                 <label class="form-label mt-2">نرخ واحد</label><input type="number" min="0" class="form-control" @bind="_rateAmount" />
                 <button class="btn btn-success w-100 mt-3" @onclick="SaveRateAsync">ثبت نرخ</button>
                 <hr /><h5>نرخ‌های ثبت‌شده</h5>
@@ -108,6 +111,7 @@ else
     protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); _scales = (await ScaleService.GetAsync()).ToList(); await LoadAsync(); }
     private bool HasStageFilter => _readyForQc || _readyForPackaging || _enteredWarehouse || _readyForExportPackaging || _exportWarehouse;
     private bool IsHandpanRate => _rateAction == 7;
+    private bool IsSimpleRate => _rateAction == 5;
     private IEnumerable<ScaleDto> AvailableRateScales => _rateBowlType switch
     {
         _ when IsHandpanRate => _scales.Where(x => (x.Usage & 4) != 0),
@@ -117,7 +121,7 @@ else
     };
     private async Task LoadAsync() { _loading = true; try { _payroll = await PayrollService.GetAsync(_from, _to, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse) ?? new(); if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
     private async Task SaveRateAsync() { Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null; int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null; Guid? scale = Guid.TryParse(_rateScale, out var s) ? s : null; await PayrollService.SaveRateAsync(_rateAction, material, bowl, scale, _rateAmount); await LoadAsync(); }
-    private void RateFilterChanged() { if (IsHandpanRate) _rateBowlType = ""; if (Guid.TryParse(_rateScale, out var id) && !AvailableRateScales.Any(x => x.Id == id)) _rateScale = ""; }
+    private void RateFilterChanged() { if (IsHandpanRate) _rateBowlType = ""; if (IsSimpleRate) { _rateMaterial = ""; _rateBowlType = ""; _rateScale = ""; } if (Guid.TryParse(_rateScale, out var id) && !AvailableRateScales.Any(x => x.Id == id)) _rateScale = ""; }
     private static string BowlTypeTitle(int? bowlType) => bowlType == 1 ? "کاسه رو" : bowlType == 2 ? "کاسه زیر" : "همه";
     private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 5 => 3, 6 => 4, 7 => 5, _ => 99 };
     private static string RateTypeTitle(PayrollRateDto rate) => rate.Action == 7 ? "ساز" : BowlTypeTitle(rate.BowlType);
