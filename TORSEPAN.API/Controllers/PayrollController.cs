@@ -14,13 +14,15 @@ public sealed class PayrollController(TORSEPANDbContext db) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] DateTime? from, [FromQuery] DateTime? to,
-        [FromQuery] bool onlyWarehouseAndSales = false, CancellationToken ct = default)
-        => Ok(await CalculateAsync(from, to, onlyWarehouseAndSales, ct));
+        [FromQuery] bool readyForQc = false, [FromQuery] bool readyForPackaging = false,
+        [FromQuery] bool enteredWarehouse = false, CancellationToken ct = default)
+        => Ok(await CalculateAsync(from, to, readyForQc, readyForPackaging, enteredWarehouse, ct));
 
     [HttpPost("payments")]
     public async Task<IActionResult> MarkPaid(PayrollPaymentRequest request, CancellationToken ct)
     {
-        var calculation = await CalculateAsync(request.From, request.To, true, ct);
+        var calculation = await CalculateAsync(request.From, request.To, request.ReadyForQc,
+            request.ReadyForPackaging, request.EnteredWarehouse, ct);
         if (calculation.HandpanIds.Count == 0 || calculation.Lines.Count == 0)
             return BadRequest("ساز پرداخت‌نشده‌ای در این بازه وجود ندارد.");
         var payment = new PayrollPayment(
@@ -60,7 +62,8 @@ public sealed class PayrollController(TORSEPANDbContext db) : ControllerBase
         await db.SaveChangesAsync(ct); return NoContent();
     }
 
-    private async Task<PayrollCalculation> CalculateAsync(DateTime? from, DateTime? to, bool onlyWarehouseAndSales, CancellationToken ct)
+    private async Task<PayrollCalculation> CalculateAsync(DateTime? from, DateTime? to,
+        bool readyForQc, bool readyForPackaging, bool enteredWarehouse, CancellationToken ct)
     {
         var now = DateTime.UtcNow.AddHours(3.5);
         var pc = new PersianCalendar();
@@ -73,13 +76,18 @@ public sealed class PayrollController(TORSEPANDbContext db) : ControllerBase
         var handpanCodes = new List<string>();
         var assemblyIds = new List<Guid>();
         var bowlIds = new List<Guid>();
-        if (onlyWarehouseAndSales)
+        var filterByHandpanStage = readyForQc || readyForPackaging || enteredWarehouse;
+        if (filterByHandpanStage)
         {
             var alreadyPaid = (await db.PayrollPayments.AsNoTracking().Select(x => x.HandpanIdsJson).ToListAsync(ct))
                 .SelectMany(Deserialize<Guid>).ToHashSet();
+            var selectedActions = new List<ProductionAction>();
+            if (readyForQc) selectedActions.Add(ProductionAction.FineTune);
+            if (readyForPackaging) selectedActions.Add(ProductionAction.QualityCheck);
+            if (enteredWarehouse) selectedActions.Add(ProductionAction.Packaging);
             var enteredIds = await db.ProductionEvents.AsNoTracking()
                 .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed &&
-                            x.Action == ProductionAction.Packaging && x.HandpanId.HasValue)
+                            selectedActions.Contains(x.Action) && x.HandpanId.HasValue)
                 .Select(x => x.HandpanId!.Value).Distinct().ToListAsync(ct);
             handpanIds = enteredIds.Where(x => !alreadyPaid.Contains(x)).ToList();
             var handpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly)
@@ -96,7 +104,7 @@ public sealed class PayrollController(TORSEPANDbContext db) : ControllerBase
             .Include(x => x.Handpan)!.ThenInclude(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
             .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
                 (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Glue || x.Action == ProductionAction.Tune || x.Action == ProductionAction.FineTune));
-        eventQuery = onlyWarehouseAndSales
+        eventQuery = filterByHandpanStage
             ? eventQuery.Where(x => (x.HandpanId.HasValue && handpanIds.Contains(x.HandpanId.Value)) ||
                                     (x.AssemblyId.HasValue && assemblyIds.Contains(x.AssemblyId.Value)) ||
                                     (x.BowlId.HasValue && bowlIds.Contains(x.BowlId.Value)))
@@ -123,18 +131,18 @@ public sealed class PayrollController(TORSEPANDbContext db) : ControllerBase
         var users = await db.Users.AsNoTracking().OrderBy(x => x.DisplayOrder).ThenBy(x => x.FullName).Select(x => new PayrollUser(x.Id, x.FullName, x.DisplayOrder)).ToListAsync(ct);
         return new PayrollCalculation(start, end.AddDays(-1), lines, users,
             rates.Select(r => new PayrollRateDto(r.Id, (int)r.Action, Title(r.Action), r.MaterialId, r.Material?.Name ?? "همه متریال‌ها", r.BowlType.HasValue ? (int)r.BowlType : null, r.ScaleId, r.Scale?.Name ?? "", r.Amount)).ToList(),
-            handpanIds, handpanCodes, onlyWarehouseAndSales);
+            handpanIds, handpanCodes, readyForQc, readyForPackaging, enteredWarehouse);
     }
 
     private static List<T> Deserialize<T>(string json) { try { return JsonSerializer.Deserialize<List<T>>(json) ?? []; } catch { return []; } }
     private static string Title(ProductionAction action) => action switch { ProductionAction.Dimple => "دیمپل", ProductionAction.Shape => "شیپ", ProductionAction.Glue => "چسب", ProductionAction.Tune => "تیون", ProductionAction.FineTune => "فاین تیون", _ => action.ToString() };
 }
 
-public sealed record PayrollCalculation(DateTime From, DateTime To, List<PayrollLine> Lines, List<PayrollUser> Users, List<PayrollRateDto> Rates, List<Guid> HandpanIds, List<string> HandpanCodes, bool OnlyWarehouseAndSales);
+public sealed record PayrollCalculation(DateTime From, DateTime To, List<PayrollLine> Lines, List<PayrollUser> Users, List<PayrollRateDto> Rates, List<Guid> HandpanIds, List<string> HandpanCodes, bool ReadyForQc, bool ReadyForPackaging, bool EnteredWarehouse);
 public sealed record PayrollLine(Guid UserId, string UserName, int DisplayOrder, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, int Count, decimal Rate, decimal Total);
 public sealed record PayrollUser(Guid Id, string FullName, int DisplayOrder);
 public sealed record PayrollRateDto(Guid Id, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, decimal Amount);
 public sealed record PayrollRateRequest(int Action, Guid? MaterialId, int? BowlType, Guid? ScaleId, decimal Amount);
 public sealed record UserOrderRequest(Guid UserId, int Order);
-public sealed record PayrollPaymentRequest(DateTime From, DateTime To);
+public sealed record PayrollPaymentRequest(DateTime From, DateTime To, bool ReadyForQc, bool ReadyForPackaging, bool EnteredWarehouse);
 public sealed record PayrollPaymentDto(Guid Id, DateTime From, DateTime To, DateTime PaidAt, string PaidBy, decimal TotalAmount, List<string> HandpanCodes, List<PayrollLine> Lines);
