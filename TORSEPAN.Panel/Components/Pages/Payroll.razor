@@ -35,7 +35,7 @@ else
 {
     @if (HasStageFilter)
     {
-        <div class="alert alert-info"><strong>مبنای محاسبه:</strong> سازهایی که در بازه انتخاب‌شده به مرحله‌های علامت‌خورده رسیده‌اند و قبلاً پرداخت نشده‌اند. سازهای فروخته‌شده‌ای که در این بازه وارد انبار شده‌اند نیز محاسبه می‌شوند.<div class="mt-2">کد سازها: @( _payroll.HandpanCodes.Count == 0 ? "موردی وجود ندارد" : string.Join("، ", _payroll.HandpanCodes))</div></div>
+        <div class="alert alert-info"><strong>مبنای محاسبه:</strong> فقط عملیات مرتبط با سازهایی که در بازه انتخاب‌شده به وضعیت‌های علامت‌خورده رسیده‌اند و قبلاً پرداخت نشده‌اند. <span class="ms-2">تعداد موارد: <strong>@_payroll.HandpanCodes.Count</strong></span></div>
     }
     <div class="row g-4">
         <div class="col-xl-8">
@@ -104,7 +104,7 @@ else
     private string _rateMaterial = "", _rateBowlType = "", _rateScale = "";
     private decimal _rateAmount;
     private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
-    private IEnumerable<UserPayrollGroup> UserGroups => _payroll.Lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.ToList()));
+    private IEnumerable<UserPayrollGroup> UserGroups => _payroll.Lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.OrderBy(y => ActionOrder(y.Action)).ThenBy(y => y.MaterialName).ThenBy(y => y.BowlType).ThenBy(y => y.ScaleName).ToList()));
     protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); _scales = (await ScaleService.GetAsync()).ToList(); await LoadAsync(); }
     private bool HasStageFilter => _readyForQc || _readyForPackaging || _enteredWarehouse || _readyForExportPackaging || _exportWarehouse;
     private bool IsHandpanRate => _rateAction == 7;
@@ -119,6 +119,7 @@ else
     private async Task SaveRateAsync() { Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null; int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null; Guid? scale = Guid.TryParse(_rateScale, out var s) ? s : null; await PayrollService.SaveRateAsync(_rateAction, material, bowl, scale, _rateAmount); await LoadAsync(); }
     private void RateFilterChanged() { if (IsHandpanRate) _rateBowlType = ""; if (Guid.TryParse(_rateScale, out var id) && !AvailableRateScales.Any(x => x.Id == id)) _rateScale = ""; }
     private static string BowlTypeTitle(int? bowlType) => bowlType == 1 ? "کاسه رو" : bowlType == 2 ? "کاسه زیر" : "همه";
+    private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 5 => 3, 6 => 4, 7 => 5, _ => 99 };
     private static string RateTypeTitle(PayrollRateDto rate) => rate.Action == 7 ? "ساز" : BowlTypeTitle(rate.BowlType);
     private static string LineDescription(PayrollLineDto line)
     {

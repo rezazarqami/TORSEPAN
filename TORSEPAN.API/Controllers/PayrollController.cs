@@ -170,7 +170,9 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                 .OrderByDescending(r => r.MaterialId.HasValue).ThenByDescending(r => r.BowlType.HasValue).ThenByDescending(r => r.ScaleId.HasValue).FirstOrDefault()?.Amount ?? 0;
             var count = g.Key.Action == ProductionAction.Glue ? g.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId).Distinct().Count() : g.Count();
             return new PayrollLine(g.Key.UserId, string.IsNullOrWhiteSpace(g.Key.FullName) ? g.Key.UserName : g.Key.FullName, g.Key.DisplayOrder, (int)g.Key.Action, Title(g.Key.Action), g.Key.MaterialId, g.Key.Material, g.Key.BowlType, g.Key.ScaleId, g.Key.Scale, count, rate, count * rate);
-        }).OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ToList();
+        }).OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName)
+            .ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)
+            .ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ToList();
 
         var users = await db.Users.AsNoTracking().OrderBy(x => x.DisplayOrder).ThenBy(x => x.FullName).Select(x => new PayrollUser(x.Id, x.FullName, x.DisplayOrder)).ToListAsync(ct);
         return new PayrollCalculation(start, end.AddDays(-1), lines, users,
@@ -182,15 +184,16 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     private static List<T> Deserialize<T>(string json) { try { return JsonSerializer.Deserialize<List<T>>(json) ?? []; } catch { return []; } }
     private static byte[] BuildPdf(PayrollCalculation c)
     {
-        var users=c.Lines.Select(x=>x.UserName).Distinct().OrderBy(x=>x).ToList();
+        var users=c.Lines.GroupBy(x=>new{x.UserName,x.DisplayOrder}).OrderBy(x=>x.Key.DisplayOrder).ThenBy(x=>x.Key.UserName).Select(x=>x.Key.UserName).ToList();
         string Desc(PayrollLine x)=>string.Join(" — ",new[]{x.ActionTitle,x.MaterialName,x.ScaleName}.Where(v=>!string.IsNullOrWhiteSpace(v)));
-        var ops=c.Lines.Select(Desc).Distinct().OrderBy(x=>x).ToList();
+        var ops=c.Lines.OrderBy(x=>ActionOrder(x.Action)).ThenBy(x=>x.MaterialName).ThenBy(x=>x.BowlType).ThenBy(x=>x.ScaleName).Select(Desc).Distinct().ToList();
         return Document.Create(doc=>doc.Page(page=>{page.Size(PageSizes.A4.Landscape());page.Margin(22);page.DefaultTextStyle(x=>x.FontFamily("DejaVu Sans").FontSize(9));page.Content().Column(col=>{
             col.Item().Text("TORSEPAN - جدول عملکرد تولید").FontSize(18).Bold();col.Item().Text($"{c.From:yyyy/MM/dd} تا {c.To:yyyy/MM/dd}").FontColor(Colors.Grey.Darken1);col.Item().PaddingTop(12).Table(t=>{t.ColumnsDefinition(cd=>{cd.RelativeColumn(2);foreach(var _ in users)cd.RelativeColumn();cd.ConstantColumn(45);});
             void H(string s)=>t.Cell().Background(Colors.Green.Lighten4).Padding(5).Text(s).Bold();void D(string s)=>t.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(s);
             H("عملیات");foreach(var u in users)H(u);H("جمع");foreach(var op in ops){H(op);foreach(var u in users)D(c.Lines.Where(x=>x.UserName==u&&Desc(x)==op).Sum(x=>x.Count).ToString());D(c.Lines.Where(x=>Desc(x)==op).Sum(x=>x.Count).ToString());}});
             var scales=c.Lines.Where(x=>x.Action==7&&!string.IsNullOrWhiteSpace(x.ScaleName)).GroupBy(x=>x.ScaleName).Select(x=>new{x.Key,Count=x.Sum(y=>y.Count)}).ToList();col.Item().PaddingTop(18).Text("خلاصه سازهای تکمیل‌شده").FontSize(14).Bold();foreach(var s in scales)col.Item().Text($"{s.Key}: {s.Count}");col.Item().Text($"جمع کل ساخت: {scales.Sum(x=>x.Count)}").Bold();});})).GeneratePdf();
     }
+    private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 5 => 3, 6 => 4, 7 => 5, _ => 99 };
     private static string Title(ProductionAction action) => action switch { ProductionAction.Dimple => "دیمپل", ProductionAction.Shape => "شیپ", ProductionAction.Glue => "چسب", ProductionAction.Tune => "تیون", ProductionAction.FineTune => "فاین تیون", _ => action.ToString() };
 }
 
