@@ -69,7 +69,8 @@ else
             </Card>
             @if (ExportUserGroups.Any())
             {
-                <Card Class="mt-4">
+                <div class="mt-4">
+                <Card>
                     <h4>دستمزد تولید صادراتی</h4>
                     <div class="alert alert-light border">این بخش فقط مربوط به کاسه‌هایی است که واقعاً در مسیر صادراتی قرار دارند.</div>
                     <div class="table-responsive">
@@ -90,6 +91,7 @@ else
                         </table>
                     </div>
                 </Card>
+                </div>
             }
             @if (HasStageFilter)
             {
