@@ -23,6 +23,8 @@ public class TORSEPANDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PayrollRate> PayrollRates => Set<PayrollRate>();
     public DbSet<PayrollPayment> PayrollPayments => Set<PayrollPayment>();
+    public DbSet<MarketingLead> MarketingLeads => Set<MarketingLead>();
+    public DbSet<MarketingActivity> MarketingActivities => Set<MarketingActivity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

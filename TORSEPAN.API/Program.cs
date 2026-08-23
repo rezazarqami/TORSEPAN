@@ -5,8 +5,10 @@ using TORSEPAN.Domain.Entities;
 using TORSEPAN.Infrastructure.DependencyInjection;
 using TORSEPAN.Infrastructure.Persistence;
 using TORSEPAN.Infrastructure.Services;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+QuestPDF.Settings.License = LicenseType.Community;
 
 builder.Services.AddControllers();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

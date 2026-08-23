@@ -1,0 +1,56 @@
+@page "/reports/payroll/table"
+@attribute [Authorize(Roles = "Administrator,ProductionManager")]
+@using Microsoft.AspNetCore.Authorization
+@inject PayrollService PayrollService
+@inject IJSRuntime JS
+
+<PageTitle>جدول عملکرد تولید</PageTitle>
+<PageHeader Title="جدول عملکرد تولید" SubTitle="تعداد عملیات انجام‌شده بدون نمایش مبالغ" />
+
+<div class="d-flex gap-2 mb-3 no-print">
+    <button class="btn btn-primary" @onclick='() => JS.InvokeVoidAsync("print")'>خروجی PDF / چاپ</button>
+    <button class="btn btn-success" disabled="@_sending" @onclick="SendTelegram">@(_sending?"در حال ارسال...":"ارسال PDF به تلگرام")</button>
+    @if(!string.IsNullOrWhiteSpace(_message)){<span class="alert alert-success py-2 mb-0">@_message</span>}
+</div>
+
+@if (_loading) { <div class="text-center p-5"><div class="spinner-border"></div></div> }
+else
+{
+    <Card>
+        <h4>خلاصه عملکرد اعضا</h4>
+        <div class="small text-muted mb-3">از @From.ToString("yyyy/MM/dd") تا @To.ToString("yyyy/MM/dd")</div>
+        <div class="table-responsive"><table class="table table-bordered align-middle text-center">
+            <thead><tr><th class="text-start">عملیات</th>@foreach(var u in Users){<th>@u</th>}<th>جمع</th></tr></thead>
+            <tbody>@foreach(var op in Operations){<tr><th class="text-start">@op</th>@foreach(var u in Users){<td>@Count(u,op)</td>}<td><strong>@Total(op)</strong></td></tr>}</tbody>
+        </table></div>
+    </Card>
+    <Card>
+        <h4>خلاصه سازهای تکمیل‌شده بر اساس اسکیل</h4>
+        <div class="table-responsive"><table class="table table-bordered align-middle"><thead><tr><th>اسکیل ساز</th><th>تعداد</th></tr></thead><tbody>
+        @foreach(var item in InstrumentScales){<tr><td>@item.Key</td><td><strong>@item.Value</strong></td></tr>}
+        <tr class="table-light"><th>جمع کل ساخت</th><th>@InstrumentScales.Sum(x=>x.Value)</th></tr></tbody></table></div>
+    </Card>
+}
+
+@code {
+    [SupplyParameterFromQuery] public DateTime From { get; set; }
+    [SupplyParameterFromQuery] public DateTime To { get; set; }
+    [SupplyParameterFromQuery(Name="qc")] public bool Qc { get; set; }
+    [SupplyParameterFromQuery(Name="pack")] public bool Pack { get; set; }
+    [SupplyParameterFromQuery(Name="warehouse")] public bool Warehouse { get; set; }
+    [SupplyParameterFromQuery(Name="exportPack")] public bool ExportPack { get; set; }
+    [SupplyParameterFromQuery(Name="exportWarehouse")] public bool ExportWarehouse { get; set; }
+    private PayrollDto _data=new(); private bool _loading=true,_sending;private string? _message;
+    private List<string> Users=>_data.Lines.Select(x=>x.UserName).Distinct().OrderBy(x=>x).ToList();
+    private List<string> Operations=>_data.Lines.Select(Description).Distinct().OrderBy(x=>x).ToList();
+    private IEnumerable<KeyValuePair<string,int>> InstrumentScales=>_data.Lines.Where(x=>x.Action==7&&!string.IsNullOrWhiteSpace(x.ScaleName)).GroupBy(x=>x.ScaleName).Select(x=>new KeyValuePair<string,int>(x.Key,x.Sum(y=>y.Count))).OrderBy(x=>x.Key);
+    protected override async Task OnInitializedAsync(){_data=await PayrollService.GetAsync(From,To,Qc,Pack,Warehouse,ExportPack,ExportWarehouse)??new();_loading=false;}
+    private int Count(string user,string op)=>_data.Lines.Where(x=>x.UserName==user&&Description(x)==op).Sum(x=>x.Count);
+    private int Total(string op)=>_data.Lines.Where(x=>Description(x)==op).Sum(x=>x.Count);
+    private async Task SendTelegram(){_sending=true;_message=null;try{await PayrollService.SendReportToTelegramAsync(From,To,Qc,Pack,Warehouse,ExportPack,ExportWarehouse);_message="فایل PDF به تلگرام ارسال شد.";}finally{_sending=false;}}
+    private static string Description(PayrollLineDto x)=>string.Join(" — ",new[]{x.ActionTitle,x.MaterialName,x.ScaleName}.Where(v=>!string.IsNullOrWhiteSpace(v)));
+}
+
+<style>
+@@media print{.no-print,.sidebar,.topbar{display:none!important}.main{display:block!important}.content{padding:0!important;overflow:visible!important}.card{box-shadow:none!important;break-inside:avoid}body,html{overflow:visible!important}}
+</style>
