@@ -22,7 +22,7 @@ class RelayHandler(BaseHTTPRequestHandler):
         self._json(200, {"status": "healthy"})
 
     def do_POST(self):
-        if self.path not in ("/database-backup", "/inventory-alert"):
+        if self.path not in ("/database-backup", "/inventory-alert", "/payroll-report"):
             self.send_error(404)
             return
         if self.headers.get("X-Relay-Secret") != os.environ["RELAY_SECRET"]:
@@ -46,27 +46,29 @@ class RelayHandler(BaseHTTPRequestHandler):
         message = BytesParser(policy=default).parsebytes(
             b"Content-Type: " + self.headers["Content-Type"].encode() + b"\r\n\r\n" + raw
         )
-        backup = next(
+        field_name = "report" if self.path == "/payroll-report" else "backup"
+        upload = next(
             (part for part in message.iter_parts()
-             if part.get_param("name", header="content-disposition") == "backup"),
+             if part.get_param("name", header="content-disposition") == field_name),
             None,
         )
-        if backup is None:
-            self.send_error(400, "backup file is required")
+        if upload is None:
+            self.send_error(400, f"{field_name} file is required")
             return
 
-        filename = os.path.basename(backup.get_filename() or "TORSEPAN.dump")
+        filename = os.path.basename(upload.get_filename() or ("TORSEPAN-report.pdf" if self.path == "/payroll-report" else "TORSEPAN.dump"))
+        caption = "گزارش عملکرد تولید TORSEPAN" if self.path == "/payroll-report" else "پشتیبان شبانه دیتابیس TORSEPAN"
         with tempfile.TemporaryDirectory(prefix="torsepan-backup-") as directory:
             path = os.path.join(directory, filename)
             with open(path, "wb") as stream:
-                stream.write(backup.get_payload(decode=True))
+                stream.write(upload.get_payload(decode=True))
 
             result = subprocess.run(
                 [
                     "curl", "--fail-with-body", "--silent", "--show-error",
                     "--connect-timeout", "20", "--max-time", "300",
                     "-F", f"chat_id={os.environ['TELEGRAM_CHAT_ID']}",
-                    "-F", "caption=پشتیبان شبانه دیتابیس TORSEPAN",
+                    "-F", f"caption={caption}",
                     "-F", f"document=@{path}",
                     f"https://api.telegram.org/bot{os.environ['TELEGRAM_BOT_TOKEN']}/sendDocument",
                 ],

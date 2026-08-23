@@ -51,7 +51,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var c=await CalculateAsync(r.From,r.To,r.ReadyForQc,r.ReadyForPackaging,r.EnteredWarehouse,r.ReadyForExportPackaging,r.ExportWarehouse,ct);
         var relay=configuration["Telegram:BackupRelayUrl"]??configuration["Telegram:RelayUrl"];
         if(string.IsNullOrWhiteSpace(relay))return Problem("Telegram relay is not configured.");
-        relay=relay.Replace("telegram-database-backup","telegram-payroll-report").Replace("telegram-inventory-alert","telegram-payroll-report");
+        relay=relay.Replace("telegram-database-backup","telegram-payroll-report").Replace("telegram-inventory-alert","telegram-payroll-report")
+            .Replace("/database-backup","/payroll-report").Replace("/inventory-alert","/payroll-report");
         using var form=new MultipartFormDataContent();var bytes=BuildPdf(c);form.Add(new ByteArrayContent(bytes),"report",$"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf");
         using var request=new HttpRequestMessage(HttpMethod.Post,relay){Content=form};request.Headers.Add("X-Relay-Secret",configuration["Telegram:RelaySecret"]);
         var response=await httpFactory.CreateClient().SendAsync(request,CancellationToken.None);return response.IsSuccessStatusCode?Ok():StatusCode((int)response.StatusCode);
