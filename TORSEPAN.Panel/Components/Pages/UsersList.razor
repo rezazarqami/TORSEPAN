@@ -7,6 +7,7 @@
 
 @inject NavigationManager Navigation
 @inject IUserService UserService
+@inject PayrollService PayrollService
 
 <PageTitle>Users</PageTitle>
 
@@ -80,13 +81,30 @@
 
 </Card>
 
+<Card>
+    <h4>ترتیب نمایش کاربران در داشبورد</h4>
+    <div class="row g-2">
+        @foreach (var user in DashboardUsers)
+        {
+            <div class="col-md-4"><label class="form-label">@user.FullName</label><input type="number" min="0" class="form-control" @bind="user.DisplayOrder" /></div>
+        }
+    </div>
+    <button class="btn btn-primary mt-3" disabled="@SavingOrder" @onclick="SaveOrderAsync">@(SavingOrder ? "در حال ثبت..." : "ثبت ترتیب نمایش")</button>
+    <div class="small text-muted mt-2">عدد کمتر، جایگاه بالاتری در جدول داشبورد دارد.</div>
+    @if (!string.IsNullOrWhiteSpace(OrderMessage)) { <div class="alert alert-success mt-2 mb-0">@OrderMessage</div> }
+</Card>
+
 @code
 {
     private List<UserDto> Users = new();
+    private List<PayrollUserDto> DashboardUsers = new();
+    private bool SavingOrder;
+    private string? OrderMessage;
 
     protected override async Task OnInitializedAsync()
     {
         Users = await UserService.GetUsersAsync();
+        DashboardUsers = (await PayrollService.GetAsync())?.Users ?? [];
     }
 
     private void NewUser()
@@ -97,5 +115,13 @@
     private void EditUser(Guid userId)
     {
         Navigation.NavigateTo($"/users/{userId}/edit");
+    }
+
+    private async Task SaveOrderAsync()
+    {
+        SavingOrder = true;
+        OrderMessage = null;
+        try { await PayrollService.SaveOrderAsync(DashboardUsers); OrderMessage = "ترتیب نمایش کاربران ثبت شد."; }
+        finally { SavingOrder = false; }
     }
 }

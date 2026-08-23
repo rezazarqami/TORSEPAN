@@ -103,6 +103,7 @@ public sealed class PayrollController(TORSEPANDbContext db) : ControllerBase
             .Include(x => x.Assembly)!.ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
             .Include(x => x.Handpan)!.ThenInclude(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
             .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
+                x.Description != "Released from glue room" &&
                 (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Glue || x.Action == ProductionAction.Tune || x.Action == ProductionAction.FineTune));
         eventQuery = filterByHandpanStage
             ? eventQuery.Where(x => (x.HandpanId.HasValue && handpanIds.Contains(x.HandpanId.Value)) ||
@@ -118,8 +119,8 @@ public sealed class PayrollController(TORSEPANDbContext db) : ControllerBase
             MaterialId = x.Action == ProductionAction.Glue && x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Bowl != null ? x.Bowl.MaterialId : x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Handpan != null ? x.Handpan.Assembly.TopBowl.MaterialId : (Guid?)null,
             Material = x.Action == ProductionAction.Glue && x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
             BowlType = x.Action == ProductionAction.Glue || x.Bowl == null ? (int?)null : (int)x.Bowl.BowlType,
-            ScaleId = x.Action == ProductionAction.Shape && x.Bowl != null ? x.Bowl.ScaleId : (Guid?)null,
-            Scale = x.Action == ProductionAction.Shape && x.Bowl != null && x.Bowl.Scale != null ? x.Bowl.Scale.Name : ""
+            ScaleId = (x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null ? x.Bowl.ScaleId : (Guid?)null,
+            Scale = (x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null && x.Bowl.Scale != null ? x.Bowl.Scale.Name : ""
         }).Select(g =>
         {
             var rate = rates.Where(r => r.Action == g.Key.Action && (!r.MaterialId.HasValue || r.MaterialId == g.Key.MaterialId) && (!r.BowlType.HasValue || (int)r.BowlType == g.Key.BowlType) && (!r.ScaleId.HasValue || r.ScaleId == g.Key.ScaleId))
