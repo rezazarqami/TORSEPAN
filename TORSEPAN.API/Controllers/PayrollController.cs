@@ -114,12 +114,13 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         {
             var alreadyPaid = (await db.PayrollPayments.AsNoTracking().Select(x => x.HandpanIdsJson).ToListAsync(ct))
                 .SelectMany(Deserialize<Guid>).ToHashSet();
+            var selectedActions = new List<ProductionAction>();
+            if (readyForQc) selectedActions.Add(ProductionAction.FineTune);
+            if (readyForPackaging) selectedActions.Add(ProductionAction.QualityCheck);
+            if (enteredWarehouse) selectedActions.Add(ProductionAction.Packaging);
             var enteredIds = await db.ProductionEvents.AsNoTracking()
                 .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed &&
-                            x.HandpanId.HasValue && x.Handpan != null &&
-                            ((readyForQc && x.Action == ProductionAction.FineTune && x.Handpan.Stage == ProductionStage.WaitingForQualityControl) ||
-                             (readyForPackaging && x.Action == ProductionAction.QualityCheck && x.Handpan.Stage == ProductionStage.WaitingForPackaging) ||
-                             (enteredWarehouse && x.Action == ProductionAction.Packaging && x.Handpan.Stage == ProductionStage.FinishedWarehouse)))
+                            x.HandpanId.HasValue && selectedActions.Contains(x.Action))
                 .Select(x => x.HandpanId!.Value).Distinct().ToListAsync(ct);
             handpanIds = enteredIds.Where(x => !alreadyPaid.Contains(x)).ToList();
             var handpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly)

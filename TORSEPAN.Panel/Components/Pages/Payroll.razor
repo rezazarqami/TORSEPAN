@@ -37,6 +37,10 @@ else
     {
         <div class="alert alert-info"><strong>مبنای محاسبه:</strong> فقط عملیات مرتبط با سازهایی که در بازه انتخاب‌شده به وضعیت‌های علامت‌خورده رسیده‌اند و قبلاً پرداخت نشده‌اند. <span class="ms-2">تعداد موارد: <strong>@_payroll.HandpanCodes.Count</strong></span></div>
     }
+    @if (_payroll.Lines.Count == 0)
+    {
+        <div class="alert alert-warning">در این بازه، مورد پرداخت‌نشده‌ای مطابق گزینه‌های انتخاب‌شده پیدا نشد.</div>
+    }
     <div class="row g-4">
         <div class="col-xl-8">
             <Card>
