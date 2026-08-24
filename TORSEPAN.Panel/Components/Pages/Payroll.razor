@@ -4,7 +4,6 @@
 @inject PayrollService PayrollService
 @inject MaterialService MaterialService
 @inject ScaleService ScaleService
-@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 <PageTitle>محاسبه دستمزد تولید</PageTitle>
@@ -102,7 +101,7 @@ else
             <Card>
                 <h4>تعریف نرخ عملیات</h4>
                 <label class="form-label mt-2">مسیر تولید</label>
-                <select class="form-select" @bind="_rateIsExport"><option value="false">عادی</option><option value="true">صادراتی</option></select>
+                <select class="form-select" @bind="_ratePath"><option value="0">عادی</option><option value="1">صادراتی</option></select>
                 <label class="form-label mt-2">عملیات</label>
                 <select class="form-select" @bind="_rateAction" @bind:after="RateFilterChanged">@foreach (var a in Actions) { <option value="@a.Id">@a.Title</option> }</select>
                 @if (!IsSimpleRate)
@@ -131,6 +130,27 @@ else
     </div>
 }
 
+@if (_confirmVisible)
+{
+    <div class="modal d-block" style="background:rgba(0,0,0,.45)" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" dir="rtl">
+                <div class="modal-header">
+                    <h5 class="modal-title">@_confirmTitle</h5>
+                    <button type="button" class="btn-close ms-0" disabled="@_confirmBusy" @onclick="CloseConfirmation"></button>
+                </div>
+                <div class="modal-body"><p class="mb-0">@_confirmMessage</p></div>
+                <div class="modal-footer justify-content-start">
+                    <button class="btn btn-outline-secondary" disabled="@_confirmBusy" @onclick="CloseConfirmation">انصراف</button>
+                    <button class="btn @(_confirmDanger ? "btn-danger" : "btn-success")" disabled="@_confirmBusy" @onclick="ConfirmAsync">
+                        @(_confirmBusy ? "در حال انجام..." : _confirmButton)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private PayrollDto _payroll = new();
     private List<MaterialDto> _materials = [];
@@ -138,11 +158,14 @@ else
     private bool _loading = true, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse, _savingPayment;
     private DateTime? _from, _to;
     private int _rateAction = 2;
-    private bool _rateIsExport;
+    private int _ratePath;
     private string _rateMaterial = "", _rateBowlType = "", _rateScale = "";
     private string _rateMessage = "";
     private Guid? _editingRateId;
     private decimal _rateAmount;
+    private bool _confirmVisible, _confirmBusy, _confirmDanger;
+    private string _confirmTitle = "", _confirmMessage = "", _confirmButton = "تأیید";
+    private Func<Task>? _confirmAction;
     private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
     private IEnumerable<UserPayrollGroup> UserGroups => GroupLines(_payroll.Lines.Where(x => !x.IsExport));
     private IEnumerable<UserPayrollGroup> ExportUserGroups => GroupLines(_payroll.Lines.Where(x => x.IsExport));
@@ -166,23 +189,37 @@ else
         int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null;
         Guid? scale = Guid.TryParse(_rateScale, out var s) ? s : null;
         if (IsSimpleRate) { material = null; bowl = null; scale = null; }
-        var existing = _payroll.Rates.FirstOrDefault(x => x.Id != _editingRateId && x.Action == _rateAction && x.MaterialId == material && x.BowlType == bowl && x.ScaleId == scale && x.IsExport == _rateIsExport);
-        if (existing is not null && !await JS.InvokeAsync<bool>("confirm", $"برای این حالت قبلاً نرخ {existing.Amount:N0} ثبت شده است. نرخ قبلی با مبلغ جدید جایگزین شود؟")) return;
-        await PayrollService.SaveRateAsync(_editingRateId, _rateAction, material, bowl, scale, _rateIsExport, _rateAmount);
-        _rateMessage = _editingRateId.HasValue ? "تغییرات نرخ ذخیره شد." : existing is not null ? "نرخ قبلی با مبلغ جدید جایگزین شد." : "نرخ جدید ثبت شد.";
+        var isExport = _ratePath == 1;
+        var existing = _payroll.Rates.FirstOrDefault(x => x.Id != _editingRateId && x.Action == _rateAction && x.MaterialId == material && x.BowlType == bowl && x.ScaleId == scale && x.IsExport == isExport);
+        if (existing is not null)
+        {
+            ShowConfirmation("جایگزینی نرخ", $"برای این حالت قبلاً نرخ {existing.Amount:N0} ثبت شده است. نرخ قبلی با مبلغ جدید جایگزین شود؟", "جایگزین شود", false,
+                () => PersistRateAsync(material, bowl, scale, isExport, true));
+            return;
+        }
+        await PersistRateAsync(material, bowl, scale, isExport, false);
+    }
+    private async Task PersistRateAsync(Guid? material, int? bowl, Guid? scale, bool isExport, bool replacing)
+    {
+        await PayrollService.SaveRateAsync(_editingRateId, _rateAction, material, bowl, scale, isExport, _rateAmount);
+        _rateMessage = _editingRateId.HasValue ? "تغییرات نرخ ذخیره شد." : replacing ? "نرخ قبلی با مبلغ جدید جایگزین شد." : "نرخ جدید ثبت شد.";
         _editingRateId = null;
         await LoadAsync();
     }
     private void EditRate(PayrollRateDto rate)
     {
-        _editingRateId = rate.Id; _rateIsExport = rate.IsExport; _rateAction = rate.Action; _rateMaterial = rate.MaterialId?.ToString() ?? "";
+        _editingRateId = rate.Id; _ratePath = rate.IsExport ? 1 : 0; _rateAction = rate.Action; _rateMaterial = rate.MaterialId?.ToString() ?? "";
         _rateBowlType = rate.BowlType?.ToString() ?? ""; _rateScale = rate.ScaleId?.ToString() ?? ""; _rateAmount = rate.Amount;
         _rateMessage = ""; RateFilterChanged();
     }
     private void CancelRateEdit() { _editingRateId = null; _rateAmount = 0; _rateMessage = ""; }
-    private async Task DeleteRateAsync(PayrollRateDto rate)
+    private Task DeleteRateAsync(PayrollRateDto rate)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"نرخ {(rate.IsExport ? "صادراتی" : "عادی")} «{rate.ActionTitle} — {rate.MaterialName} — {RateTypeTitle(rate)} — {(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)}» حذف شود؟")) return;
+        ShowConfirmation("حذف نرخ", $"نرخ {(rate.IsExport ? "صادراتی" : "عادی")} «{rate.ActionTitle} — {rate.MaterialName} — {RateTypeTitle(rate)} — {(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)}» حذف شود؟", "حذف نرخ", true, () => DeleteRateConfirmedAsync(rate));
+        return Task.CompletedTask;
+    }
+    private async Task DeleteRateConfirmedAsync(PayrollRateDto rate)
+    {
         await PayrollService.DeleteRateAsync(rate.Id);
         if (_editingRateId == rate.Id) CancelRateEdit();
         _rateMessage = "نرخ حذف شد.";
@@ -204,6 +241,10 @@ else
         return string.Join(" — ", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
     }
     private void OpenTable(){if(!_from.HasValue||!_to.HasValue)return;Navigation.NavigateTo($"/reports/payroll/table?from={_from:yyyy-MM-dd}&to={_to:yyyy-MM-dd}&qc={_readyForQc}&pack={_readyForPackaging}&warehouse={_enteredWarehouse}&exportPack={_readyForExportPackaging}&exportWarehouse={_exportWarehouse}");}
-    private async Task MarkPaidAsync(){if(!_from.HasValue||!_to.HasValue)return;if(!await JS.InvokeAsync<bool>("confirm",$"دستمزد {_payroll.HandpanCodes.Count} ساز با مبلغ کل {_payroll.Lines.Sum(x=>x.Total):N0} به‌عنوان پرداخت‌شده ثبت شود؟"))return;_savingPayment=true;try{await PayrollService.MarkPaidAsync(_from.Value,_to.Value,_readyForQc,_readyForPackaging,_enteredWarehouse,_readyForExportPackaging,_exportWarehouse);await LoadAsync();Navigation.NavigateTo("/reports/payroll/payments");}finally{_savingPayment=false;}}
+    private Task MarkPaidAsync(){if(!_from.HasValue||!_to.HasValue)return Task.CompletedTask;ShowConfirmation("تأیید پرداخت",$"دستمزد {_payroll.HandpanCodes.Count} ساز با مبلغ کل {_payroll.Lines.Sum(x=>x.Total):N0} به‌عنوان پرداخت‌شده ثبت شود؟","ثبت پرداخت",false,CompletePaymentAsync);return Task.CompletedTask;}
+    private async Task CompletePaymentAsync(){if(!_from.HasValue||!_to.HasValue)return;_savingPayment=true;try{await PayrollService.MarkPaidAsync(_from.Value,_to.Value,_readyForQc,_readyForPackaging,_enteredWarehouse,_readyForExportPackaging,_exportWarehouse);await LoadAsync();Navigation.NavigateTo("/reports/payroll/payments");}finally{_savingPayment=false;}}
+    private void ShowConfirmation(string title,string message,string button,bool danger,Func<Task> action){_confirmTitle=title;_confirmMessage=message;_confirmButton=button;_confirmDanger=danger;_confirmAction=action;_confirmVisible=true;}
+    private void CloseConfirmation(){if(_confirmBusy)return;_confirmVisible=false;_confirmAction=null;}
+    private async Task ConfirmAsync(){if(_confirmBusy||_confirmAction is null)return;_confirmBusy=true;var action=_confirmAction;try{await action();_confirmVisible=false;_confirmAction=null;}finally{_confirmBusy=false;}}
     private sealed record UserPayrollGroup(string Name, List<PayrollLineDto> Lines);
 }

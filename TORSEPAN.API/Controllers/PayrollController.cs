@@ -245,18 +245,19 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                     {
                         var lines = group.OrderBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)
                             .ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ToList();
-                        foreach (var chunk in lines.Chunk(6))
+                        var chunks = lines.Chunk(6).ToList();
+                        col.Item().PaddingBottom(5).Table(table =>
                         {
-                            col.Item().PaddingBottom(5).Table(table =>
+                            table.ColumnsDefinition(columns =>
                             {
-                                table.ColumnsDefinition(columns =>
-                                {
-                                    columns.ConstantColumn(92);
-                                    for (var i = 0; i < 6; i++) columns.RelativeColumn();
-                                    columns.ConstantColumn(105);
-                                });
-                                table.Cell().Background(Colors.Green.Darken3).Padding(6).AlignMiddle().AlignCenter().ContentFromRightToLeft()
-                                    .Text($"جمع کل\n{lines.Sum(x => x.Total):N0}").FontColor(Colors.White).FontSize(10).Bold();
+                                columns.ConstantColumn(92);
+                                for (var i = 0; i < 6; i++) columns.RelativeColumn();
+                                columns.ConstantColumn(105);
+                            });
+                            table.Cell().RowSpan((uint)chunks.Count).Background(Colors.Green.Darken3).Padding(6).AlignMiddle().AlignCenter().ContentFromRightToLeft()
+                                .Text($"جمع کل\n{lines.Sum(x => x.Total):N0}").FontColor(Colors.White).FontSize(10).Bold();
+                            foreach (var chunk in chunks)
+                            {
                                 for (var i = 0; i < 6; i++)
                                 {
                                     var cell = table.Cell().Border(1).BorderColor(Colors.Green.Lighten3).Background(Colors.Grey.Lighten5).Padding(5).AlignMiddle().AlignCenter();
@@ -272,10 +273,11 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                                     }
                                     else cell.Text("");
                                 }
-                                table.Cell().Background(Colors.Green.Lighten4).Border(1).BorderColor(Colors.Green.Lighten2).Padding(6).AlignMiddle().AlignCenter().ContentFromRightToLeft()
-                                    .Text(group.Key.UserName).FontSize(10.5f).Bold();
-                            });
-                        }
+                                if (ReferenceEquals(chunk, chunks[0]))
+                                    table.Cell().RowSpan((uint)chunks.Count).Background(Colors.Green.Lighten4).Border(1).BorderColor(Colors.Green.Lighten2).Padding(6).AlignMiddle().AlignCenter().ContentFromRightToLeft()
+                                        .Text(group.Key.UserName).FontSize(10.5f).Bold();
+                            }
+                        });
                     }
                 }
 
