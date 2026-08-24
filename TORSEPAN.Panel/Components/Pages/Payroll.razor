@@ -116,11 +116,13 @@ else
                     <select class="form-select" @bind="_rateScale"><option value="">همه اسکیل‌ها</option>@foreach (var scale in AvailableRateScales) { <option value="@scale.Id">@scale.Name</option> }</select>
                 }
                 <label class="form-label mt-2">نرخ واحد</label><input type="number" min="0" class="form-control" @bind="_rateAmount" />
-                <button class="btn btn-success w-100 mt-3" @onclick="SaveRateAsync">ثبت نرخ</button>
+                @if (!string.IsNullOrWhiteSpace(_rateMessage)) { <div class="alert alert-success py-2 mt-2 mb-0">@_rateMessage</div> }
+                <button class="btn btn-success w-100 mt-3" @onclick="SaveRateAsync">@(_editingRateId.HasValue ? "ثبت تغییرات" : "ثبت نرخ")</button>
+                @if (_editingRateId.HasValue) { <button class="btn btn-outline-secondary w-100 mt-2" @onclick="CancelRateEdit">انصراف از ویرایش</button> }
                 <hr /><h5>نرخ‌های ثبت‌شده</h5>
                 <div class="table-responsive payroll-rates-table"><table class="table table-sm align-middle mb-0">
-                    <thead><tr><th>عملیات</th><th>متریال</th><th>نوع</th><th>اسکیل</th><th>نرخ</th></tr></thead>
-                    <tbody>@foreach (var rate in _payroll.Rates) { <tr><td>@rate.ActionTitle</td><td>@rate.MaterialName</td><td>@RateTypeTitle(rate)</td><td>@(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)</td><td><strong>@rate.Amount.ToString("N0")</strong></td></tr> }</tbody>
+                    <thead><tr><th>عملیات</th><th>متریال</th><th>نوع</th><th>اسکیل</th><th>نرخ</th><th>مدیریت</th></tr></thead>
+                    <tbody>@foreach (var rate in SortedRates) { <tr class="@(_editingRateId == rate.Id ? "table-success" : "")"><td>@rate.ActionTitle</td><td>@rate.MaterialName</td><td>@RateTypeTitle(rate)</td><td>@(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)</td><td><strong>@rate.Amount.ToString("N0")</strong></td><td class="text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditRate(rate)">ویرایش</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRateAsync(rate)">حذف</button></td></tr> }</tbody>
                 </table></div>
             </Card>
         </div>
@@ -135,10 +137,13 @@ else
     private DateTime? _from, _to;
     private int _rateAction = 2;
     private string _rateMaterial = "", _rateBowlType = "", _rateScale = "";
+    private string _rateMessage = "";
+    private Guid? _editingRateId;
     private decimal _rateAmount;
     private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
     private IEnumerable<UserPayrollGroup> UserGroups => GroupLines(_payroll.Lines.Where(x => !x.IsExport));
     private IEnumerable<UserPayrollGroup> ExportUserGroups => GroupLines(_payroll.Lines.Where(x => x.IsExport));
+    private IEnumerable<PayrollRateDto> SortedRates => _payroll.Rates.OrderBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName).ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ThenBy(x => x.Amount);
     private static IEnumerable<UserPayrollGroup> GroupLines(IEnumerable<PayrollLineDto> lines) => lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.OrderBy(y => ActionOrder(y.Action)).ThenBy(y => y.MaterialName).ThenBy(y => y.BowlType).ThenBy(y => y.ScaleName).ToList()));
     protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); _scales = (await ScaleService.GetAsync()).ToList(); await LoadAsync(); }
     private bool HasStageFilter => _readyForQc || _readyForPackaging || _enteredWarehouse || _readyForExportPackaging || _exportWarehouse;
@@ -152,7 +157,34 @@ else
         _ => _scales.Where(x => (x.Usage & 3) != 0)
     };
     private async Task LoadAsync() { _loading = true; try { _payroll = await PayrollService.GetAsync(_from, _to, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse) ?? new(); if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
-    private async Task SaveRateAsync() { Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null; int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null; Guid? scale = Guid.TryParse(_rateScale, out var s) ? s : null; await PayrollService.SaveRateAsync(_rateAction, material, bowl, scale, _rateAmount); await LoadAsync(); }
+    private async Task SaveRateAsync()
+    {
+        Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null;
+        int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null;
+        Guid? scale = Guid.TryParse(_rateScale, out var s) ? s : null;
+        if (IsSimpleRate) { material = null; bowl = null; scale = null; }
+        var existing = _payroll.Rates.FirstOrDefault(x => x.Id != _editingRateId && x.Action == _rateAction && x.MaterialId == material && x.BowlType == bowl && x.ScaleId == scale);
+        if (existing is not null && !await JS.InvokeAsync<bool>("confirm", $"برای این حالت قبلاً نرخ {existing.Amount:N0} ثبت شده است. نرخ قبلی با مبلغ جدید جایگزین شود؟")) return;
+        await PayrollService.SaveRateAsync(_editingRateId, _rateAction, material, bowl, scale, _rateAmount);
+        _rateMessage = _editingRateId.HasValue ? "تغییرات نرخ ذخیره شد." : existing is not null ? "نرخ قبلی با مبلغ جدید جایگزین شد." : "نرخ جدید ثبت شد.";
+        _editingRateId = null;
+        await LoadAsync();
+    }
+    private void EditRate(PayrollRateDto rate)
+    {
+        _editingRateId = rate.Id; _rateAction = rate.Action; _rateMaterial = rate.MaterialId?.ToString() ?? "";
+        _rateBowlType = rate.BowlType?.ToString() ?? ""; _rateScale = rate.ScaleId?.ToString() ?? ""; _rateAmount = rate.Amount;
+        _rateMessage = ""; RateFilterChanged();
+    }
+    private void CancelRateEdit() { _editingRateId = null; _rateAmount = 0; _rateMessage = ""; }
+    private async Task DeleteRateAsync(PayrollRateDto rate)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"نرخ «{rate.ActionTitle} — {rate.MaterialName} — {RateTypeTitle(rate)} — {(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)}» حذف شود؟")) return;
+        await PayrollService.DeleteRateAsync(rate.Id);
+        if (_editingRateId == rate.Id) CancelRateEdit();
+        _rateMessage = "نرخ حذف شد.";
+        await LoadAsync();
+    }
     private void RateFilterChanged() { if (IsHandpanRate) _rateBowlType = ""; if (IsSimpleRate) { _rateMaterial = ""; _rateBowlType = ""; _rateScale = ""; } if (Guid.TryParse(_rateScale, out var id) && !AvailableRateScales.Any(x => x.Id == id)) _rateScale = ""; }
     private static string BowlTypeTitle(int? bowlType) => bowlType == 1 ? "کاسه رو" : bowlType == 2 ? "کاسه زیر" : "همه";
     private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 5 => 3, 6 => 4, 7 => 5, _ => 99 };

@@ -15,5 +15,13 @@ public sealed class PayrollRate : Entity
     public Guid? ScaleId { get; private set; }
     public Scale? Scale { get; private set; }
     public decimal Amount { get; private set; }
+    public void Update(ProductionAction action, Guid? materialId, BowlType? bowlType, Guid? scaleId, decimal amount)
+    {
+        Action = action;
+        MaterialId = materialId;
+        BowlType = bowlType;
+        ScaleId = scaleId;
+        SetAmount(amount);
+    }
     public void SetAmount(decimal amount){if(amount<0)throw new ArgumentOutOfRangeException(nameof(amount));Amount=amount;}
 }
