@@ -102,6 +102,16 @@ public sealed class BowlsController : ControllerBase
         return this.ToActionResult(result);
     }
 
+    [HttpGet("production/shapers")]
+    [Authorize(Roles = "Shaper,Administrator")]
+    public async Task<IActionResult> GetShapers()
+    {
+        var users = await _unitOfWork.Users.GetAllAsync();
+        return Ok(users.Where(x => x.IsActive && x.UserRoles.Any(r => r.Role.Name == "Shaper"))
+            .OrderBy(x => x.FullName)
+            .Select(x => new { x.Id, x.UserName, x.FullName }));
+    }
+
     [HttpGet("suggested-code")]
     public async Task<IActionResult> SuggestedCode([FromQuery] Guid? materialId, [FromQuery] int? bowlType, CancellationToken cancellationToken)
     {
@@ -133,7 +143,7 @@ public sealed class BowlsController : ControllerBase
     public async Task<ActionResult> AddNote(string productionCode, [FromBody] ProductionNoteRequest request,
         CancellationToken cancellationToken)
         => this.ToActionResult(await _mediator.Send(
-            new AddProductionNoteCommand(productionCode, request.Description ?? string.Empty), cancellationToken));
+            new AddProductionNoteCommand(productionCode, request.Description ?? string.Empty, request.IsInstrumentNote), cancellationToken));
 
     [HttpPost("dimpling/{productionCode}/complete")]
     [Authorize(Roles = "Dimpler,Shaper,Administrator")]
@@ -153,11 +163,11 @@ public sealed class BowlsController : ControllerBase
     [Authorize(Roles = "Shaper,Administrator")]
     public async Task<ActionResult> CompleteShape(
         string productionCode,
-        [FromBody] CompleteBowlDimpleRequest request,
+        [FromBody] CompleteShapeRequest request,
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new CompleteBowlShapeCommand(productionCode, request.Duration),
+            new CompleteBowlShapeCommand(productionCode, request.Duration, request.StretchUserId, request.NoteAreaUserId, request.EditUserId),
             cancellationToken);
 
         return this.ToActionResult(result);
@@ -292,4 +302,5 @@ public sealed class BowlsController : ControllerBase
     }
 }
 
-public sealed record ProductionNoteRequest(string? Description);
+public sealed record ProductionNoteRequest(string? Description, bool IsInstrumentNote = false);
+public sealed record CompleteShapeRequest(TORSEPAN.Domain.Enums.OperationDuration Duration, Guid? StretchUserId, Guid? NoteAreaUserId, Guid? EditUserId);

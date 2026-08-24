@@ -74,6 +74,10 @@
 .operation-confirm-details strong { color:#173e34; font-size:.94rem; text-align:left; }
 .operation-confirm-actions { display:grid; grid-template-columns:1fr 1.55fr; gap:9px; }
 .operation-confirm-actions .btn { min-height:46px; }
+.shape-collaboration { border:1px solid #dce9e4; border-radius:14px; background:#f8fbfa; padding:12px; }
+.shape-part-row { display:grid; grid-template-columns:100px 1fr; align-items:center; gap:10px; margin-top:9px; }
+.instrument-note-display { border-right:5px solid #d49b24; font-size:1.02rem; line-height:1.9; }
+.instrument-note-editor { padding:16px; border:1px solid #e0c77f; border-radius:14px; background:#fffcf2; }
 
 @keyframes confirm-fade { from { opacity:0; } }
 @keyframes confirm-rise { from { opacity:0; transform:translateY(12px) scale(.98); } }

@@ -25,6 +25,9 @@ public static class ErrorCodes
     public static readonly Error InvalidStage =
         new("INVALID_STAGE", "The production stage is invalid.");
 
+    public static readonly Error InvalidRequest =
+        new("INVALID_REQUEST", "The request contains invalid data.");
+
     public static readonly Error TopBowlAlreadyUsed =
         new("TOP_BOWL_ALREADY_USED", "The top bowl has already been used.");
 

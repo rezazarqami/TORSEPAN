@@ -17,7 +17,18 @@ public sealed class AddProductionNoteCommandHandler(IUnitOfWork unitOfWork, IUse
         if (bowl is null) return Result<bool>.Failure(ErrorCodes.BowlNotFound);
         if (string.IsNullOrWhiteSpace(request.Description)) return Result<bool>.Success(true);
         if (userContext.UserId is not Guid userId) throw new UnauthorizedAccessException();
-        var normalizedDescription = $"NOTE:{request.Description.Trim()}";
+        if (request.IsInstrumentNote)
+        {
+            if (bowl.Stage is not (ProductionStage.WaitingForFinalTune or ProductionStage.WaitingForQualityControl or ProductionStage.WaitingForPackaging))
+                return Result<bool>.Failure(ErrorCodes.InvalidStage);
+            var assembly = (await unitOfWork.HandpanAssemblies.FindAsync(
+                x => x.TopBowlId == bowl.Id || x.BottomBowlId == bowl.Id)).SingleOrDefault();
+            if (assembly is null) return Result<bool>.Failure(ErrorCodes.InvalidStage);
+            bowl = (await unitOfWork.Bowls.FindAsync(x => x.Id == assembly.TopBowlId)).Single();
+        }
+        var normalizedDescription = request.IsInstrumentNote
+            ? $"NOTE:INSTRUMENT:{(int)bowl.Stage}:{request.Description.Trim()}"
+            : $"NOTE:{request.Description.Trim()}";
         var recentDuplicate = (await unitOfWork.ProductionEvents.GetReportAsync(
                 DateTime.UtcNow.AddMinutes(-1), null, userId, null, EventResult.Completed))
             .Any(x => x.BowlId == bowl.Id && x.Description == normalizedDescription);

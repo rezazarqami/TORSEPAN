@@ -11,10 +11,10 @@ public sealed class ProductionService
         _api = api;
     }
 
-    public async Task<ProductionDashboardDto?> GetDashboardAsync()
+    public async Task<ProductionDashboardDto?> GetDashboardAsync(DateTime? selectedDate = null)
     {
         return await _api.GetAsync<ProductionDashboardDto>(
-            "production/dashboard");
+            "production/dashboard" + (selectedDate.HasValue ? $"?date={selectedDate:yyyy-MM-dd}" : string.Empty));
     }
 
     public async Task<IReadOnlyList<ProductionStageItemDto>> GetQueueAsync()

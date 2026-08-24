@@ -3,6 +3,7 @@
 @inject ProductionService ProductionService
 @inject NavigationManager Navigation
 @using System.Net
+@using System.Globalization
 
 <PageTitle>داشبورد تولید</PageTitle>
 
@@ -28,7 +29,7 @@ else
     </div>
 
     <div class="row g-4 align-items-start">
-    <div class="col-xl-7">
+    <div class="col-xl-6 order-1">
     <Card>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
@@ -89,7 +90,33 @@ else
         </DataTable>
     </Card>
     </div>
-    <div class="col-xl-5">
+    <div class="col-xl-3 order-2">
+        <Card>
+            <div class="mb-3"><h4 class="mb-1">تقویم @_dashboard.CurrentPersianMonthTitle</h4><div class="text-muted small">برای دیدن عملکرد هر روز، آن را انتخاب کنید</div></div>
+            <div class="dashboard-calendar" dir="rtl">
+                @foreach(var title in WeekTitles){<div class="calendar-weekday">@title</div>}
+                @for(var i=0;i<_dashboard.FirstDayOffset;i++){<div></div>}
+                @for(var day=1;day<=_dashboard.DaysInMonth;day++)
+                {
+                    var selectedDay = day;
+                    <button class="calendar-day @(day == _dashboard.SelectedPersianDay ? "selected" : "")" @onclick="() => SelectDayAsync(selectedDay)">@day</button>
+                }
+            </div>
+            <div class="daily-performance mt-4">
+                <h5 class="mb-2">عملکرد روز @_dashboard.SelectedPersianDay @_dashboard.CurrentPersianMonthTitle</h5>
+                @if (_dashboard.DailyUserOperations.Count == 0)
+                { <div class="text-center text-muted py-3">در این روز عملیاتی ثبت نشده است.</div> }
+                else
+                {
+                    @foreach(var user in DailyUsers)
+                    {
+                        <div class="daily-user"><strong>@user.UserName</strong><div>@foreach(var op in user.Operations){<span class="badge bg-light text-dark border">@op.Operation: @op.Count</span>}</div></div>
+                    }
+                }
+            </div>
+        </Card>
+    </div>
+    <div class="col-xl-3 order-3">
         <Card>
             <div class="mb-3"><h4 class="mb-1">خلاصه عملکرد کاربران</h4><div class="text-muted small">از ابتدای @_dashboard.CurrentPersianMonthTitle تا امروز</div></div>
             @if (_dashboard.MonthlyUserOperations.Count == 0)
@@ -111,6 +138,8 @@ else
     private string _productionCode = string.Empty;
     private string? _error;
     private IEnumerable<UserMonthlyGroup> MonthlyUsers => _dashboard.MonthlyUserOperations.GroupBy(x=>new{x.UserName,x.DisplayOrder}).OrderBy(x=>x.Key.DisplayOrder).ThenBy(x=>x.Key.UserName).Select(x=>new UserMonthlyGroup(x.Key.UserName,x.ToList()));
+    private IEnumerable<UserMonthlyGroup> DailyUsers => _dashboard.DailyUserOperations.GroupBy(x=>new{x.UserName,x.DisplayOrder}).OrderBy(x=>x.Key.DisplayOrder).ThenBy(x=>x.Key.UserName).Select(x=>new UserMonthlyGroup(x.Key.UserName,x.ToList()));
+    private static readonly string[] WeekTitles = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
     private sealed record UserMonthlyGroup(string UserName,List<MonthlyUserOperationDto> Operations);
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
@@ -124,6 +153,18 @@ else
         { Navigation.NavigateTo("/login", true); }
         catch
         { _error = "دریافت اطلاعات داشبورد انجام نشد. لطفاً دوباره تلاش کنید."; }
+        finally { _loading = false; }
+    }
+
+    private async Task SelectDayAsync(int day)
+    {
+        _loading = true;
+        try
+        {
+            var date = new PersianCalendar().ToDateTime(_dashboard.PersianYear, _dashboard.PersianMonth, day, 0, 0, 0, 0);
+            _dashboard = await ProductionService.GetDashboardAsync(date) ?? new();
+        }
+        catch { _error = "نمایش عملکرد روز انتخاب‌شده انجام نشد."; }
         finally { _loading = false; }
     }
 

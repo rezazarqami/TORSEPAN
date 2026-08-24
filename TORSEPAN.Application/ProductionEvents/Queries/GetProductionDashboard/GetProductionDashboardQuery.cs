@@ -2,5 +2,5 @@
 
 namespace TORSEPAN.Application.ProductionEvents.Queries.GetProductionDashboard;
 
-public sealed record GetProductionDashboardQuery()
+public sealed record GetProductionDashboardQuery(DateTime? SelectedDate = null)
     : IRequest<GetProductionDashboardResponse>;

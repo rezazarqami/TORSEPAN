@@ -15,6 +15,7 @@ public sealed class DimpleBowlDto
     public string TopBowlCode { get; set; } = string.Empty;
     public string BottomBowlCode { get; set; } = string.Empty;
     public List<string> Notes { get; set; } = [];
+    public List<string> InstrumentNotes { get; set; } = [];
     public List<BowlStageHistoryDto> History { get; set; } = [];
 }
 
@@ -23,5 +24,6 @@ public sealed class BowlStageHistoryDto
     public int Action { get; set; }
     public string ActionTitle { get; set; } = string.Empty;
     public string PerformedBy { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
     public DateTime PerformedAt { get; set; }
 }

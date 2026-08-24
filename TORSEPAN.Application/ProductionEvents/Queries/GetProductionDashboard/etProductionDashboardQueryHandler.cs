@@ -23,12 +23,16 @@ public sealed class GetProductionDashboardQueryHandler
         var tehranNow = DateTime.UtcNow.AddHours(3.5);
         var calendar = new PersianCalendar();
         var year = calendar.GetYear(tehranNow); var month = calendar.GetMonth(tehranNow);
+        var selectedTehran = request.SelectedDate?.Date ?? tehranNow.Date;
+        if (calendar.GetYear(selectedTehran) != year || calendar.GetMonth(selectedTehran) != month)
+            selectedTehran = tehranNow.Date;
+        var selectedDay = calendar.GetDayOfMonth(selectedTehran);
         var monthStartTehran = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
         var monthStartUtc = DateTime.SpecifyKind(monthStartTehran.AddHours(-3.5), DateTimeKind.Utc);
         var allEvents = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, EventResult.Completed);
         var events = allEvents.Where(x => x.EventDate >= monthStartUtc).ToList();
-        var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune };
-        var monthly = events.Where(x => tracked.Contains(x.Action) &&
+        var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune, ProductionAction.QualityCheck, ProductionAction.Packaging };
+        List<MonthlyUserOperationResponse> Summarize(IEnumerable<TORSEPAN.Domain.Entities.ProductionEvent> source) => source.Where(x => tracked.Contains(x.Action) &&
                                         !x.Description.StartsWith("NOTE:") &&
                                         x.Description != "Released from glue room")
             .GroupBy(x => new
@@ -51,6 +55,10 @@ public sealed class GetProductionDashboardQueryHandler
             })
             .Where(x => x.Count > 0)
             .OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ThenBy(x => x.Operation).ToList();
+        var monthly = Summarize(events);
+        var selectedStartUtc = DateTime.SpecifyKind(selectedTehran.AddHours(-3.5), DateTimeKind.Utc);
+        var daily = Summarize(allEvents.Where(x => x.EventDate >= selectedStartUtc && x.EventDate < selectedStartUtc.AddDays(1)));
+        var firstDay = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
 
         return new GetProductionDashboardResponse
         {
@@ -61,6 +69,12 @@ public sealed class GetProductionDashboardQueryHandler
             CompletionRate = allHandpans.Count == 0 ? 0 : Math.Round((double)finished / allHandpans.Count * 100, 2),
             CurrentPersianMonthTitle = $"{PersianMonthName(month)} {year}",
             MonthlyUserOperations = monthly,
+            DailyUserOperations = daily,
+            PersianYear = year,
+            PersianMonth = month,
+            SelectedPersianDay = selectedDay,
+            DaysInMonth = calendar.GetDaysInMonth(year, month),
+            FirstDayOffset = ((int)firstDay.DayOfWeek + 1) % 7,
             Queues =
             [
                 BowlQueue("آماده دیمپل", ProductionStage.WaitingForDimple),
@@ -144,7 +158,7 @@ public sealed class GetProductionDashboardQueryHandler
     }
 
     private static string OperationTitle(ProductionAction action) => action switch
-    { ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",ProductionAction.Furnace=>"پخت",ProductionAction.Glue=>"چسب",ProductionAction.Tune=>"تیون",ProductionAction.FineTune=>"فاین تیون",_=>action.ToString() };
+    { ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",ProductionAction.Furnace=>"پخت",ProductionAction.Glue=>"چسب",ProductionAction.Tune=>"تیون",ProductionAction.FineTune=>"فاین تیون",ProductionAction.QualityCheck=>"کنترل کیفیت",ProductionAction.Packaging=>"بسته‌بندی",_=>action.ToString() };
     private static string BowlTypeSuffix(BowlType? bowlType) => bowlType switch
     { BowlType.Top => " کاسه رو", BowlType.Bottom => " کاسه زیر", _ => string.Empty };
     private static string PersianMonthName(int month) => new[] { "", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند" }[month];

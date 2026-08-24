@@ -49,6 +49,28 @@
                     <div><span>@detail.Label</span><strong>@detail.Value</strong></div>
                 }
             </div>
+            @if (_isShapeConfirmation)
+            {
+                <div class="shape-collaboration mt-3 mb-3">
+                    <label class="form-check small fw-semibold"><input class="form-check-input" type="checkbox" @bind="_useShapeContributors" /> ثبت عملیات توسط افراد دیگر</label>
+                    @if (_useShapeContributors)
+                    {
+                        @foreach (var part in ShapeParts)
+                        {
+                            <div class="shape-part-row">
+                                <label class="form-check"><input class="form-check-input" type="checkbox" checked="@part.Enabled" @onchange="e => ToggleShapePart(part.Key, (bool)e.Value!)" /> @part.Label</label>
+                                @if (part.Enabled)
+                                {
+                                    <select class="form-select form-select-sm" value="@part.UserId" @onchange="e => SelectShapeUser(part.Key, e.Value?.ToString())">
+                                        <option value="">انتخاب شیپر</option>
+                                        @foreach (var user in _shapers) { <option value="@user.Id">@(string.IsNullOrWhiteSpace(user.FullName) ? user.UserName : user.FullName)</option> }
+                                    </select>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            }
             <div class="operation-confirm-actions">
                 <button type="button" class="btn btn-outline-secondary" disabled="@_confirmingOperation" @onclick="CancelOperationConfirmation">انصراف</button>
                 <button type="button" class="btn btn-success" disabled="@_confirmingOperation" @onclick="ConfirmOperationAsync">
@@ -90,7 +112,6 @@
                     <span>@(_bowl.IsHandpanScale ? "اسکیل ساز" : "اسکیل کاسه")</span><strong>@_bowl.ScaleName</strong>
                 </div>
             </div>
-
             @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
             {
                 <div class="alert alert-success mt-3 mb-0">
@@ -118,7 +139,7 @@
                                 <tbody>
                                 @foreach (var item in _bowl.History)
                                 {
-                                    <tr><td>@item.ActionTitle</td><td>@item.PerformedBy</td><td>@PersianDateTime.FormatDateTime(item.PerformedAt)</td></tr>
+                                    <tr><td>@item.ActionTitle</td><td>@item.PerformedBy@if(!string.IsNullOrWhiteSpace(item.Details)){<small class="d-block text-muted mt-1">@item.Details</small>}</td><td>@PersianDateTime.FormatDateTime(item.PerformedAt)</td></tr>
                                 }
                                 </tbody>
                             </table>
@@ -127,7 +148,11 @@
                 </div>
             }
 
-            @if (_bowl.Stage is >= 4 and <= 14)
+            @if (_bowl.InstrumentNotes.Count > 0)
+            {
+                <div class="alert alert-warning instrument-note-display mt-3"><strong>یادداشت مهم این ساز</strong><ul class="mb-0 mt-2">@foreach(var note in _bowl.InstrumentNotes){<li>@note</li>}</ul></div>
+            }
+            @if (_bowl.Stage is >= 4 and <= 11)
             {
                 @if (_bowl.Notes.Count > 0)
                 {
@@ -360,6 +385,10 @@
                     این ساز در انبار است. تاریخ بسته‌بندی و سایر مراحل انجام‌شده در جدول بالا نمایش داده شده‌اند.
                 </div>
             }
+            @if (_bowl.Stage is 12 or 14 or 16)
+            {
+                <div class="instrument-note-editor mt-3"><label class="form-label fw-bold">یادداشت مخصوص این ساز (اختیاری)</label><textarea class="form-control" rows="4" @bind="_instrumentNote" placeholder="این یادداشت در پرونده ساز، انبار و مراحل بعدی همیشه نمایش داده می‌شود."></textarea></div>
+            }
             else if (_bowl.Stage == 22)
             {
                 <div class="alert alert-success mt-3 mb-0">این کاسه در انبار صادراتی است.</div>
@@ -397,6 +426,11 @@
     private string _qcRejectionReason = "OutOfTune";
     private string _qcDetails = string.Empty;
     private string _stageNote = string.Empty;
+    private string _instrumentNote = string.Empty;
+    private readonly List<ShaperDto> _shapers = [];
+    private bool _isShapeConfirmation;
+    private bool _useShapeContributors;
+    private readonly List<ShapePart> ShapeParts = [new("Stretch", "کشش"), new("NoteArea", "دورنوت"), new("Edit", "Edit")];
     private bool _showOperationConfirmation;
     private bool _confirmingOperation;
     private string _confirmationTitle = string.Empty;
@@ -416,6 +450,7 @@
     {
         _scales.AddRange(await ScaleService.GetAsync());
         _packagingMaterials.AddRange((await MaterialService.GetAsync()).Where(x => x.Category == 3));
+        try { _shapers.AddRange(await BowlService.GetShapersAsync()); } catch { }
         if (_scales.Count > 0)
             _scaleId = _scales[0].Id;
     }
@@ -449,6 +484,7 @@
             _successMessage = null;
             _showQcRejection = false;
             _stageNote = string.Empty;
+            _instrumentNote = string.Empty;
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
             if (_bowl?.Stage == 2)
                 _scaleId = DimpleScales.FirstOrDefault()?.Id ?? Guid.Empty;
@@ -478,6 +514,7 @@
 
     private Task CompleteShapeAsync()
     {
+        _isShapeConfirmation = true;
         ShowOperationConfirmation("شیپ انجام شد",
             [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
             CompleteShapeConfirmedAsync);
@@ -489,7 +526,8 @@
         await SaveStageNoteAsync();
         await ExecuteAsync(async () =>
         {
-            var result = await BowlService.CompleteShapeAsync(_productionCode, _duration);
+            Guid? UserFor(string key) => _useShapeContributors ? ShapeParts.First(x => x.Key == key).SelectedUserId : null;
+            var result = await BowlService.CompleteShapeAsync(_productionCode, _duration, UserFor("Stretch"), UserFor("NoteArea"), UserFor("Edit"));
             SetOperationResult(result, "شیپ با موفقیت انجام شد.", "ثبت پایان شیپ انجام نشد.");
         });
     }
@@ -598,7 +636,7 @@
 
     private async Task CompleteFinalTuneConfirmedAsync()
     {
-        await SaveStageNoteAsync();
+        await SaveInstrumentNoteAsync();
         await ExecuteAsync(async () =>
         {
             var result = await BowlService.CompleteFinalTuneAsync(_productionCode, _duration);
@@ -610,7 +648,7 @@
 
     private async Task ApproveQualityControlAsync()
     {
-        await SaveStageNoteAsync();
+        await SaveInstrumentNoteAsync();
         await ExecuteAsync(async () =>
         {
             var result = await BowlService.CompleteQualityControlAsync(_productionCode, true);
@@ -620,7 +658,7 @@
 
     private async Task RejectQualityControlAsync()
     {
-        await SaveStageNoteAsync();
+        await SaveInstrumentNoteAsync();
         await ExecuteAsync(async () =>
         {
             var result = await BowlService.CompleteQualityControlAsync(
@@ -634,6 +672,7 @@
 
     private async Task CompletePackagingAsync()
     {
+        await SaveInstrumentNoteAsync();
         await ExecuteAsync(async () =>
         {
             var result = await BowlService.CompletePackagingAsync(_productionCode, _selectedPackagingMaterialIds);
@@ -664,6 +703,16 @@
         _stageNote = string.Empty;
     }
 
+    private async Task SaveInstrumentNoteAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_instrumentNote)) return;
+        await BowlService.AddInstrumentNoteAsync(_productionCode, _instrumentNote.Trim());
+        _instrumentNote = string.Empty;
+    }
+
+    private void ToggleShapePart(string key, bool enabled) { var part = ShapeParts.First(x => x.Key == key); part.Enabled = enabled; if (!enabled) part.UserId = null; }
+    private void SelectShapeUser(string key, string? value) => ShapeParts.First(x => x.Key == key).UserId = Guid.TryParse(value, out var id) ? id : null;
+
     private static bool IsExclusiveCase(string name)
     {
         var normalized = name.Trim().ToLowerInvariant();
@@ -673,6 +722,7 @@
 
     private void ShowOperationConfirmation(string title, IEnumerable<(string Label, string Value)> details, Func<Task> confirmedOperation)
     {
+        if (title != "شیپ انجام شد") _isShapeConfirmation = false;
         _confirmationTitle = title;
         _confirmationDetails = details.Select(x => new ConfirmationDetail(x.Label, x.Value)).ToList();
         _confirmedOperation = confirmedOperation;
@@ -689,6 +739,11 @@
     private async Task ConfirmOperationAsync()
     {
         if (_confirmedOperation is null || _confirmingOperation) return;
+        if (_isShapeConfirmation && _useShapeContributors && ShapeParts.Any(x => x.Enabled && !x.UserId.HasValue))
+        {
+            _error = "برای هر بخش انتخاب‌شده، نام شیپر را مشخص کنید.";
+            return;
+        }
         _confirmingOperation = true;
         var operation = _confirmedOperation;
         try
@@ -707,6 +762,7 @@
         DurationOptions.FirstOrDefault(x => x.Value == _duration).Text ?? "نامشخص";
 
     private sealed record ConfirmationDetail(string Label, string Value);
+    private sealed class ShapePart(string key, string label) { public string Key { get; } = key; public string Label { get; } = label; public bool Enabled { get; set; } public Guid? UserId { get; set; } public Guid? SelectedUserId => Enabled ? UserId : null; }
 
     private void SetOperationResult(
         DimpleBowlDto? result,

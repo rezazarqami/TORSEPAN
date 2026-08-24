@@ -36,7 +36,13 @@ public sealed class ProductionDashboardDto
 
     public List<ProductionQueueItemDto> Queues { get; set; } = [];
     public List<MonthlyUserOperationDto> MonthlyUserOperations { get; set; } = [];
+    public List<MonthlyUserOperationDto> DailyUserOperations { get; set; } = [];
     public string CurrentPersianMonthTitle { get; set; } = string.Empty;
+    public int PersianYear { get; set; }
+    public int PersianMonth { get; set; }
+    public int SelectedPersianDay { get; set; }
+    public int DaysInMonth { get; set; }
+    public int FirstDayOffset { get; set; }
 }
 
 public sealed class MonthlyUserOperationDto

@@ -28,7 +28,8 @@ public sealed class GetBowlForDimpleQueryHandler
         if (bowl.ScaleId.HasValue)
             dto.ScaleName = (await _unitOfWork.Scales.GetByIdAsync(bowl.ScaleId.Value))?.Name ?? "نامشخص";
         var events = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, null);
-        dto.Notes.AddRange(events.Where(x => x.BowlId == bowl.Id && x.Description.StartsWith("NOTE:"))
+        dto.Notes.AddRange(events.Where(x => x.BowlId == bowl.Id && x.Description.StartsWith("NOTE:") &&
+                                                !x.Description.StartsWith("NOTE:INSTRUMENT:"))
             .OrderBy(x => x.EventDate)
             .Select(x => $"{(string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)}: {x.Description[5..]}")
             .Distinct());
@@ -61,6 +62,14 @@ public sealed class GetBowlForDimpleQueryHandler
             }
         }
 
+        dto.InstrumentNotes.AddRange(events.Where(x => x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value) &&
+                                                        x.Description.StartsWith("NOTE:INSTRUMENT:"))
+            .OrderBy(x => x.EventDate)
+            .Select(x => $"{(string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)} — {InstrumentNoteText(x.Description)}")
+            .Distinct());
+
+        var users = (await _unitOfWork.Users.GetAllAsync()).ToDictionary(x => x.Id);
+
         dto.History.AddRange(events
             .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
                         x.Description != "Released from glue room" &&
@@ -74,9 +83,37 @@ public sealed class GetBowlForDimpleQueryHandler
                 PerformedBy = string.Join("، ", group.Select(x =>
                         string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)
                     .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct()),
+                Details = group.Key == ProductionAction.Shape
+                    ? ShapeContributionDetails(group.Select(x => x.Description), users)
+                    : string.Empty,
                 PerformedAt = group.Max(x => x.EventDate)
             }).OrderBy(x => x.PerformedAt));
         return Result<BowlDimpleDto>.Success(dto);
+    }
+
+    private static string InstrumentNoteText(string description)
+    {
+        var parts = description.Split(':', 4);
+        return parts.Length == 4 ? parts[3] : description;
+    }
+
+    private static string ShapeContributionDetails(IEnumerable<string> descriptions,
+        IReadOnlyDictionary<Guid, TORSEPAN.Domain.Entities.User> users)
+    {
+        var labels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        { ["Stretch"] = "کشش", ["NoteArea"] = "دورنوت", ["Edit"] = "Edit" };
+        var result = new List<string>();
+        foreach (var description in descriptions.Where(x => x.Contains("|CONTRIB:")))
+        {
+            foreach (var item in description[(description.IndexOf("|CONTRIB:", StringComparison.Ordinal) + 9)..].Split(';'))
+            {
+                var pair = item.Split('=', 2);
+                if (pair.Length != 2 || !labels.TryGetValue(pair[0], out var label) || !Guid.TryParse(pair[1], out var id) || !users.TryGetValue(id, out var user)) continue;
+                var name = string.IsNullOrWhiteSpace(user.FullName) ? user.UserName : user.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? user.UserName;
+                result.Add($"{label} توسط {name}");
+            }
+        }
+        return string.Join("، ", result.Distinct());
     }
 
     private static string ActionTitle(ProductionAction action) => action switch

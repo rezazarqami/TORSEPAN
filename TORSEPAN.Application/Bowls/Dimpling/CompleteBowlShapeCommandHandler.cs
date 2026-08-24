@@ -44,6 +44,24 @@ public sealed class CompleteBowlShapeCommandHandler
         if (_userContext.UserId is not Guid userId)
             throw new UnauthorizedAccessException();
 
+        var contributors = new[]
+        {
+            (Key: "Stretch", UserId: request.StretchUserId),
+            (Key: "NoteArea", UserId: request.NoteAreaUserId),
+            (Key: "Edit", UserId: request.EditUserId)
+        };
+        foreach (var contributor in contributors.Where(x => x.UserId.HasValue))
+        {
+            var user = await _unitOfWork.Users.GetByIdAsync(contributor.UserId!.Value);
+            if (user is null || !user.IsActive || !user.UserRoles.Any(x => x.Role.Name == "Shaper"))
+                return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidRequest);
+        }
+        var contributionText = string.Join(';', contributors.Where(x => x.UserId.HasValue)
+            .Select(x => $"{x.Key}={x.UserId}"));
+        var description = string.IsNullOrWhiteSpace(contributionText)
+            ? "Shape completed"
+            : $"Shape completed|CONTRIB:{contributionText}";
+
         bowl.MarkAsWaiting();
         bowl.ChangeStage(ProductionStage.WaitingForBake);
         _unitOfWork.Bowls.Update(bowl);
@@ -56,7 +74,7 @@ public sealed class CompleteBowlShapeCommandHandler
             action: ProductionAction.Shape,
             result: EventResult.Completed,
             duration: request.Duration,
-            description: "Shape completed"));
+            description: description));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(bowl));

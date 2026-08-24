@@ -6,4 +6,7 @@ namespace TORSEPAN.Application.Bowls.Dimpling;
 
 public sealed record CompleteBowlShapeCommand(
     string ProductionCode,
-    OperationDuration Duration) : IRequest<Result<BowlDimpleDto>>;
+    OperationDuration Duration,
+    Guid? StretchUserId = null,
+    Guid? NoteAreaUserId = null,
+    Guid? EditUserId = null) : IRequest<Result<BowlDimpleDto>>;

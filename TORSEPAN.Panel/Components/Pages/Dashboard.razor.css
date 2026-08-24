@@ -1,0 +1,14 @@
+.dashboard-calendar { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
+.calendar-weekday { text-align:center; color:#718079; font-size:.75rem; font-weight:800; padding-bottom:4px; }
+.calendar-day { aspect-ratio:1; border:0; border-radius:10px; background:#f0f5f3; color:#23473e; font-weight:800; transition:.15s ease; }
+.calendar-day:hover { background:#dcebe5; }
+.calendar-day.selected { background:#197455; color:white; box-shadow:0 6px 14px rgba(25,116,85,.24); }
+.daily-performance { border-top:1px solid #e5ece9; padding-top:16px; }
+.daily-user { padding:10px 0; border-bottom:1px dashed #dde7e3; }
+.daily-user:last-child { border-bottom:0; }
+.daily-user > strong { display:block; font-size:.84rem; margin-bottom:6px; }
+.daily-user .badge { margin:0 0 5px 5px; white-space:normal; line-height:1.5; }
+.dashboard-code { font-variant-numeric:tabular-nums; }
+@media (max-width:1199.98px) {
+  .dashboard-calendar { max-width:520px; margin-inline:auto; }
+}

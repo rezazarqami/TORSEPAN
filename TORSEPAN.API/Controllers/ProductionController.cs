@@ -70,8 +70,8 @@ public sealed class ProductionController : ControllerBase
         => Ok(await _mediator.Send(new GetProductionStatisticsQuery()));
 
     [HttpGet("dashboard")]
-    public async Task<IActionResult> Dashboard()
-        => Ok(await _mediator.Send(new GetProductionDashboardQuery()));
+    public async Task<IActionResult> Dashboard([FromQuery] DateTime? date)
+        => Ok(await _mediator.Send(new GetProductionDashboardQuery(date)));
 
     [HttpGet("status-count")]
     public async Task<IActionResult> StatusCount()

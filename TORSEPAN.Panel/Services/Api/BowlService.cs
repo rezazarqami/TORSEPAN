@@ -84,12 +84,12 @@ public sealed class BowlService
 
     public Task<DimpleBowlDto?> CompleteShapeAsync(
         string productionCode,
-        int duration)
+        int duration, Guid? stretchUserId = null, Guid? noteAreaUserId = null, Guid? editUserId = null)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/shape/complete",
-            new { Duration = duration });
+            new { Duration = duration, StretchUserId = stretchUserId, NoteAreaUserId = noteAreaUserId, EditUserId = editUserId });
     }
 
     public Task<DimpleBowlDto?> CompleteBakeAsync(string productionCode)
@@ -114,6 +114,15 @@ public sealed class BowlService
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, bool>($"bowls/production/{code}/notes", new { Description = description });
+    }
+
+    public async Task<IReadOnlyList<ShaperDto>> GetShapersAsync()
+        => await _api.GetAsync<List<ShaperDto>>("bowls/production/shapers") ?? [];
+
+    public Task<bool> AddInstrumentNoteAsync(string productionCode, string description)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, bool>($"bowls/production/{code}/notes", new { Description = description, IsInstrumentNote = true });
     }
 
     public Task<DimpleBowlDto?> CompleteTuneForExportAsync(string productionCode, int duration)
@@ -181,3 +190,5 @@ public sealed class BowlService
             new { MaterialIds = materialIds });
     }
 }
+
+public sealed class ShaperDto { public Guid Id { get; set; } public string UserName { get; set; } = string.Empty; public string FullName { get; set; } = string.Empty; }
