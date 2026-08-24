@@ -245,38 +245,39 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                     {
                         var lines = group.OrderBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)
                             .ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ToList();
-                        var chunks = lines.Chunk(6).ToList();
-                        col.Item().PaddingBottom(5).Table(table =>
+                        col.Item().PaddingBottom(9).Border(1).BorderColor(Colors.Green.Lighten2)
+                            .Background(Colors.White).Column(card =>
                         {
-                            table.ColumnsDefinition(columns =>
+                            card.Item().Background(Colors.Green.Darken3).PaddingVertical(7).PaddingHorizontal(10)
+                                .ContentFromRightToLeft().Row(header =>
                             {
-                                columns.ConstantColumn(92);
-                                for (var i = 0; i < 6; i++) columns.RelativeColumn();
-                                columns.ConstantColumn(105);
+                                header.RelativeItem().AlignRight().Text(group.Key.UserName)
+                                    .FontColor(Colors.White).FontSize(12).Bold();
+                                header.RelativeItem().AlignLeft().Text($"جمع دستمزد: {lines.Sum(x => x.Total):N0}")
+                                    .FontColor(Colors.White).FontSize(11).Bold();
                             });
-                            table.Cell().RowSpan((uint)chunks.Count).Background(Colors.Green.Darken3).Padding(6).AlignMiddle().AlignCenter().ContentFromRightToLeft()
-                                .Text($"جمع کل\n{lines.Sum(x => x.Total):N0}").FontColor(Colors.White).FontSize(10).Bold();
-                            foreach (var chunk in chunks)
+                            foreach (var chunk in lines.Chunk(3))
                             {
-                                for (var i = 0; i < 6; i++)
+                                card.Item().PaddingHorizontal(5).PaddingTop(5).ContentFromRightToLeft().Row(row =>
                                 {
-                                    var cell = table.Cell().Border(1).BorderColor(Colors.Green.Lighten3).Background(Colors.Grey.Lighten5).Padding(5).AlignMiddle().AlignCenter();
-                                    if (i < chunk.Length)
+                                    foreach (var line in chunk)
                                     {
-                                        var line = chunk[i];
-                                        cell.Column(content =>
+                                        row.RelativeItem().PaddingHorizontal(3).Border(1).BorderColor(Colors.Grey.Lighten2)
+                                            .Background(Colors.Grey.Lighten5).Padding(7).Column(detail =>
                                         {
-                                            content.Item().ContentFromRightToLeft().Text(Desc(line)).FontSize(9.5f).Bold();
-                                            content.Item().ContentFromRightToLeft().Text($"تعداد: {line.Count:N0}").FontSize(9.5f);
-                                            content.Item().ContentFromRightToLeft().Text($"مبلغ: {line.Total:N0}").FontSize(9.5f).FontColor(Colors.Green.Darken3).Bold();
+                                            detail.Item().AlignRight().ContentFromRightToLeft().Text(Desc(line))
+                                                .FontSize(10).Bold().FontColor(Colors.Grey.Darken3);
+                                            detail.Item().PaddingTop(4).ContentFromRightToLeft().Row(values =>
+                                            {
+                                                values.RelativeItem().AlignRight().Text($"تعداد: {line.Count:N0}").FontSize(9.5f);
+                                                values.RelativeItem().AlignLeft().Text($"مبلغ: {line.Total:N0}")
+                                                    .FontSize(9.5f).FontColor(Colors.Green.Darken3).Bold();
+                                            });
                                         });
                                     }
-                                    else cell.Text("");
-                                }
-                                if (ReferenceEquals(chunk, chunks[0]))
-                                    table.Cell().RowSpan((uint)chunks.Count).Background(Colors.Green.Lighten4).Border(1).BorderColor(Colors.Green.Lighten2).Padding(6).AlignMiddle().AlignCenter().ContentFromRightToLeft()
-                                        .Text(group.Key.UserName).FontSize(10.5f).Bold();
+                                });
                             }
+                            card.Item().Height(5);
                         });
                     }
                 }
