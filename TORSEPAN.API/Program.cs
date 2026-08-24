@@ -5,10 +5,18 @@ using TORSEPAN.Domain.Entities;
 using TORSEPAN.Infrastructure.DependencyInjection;
 using TORSEPAN.Infrastructure.Persistence;
 using TORSEPAN.Infrastructure.Services;
+using QuestPDF.Drawing;
 using QuestPDF.Infrastructure;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 QuestPDF.Settings.License = LicenseType.Community;
+await using (var vazirmatn = Assembly.GetExecutingAssembly()
+    .GetManifestResourceStream("TORSEPAN.API.Assets.Vazirmatn-Regular.ttf")
+    ?? throw new InvalidOperationException("Embedded Vazirmatn font was not found."))
+{
+    FontManager.RegisterFont(vazirmatn);
+}
 
 builder.Services.AddControllers();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

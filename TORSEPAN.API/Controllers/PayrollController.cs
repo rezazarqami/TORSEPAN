@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -215,7 +216,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     private static byte[] BuildPdf(PayrollCalculation c)
     {
         string Bowl(int? type) => type == 1 ? "کاسه رو" : type == 2 ? "کاسه زیر" : "";
-        string Desc(PayrollLine x) => string.Join(" — ", new[] { x.ActionTitle, x.MaterialName, Bowl(x.BowlType), x.ScaleName }
+        string Desc(PayrollLine x) => string.Join(" - ", new[] { x.ActionTitle, x.MaterialName, Bowl(x.BowlType), PdfScaleTitle(x.ScaleName) }
             .Where(v => !string.IsNullOrWhiteSpace(v)));
         var scales = c.Lines.Where(x => !x.IsExport && x.Action == 7 && !string.IsNullOrWhiteSpace(x.ScaleName))
             .GroupBy(x => x.ScaleName).OrderBy(x => x.Key)
@@ -225,11 +226,11 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         {
             page.Size(PageSizes.A4.Landscape());
             page.Margin(18);
-            page.DefaultTextStyle(x => x.FontFamily("DejaVu Sans").FontSize(9.5f));
+            page.DefaultTextStyle(x => x.FontFamily("Vazirmatn").FontSize(10));
             page.Header().Column(header =>
             {
-                header.Item().AlignCenter().Text("TORSEPAN — گزارش عملکرد و دستمزد تولید").FontSize(18).Bold().FontColor(Colors.Green.Darken3);
-                header.Item().AlignCenter().Text($"از {c.From:yyyy/MM/dd} تا {c.To:yyyy/MM/dd}").FontSize(11).FontColor(Colors.Grey.Darken1);
+                header.Item().AlignCenter().ContentFromRightToLeft().Text("TORSEPAN - گزارش عملکرد و دستمزد تولید").FontSize(18).Bold().FontColor(Colors.Green.Darken3);
+                header.Item().AlignCenter().ContentFromRightToLeft().Text($"از {c.From:yyyy/MM/dd} تا {c.To:yyyy/MM/dd}").FontSize(11).FontColor(Colors.Grey.Darken1);
             });
             page.Content().PaddingTop(10).Column(col =>
             {
@@ -238,7 +239,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                     var groups = source.GroupBy(x => new { x.UserName, x.DisplayOrder })
                         .OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).ToList();
                     if (groups.Count == 0) return;
-                    col.Item().PaddingTop(8).PaddingBottom(5).AlignRight().Text(title).FontSize(14).Bold().FontColor(Colors.Green.Darken3);
+                    col.Item().PaddingTop(8).PaddingBottom(5).AlignRight().ContentFromRightToLeft().Text(title).FontSize(14).Bold().FontColor(Colors.Green.Darken3);
                     foreach (var group in groups)
                     {
                         var lines = group.OrderBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)
@@ -253,7 +254,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                                     for (var i = 0; i < 6; i++) columns.RelativeColumn();
                                     columns.ConstantColumn(105);
                                 });
-                                table.Cell().Background(Colors.Green.Darken3).Padding(6).AlignMiddle().AlignCenter()
+                                table.Cell().Background(Colors.Green.Darken3).Padding(6).AlignMiddle().AlignCenter().ContentFromRightToLeft()
                                     .Text($"جمع کل\n{lines.Sum(x => x.Total):N0}").FontColor(Colors.White).FontSize(10).Bold();
                                 for (var i = 0; i < 6; i++)
                                 {
@@ -263,14 +264,14 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                                         var line = chunk[i];
                                         cell.Column(content =>
                                         {
-                                            content.Item().Text(Desc(line)).FontSize(9).Bold();
-                                            content.Item().Text($"تعداد: {line.Count:N0}").FontSize(9);
-                                            content.Item().Text($"مبلغ: {line.Total:N0}").FontSize(9).FontColor(Colors.Green.Darken3).Bold();
+                                            content.Item().ContentFromRightToLeft().Text(Desc(line)).FontSize(9.5f).Bold();
+                                            content.Item().ContentFromRightToLeft().Text($"تعداد: {line.Count:N0}").FontSize(9.5f);
+                                            content.Item().ContentFromRightToLeft().Text($"مبلغ: {line.Total:N0}").FontSize(9.5f).FontColor(Colors.Green.Darken3).Bold();
                                         });
                                     }
                                     else cell.Text("");
                                 }
-                                table.Cell().Background(Colors.Green.Lighten4).Border(1).BorderColor(Colors.Green.Lighten2).Padding(6).AlignMiddle().AlignCenter()
+                                table.Cell().Background(Colors.Green.Lighten4).Border(1).BorderColor(Colors.Green.Lighten2).Padding(6).AlignMiddle().AlignCenter().ContentFromRightToLeft()
                                     .Text(group.Key.UserName).FontSize(10.5f).Bold();
                             });
                         }
@@ -284,15 +285,15 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                 {
                     col.Item().PaddingTop(10).Background(Colors.Green.Lighten4).Border(1.5f).BorderColor(Colors.Green.Darken2).Padding(9).Column(summary =>
                     {
-                        summary.Item().AlignRight().Text("خلاصه سازهای تکمیل‌شده").FontSize(15).Bold().FontColor(Colors.Green.Darken3);
+                        summary.Item().AlignRight().ContentFromRightToLeft().Text("خلاصه سازهای تکمیل‌شده").FontSize(15).Bold().FontColor(Colors.Green.Darken3);
                         summary.Item().PaddingTop(6).Table(table =>
                         {
                             table.ColumnsDefinition(columns => { for (var i = 0; i < 4; i++) columns.RelativeColumn(); });
                             foreach (var scale in scales)
-                                table.Cell().Border(1).BorderColor(Colors.Green.Lighten2).Background(Colors.White).Padding(7).AlignCenter()
-                                    .Text($"{scale.Key}\n{scale.Count:N0} ساز").FontSize(11).Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Green.Lighten2).Background(Colors.White).Padding(7).AlignCenter().ContentFromRightToLeft()
+                                    .Text($"{PdfScaleTitle(scale.Key)}\n{scale.Count:N0} عدد").FontSize(12).Bold();
                         });
-                        summary.Item().PaddingTop(7).AlignCenter().Text($"جمع کل ساخت: {scales.Sum(x => x.Count):N0} ساز").FontSize(13).Bold();
+                        summary.Item().PaddingTop(7).AlignCenter().ContentFromRightToLeft().Text($"جمع کل ساخت: {scales.Sum(x => x.Count):N0} عدد").FontSize(13).Bold();
                     });
                 }
             });
@@ -304,6 +305,21 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                 text.TotalPages();
             });
         })).GeneratePdf();
+    }
+    private static string PdfScaleTitle(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+        var text = value.Trim().Replace("نت", "نوت");
+        var match = Regex.Match(text, @"^(?<total>\d+)\s*نوت(?:\s*\((?<first>\d+)\s*\+\s*(?<second>\d+)\))?(?<rest>.*)$");
+        if (!match.Success) return text;
+        var result = $"{match.Groups["total"].Value} نوت";
+        if (match.Groups["first"].Success && match.Groups["second"].Success)
+        {
+            var first = int.Parse(match.Groups["first"].Value, CultureInfo.InvariantCulture);
+            var second = int.Parse(match.Groups["second"].Value, CultureInfo.InvariantCulture);
+            result += $" \u200E({Math.Max(first, second)}+{Math.Min(first, second)})\u200E";
+        }
+        return result + match.Groups["rest"].Value;
     }
     private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 5 => 3, 6 => 4, 7 => 5, _ => 99 };
     private static string Title(ProductionAction action) => action switch { ProductionAction.Dimple => "دیمپل", ProductionAction.Shape => "شیپ", ProductionAction.Glue => "چسب", ProductionAction.Tune => "تیون", ProductionAction.FineTune => "فاین تیون", _ => action.ToString() };

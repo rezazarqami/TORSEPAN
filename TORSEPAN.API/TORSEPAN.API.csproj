@@ -23,4 +23,8 @@
     <ProjectReference Include="..\TORSEPAN.Infrastructure\TORSEPAN.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\Vazirmatn-Regular.ttf" />
+  </ItemGroup>
+
 </Project>
