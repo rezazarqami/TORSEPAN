@@ -1,6 +1,6 @@
-.dashboard-calendar { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
+.dashboard-calendar { display:grid; grid-template-columns:repeat(7, 38px); gap:5px; width:max-content; max-width:100%; margin-inline:auto; }
 .calendar-weekday { text-align:center; color:#718079; font-size:.75rem; font-weight:800; padding-bottom:4px; }
-.calendar-day { aspect-ratio:1; border:0; border-radius:10px; background:#f0f5f3; color:#23473e; font-weight:800; transition:.15s ease; }
+.calendar-day { width:38px; height:38px; padding:0; border:0; border-radius:9px; background:#f0f5f3; color:#23473e; font-size:.8rem; font-weight:800; transition:.15s ease; }
 .calendar-day:hover { background:#dcebe5; }
 .calendar-day.selected { background:#197455; color:white; box-shadow:0 6px 14px rgba(25,116,85,.24); }
 .daily-performance { border-top:1px solid #e5ece9; padding-top:16px; }
@@ -10,5 +10,6 @@
 .daily-user .badge { margin:0 0 5px 5px; white-space:normal; line-height:1.5; }
 .dashboard-code { font-variant-numeric:tabular-nums; }
 @media (max-width:1199.98px) {
-  .dashboard-calendar { max-width:520px; margin-inline:auto; }
+  .dashboard-calendar { grid-template-columns:repeat(7, 36px); }
+  .calendar-day { width:36px; height:36px; }
 }
