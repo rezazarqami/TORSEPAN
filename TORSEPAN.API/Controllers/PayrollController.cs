@@ -275,6 +275,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                                             });
                                         });
                                     }
+                                    for (var i = chunk.Length; i < 3; i++)
+                                        row.RelativeItem();
                                 });
                             }
                             card.Item().Height(5);
