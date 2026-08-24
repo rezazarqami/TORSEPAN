@@ -42,11 +42,15 @@ public sealed class GetBowlForDimpleQueryHandler
             relatedBowlIds.Add(assembly.TopBowlId);
             relatedBowlIds.Add(assembly.BottomBowlId);
             var topBowl = (await _unitOfWork.Bowls.FindAsync(x => x.Id == assembly.TopBowlId)).SingleOrDefault();
+            var bottomBowl = (await _unitOfWork.Bowls.FindAsync(x => x.Id == assembly.BottomBowlId)).SingleOrDefault();
             if (topBowl is not null)
             {
                 var handpan = (await _unitOfWork.Handpans.FindAsync(x => x.SerialNumber == topBowl.ProductionCode))
                     .SingleOrDefault();
                 handpanId = handpan?.Id;
+                dto.HandpanCode = handpan?.SerialNumber ?? topBowl.ProductionCode;
+                dto.TopBowlCode = topBowl.ProductionCode;
+                dto.BottomBowlCode = bottomBowl?.ProductionCode ?? string.Empty;
                 if (bowl.Stage >= ProductionStage.GlueRoom && handpan is not null)
                 {
                     dto.IsHandpanScale = true;

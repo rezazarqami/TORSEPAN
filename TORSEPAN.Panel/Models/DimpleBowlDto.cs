@@ -11,6 +11,9 @@ public sealed class DimpleBowlDto
     public int Stage { get; set; }
     public string ScaleName { get; set; } = "نامشخص";
     public bool IsHandpanScale { get; set; }
+    public string HandpanCode { get; set; } = string.Empty;
+    public string TopBowlCode { get; set; } = string.Empty;
+    public string BottomBowlCode { get; set; } = string.Empty;
     public List<string> Notes { get; set; } = [];
     public List<BowlStageHistoryDto> History { get; set; } = [];
 }

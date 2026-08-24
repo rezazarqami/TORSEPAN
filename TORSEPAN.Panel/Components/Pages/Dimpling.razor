@@ -91,6 +91,22 @@
                 </div>
             </div>
 
+            @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
+            {
+                <div class="alert alert-success mt-3 mb-0">
+                    <div class="row g-3 text-center">
+                        <div class="col-md-6">
+                            <small class="d-block text-muted mb-1">کد ساز (کد کاسه رو)</small>
+                            <strong class="fs-4">@_bowl.HandpanCode</strong>
+                        </div>
+                        <div class="col-md-6 border-md-start">
+                            <small class="d-block text-muted mb-1">کد کاسه زیر</small>
+                            <strong class="fs-4">@_bowl.BottomBowlCode</strong>
+                        </div>
+                    </div>
+                </div>
+            }
+
             @if (_bowl.History.Count > 0)
             {
                 <div class="card bg-light border-0 mt-3">
