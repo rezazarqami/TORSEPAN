@@ -21,7 +21,11 @@ public sealed class CreateMaterialHandler
         var category = Enum.IsDefined(typeof(MaterialCategory), request.Category)
             ? (MaterialCategory)request.Category
             : MaterialCategory.Other;
-        var material = new Material(request.Name.Trim(), category, request.InitialQuantity);
+        var material = new Material(request.Name.Trim(), category,
+            category == MaterialCategory.BowlMaterial ? 0 : request.InitialQuantity);
+        if (category == MaterialCategory.BowlMaterial &&
+            (request.InitialTopBowlQuantity > 0 || request.InitialBottomBowlQuantity > 0))
+            material.AddBowlStock(request.InitialTopBowlQuantity, request.InitialBottomBowlQuantity);
 
         await _unitOfWork.Materials.AddAsync(material);
 

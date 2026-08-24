@@ -7,7 +7,7 @@
 @inject NavigationManager Navigation
 
 <PageTitle>افزودن ماده اولیه</PageTitle>
-<PageHeader Title="افزودن ماده اولیه جدید" SubTitle="تعریف قلم جدید در بخش سایر مواد اولیه و اقلام بسته‌بندی" />
+<PageHeader Title="افزودن ماده اولیه جدید" SubTitle="تعریف متریال کاسه یا سایر مواد اولیه و اقلام بسته‌بندی" />
 
     <Card>
         <EditForm Model="_model" OnValidSubmit="SaveAsync">
@@ -18,15 +18,32 @@
                 <div class="alert alert-danger">@_error</div>
             }
             <div class="mb-3">
-                <label class="form-label">نام ماده اولیه یا قلم بسته‌بندی</label>
-                <InputText class="form-control" placeholder="مثلاً جعبه هدیه" @bind-Value="_model.Name" />
-                <ValidationMessage For="@(() => _model.Name)" />
+                <label class="form-label">نوع قلم جدید</label>
+                <InputSelect class="form-select" @bind-Value="_model.Category">
+                    <option value="3">سایر مواد اولیه یا قلم بسته‌بندی</option>
+                    <option value="4">متریال کاسه</option>
+                </InputSelect>
             </div>
             <div class="mb-3">
-                <label class="form-label">تعداد اولیه موجود در انبار</label>
-                <InputNumber class="form-control" min="0" @bind-Value="_model.InitialQuantity" />
-                <ValidationMessage For="@(() => _model.InitialQuantity)" />
+                <label class="form-label">نام @(IsBowlMaterial ? "متریال کاسه" : "ماده اولیه یا قلم بسته‌بندی")</label>
+                <InputText class="form-control" placeholder="@(IsBowlMaterial ? "مثلاً NITRIDE" : "مثلاً جعبه هدیه")" @bind-Value="_model.Name" />
+                <ValidationMessage For="@(() => _model.Name)" />
             </div>
+            @if (IsBowlMaterial)
+            {
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6"><label class="form-label">تعداد اولیه کاسه رو</label><InputNumber class="form-control" min="0" @bind-Value="_model.InitialTopBowlQuantity" /></div>
+                    <div class="col-md-6"><label class="form-label">تعداد اولیه کاسه زیر</label><InputNumber class="form-control" min="0" @bind-Value="_model.InitialBottomBowlQuantity" /></div>
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    <label class="form-label">تعداد اولیه موجود در انبار</label>
+                    <InputNumber class="form-control" min="0" @bind-Value="_model.InitialQuantity" />
+                    <ValidationMessage For="@(() => _model.InitialQuantity)" />
+                </div>
+            }
             <button class="btn btn-success" type="submit" disabled="@_saving">ثبت در انبار مواد اولیه</button>
             <button class="btn btn-outline-secondary me-2" type="button" @onclick="BackToList">انصراف</button>
         </EditForm>
@@ -36,6 +53,7 @@
     private readonly CreateMaterialRequest _model = new() { Category = 3 };
     private bool _saving;
     private string? _error;
+    private bool IsBowlMaterial => _model.Category == 4;
 
     private async Task SaveAsync()
     {

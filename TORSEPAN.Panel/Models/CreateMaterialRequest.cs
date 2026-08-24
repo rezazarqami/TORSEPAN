@@ -12,4 +12,10 @@ public sealed class CreateMaterialRequest
 
     [Range(0, int.MaxValue, ErrorMessage = "تعداد اولیه نمی‌تواند منفی باشد.")]
     public int InitialQuantity { get; set; }
+
+    [Range(0, int.MaxValue, ErrorMessage = "تعداد کاسه رو نمی‌تواند منفی باشد.")]
+    public int InitialTopBowlQuantity { get; set; }
+
+    [Range(0, int.MaxValue, ErrorMessage = "تعداد کاسه زیر نمی‌تواند منفی باشد.")]
+    public int InitialBottomBowlQuantity { get; set; }
 }
