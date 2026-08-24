@@ -193,9 +193,9 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             Material = x.Action == ProductionAction.Glue ? "" : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
             BowlType = x.Action == ProductionAction.Glue || x.Bowl == null ? (int?)null : (int)x.Bowl.BowlType,
             ScaleId = x.Action == ProductionAction.FineTune && x.Handpan != null ? x.Handpan.ScaleId
-                : (x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null ? x.Bowl.ScaleId : (Guid?)null,
+                : (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null ? x.Bowl.ScaleId : (Guid?)null,
             Scale = x.Action == ProductionAction.FineTune && x.Handpan != null && x.Handpan.Scale != null ? x.Handpan.Scale.Name
-                : (x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null && x.Bowl.Scale != null ? x.Bowl.Scale.Name : ""
+                : (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null && x.Bowl.Scale != null ? x.Bowl.Scale.Name : ""
         }).Select(g =>
         {
             var rate = rates.Where(r => r.IsExport == g.Key.IsExport && r.Action == g.Key.Action && (!r.MaterialId.HasValue || r.MaterialId == g.Key.MaterialId) && (!r.BowlType.HasValue || (int)r.BowlType == g.Key.BowlType) && (!r.ScaleId.HasValue || r.ScaleId == g.Key.ScaleId))
