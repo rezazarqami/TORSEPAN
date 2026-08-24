@@ -8,6 +8,8 @@
 .daily-user:last-child { border-bottom:0; }
 .daily-user > strong { display:block; font-size:.84rem; margin-bottom:6px; }
 .daily-user .badge { margin:0 0 5px 5px; white-space:normal; line-height:1.5; }
+.daily-loading { min-height:72px; display:flex; align-items:center; justify-content:center; gap:8px; color:#718079; font-size:.84rem; }
+.calendar-day:disabled { opacity:.72; }
 .dashboard-code { font-variant-numeric:tabular-nums; }
 @media (max-width:1199.98px) {
   .dashboard-calendar { grid-template-columns:repeat(7, 36px); }
