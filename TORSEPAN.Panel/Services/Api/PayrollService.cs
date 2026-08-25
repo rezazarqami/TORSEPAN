@@ -9,5 +9,6 @@ public sealed class PayrollService(ApiClient api)
  public async Task SaveOrderAsync(IEnumerable<PayrollUserDto> users)=>await api.PutAsync<object,object?>("payroll/users/order",users.Select(x=>new{UserId=x.Id,Order=x.DisplayOrder}).ToList());
  public async Task MarkPaidAsync(DateTime from,DateTime to,bool readyForQc,bool readyForPackaging,bool enteredWarehouse,bool readyForExportPackaging=false,bool exportWarehouse=false)=>await api.PostAsync<object,object?>("payroll/payments",new{From=from,To=to,ReadyForQc=readyForQc,ReadyForPackaging=readyForPackaging,EnteredWarehouse=enteredWarehouse,ReadyForExportPackaging=readyForExportPackaging,ExportWarehouse=exportWarehouse});
  public async Task<IReadOnlyList<PayrollPaymentDto>> GetPaymentsAsync()=>await api.GetAsync<List<PayrollPaymentDto>>("payroll/payments")??[];
+ public async Task SendPaymentReportToTelegramAsync(Guid paymentId)=>await api.PostAsync<object,object?>($"payroll/payments/{paymentId}/telegram",new{});
  public async Task SendReportToTelegramAsync(DateTime from,DateTime to,bool qc,bool pack,bool warehouse,bool exportPack,bool exportWarehouse)=>await api.PostAsync<object,object?>("payroll/report/telegram",new{From=from,To=to,ReadyForQc=qc,ReadyForPackaging=pack,EnteredWarehouse=warehouse,ReadyForExportPackaging=exportPack,ExportWarehouse=exportWarehouse});
 }

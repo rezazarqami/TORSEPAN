@@ -50,11 +50,27 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     public async Task<IActionResult> SendPdf(PayrollPaymentRequest r,CancellationToken ct)
     {
         var c=await CalculateAsync(r.From,r.To,r.ReadyForQc,r.ReadyForPackaging,r.EnteredWarehouse,r.ReadyForExportPackaging,r.ExportWarehouse,ct);
+        return await SendPdfToTelegramAsync(BuildPdf(c), $"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf");
+    }
+
+    [HttpPost("payments/{id:guid}/telegram")]
+    public async Task<IActionResult> SendPaymentPdf(Guid id, CancellationToken ct)
+    {
+        var payment = await db.PayrollPayments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (payment is null) return NotFound();
+        var calculation = new PayrollCalculation(payment.From, payment.To,
+            Deserialize<PayrollLine>(payment.LinesJson), [], [], Deserialize<Guid>(payment.HandpanIdsJson),
+            Deserialize<string>(payment.HandpanCodesJson), false, false, false, false, false);
+        return await SendPdfToTelegramAsync(BuildPdf(calculation), $"torsepan-payment-{payment.PaidAt:yyyyMMdd-HHmm}.pdf");
+    }
+
+    private async Task<IActionResult> SendPdfToTelegramAsync(byte[] bytes, string fileName)
+    {
         var relay=configuration["Telegram:BackupRelayUrl"]??configuration["Telegram:RelayUrl"];
         if(string.IsNullOrWhiteSpace(relay))return Problem("Telegram relay is not configured.");
         relay=relay.Replace("telegram-database-backup","telegram-payroll-report").Replace("telegram-inventory-alert","telegram-payroll-report")
             .Replace("/database-backup","/payroll-report").Replace("/inventory-alert","/payroll-report");
-        using var form=new MultipartFormDataContent();var bytes=BuildPdf(c);form.Add(new ByteArrayContent(bytes),"report",$"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf");
+        using var form=new MultipartFormDataContent();form.Add(new ByteArrayContent(bytes),"report",fileName);
         using var request=new HttpRequestMessage(HttpMethod.Post,relay){Content=form};request.Headers.Add("X-Relay-Secret",configuration["Telegram:RelaySecret"]);
         var response=await httpFactory.CreateClient().SendAsync(request,CancellationToken.None);return response.IsSuccessStatusCode?Ok():StatusCode((int)response.StatusCode);
     }
@@ -133,11 +149,16 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var assemblyIds = new List<Guid>();
         var bowlIds = new List<Guid>();
         var exportBowlIds = new List<Guid>();
+        var alreadyPaid = (await db.PayrollPayments.AsNoTracking().Select(x => x.HandpanIdsJson).ToListAsync(ct))
+            .SelectMany(Deserialize<Guid>).ToHashSet();
+        var paidHandpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly)
+            .Where(x => alreadyPaid.Contains(x.Id)).ToListAsync(ct);
+        var paidAssemblyIds = paidHandpans.Select(x => x.AssemblyId).ToHashSet();
+        var paidBowlIds = paidHandpans.SelectMany(x => new[] { x.Assembly.TopBowlId, x.Assembly.BottomBowlId })
+            .Concat(alreadyPaid).ToHashSet();
         var filterByHandpanStage = readyForQc || readyForPackaging || enteredWarehouse || readyForExportPackaging || exportWarehouse;
         if (filterByHandpanStage)
         {
-            var alreadyPaid = (await db.PayrollPayments.AsNoTracking().Select(x => x.HandpanIdsJson).ToListAsync(ct))
-                .SelectMany(Deserialize<Guid>).ToHashSet();
             var selectedActions = new List<ProductionAction>();
             if (readyForQc) selectedActions.Add(ProductionAction.FineTune);
             if (readyForPackaging) selectedActions.Add(ProductionAction.QualityCheck);
@@ -177,6 +198,10 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
                 x.Description != "Released from glue room" &&
                 (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Glue || x.Action == ProductionAction.Tune || x.Action == ProductionAction.FineTune));
+        eventQuery = eventQuery.Where(x =>
+            (!x.HandpanId.HasValue || !alreadyPaid.Contains(x.HandpanId.Value)) &&
+            (!x.AssemblyId.HasValue || !paidAssemblyIds.Contains(x.AssemblyId.Value)) &&
+            (!x.BowlId.HasValue || !paidBowlIds.Contains(x.BowlId.Value)));
         eventQuery = filterByHandpanStage
             ? eventQuery.Where(x => (x.HandpanId.HasValue && handpanIds.Contains(x.HandpanId.Value)) ||
                                     (x.AssemblyId.HasValue && assemblyIds.Contains(x.AssemblyId.Value)) ||
@@ -222,6 +247,9 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var scales = c.Lines.Where(x => !x.IsExport && x.Action == 7 && !string.IsNullOrWhiteSpace(x.ScaleName))
             .GroupBy(x => x.ScaleName).OrderBy(x => x.Key)
             .Select(x => new { x.Key, Count = x.Sum(y => y.Count) }).ToList();
+        var appliedRates = c.Lines.GroupBy(x => new { Description = Desc(x), x.IsExport, x.Rate })
+            .Select(x => new { Title = (x.Key.IsExport ? "صادراتی — " : "") + x.Key.Description, x.Key.Rate })
+            .OrderBy(x => x.Title).ToList();
 
         return Document.Create(doc => doc.Page(page =>
         {
@@ -301,6 +329,39 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                         });
                         summary.Item().PaddingTop(7).AlignCenter().ContentFromRightToLeft().Text($"جمع کل ساخت: {scales.Sum(x => x.Count):N0} عدد").FontSize(13).Bold();
                     });
+                }
+
+                if (c.HandpanCodes.Count > 0)
+                {
+                    col.Item().PaddingTop(10).BorderTop(1).BorderColor(Colors.Green.Lighten2).PaddingTop(8)
+                        .ContentFromRightToLeft().Column(codes =>
+                        {
+                            codes.Item().AlignRight().Text("کد سازهای تسویه‌شده").FontSize(13).Bold().FontColor(Colors.Green.Darken3);
+                            codes.Item().PaddingTop(5).AlignRight().Text(string.Join("، ", c.HandpanCodes))
+                                .FontSize(10).LineHeight(1.55f).FontColor(Colors.Grey.Darken3);
+                        });
+                }
+
+                if (appliedRates.Count > 0)
+                {
+                    col.Item().PaddingTop(10).Background(Colors.Grey.Lighten4).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(9)
+                        .ContentFromRightToLeft().Column(rateSection =>
+                        {
+                            rateSection.Item().AlignRight().Text("نرخ‌های اعمال‌شده در این محاسبه").FontSize(13).Bold().FontColor(Colors.Green.Darken3);
+                            rateSection.Item().PaddingTop(6).Table(table =>
+                            {
+                                table.ColumnsDefinition(columns => { for (var i = 0; i < 3; i++) columns.RelativeColumn(); });
+                                foreach (var rate in appliedRates)
+                                {
+                                    table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Background(Colors.White).Padding(6)
+                                        .ContentFromRightToLeft().Column(cell =>
+                                        {
+                                            cell.Item().AlignRight().Text(rate.Title).FontSize(9).Bold();
+                                            cell.Item().PaddingTop(3).AlignRight().Text($"نرخ واحد: {rate.Rate:N0}").FontSize(9.5f).FontColor(Colors.Green.Darken3);
+                                        });
+                                }
+                            });
+                        });
                 }
             });
             page.Footer().AlignCenter().Text(text =>
