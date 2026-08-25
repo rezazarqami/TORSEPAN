@@ -1,0 +1,32 @@
+@page "/designs"
+@using System.Net
+@using Microsoft.AspNetCore.Components.Authorization
+@inject DesignService DesignService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>دیزاین</PageTitle>
+<PageHeader Title="ثبت دیزاین هنگدرام" SubTitle="ثبت دیزاین کاسه یا ساز در هر مرحله از تولید" />
+
+<div class="row g-4">
+ <div class="col-lg-7"><Card>
+  <label class="form-label">کد کاسه یا ساز</label><input class="form-control" @bind="_code" placeholder="کد را وارد کنید" />
+  <label class="form-label mt-3">نوع دیزاین</label><select class="form-select" @bind="_typeId"><option value="">انتخاب نوع دیزاین</option>@foreach(var item in _types){<option value="@item.Id">@item.Name</option>}</select>
+  <label class="form-check mt-3"><input type="checkbox" class="form-check-input" @bind="_bottom" /> کاسه زیر هم دیزاین دارد</label>
+  @if(!string.IsNullOrWhiteSpace(_message)){<div class="alert @(_success?"alert-success":"alert-danger") mt-3">@_message</div>}
+  <button class="btn btn-primary mt-3 px-5" disabled="@_busy" @onclick="AskRegister">ثبت دیزاین</button>
+ </Card></div>
+ @if(_canManage){<div class="col-lg-5"><Card><h4>مدیریت انواع دیزاین</h4><div class="input-group mt-3"><input class="form-control" @bind="_newName" placeholder="نام دیزاین جدید"/><button class="btn btn-success" @onclick="AddTypeAsync">افزودن</button></div><div class="mt-3">@foreach(var item in _types){<div class="d-flex justify-content-between align-items-center border-bottom py-2"><span>@item.Name</span><button class="btn btn-sm btn-outline-danger" @onclick="()=>AskDelete(item)">حذف</button></div>}</div></Card></div>}
+</div>
+
+@if(_confirm){<div class="modal d-block" style="background:rgba(0,0,0,.45)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content" dir="rtl"><div class="modal-header"><h5>@_confirmTitle</h5></div><div class="modal-body">@_confirmText</div><div class="modal-footer justify-content-start"><button class="btn btn-outline-secondary" @onclick="()=>_confirm=false">خیر</button><button class="btn btn-success" disabled="@_busy" @onclick="ConfirmAsync">بله، تأیید و ثبت</button></div></div></div></div>}
+
+@code{
+ private List<DesignTypeDto> _types=[];private string _code="",_typeId="",_newName="",_message="",_confirmTitle="",_confirmText="";private bool _bottom,_busy,_success,_confirm,_canManage;private Func<Task>? _action;
+ protected override async Task OnInitializedAsync(){var user=(await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;_canManage=user.IsInRole("Administrator")||user.IsInRole("ProductionManager");await LoadAsync();}
+ private async Task LoadAsync()=>_types=await DesignService.GetTypesAsync();
+ private void AskRegister(){if(string.IsNullOrWhiteSpace(_code)||!Guid.TryParse(_typeId,out var id)){_success=false;_message="کد و نوع دیزاین را کامل کنید.";return;}var name=_types.First(x=>x.Id==id).Name;Show("تأیید ثبت دیزاین",$"دیزاین «{name}» برای کد «{_code.Trim()}» ثبت شود؟"+( _bottom?" کاسه زیر نیز دیزاین دارد.":" کاسه زیر ساده است."),async()=>{await DesignService.RegisterAsync(_code.Trim(),id,_bottom);_success=true;_message="دیزاین با موفقیت ثبت شد.";_code="";_typeId="";_bottom=false;});}
+ private async Task AddTypeAsync(){if(string.IsNullOrWhiteSpace(_newName))return;try{await DesignService.AddTypeAsync(_newName.Trim());_newName="";await LoadAsync();}catch{_success=false;_message="این نوع دیزاین قبلاً ثبت شده یا معتبر نیست.";}}
+ private void AskDelete(DesignTypeDto item)=>Show("حذف نوع دیزاین",$"نوع دیزاین «{item.Name}» از فهرست انتخاب حذف شود؟",async()=>{await DesignService.DeleteTypeAsync(item.Id);await LoadAsync();});
+ private void Show(string title,string text,Func<Task> action){_confirmTitle=title;_confirmText=text;_action=action;_confirm=true;}
+ private async Task ConfirmAsync(){if(_action is null)return;_busy=true;try{await _action();_confirm=false;}catch(HttpRequestException ex) when(ex.StatusCode==HttpStatusCode.Conflict){_confirm=false;_success=false;_message="برای این کد قبلاً دیزاین ثبت شده است.";}catch{_confirm=false;_success=false;_message="ثبت عملیات انجام نشد.";}finally{_busy=false;}}
+}

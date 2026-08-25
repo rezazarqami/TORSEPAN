@@ -87,9 +87,10 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     public async Task<IActionResult> SaveRate(PayrollRateRequest request, CancellationToken ct)
     {
         var action = (ProductionAction)request.Action;
-        var materialId = action == ProductionAction.Glue ? null : request.MaterialId;
-        var bowlType = action == ProductionAction.Glue ? null : request.BowlType.HasValue ? (BowlType?)request.BowlType.Value : null;
-        var scaleId = action == ProductionAction.Glue ? null : request.ScaleId;
+        var simpleRate = action is ProductionAction.Glue or ProductionAction.Design;
+        var materialId = simpleRate ? null : request.MaterialId;
+        var bowlType = simpleRate ? null : request.BowlType.HasValue ? (BowlType?)request.BowlType.Value : null;
+        var scaleId = simpleRate ? null : request.ScaleId;
         PayrollRate? rate = null;
         if (request.Id.HasValue)
         {
@@ -197,7 +198,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             .Include(x => x.Handpan)!.ThenInclude(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
             .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
                 x.Description != "Released from glue room" &&
-                (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Glue || x.Action == ProductionAction.Tune || x.Action == ProductionAction.FineTune));
+                (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Glue || x.Action == ProductionAction.Tune || x.Action == ProductionAction.FineTune || x.Action == ProductionAction.Design));
         eventQuery = eventQuery.Where(x =>
             (!x.HandpanId.HasValue || !alreadyPaid.Contains(x.HandpanId.Value)) &&
             (!x.AssemblyId.HasValue || !paidAssemblyIds.Contains(x.AssemblyId.Value)) &&
@@ -214,9 +215,9 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         {
             x.UserId, x.User.FullName, x.User.UserName, x.User.DisplayOrder, x.Action,
             IsExport = x.BowlId.HasValue && exportBowlIds.Contains(x.BowlId.Value),
-            MaterialId = x.Action == ProductionAction.Glue ? (Guid?)null : x.Bowl != null ? x.Bowl.MaterialId : x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Handpan != null ? x.Handpan.Assembly.TopBowl.MaterialId : (Guid?)null,
-            Material = x.Action == ProductionAction.Glue ? "" : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
-            BowlType = x.Action == ProductionAction.Glue || x.Bowl == null ? (int?)null : (int)x.Bowl.BowlType,
+            MaterialId = x.Action is ProductionAction.Glue or ProductionAction.Design ? (Guid?)null : x.Bowl != null ? x.Bowl.MaterialId : x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Handpan != null ? x.Handpan.Assembly.TopBowl.MaterialId : (Guid?)null,
+            Material = x.Action is ProductionAction.Glue or ProductionAction.Design ? "" : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
+            BowlType = x.Action is ProductionAction.Glue or ProductionAction.Design || x.Bowl == null ? (int?)null : (int)x.Bowl.BowlType,
             ScaleId = x.Action == ProductionAction.FineTune && x.Handpan != null ? x.Handpan.ScaleId
                 : (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null ? x.Bowl.ScaleId : (Guid?)null,
             Scale = x.Action == ProductionAction.FineTune && x.Handpan != null && x.Handpan.Scale != null ? x.Handpan.Scale.Name
@@ -388,8 +389,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         }
         return result + match.Groups["rest"].Value;
     }
-    private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 5 => 3, 6 => 4, 7 => 5, _ => 99 };
-    private static string Title(ProductionAction action) => action switch { ProductionAction.Dimple => "دیمپل", ProductionAction.Shape => "شیپ", ProductionAction.Glue => "چسب", ProductionAction.Tune => "تیون", ProductionAction.FineTune => "فاین تیون", _ => action.ToString() };
+    private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 13 => 3, 5 => 4, 6 => 5, 7 => 6, _ => 99 };
+    private static string Title(ProductionAction action) => action switch { ProductionAction.Dimple => "دیمپل", ProductionAction.Shape => "شیپ", ProductionAction.Design => "دیزاین", ProductionAction.Glue => "چسب", ProductionAction.Tune => "تیون", ProductionAction.FineTune => "فاین تیون", _ => action.ToString() };
 }
 
 public sealed record PayrollCalculation(DateTime From, DateTime To, List<PayrollLine> Lines, List<PayrollUser> Users, List<PayrollRateDto> Rates, List<Guid> HandpanIds, List<string> HandpanCodes, bool ReadyForQc, bool ReadyForPackaging, bool EnteredWarehouse, bool ReadyForExportPackaging, bool ExportWarehouse);

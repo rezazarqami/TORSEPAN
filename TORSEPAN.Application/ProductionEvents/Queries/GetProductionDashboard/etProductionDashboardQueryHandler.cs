@@ -31,7 +31,7 @@ public sealed class GetProductionDashboardQueryHandler
         var monthStartUtc = DateTime.SpecifyKind(monthStartTehran.AddHours(-3.5), DateTimeKind.Utc);
         var allEvents = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, EventResult.Completed);
         var events = allEvents.Where(x => x.EventDate >= monthStartUtc).ToList();
-        var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune, ProductionAction.QualityCheck, ProductionAction.Packaging };
+        var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Design, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune, ProductionAction.QualityCheck, ProductionAction.Packaging };
         List<MonthlyUserOperationResponse> Summarize(IEnumerable<TORSEPAN.Domain.Entities.ProductionEvent> source) => source.Where(x => tracked.Contains(x.Action) &&
                                         !x.Description.StartsWith("NOTE:") &&
                                         x.Description != "Released from glue room")
@@ -158,7 +158,7 @@ public sealed class GetProductionDashboardQueryHandler
     }
 
     private static string OperationTitle(ProductionAction action) => action switch
-    { ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",ProductionAction.Furnace=>"پخت",ProductionAction.Glue=>"چسب",ProductionAction.Tune=>"تیون",ProductionAction.FineTune=>"فاین تیون",ProductionAction.QualityCheck=>"کنترل کیفیت",ProductionAction.Packaging=>"بسته‌بندی",_=>action.ToString() };
+    { ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",ProductionAction.Design=>"دیزاین",ProductionAction.Furnace=>"پخت",ProductionAction.Glue=>"چسب",ProductionAction.Tune=>"تیون",ProductionAction.FineTune=>"فاین تیون",ProductionAction.QualityCheck=>"کنترل کیفیت",ProductionAction.Packaging=>"بسته‌بندی",_=>action.ToString() };
     private static string BowlTypeSuffix(BowlType? bowlType) => bowlType switch
     { BowlType.Top => " کاسه رو", BowlType.Bottom => " کاسه زیر", _ => string.Empty };
     private static string PersianMonthName(int month) => new[] { "", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند" }[month];

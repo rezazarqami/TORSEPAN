@@ -21,5 +21,6 @@ public enum ProductionAction
 
     // General
     Reject = 11,
-    Sale = 12
+    Sale = 12,
+    Design = 13
 }

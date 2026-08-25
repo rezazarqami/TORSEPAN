@@ -49,7 +49,7 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
     {
         ProductionAction.Created => "ثبت اولیه", ProductionAction.Dimple => "دیمپل", ProductionAction.Shape => "شیپ",
         ProductionAction.Furnace => "پخت", ProductionAction.Glue => "چسب", ProductionAction.Tune => "تیون",
-        ProductionAction.FineTune => "فاین‌تیون", ProductionAction.QualityCheck => "کنترل کیفیت",
+        ProductionAction.FineTune => "فاین‌تیون", ProductionAction.Design => "دیزاین", ProductionAction.QualityCheck => "کنترل کیفیت",
         ProductionAction.Packaging => "بسته‌بندی", ProductionAction.WarehouseEntry => "ورود به انبار",
         ProductionAction.Reject => "برگشتی", ProductionAction.Sale => "فروش", _ => action.ToString()
     };

@@ -68,6 +68,15 @@ public sealed class GetBowlForDimpleQueryHandler
             .Select(x => $"{(string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)} — {InstrumentNoteText(x.Description)}")
             .Distinct());
 
+        var designEvent = events.Where(x => x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value) && x.Action == ProductionAction.Design)
+            .OrderByDescending(x => x.EventDate).FirstOrDefault();
+        if (designEvent is not null)
+        {
+            var designParts = designEvent.Description.Split(':');
+            dto.DesignName = designParts.Length >= 3 ? designParts[2] : "دیزاین‌شده";
+            dto.BottomBowlDesigned = designEvent.Description.EndsWith(":BOTTOM:1", StringComparison.Ordinal);
+        }
+
         var users = (await _unitOfWork.Users.GetAllAsync()).ToDictionary(x => x.Id);
 
         dto.History.AddRange(events
@@ -126,6 +135,7 @@ public sealed class GetBowlForDimpleQueryHandler
         ProductionAction.FineTune => "فاین تیون",
         ProductionAction.QualityCheck => "کنترل کیفیت",
         ProductionAction.Packaging => "بسته‌بندی",
+        ProductionAction.Design => "دیزاین",
         _ => action.ToString()
     };
 }

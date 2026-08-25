@@ -166,7 +166,7 @@ else
     private bool _confirmVisible, _confirmBusy, _confirmDanger;
     private string _confirmTitle = "", _confirmMessage = "", _confirmButton = "تأیید";
     private Func<Task>? _confirmAction;
-    private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
+    private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (13, "دیزاین"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
     private IEnumerable<UserPayrollGroup> UserGroups => GroupLines(_payroll.Lines.Where(x => !x.IsExport));
     private IEnumerable<UserPayrollGroup> ExportUserGroups => GroupLines(_payroll.Lines.Where(x => x.IsExport));
     private IEnumerable<PayrollRateDto> SortedRates => _payroll.Rates.OrderBy(x => x.IsExport).ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName).ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ThenBy(x => x.Amount);
@@ -174,7 +174,7 @@ else
     protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); _scales = (await ScaleService.GetAsync()).ToList(); await LoadAsync(); }
     private bool HasStageFilter => _readyForQc || _readyForPackaging || _enteredWarehouse || _readyForExportPackaging || _exportWarehouse;
     private bool IsHandpanRate => _rateAction == 7;
-    private bool IsSimpleRate => _rateAction == 5;
+    private bool IsSimpleRate => _rateAction is 5 or 13;
     private IEnumerable<ScaleDto> AvailableRateScales => _rateBowlType switch
     {
         _ when IsHandpanRate => _scales.Where(x => (x.Usage & 4) != 0),
