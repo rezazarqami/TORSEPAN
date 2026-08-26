@@ -90,7 +90,7 @@ public sealed class BowlsController : ControllerBase
     }
 
     [HttpGet("dimpling/{productionCode}")]
-    [Authorize(Roles = "Dimpler,Shaper,Workshop,Tuner,FineTuner,QualityControl,Administrator")]
+    [Authorize(Roles = "Dimpler,Shaper,Workshop,Tuner,FineTuner,QualityControl,ProductionManager,Administrator")]
     public async Task<ActionResult> GetForDimpling(
         string productionCode,
         CancellationToken cancellationToken)
@@ -139,7 +139,7 @@ public sealed class BowlsController : ControllerBase
     }
 
     [HttpPost("production/{productionCode}/notes")]
-    [Authorize(Roles = "Shaper,Workshop,Tuner,FineTuner,QualityControl,Administrator")]
+    [Authorize(Roles = "Dimpler,Shaper,Workshop,Tuner,FineTuner,QualityControl,ProductionManager,Administrator")]
     public async Task<ActionResult> AddNote(string productionCode, [FromBody] ProductionNoteRequest request,
         CancellationToken cancellationToken)
         => this.ToActionResult(await _mediator.Send(

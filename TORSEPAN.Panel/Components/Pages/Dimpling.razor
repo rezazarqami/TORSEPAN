@@ -101,7 +101,11 @@
 
     @if (_bowl is not null)
     {
-        <div class="border rounded p-3 mt-2">
+        <div class="instrument-passport @(string.IsNullOrWhiteSpace(_bowl.HandpanCode) ? "bowl-file" : "handpan-file")">
+            @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
+            {
+                <div class="passport-header"><div><small>TORSEPAN · INSTRUMENT ID</small><h3>شناسنامه ساز</h3></div><span class="passport-seal">T</span></div>
+            }
             <div><strong>کد:</strong> @_bowl.ProductionCode</div>
             <div><strong>نوع کاسه:</strong> @BowlTypeText(_bowl.BowlType)</div>
             <div class="production-highlights">
@@ -386,9 +390,9 @@
                     این ساز در انبار است. تاریخ بسته‌بندی و سایر مراحل انجام‌شده در جدول بالا نمایش داده شده‌اند.
                 </div>
             }
-            @if (_bowl.Stage is 12 or 14 or 16)
+            @if (_bowl.Stage is 12 or 14 or 16 or 18 or 20)
             {
-                <div class="instrument-note-editor mt-3"><label class="form-label fw-bold">یادداشت مخصوص این ساز (اختیاری)</label><textarea class="form-control" rows="4" @bind="_instrumentNote" placeholder="این یادداشت در پرونده ساز، انبار و مراحل بعدی همیشه نمایش داده می‌شود."></textarea></div>
+                <div class="instrument-note-editor mt-3"><label class="form-label fw-bold">@(_bowl.Stage is 18 or 20 ? "افزودن یادداشت به شناسنامه ساز" : "یادداشت مخصوص این ساز (اختیاری)")</label><textarea class="form-control" rows="4" @bind="_instrumentNote" placeholder="این یادداشت در پرونده ساز همیشه نمایش داده می‌شود."></textarea>@if (_bowl.Stage is 18 or 20) { <button class="btn btn-primary mt-2" disabled="@string.IsNullOrWhiteSpace(_instrumentNote)" @onclick="SaveInstrumentNoteAsync">ثبت یادداشت در شناسنامه</button> }</div>
             }
             else if (_bowl.Stage == 22)
             {
@@ -709,6 +713,7 @@
         if (string.IsNullOrWhiteSpace(_instrumentNote)) return;
         await BowlService.AddInstrumentNoteAsync(_productionCode, _instrumentNote.Trim());
         _instrumentNote = string.Empty;
+        await SearchAsync();
     }
 
     private void ToggleShapePart(string key, bool enabled) { var part = ShapeParts.First(x => x.Key == key); part.Enabled = enabled; if (!enabled) part.UserId = null; }

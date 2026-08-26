@@ -19,7 +19,7 @@ public sealed class AddProductionNoteCommandHandler(IUnitOfWork unitOfWork, IUse
         if (userContext.UserId is not Guid userId) throw new UnauthorizedAccessException();
         if (request.IsInstrumentNote)
         {
-            if (bowl.Stage is not (ProductionStage.WaitingForFinalTune or ProductionStage.WaitingForQualityControl or ProductionStage.WaitingForPackaging))
+            if (bowl.Stage is not (ProductionStage.WaitingForFinalTune or ProductionStage.WaitingForQualityControl or ProductionStage.WaitingForPackaging or ProductionStage.FinishedWarehouse or ProductionStage.Sold))
                 return Result<bool>.Failure(ErrorCodes.InvalidStage);
             var assembly = (await unitOfWork.HandpanAssemblies.FindAsync(
                 x => x.TopBowlId == bowl.Id || x.BottomBowlId == bowl.Id)).SingleOrDefault();

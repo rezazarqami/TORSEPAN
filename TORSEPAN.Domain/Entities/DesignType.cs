@@ -12,5 +12,6 @@ public sealed class DesignType : Entity
     public DateTime CreatedAt { get; private set; }
     public void Rename(string name) { Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("نام دیزاین الزامی است.") : name.Trim(); }
     public void SetRate(decimal rate) => Rate = Math.Max(0, rate);
+    public void Activate() => IsActive = true;
     public void Deactivate() => IsActive = false;
 }

@@ -50,7 +50,9 @@ public sealed class GetProductionDashboardQueryHandler
                     ? x.Where(e => e.HandpanId.HasValue &&
                                    e.Description.StartsWith("Glued with bowl"))
                         .Select(e => e.HandpanId).Distinct().Count()
-                    : x.Count(),
+                    : x.Key.Action == ProductionAction.Design
+                        ? x.Sum(e => e.Description.EndsWith(":BOTTOM:1", StringComparison.Ordinal) ? 2 : 1)
+                        : x.Count(),
                 DisplayOrder=x.Key.DisplayOrder
             })
             .Where(x => x.Count > 0)

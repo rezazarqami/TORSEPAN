@@ -78,11 +78,13 @@
 .shape-part-row { display:grid; grid-template-columns:100px 1fr; align-items:center; gap:10px; margin-top:9px; }
 .instrument-note-display { border-right:5px solid #d49b24; font-size:1.02rem; line-height:1.9; }
 .instrument-note-editor { padding:16px; border:1px solid #e0c77f; border-radius:14px; background:#fffcf2; }
+.instrument-passport{margin-top:12px;padding:20px;border:1px solid #cbd3dc;border-radius:22px;background:linear-gradient(145deg,#fff,#f4f6f8);box-shadow:0 18px 45px rgba(8,25,49,.1);overflow:hidden}.instrument-passport.handpan-file{border-top:5px solid #122b4d}.passport-header{display:flex;align-items:center;justify-content:space-between;margin:-4px -2px 18px;padding-bottom:14px;border-bottom:1px solid #d8dee6}.passport-header small{color:#8490a0;letter-spacing:1.7px;font-size:.68rem}.passport-header h3{margin:.2rem 0 0;color:#102a4b;font-weight:900}.passport-seal{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;border:2px solid #aeb9c6;color:#e4e9ee;background:#122b4d;font-family:serif;font-size:1.6rem;box-shadow:inset 0 0 0 4px #1d3d67}.handpan-file .card.bg-light{background:linear-gradient(145deg,#f8fafc,#edf1f5)!important;border:1px solid #dce2e9!important}.handpan-file .table thead th{color:#17375f;background:#e8edf3}.handpan-file .alert-success{color:#183d67;background:#edf3f8;border-color:#bdcad8}
 
 @keyframes confirm-fade { from { opacity:0; } }
 @keyframes confirm-rise { from { opacity:0; transform:translateY(12px) scale(.98); } }
 
 @media(max-width:480px) {
+    .instrument-passport{padding:14px;border-radius:17px}.passport-header h3{font-size:1.25rem}.passport-seal{width:42px;height:42px}
     .operation-confirm-dialog { padding:21px 17px; border-radius:20px; }
     .operation-confirm-actions { grid-template-columns:1fr; }
     .operation-confirm-details > div { padding:9px 10px; }
