@@ -4,28 +4,42 @@
 @inject DesignService DesignService
 
 <PageTitle>دیزاین</PageTitle>
-<PageHeader Title="ثبت دیزاین هنگدرام" SubTitle="ثبت دیزاین کاسه یا ساز در هر مرحله از تولید" />
-
-<div class="row g-4">
- <div class="col-lg-7"><Card>
-  <label class="form-label">کد کاسه یا ساز</label><input class="form-control" @bind="_code" placeholder="کد را وارد کنید" />
-  <label class="form-label mt-3">نوع دیزاین</label><select class="form-select" @bind="_typeId"><option value="">انتخاب نوع دیزاین</option>@foreach(var item in _types){<option value="@item.Id">@item.Name</option>}</select>
-  <label class="form-check mt-3"><input type="checkbox" class="form-check-input" @bind="_bottom" /> کاسه زیر هم دیزاین دارد</label>
-  @if(!string.IsNullOrWhiteSpace(_message)){<div class="alert @(_success?"alert-success":"alert-danger") mt-3">@_message</div>}
-  <button class="btn btn-primary mt-3 px-5" disabled="@_busy" @onclick="AskRegister">ثبت دیزاین</button>
- </Card></div>
- <AuthorizeView Roles="Administrator,ProductionManager"><Authorized><div class="col-lg-5"><Card><h4>ایجاد و مدیریت انواع دیزاین</h4><div class="input-group mt-3"><input class="form-control" @bind="_newName" placeholder="نام دیزاین جدید"/><button class="btn btn-success" @onclick="AddTypeAsync">افزودن دیزاین جدید</button></div><div class="mt-3">@foreach(var item in _types){<div class="d-flex justify-content-between align-items-center border-bottom py-2"><span>@item.Name</span><button class="btn btn-sm btn-outline-danger" @onclick="()=>AskDelete(item)">حذف</button></div>}</div></Card></div></Authorized></AuthorizeView>
+<PageHeader Title="ثبت دیزاین هنگدرام" SubTitle="انتخاب یک یا چند دیزاین و ثبت مجری هرکدام" />
+<div class="design-layout" dir="rtl">
+ <section class="design-panel registration-panel">
+  <div class="panel-heading"><span class="panel-icon">🎨</span><div><h3>ثبت دیزاین</h3><p>کد کاسه یا ساز را وارد و دیزاین‌ها را انتخاب کنید.</p></div></div>
+  <label class="field-label">کد کاسه یا ساز</label><input class="form-control code-input" @bind="_code" placeholder="مثلاً 446" />
+  <div class="section-title"><span>نوع دیزاین</span><small>@SelectedCount مورد انتخاب شده</small></div>
+  @if (_types.Count == 0) { <div class="empty-state">هنوز نوع دیزاینی تعریف نشده است.</div> }
+  else { <div class="design-options">@foreach (var item in _types) { var selection = SelectionFor(item.Id); <div class="design-option @(selection.Selected ? "selected" : "")"><label class="option-check"><input type="checkbox" checked="@selection.Selected" @onchange="e => Toggle(item.Id, (bool)(e.Value ?? false))" /><span class="check-mark">✓</span><span class="option-name">@item.Name</span></label>@if (selection.Selected) { <div class="performer-row"><label>مجری این دیزاین</label><select class="form-select" value="@selection.UserId" @onchange="e => SetUser(item.Id, e.Value?.ToString())"><option value="">خودم (کاربر ثبت‌کننده)</option>@foreach (var user in _users) { <option value="@user.Id">@user.Name</option> }</select></div> }</div> }</div> }
+  <label class="bottom-option"><input type="checkbox" @bind="_bottom" /><span><strong>کاسه زیر هم دیزاین دارد</strong><small>اگر کاسه زیر ساده است، این گزینه را خاموش بگذارید.</small></span></label>
+  @if (!string.IsNullOrWhiteSpace(_message)) { <div class="app-message @(_success ? "success" : "error")">@_message</div> }
+  <button class="btn btn-primary register-button" disabled="@(_busy || SelectedCount == 0)" @onclick="AskRegister">ثبت @SelectedCount دیزاین</button>
+ </section>
+ <AuthorizeView Roles="Administrator,ProductionManager"><Authorized><section class="design-panel management-panel">
+  <div class="panel-heading"><span class="panel-icon">⚙️</span><div><h3>انواع و نرخ دیزاین</h3><p>این بخش فقط برای مدیر تولید و ادمین نمایش داده می‌شود.</p></div></div>
+  <div class="new-design-box"><input class="form-control" @bind="_newName" placeholder="نام دیزاین جدید" /><div class="rate-input"><input type="number" min="0" class="form-control" @bind="_newRate" placeholder="نرخ" /><span>تومان</span></div><button class="btn btn-success" @onclick="AddTypeAsync">ایجاد دیزاین</button></div>
+  <div class="rate-list">@foreach (var item in _types) { <div class="rate-card"><div class="rate-name"><span class="color-dot"></span><strong>@item.Name</strong></div><div class="rate-actions"><div class="rate-input"><input type="number" min="0" class="form-control" value="@RateFor(item)" @onchange="e => ChangeRate(item.Id, e.Value?.ToString())" /><span>تومان</span></div><button class="btn btn-sm btn-outline-success" @onclick="() => SaveRateAsync(item)">ذخیره نرخ</button><button class="btn btn-sm btn-outline-danger" @onclick="() => AskDelete(item)">حذف</button></div></div> }</div>
+ </section></Authorized></AuthorizeView>
 </div>
+@if (_confirm) { <div class="modal d-block" style="background:rgba(4,35,29,.55)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content confirm-card" dir="rtl"><div class="modal-header"><h5>@_confirmTitle</h5></div><div class="modal-body">@_confirmText</div><div class="modal-footer justify-content-start"><button class="btn btn-outline-secondary" @onclick="() => _confirm=false">خیر</button><button class="btn btn-success" disabled="@_busy" @onclick="ConfirmAsync">بله، تأیید و ثبت</button></div></div></div></div> }
 
-@if(_confirm){<div class="modal d-block" style="background:rgba(0,0,0,.45)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content" dir="rtl"><div class="modal-header"><h5>@_confirmTitle</h5></div><div class="modal-body">@_confirmText</div><div class="modal-footer justify-content-start"><button class="btn btn-outline-secondary" @onclick="()=>_confirm=false">خیر</button><button class="btn btn-success" disabled="@_busy" @onclick="ConfirmAsync">بله، تأیید و ثبت</button></div></div></div></div>}
-
-@code{
- private List<DesignTypeDto> _types=[];private string _code="",_typeId="",_newName="",_message="",_confirmTitle="",_confirmText="";private bool _bottom,_busy,_success,_confirm;private Func<Task>? _action;
+@code {
+ private List<DesignTypeDto> _types=[]; private List<DesignUserDto> _users=[]; private readonly Dictionary<Guid,DesignSelection> _selections=[]; private readonly Dictionary<Guid,decimal> _rates=[];
+ private string _code="",_newName="",_message="",_confirmTitle="",_confirmText=""; private decimal _newRate; private bool _bottom,_busy,_success,_confirm; private Func<Task>? _action;
+ private int SelectedCount=>_selections.Values.Count(x=>x.Selected);
  protected override async Task OnInitializedAsync()=>await LoadAsync();
- private async Task LoadAsync()=>_types=await DesignService.GetTypesAsync();
- private void AskRegister(){if(string.IsNullOrWhiteSpace(_code)||!Guid.TryParse(_typeId,out var id)){_success=false;_message="کد و نوع دیزاین را کامل کنید.";return;}var name=_types.First(x=>x.Id==id).Name;Show("تأیید ثبت دیزاین",$"دیزاین «{name}» برای کد «{_code.Trim()}» ثبت شود؟"+( _bottom?" کاسه زیر نیز دیزاین دارد.":" کاسه زیر ساده است."),async()=>{await DesignService.RegisterAsync(_code.Trim(),id,_bottom);_success=true;_message="دیزاین با موفقیت ثبت شد.";_code="";_typeId="";_bottom=false;});}
- private async Task AddTypeAsync(){if(string.IsNullOrWhiteSpace(_newName))return;try{await DesignService.AddTypeAsync(_newName.Trim());_newName="";await LoadAsync();}catch{_success=false;_message="این نوع دیزاین قبلاً ثبت شده یا معتبر نیست.";}}
+ private async Task LoadAsync(){_types=await DesignService.GetTypesAsync();_users=await DesignService.GetUsersAsync();foreach(var item in _types){_selections.TryAdd(item.Id,new());_rates[item.Id]=item.Rate;}}
+ private DesignSelection SelectionFor(Guid id){if(!_selections.TryGetValue(id,out var value))_selections[id]=value=new();return value;}
+ private void Toggle(Guid id,bool value)=>SelectionFor(id).Selected=value;
+ private void SetUser(Guid id,string? value)=>SelectionFor(id).UserId=Guid.TryParse(value,out var userId)?userId:null;
+ private decimal RateFor(DesignTypeDto item)=>_rates.TryGetValue(item.Id,out var value)?value:item.Rate;
+ private void ChangeRate(Guid id,string? value)=>_rates[id]=decimal.TryParse(value,out var rate)?Math.Max(0,rate):0;
+ private void AskRegister(){var selected=_types.Where(x=>SelectionFor(x.Id).Selected).ToList();if(string.IsNullOrWhiteSpace(_code)||selected.Count==0){_success=false;_message="کد و حداقل یک دیزاین را انتخاب کنید.";return;}var summary=string.Join("، ",selected.Select(x=>x.Name));Show("تأیید ثبت دیزاین",$"دیزاین‌های «{summary}» برای کد «{_code.Trim()}» ثبت شوند؟",async()=>{await DesignService.RegisterAsync(_code.Trim(),selected.Select(x=>(x.Id,SelectionFor(x.Id).UserId)),_bottom);_success=true;_message=$"{selected.Count} دیزاین با موفقیت ثبت شد.";_code="";_bottom=false;foreach(var value in _selections.Values){value.Selected=false;value.UserId=null;}});}
+ private async Task AddTypeAsync(){if(string.IsNullOrWhiteSpace(_newName)){_success=false;_message="نام دیزاین جدید را وارد کنید.";return;}try{await DesignService.AddTypeAsync(_newName.Trim(),_newRate);_newName="";_newRate=0;await LoadAsync();_success=true;_message="دیزاین جدید همراه با نرخ آن ایجاد شد.";}catch{_success=false;_message="این نوع دیزاین قبلاً ثبت شده یا معتبر نیست.";}}
+ private async Task SaveRateAsync(DesignTypeDto item){await DesignService.SetRateAsync(item.Id,RateFor(item));await LoadAsync();_success=true;_message=$"نرخ «{item.Name}» ذخیره شد و در محاسبه دستمزد اعمال می‌شود.";}
  private void AskDelete(DesignTypeDto item)=>Show("حذف نوع دیزاین",$"نوع دیزاین «{item.Name}» از فهرست انتخاب حذف شود؟",async()=>{await DesignService.DeleteTypeAsync(item.Id);await LoadAsync();});
  private void Show(string title,string text,Func<Task> action){_confirmTitle=title;_confirmText=text;_action=action;_confirm=true;}
- private async Task ConfirmAsync(){if(_action is null)return;_busy=true;try{await _action();_confirm=false;}catch(HttpRequestException ex) when(ex.StatusCode==HttpStatusCode.Conflict){_confirm=false;_success=false;_message="برای این کد قبلاً دیزاین ثبت شده است.";}catch{_confirm=false;_success=false;_message="ثبت عملیات انجام نشد.";}finally{_busy=false;}}
+ private async Task ConfirmAsync(){if(_action is null)return;_busy=true;try{await _action();_confirm=false;}catch(HttpRequestException ex) when(ex.StatusCode==HttpStatusCode.Conflict){_confirm=false;_success=false;_message="یک یا چند دیزاین انتخاب‌شده قبلاً برای این کد ثبت شده است.";}catch{_confirm=false;_success=false;_message="ثبت عملیات انجام نشد.";}finally{_busy=false;}}
+ private sealed class DesignSelection{public bool Selected{get;set;}public Guid? UserId{get;set;}}
 }

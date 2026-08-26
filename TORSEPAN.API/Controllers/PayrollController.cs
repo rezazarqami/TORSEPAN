@@ -211,6 +211,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
 
         var events = await eventQuery.ToListAsync(ct);
         var rates = await db.PayrollRates.AsNoTracking().Include(x => x.Material).Include(x => x.Scale).ToListAsync(ct);
+        var designTypes = await db.DesignTypes.AsNoTracking().ToDictionaryAsync(x => x.Id, ct);
         var lines = events.GroupBy(x => new
         {
             x.UserId, x.User.FullName, x.User.UserName, x.User.DisplayOrder, x.Action,
@@ -218,14 +219,18 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             MaterialId = x.Action is ProductionAction.Glue or ProductionAction.Design ? (Guid?)null : x.Bowl != null ? x.Bowl.MaterialId : x.Assembly != null ? x.Assembly.TopBowl.MaterialId : x.Handpan != null ? x.Handpan.Assembly.TopBowl.MaterialId : (Guid?)null,
             Material = x.Action is ProductionAction.Glue or ProductionAction.Design ? "" : x.Bowl != null ? x.Bowl.Material.Name : x.Assembly != null ? x.Assembly.TopBowl.Material.Name : x.Handpan != null ? x.Handpan.Assembly.TopBowl.Material.Name : "—",
             BowlType = x.Action is ProductionAction.Glue or ProductionAction.Design || x.Bowl == null ? (int?)null : (int)x.Bowl.BowlType,
+            DesignTypeId = x.Action == ProductionAction.Design ? ParseDesignTypeId(x.Description) : null,
             ScaleId = x.Action == ProductionAction.FineTune && x.Handpan != null ? x.Handpan.ScaleId
                 : (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null ? x.Bowl.ScaleId : (Guid?)null,
-            Scale = x.Action == ProductionAction.FineTune && x.Handpan != null && x.Handpan.Scale != null ? x.Handpan.Scale.Name
+            Scale = x.Action == ProductionAction.Design && ParseDesignTypeId(x.Description).HasValue && designTypes.ContainsKey(ParseDesignTypeId(x.Description)!.Value) ? designTypes[ParseDesignTypeId(x.Description)!.Value].Name
+                : x.Action == ProductionAction.FineTune && x.Handpan != null && x.Handpan.Scale != null ? x.Handpan.Scale.Name
                 : (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Tune) && x.Bowl != null && x.Bowl.Scale != null ? x.Bowl.Scale.Name : ""
         }).Select(g =>
         {
-            var rate = rates.Where(r => r.IsExport == g.Key.IsExport && r.Action == g.Key.Action && (!r.MaterialId.HasValue || r.MaterialId == g.Key.MaterialId) && (!r.BowlType.HasValue || (int)r.BowlType == g.Key.BowlType) && (!r.ScaleId.HasValue || r.ScaleId == g.Key.ScaleId))
-                .OrderByDescending(r => r.MaterialId.HasValue).ThenByDescending(r => r.BowlType.HasValue).ThenByDescending(r => r.ScaleId.HasValue).FirstOrDefault()?.Amount ?? 0;
+            var rate = g.Key.Action == ProductionAction.Design && g.Key.DesignTypeId.HasValue && designTypes.TryGetValue(g.Key.DesignTypeId.Value, out var designType)
+                ? designType.Rate
+                : rates.Where(r => r.IsExport == g.Key.IsExport && r.Action == g.Key.Action && (!r.MaterialId.HasValue || r.MaterialId == g.Key.MaterialId) && (!r.BowlType.HasValue || (int)r.BowlType == g.Key.BowlType) && (!r.ScaleId.HasValue || r.ScaleId == g.Key.ScaleId))
+                    .OrderByDescending(r => r.MaterialId.HasValue).ThenByDescending(r => r.BowlType.HasValue).ThenByDescending(r => r.ScaleId.HasValue).FirstOrDefault()?.Amount ?? 0;
             var count = g.Key.Action == ProductionAction.Glue ? g.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId).Distinct().Count() : g.Count();
             return new PayrollLine(g.Key.UserId, string.IsNullOrWhiteSpace(g.Key.FullName) ? g.Key.UserName : g.Key.FullName, g.Key.DisplayOrder, (int)g.Key.Action, Title(g.Key.Action), g.Key.MaterialId, g.Key.Material, g.Key.BowlType, g.Key.ScaleId, g.Key.Scale, count, rate, count * rate, g.Key.IsExport);
         }).OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName)
@@ -240,6 +245,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     }
 
     private static List<T> Deserialize<T>(string json) { try { return JsonSerializer.Deserialize<List<T>>(json) ?? []; } catch { return []; } }
+    private static Guid? ParseDesignTypeId(string? value)
+    { if(string.IsNullOrWhiteSpace(value)||!value.StartsWith("DESIGN:"))return null;var parts=value.Split(':');return parts.Length>1&&Guid.TryParse(parts[1],out var id)?id:null; }
     private static byte[] BuildPdf(PayrollCalculation c)
     {
         string Bowl(int? type) => type == 1 ? "کاسه رو" : type == 2 ? "کاسه زیر" : "";

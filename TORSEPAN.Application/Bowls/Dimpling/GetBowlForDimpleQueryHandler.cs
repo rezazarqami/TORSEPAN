@@ -68,13 +68,12 @@ public sealed class GetBowlForDimpleQueryHandler
             .Select(x => $"{(string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)} — {InstrumentNoteText(x.Description)}")
             .Distinct());
 
-        var designEvent = events.Where(x => x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value) && x.Action == ProductionAction.Design)
-            .OrderByDescending(x => x.EventDate).FirstOrDefault();
-        if (designEvent is not null)
+        var designEvents = events.Where(x => x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value) && x.Action == ProductionAction.Design)
+            .OrderBy(x => x.EventDate).ToList();
+        if (designEvents.Count > 0)
         {
-            var designParts = designEvent.Description.Split(':');
-            dto.DesignName = designParts.Length >= 3 ? designParts[2] : "دیزاین‌شده";
-            dto.BottomBowlDesigned = designEvent.Description.EndsWith(":BOTTOM:1", StringComparison.Ordinal);
+            dto.DesignName = string.Join("، ", designEvents.Select(x => { var parts=x.Description.Split(':');return parts.Length>=3?parts[2]:"دیزاین‌شده"; }).Distinct());
+            dto.BottomBowlDesigned = designEvents.Any(x => x.Description.EndsWith(":BOTTOM:1", StringComparison.Ordinal));
         }
 
         var users = (await _unitOfWork.Users.GetAllAsync()).ToDictionary(x => x.Id);
