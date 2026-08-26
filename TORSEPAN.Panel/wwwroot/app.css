@@ -825,3 +825,15 @@ body { color:#17263b; background:#edf1f5; }
 .btn-success:hover,.btn-outline-success:hover { background:linear-gradient(135deg,#4a719c,#254f7d); }
 .form-control:focus,.form-select:focus { border-color:#456b96; box-shadow:0 0 0 .18rem rgba(43,83,128,.14); }
 .avatar { background:linear-gradient(135deg,#15395f,#aab6c3); }
+
+/* Navy login, consistent with the authenticated panel */
+.torsepan-login-shell { background:#091d38; }
+.login-showcase { background-color:#07182e; }
+.showcase-overlay { background:linear-gradient(145deg,rgba(3,14,31,.97) 0%,rgba(11,35,65,.86) 54%,rgba(5,18,37,.68) 100%); }
+.showcase-kicker { color:#c3ced9; }.showcase-features span{border-color:rgba(202,213,224,.25);background:rgba(187,201,215,.09)}
+.login-form-side { background:radial-gradient(circle at 90% 0,rgba(163,180,198,.2),transparent 35%),linear-gradient(145deg,#102b4d,#071a33); }
+.login-card-modern { background:rgba(248,250,252,.97); border-color:rgba(202,213,224,.32); box-shadow:0 30px 85px rgba(2,12,27,.45); }
+.login-card-logo { border-color:rgba(195,207,219,.62); background:linear-gradient(145deg,#0b2443,#244d79); box-shadow:0 18px 42px rgba(3,18,39,.34); }
+.login-heading h2 { color:#102b4d; }.login-heading p,.login-help,.official-site-link{color:#7d8b9b}.modern-field label{color:#2c4562}
+.field-wrap{background:#f1f4f7;border-color:#d5dee7}.field-wrap:focus-within{background:#fff;border-color:#3c6591;box-shadow:0 0 0 4px rgba(42,83,127,.11)}.field-wrap input{color:#132b49}.password-visibility:hover{background:#e5ebf1}
+.modern-login-button{background:linear-gradient(135deg,#315f91,#12345d);box-shadow:0 15px 32px rgba(13,48,86,.3)}.modern-login-button:hover:not(:disabled){box-shadow:0 19px 38px rgba(13,48,86,.38)}
