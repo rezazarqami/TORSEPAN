@@ -104,6 +104,19 @@ app.MapRazorComponents<App>()
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
+app.MapPost("/api/internal/design-types", async (HttpRequest incoming, DesignTypeRelayRequest body,
+    IHttpClientFactory httpClientFactory, CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(body.Name)) return Results.BadRequest("نام دیزاین الزامی است.");
+    using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBaseUrl}designs/types")
+    { Content = JsonContent.Create(new { Name = body.Name.Trim(), Rate = Math.Max(0, body.Rate) }) };
+    if (incoming.Headers.TryGetValue("Authorization", out var authorization))
+        request.Headers.TryAddWithoutValidation("Authorization", authorization.ToString());
+    using var response = await httpClientFactory.CreateClient().SendAsync(request, cancellationToken);
+    var content = await response.Content.ReadAsStringAsync(cancellationToken);
+    return Results.Content(content, response.Content.Headers.ContentType?.MediaType ?? "text/plain", Encoding.UTF8, (int)response.StatusCode);
+}).DisableAntiforgery();
+
 app.MapPost("/api/internal/telegram-inventory-alert", async (
     HttpRequest request, TelegramRelayRequest alert, IConfiguration configuration,
     IHttpClientFactory httpClientFactory, CancellationToken cancellationToken) =>
@@ -152,3 +165,4 @@ app.MapPost("/api/internal/telegram-database-backup", async (HttpRequest request
 app.Run();
 
 public sealed record TelegramRelayRequest(string ItemName, string StockType, int Quantity, int Threshold);
+public sealed record DesignTypeRelayRequest(string Name, decimal Rate);
