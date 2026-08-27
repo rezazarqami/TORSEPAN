@@ -104,33 +104,32 @@
         <div class="instrument-passport @(string.IsNullOrWhiteSpace(_bowl.HandpanCode) ? "bowl-file" : "handpan-file")">
             @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
             {
-                <div class="passport-header"><div><small>TORSEPAN · INSTRUMENT ID</small><h3>شناسنامه ساز</h3></div><span class="passport-seal">T</span></div>
+                <div class="passport-header"><div><small>TORSEPAN · INSTRUMENT ID</small><h3>شناسنامه ساز</h3></div><div class="passport-logo"><img src="/images/brand/torsepan-logo.webp" alt="لوگوی TORSEPAN" /></div></div>
+                <div class="passport-primary-info">
+                    <div><span>کد ساز</span><strong>@_bowl.HandpanCode</strong></div>
+                    <div><span>اسکیل</span><strong>@_bowl.ScaleName</strong></div>
+                    <div><span>وضعیت</span><strong>@StageText(_bowl.Stage)</strong></div>
+                </div>
             }
-            <div><strong>کد:</strong> @_bowl.ProductionCode</div>
-            <div><strong>نوع کاسه:</strong> @BowlTypeText(_bowl.BowlType)</div>
-            <div class="production-highlights">
-                <div class="production-highlight status-highlight">
-                    <span>وضعیت</span><strong>@StageText(_bowl.Stage)</strong>
-                </div>
-                <div class="production-highlight scale-highlight">
-                    <span>@(_bowl.IsHandpanScale ? "اسکیل ساز" : "اسکیل کاسه")</span><strong>@_bowl.ScaleName</strong>
-                </div>
-            </div>
-            @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
+            else
             {
-                <div class="alert alert-success mt-3 mb-0">
-                    <div class="row g-3 text-center">
-                        <div class="col-md-6">
-                            <small class="d-block text-muted mb-1">کد ساز (کد کاسه رو)</small>
-                            <strong class="fs-4">@_bowl.HandpanCode</strong>
-                        </div>
-                        <div class="col-md-6 border-md-start">
-                            <small class="d-block text-muted mb-1">کد کاسه زیر</small>
-                            <strong class="fs-4">@_bowl.BottomBowlCode</strong>
-                        </div>
+                <div><strong>کد:</strong> @_bowl.ProductionCode</div>
+                <div><strong>نوع کاسه:</strong> @BowlTypeText(_bowl.BowlType)</div>
+                <div class="production-highlights">
+                    <div class="production-highlight status-highlight">
+                        <span>وضعیت</span><strong>@StageText(_bowl.Stage)</strong>
+                    </div>
+                    <div class="production-highlight scale-highlight">
+                        <span>اسکیل کاسه</span><strong>@_bowl.ScaleName</strong>
                     </div>
                 </div>
-                <div class="alert alert-light border mt-3 mb-0"><strong>دیزاین ساز:</strong> @_bowl.DesignName @if(_bowl.DesignName != "ساده"){<span class="text-muted small me-2">— کاسه زیر @(_bowl.BottomBowlDesigned ? "دیزاین دارد" : "ساده است")</span>}</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
+            {
+                <div class="passport-secondary-info">
+                    <div><span>کد کاسه زیر</span><strong>@_bowl.BottomBowlCode</strong></div>
+                    <div><span>دیزاین</span><strong>@_bowl.DesignName</strong>@if(_bowl.DesignName != "ساده"){<small>کاسه زیر @(_bowl.BottomBowlDesigned ? "دیزاین دارد" : "ساده است")</small>}</div>
+                </div>
             }
 
             @if (_bowl.History.Count > 0)
