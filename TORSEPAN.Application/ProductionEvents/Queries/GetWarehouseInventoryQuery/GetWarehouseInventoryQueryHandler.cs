@@ -61,6 +61,8 @@ public sealed class GetWarehouseInventoryQueryHandler
             }).ToList();
 
             var packagingItems = x.ProductionEvents
+                .Concat(x.Assembly.TopBowl.ProductionEvents)
+                .Concat(x.Assembly.BottomBowl.ProductionEvents)
                 .Where(e => e.Action == ProductionAction.Packaging &&
                     e.Description.StartsWith("PACKAGING_ITEMS:"))
                 .OrderByDescending(e => e.EventDate)

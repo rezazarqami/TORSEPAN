@@ -5,12 +5,11 @@
 @inject IJSRuntime JS
 
 <section class="photo-gallery">
-    <div class="gallery-title"><strong>عکس‌های ساز</strong><span>@_photos.Count عکس</span></div>
     @if (_loading) { <div class="gallery-empty"><div class="spinner-border spinner-border-sm"></div></div> }
-    else if (_photos.Count == 0) { <div class="gallery-empty"><span>📷</span><p>هنوز عکسی برای این ساز ثبت نشده است.</p></div> }
+    else if (_photos.Count == 0) { <div class="gallery-empty"><span>📷</span><small>بدون عکس</small></div> }
     else
     {
-        <button type="button" class="gallery-main" title="نمایش بزرگ عکس" @onclick="OpenPreview">@if(_mainUrl is not null){<img src="@_mainUrl" alt="عکس ساز" />}<span class="gallery-zoom-hint">⛶ مشاهده بزرگ</span></button>
+        <button type="button" class="gallery-main" title="نمایش بزرگ عکس" @onclick="OpenPreview">@if(_mainUrl is not null){<img src="@_mainUrl" alt="عکس ساز" />}<span class="gallery-zoom-hint">⛶</span></button>
         <div class="gallery-thumbs">
             @foreach(var photo in _photos)
             {
@@ -22,12 +21,12 @@
         </div>
     }
     <div class="gallery-upload-actions">
-        <label class="btn btn-primary gallery-camera @(Uploading?"disabled":"")">
-            <span>📷</span> @(Uploading ? "در حال ثبت عکس..." : "گرفتن عکس با دوربین")
+        <label class="gallery-action @(Uploading?"disabled":"")" title="گرفتن عکس با دوربین">
+            <span>📷</span> @(Uploading ? "ثبت..." : "دوربین")
             <InputFile id="@CameraInputId" class="d-none" OnChange="UploadCameraAsync" accept="image/*" capture="environment" disabled="@Uploading" />
         </label>
-        <label class="btn btn-outline-primary gallery-upload @(Uploading?"disabled":"")">
-            <span>🖼️</span> انتخاب از گالری
+        <label class="gallery-action @(Uploading?"disabled":"")" title="انتخاب از گالری">
+            <span>🖼️</span> گالری
             <InputFile id="@GalleryInputId" class="d-none" OnChange="UploadGalleryAsync" multiple accept="image/jpeg,image/png,image/webp" disabled="@Uploading" />
         </label>
     </div>
