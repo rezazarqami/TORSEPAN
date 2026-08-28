@@ -24,6 +24,9 @@ builder.Services.AddRazorComponents()
         options.HandshakeTimeout = TimeSpan.FromSeconds(30);
         options.KeepAliveInterval = TimeSpan.FromSeconds(15);
         options.MaximumParallelInvocationsPerClient = 2;
+        // Instrument photos are optimized in the browser, then transferred to the
+        // Blazor Server circuit before they are posted to the API.
+        options.MaximumReceiveMessageSize = 8 * 1024 * 1024;
     });
 
 builder.Services.AddAuthorizationCore();
