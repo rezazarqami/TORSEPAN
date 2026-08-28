@@ -24,6 +24,7 @@ public sealed class GetWarehouseInventoryQueryHandler
         return handpans.Select(x =>
         {
             var events = x.ProductionEvents
+                .Concat(x.Assembly.ProductionEvents)
                 .Concat(x.Assembly.TopBowl.ProductionEvents)
                 .Concat(x.Assembly.BottomBowl.ProductionEvents)
                 .Where(e => e.Action is ProductionAction.Dimple
@@ -61,6 +62,7 @@ public sealed class GetWarehouseInventoryQueryHandler
             }).ToList();
 
             var packagingItems = x.ProductionEvents
+                .Concat(x.Assembly.ProductionEvents)
                 .Concat(x.Assembly.TopBowl.ProductionEvents)
                 .Concat(x.Assembly.BottomBowl.ProductionEvents)
                 .Where(e => e.Action == ProductionAction.Packaging &&
