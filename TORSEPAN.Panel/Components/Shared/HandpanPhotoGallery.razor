@@ -10,7 +10,7 @@
     else if (_photos.Count == 0) { <div class="gallery-empty"><span>📷</span><p>هنوز عکسی برای این ساز ثبت نشده است.</p></div> }
     else
     {
-        <div class="gallery-main">@if(_mainUrl is not null){<img src="@_mainUrl" alt="عکس ساز" />}</div>
+        <button type="button" class="gallery-main" title="نمایش بزرگ عکس" @onclick="OpenPreview">@if(_mainUrl is not null){<img src="@_mainUrl" alt="عکس ساز" />}<span class="gallery-zoom-hint">⛶ مشاهده بزرگ</span></button>
         <div class="gallery-thumbs">
             @foreach(var photo in _photos)
             {
@@ -33,16 +33,27 @@
     </div>
     @if(!string.IsNullOrWhiteSpace(_error)){<div class="text-danger small mt-2">@_error</div>}
 </section>
+@if(_showPreview && _mainUrl is not null)
+{
+    <div class="photo-preview-backdrop" role="presentation" @onclick="ClosePreview">
+        <div class="photo-preview-dialog" role="dialog" aria-modal="true" aria-label="نمایش بزرگ عکس ساز" @onclick:stopPropagation>
+            <button type="button" class="photo-preview-close" title="بستن" @onclick="ClosePreview">×</button>
+            <img src="@_mainUrl" alt="نمایش بزرگ عکس ساز" />
+        </div>
+    </div>
+}
 
 @code {
     [Parameter, EditorRequired] public Guid HandpanId { get; set; }
     private readonly Dictionary<Guid,string> _thumbs=[]; private List<HandpanPhotoDto> _photos=[];
-    private Guid _loadedId,_selectedId; private string? _mainUrl,_error; private bool _loading,Uploading;
+    private Guid _loadedId,_selectedId; private string? _mainUrl,_error; private bool _loading,Uploading,_showPreview;
     private string GalleryInputId => $"handpan-photo-gallery-{HandpanId:N}";
     private string CameraInputId => $"handpan-photo-camera-{HandpanId:N}";
     protected override async Task OnParametersSetAsync(){if(HandpanId==Guid.Empty||HandpanId==_loadedId)return;_loadedId=HandpanId;await LoadAsync();}
     private async Task LoadAsync(){_loading=true;try{_photos=await PhotoService.ListAsync(HandpanId);_thumbs.Clear();foreach(var p in _photos)_thumbs[p.Id]=await PhotoService.DataUrlAsync(HandpanId,p.Id,true);if(_photos.Count>0)await SelectAsync(_photos[0].Id);}catch{_error="بارگذاری عکس‌ها انجام نشد.";}finally{_loading=false;}}
     private async Task SelectAsync(Guid id){_selectedId=id;_mainUrl=await PhotoService.DataUrlAsync(HandpanId,id,false);}
+    private void OpenPreview()=>_showPreview=true;
+    private void ClosePreview()=>_showPreview=false;
     private Task UploadGalleryAsync(InputFileChangeEventArgs _) => OptimizeAndUploadAsync(GalleryInputId,8);
     private Task UploadCameraAsync(InputFileChangeEventArgs _) => OptimizeAndUploadAsync(CameraInputId,1);
     private async Task OptimizeAndUploadAsync(string inputId,int limit){Uploading=true;_error=null;try{var files=await JS.InvokeAsync<List<OptimizedPhoto>>("handpanPhotos.optimize",inputId);foreach(var file in files.Take(limit))await PhotoService.UploadAsync(HandpanId,file.Image,file.Thumbnail,file.Name);await LoadAsync();if(_photos.Count>0)await SelectAsync(_photos[^1].Id);}catch(Exception){_error="ثبت عکس انجام نشد؛ لطفاً دوباره امتحان کنید.";}finally{Uploading=false;}}
