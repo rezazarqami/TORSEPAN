@@ -77,6 +77,7 @@ builder.Services.AddScoped<BowlService>();
 builder.Services.AddScoped<MaterialService>();
 builder.Services.AddScoped<PayrollService>();
 builder.Services.AddScoped<DesignService>();
+builder.Services.AddScoped<HandpanPhotoService>();
 builder.Services.AddScoped<ScaleService>();
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<MarketingService>();

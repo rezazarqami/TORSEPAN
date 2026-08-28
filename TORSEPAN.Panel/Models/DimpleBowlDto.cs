@@ -3,6 +3,7 @@ namespace TORSEPAN.Panel.Models;
 public sealed class DimpleBowlDto
 {
     public Guid Id { get; set; }
+    public Guid? HandpanId { get; set; }
     public string ProductionCode { get; set; } = string.Empty;
     public int BowlType { get; set; }
     public bool HasNotes { get; set; }

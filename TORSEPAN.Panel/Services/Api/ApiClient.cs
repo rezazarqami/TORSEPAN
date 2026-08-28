@@ -69,6 +69,25 @@ public class ApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<byte[]> GetBytesAsync(string url)
+    {
+        var response = await SendWithRefreshAsync(() => _http.GetAsync(url));
+        response.EnsureSuccessStatusCode(); return await response.Content.ReadAsByteArrayAsync();
+    }
+
+    public async Task<T?> PostFileAsync<T>(string url, byte[] image, byte[] thumbnail, string fileName)
+    {
+        async Task<HttpResponseMessage> Send()
+        {
+            var form = new MultipartFormDataContent();
+            var file = new ByteArrayContent(image); file.Headers.ContentType = new MediaTypeHeaderValue("image/webp");
+            var thumb = new ByteArrayContent(thumbnail); thumb.Headers.ContentType = new MediaTypeHeaderValue("image/webp");
+            form.Add(file, "file", fileName + ".webp"); form.Add(thumb, "thumbnail", fileName + "-thumb.webp"); return await _http.PostAsync(url, form);
+        }
+        var response = await SendWithRefreshAsync(Send);
+        return await ReadResponseAsync<T>(response);
+    }
+
     private async Task<HttpResponseMessage> SendWithRefreshAsync(
         Func<Task<HttpResponseMessage>> send,
         bool allowRefresh = true)

@@ -49,6 +49,7 @@ public sealed class GetBowlForDimpleQueryHandler
                 var handpan = (await _unitOfWork.Handpans.FindAsync(x => x.SerialNumber == topBowl.ProductionCode))
                     .SingleOrDefault();
                 handpanId = handpan?.Id;
+                dto.HandpanId = handpanId;
                 dto.HandpanCode = handpan?.SerialNumber ?? topBowl.ProductionCode;
                 dto.TopBowlCode = topBowl.ProductionCode;
                 dto.BottomBowlCode = bottomBowl?.ProductionCode ?? string.Empty;

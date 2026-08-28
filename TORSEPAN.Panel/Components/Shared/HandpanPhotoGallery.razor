@@ -1,0 +1,42 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+@inject HandpanPhotoService PhotoService
+@inject IJSRuntime JS
+
+<section class="photo-gallery">
+    <div class="gallery-title"><strong>عکس‌های ساز</strong><span>@_photos.Count عکس</span></div>
+    @if (_loading) { <div class="gallery-empty"><div class="spinner-border spinner-border-sm"></div></div> }
+    else if (_photos.Count == 0) { <div class="gallery-empty"><span>📷</span><p>هنوز عکسی برای این ساز ثبت نشده است.</p></div> }
+    else
+    {
+        <div class="gallery-main">@if(_mainUrl is not null){<img src="@_mainUrl" alt="عکس ساز" />}</div>
+        <div class="gallery-thumbs">
+            @foreach(var photo in _photos)
+            {
+                <button type="button" class="gallery-thumb @(photo.Id==_selectedId?"selected":"")" @onclick="()=>SelectAsync(photo.Id)">
+                    @if(_thumbs.TryGetValue(photo.Id,out var url)){<img src="@url" alt="تصویر کوچک ساز" />}
+                    <span class="photo-delete" title="حذف عکس" @onclick:stopPropagation @onclick="()=>DeleteAsync(photo)">×</span>
+                </button>
+            }
+        </div>
+    }
+    <label class="btn btn-outline-primary gallery-upload @(Uploading?"disabled":"")">
+        @(Uploading ? "در حال آماده‌سازی عکس..." : "افزودن عکس")
+        <InputFile id="@InputId" class="d-none" OnChange="UploadAsync" multiple accept="image/jpeg,image/png,image/webp" disabled="@Uploading" />
+    </label>
+    @if(!string.IsNullOrWhiteSpace(_error)){<div class="text-danger small mt-2">@_error</div>}
+</section>
+
+@code {
+    [Parameter, EditorRequired] public Guid HandpanId { get; set; }
+    private readonly Dictionary<Guid,string> _thumbs=[]; private List<HandpanPhotoDto> _photos=[];
+    private Guid _loadedId,_selectedId; private string? _mainUrl,_error; private bool _loading,Uploading;
+    private string InputId => $"handpan-photo-{HandpanId:N}";
+    protected override async Task OnParametersSetAsync(){if(HandpanId==Guid.Empty||HandpanId==_loadedId)return;_loadedId=HandpanId;await LoadAsync();}
+    private async Task LoadAsync(){_loading=true;try{_photos=await PhotoService.ListAsync(HandpanId);_thumbs.Clear();foreach(var p in _photos)_thumbs[p.Id]=await PhotoService.DataUrlAsync(HandpanId,p.Id,true);if(_photos.Count>0)await SelectAsync(_photos[0].Id);}catch{_error="بارگذاری عکس‌ها انجام نشد.";}finally{_loading=false;}}
+    private async Task SelectAsync(Guid id){_selectedId=id;_mainUrl=await PhotoService.DataUrlAsync(HandpanId,id,false);}
+    private async Task UploadAsync(InputFileChangeEventArgs e){Uploading=true;_error=null;try{var files=await JS.InvokeAsync<List<OptimizedPhoto>>("handpanPhotos.optimize",InputId);foreach(var file in files.Take(8))await PhotoService.UploadAsync(HandpanId,file.Image,file.Thumbnail,file.Name);await LoadAsync();if(_photos.Count>0)await SelectAsync(_photos[^1].Id);}catch(Exception){_error="آپلود عکس انجام نشد؛ فرمت یا حجم فایل را بررسی کنید.";}finally{Uploading=false;}}
+    private async Task DeleteAsync(HandpanPhotoDto photo){if(!await JS.InvokeAsync<bool>("confirm","این عکس حذف شود؟"))return;await PhotoService.DeleteAsync(HandpanId,photo.Id);_photos.Remove(photo);_thumbs.Remove(photo.Id);if(_selectedId==photo.Id){_mainUrl=null;if(_photos.Count>0)await SelectAsync(_photos[0].Id);}}
+    private sealed class OptimizedPhoto { public string Name { get; set; }="photo"; public byte[] Image { get; set; }=[]; public byte[] Thumbnail { get; set; }=[]; }
+}
