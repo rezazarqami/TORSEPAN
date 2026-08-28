@@ -1,0 +1,4 @@
+namespace TORSEPAN.Panel.Models;
+public sealed class AccountingSummaryDto{public decimal CashIn{get;set;}public decimal CashOut{get;set;}public decimal Receivables{get;set;}public decimal Payables{get;set;}public int Overdue{get;set;}}
+public sealed class AccountingPartyDto{public Guid Id{get;set;}public string Name{get;set;}="";public string? Company{get;set;}public string? Phone{get;set;}public string? Notes{get;set;}public decimal Balance{get;set;}public string DisplayName=>string.IsNullOrWhiteSpace(Company)?Name:$"{Name} — {Company}";}
+public sealed class AccountingDocumentDto{public Guid Id{get;set;}public int Type{get;set;}public string Title{get;set;}="";public decimal TotalAmount{get;set;}public decimal PaidAmount{get;set;}public decimal Balance{get;set;}public DateTime? DueDate{get;set;}public string? Notes{get;set;}public DateTime CreatedAt{get;set;}public Guid? PartyId{get;set;}public string PartyName{get;set;}="";public string HandpanCode{get;set;}="";}

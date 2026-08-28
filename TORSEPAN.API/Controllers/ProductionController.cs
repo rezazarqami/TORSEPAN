@@ -25,6 +25,9 @@ using TORSEPAN.Domain.Enums;
 using TORSEPAN.Application.Sales;
 using Microsoft.AspNetCore.Authorization;
 using TORSEPAN.Application.Interfaces;
+using TORSEPAN.Infrastructure.Persistence;
+using TORSEPAN.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -35,12 +38,14 @@ public sealed class ProductionController : ControllerBase
     private readonly IMediator _mediator;
     private readonly IProductionDeletionService _deletionService;
     private readonly IProductionRollbackService _rollbackService;
+    private readonly TORSEPANDbContext _db;
 
-    public ProductionController(IMediator mediator, IProductionDeletionService deletionService, IProductionRollbackService rollbackService)
+    public ProductionController(IMediator mediator, IProductionDeletionService deletionService, IProductionRollbackService rollbackService, TORSEPANDbContext db)
     {
         _mediator = mediator;
         _deletionService = deletionService;
         _rollbackService = rollbackService;
+        _db = db;
     }
 
     [HttpPost("event")]
@@ -138,7 +143,41 @@ public sealed class ProductionController : ControllerBase
     [HttpPost("{handpanId:guid}/sell")]
     [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> Sell(Guid handpanId, [FromBody] SellHandpanRequest request)
-    { await _mediator.Send(new SellHandpanCommand(handpanId, request.BuyerName, request.Price, request.Destination)); return NoContent(); }
+    {
+        var party = request.PartyId.HasValue
+            ? await _db.AccountingParties.FirstOrDefaultAsync(x => x.Id == request.PartyId && x.IsActive)
+            : null;
+        if (request.PartyId.HasValue && party is null)
+            return BadRequest("شخص انتخاب‌شده معتبر نیست.");
+
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            var buyer = party?.Name ?? request.BuyerName;
+            await _mediator.Send(new SellHandpanCommand(handpanId, buyer, request.Price, request.Destination));
+
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+            var serialNumber = await _db.Handpans.Where(x => x.Id == handpanId).Select(x => x.SerialNumber).SingleAsync();
+            _db.AccountingDocuments.Add(new AccountingDocument(
+                AccountingDocumentType.Revenue,
+                $"فروش ساز {serialNumber}",
+                request.Price,
+                request.IsPaid ? request.Price : 0,
+                party?.Id,
+                handpanId,
+                request.IsPaid ? null : request.DueDate,
+                $"مقصد: {request.Destination}",
+                userId));
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return NoContent();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
 
     [HttpGet("sales")]
     [Authorize(Roles = "Administrator,ProductionManager")]
@@ -154,4 +193,4 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Rollback(Guid handpanId, CancellationToken cancellationToken)
         => await _rollbackService.RollbackHandpanAsync(handpanId, cancellationToken) ? NoContent() : BadRequest();
 }
-public sealed record SellHandpanRequest(string BuyerName, decimal Price, string Destination);
+public sealed record SellHandpanRequest(string BuyerName, decimal Price, string Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate);

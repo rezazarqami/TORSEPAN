@@ -27,6 +27,8 @@ public class TORSEPANDbContext : DbContext
     public DbSet<MarketingActivity> MarketingActivities => Set<MarketingActivity>();
     public DbSet<DesignType> DesignTypes => Set<DesignType>();
     public DbSet<HandpanPhoto> HandpanPhotos => Set<HandpanPhoto>();
+    public DbSet<AccountingParty> AccountingParties => Set<AccountingParty>();
+    public DbSet<AccountingDocument> AccountingDocuments => Set<AccountingDocument>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
