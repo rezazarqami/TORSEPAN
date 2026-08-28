@@ -265,6 +265,9 @@
                 <button class="btn btn-success mt-3" disabled="@_loading" @onclick="CompleteExportPackagingAsync">
                     بسته‌بندی صادراتی انجام شد
                 </button>
+                <button class="btn btn-outline-primary mt-3 me-2" disabled="@_loading" @onclick="AskReturnExportBowlToGlue">
+                    ارسال به چسب و ادامه ساخت ساز
+                </button>
             }
             else if (_bowl.Stage == 10)
             {
@@ -709,6 +712,20 @@
         if (string.IsNullOrWhiteSpace(_stageNote)) return;
         await BowlService.AddProductionNoteAsync(_productionCode, _stageNote.Trim());
         _stageNote = string.Empty;
+    }
+
+    private Task AskReturnExportBowlToGlue()
+    {
+        ShowOperationConfirmation("بازگشت به مسیر ساخت ساز",
+            [("کد کاسه", _productionCode), ("مرحله جدید", "آماده چسب")], ReturnExportBowlToGlueConfirmedAsync);
+        return Task.CompletedTask;
+    }
+
+    private async Task ReturnExportBowlToGlueConfirmedAsync()
+    {
+        _loading=true;
+        try { var result=await BowlService.ReturnExportBowlToGlueAsync(_productionCode); SetOperationResult(result,"کاسه به مرحله آماده چسب منتقل شد.","ارسال کاسه به چسب انجام نشد."); }
+        finally { _loading=false; }
     }
 
     private async Task SaveInstrumentNoteAsync()

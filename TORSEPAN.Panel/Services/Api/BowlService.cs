@@ -136,6 +136,8 @@ public sealed class BowlService
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>($"bowls/production/{code}/export-packaging/complete", new { });
     }
+    public Task<DimpleBowlDto?> ReturnExportBowlToGlueAsync(string productionCode)
+    { var code=Uri.EscapeDataString(productionCode.Trim()); return _api.PostAsync<object,DimpleBowlDto>($"bowls/production/{code}/export-packaging/send-to-glue",new{}); }
 
     public async Task<IReadOnlyList<ExportWarehouseItemDto>> GetExportWarehouseAsync()
         => await _api.GetAsync<List<ExportWarehouseItemDto>>("bowls/export-warehouse") ?? [];

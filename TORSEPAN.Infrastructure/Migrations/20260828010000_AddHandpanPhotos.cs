@@ -1,10 +1,12 @@
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using TORSEPAN.Infrastructure.Persistence;
 
 #nullable disable
 namespace TORSEPAN.Infrastructure.Migrations;
 
-[Migration("20260828010000_AddHandpanPhotos")]
+[DbContext(typeof(TORSEPANDbContext)), Migration("20260828010000_AddHandpanPhotos")]
 public partial class AddHandpanPhotos : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)

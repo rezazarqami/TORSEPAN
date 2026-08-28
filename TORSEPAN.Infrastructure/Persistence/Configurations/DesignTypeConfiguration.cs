@@ -11,6 +11,7 @@ public sealed class DesignTypeConfiguration : IEntityTypeConfiguration<DesignTyp
         builder.ToTable("DesignTypes"); builder.HasKey(x => x.Id); builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Name).HasMaxLength(150).IsRequired(); builder.HasIndex(x => x.Name).IsUnique();
         builder.Property(x => x.Rate).HasPrecision(18, 2).IsRequired();
+        builder.Property(x => x.ExportRate).HasPrecision(18, 2).IsRequired();
         builder.Property(x => x.CreatedAt).IsRequired(); builder.Property(x => x.IsActive).IsRequired();
     }
 }

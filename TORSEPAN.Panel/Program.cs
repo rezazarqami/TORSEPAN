@@ -110,7 +110,7 @@ app.MapPost("/api/internal/design-types", async (HttpRequest incoming, DesignTyp
 {
     if (string.IsNullOrWhiteSpace(body.Name)) return Results.BadRequest("نام دیزاین الزامی است.");
     using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBaseUrl}designs/types")
-    { Content = JsonContent.Create(new { Name = body.Name.Trim(), Rate = Math.Max(0, body.Rate) }) };
+    { Content = JsonContent.Create(new { Name = body.Name.Trim(), Rate = Math.Max(0, body.Rate), ExportRate = Math.Max(0, body.ExportRate) }) };
     if (incoming.Headers.TryGetValue("Authorization", out var authorization))
         request.Headers.TryAddWithoutValidation("Authorization", authorization.ToString());
     using var response = await httpClientFactory.CreateClient().SendAsync(request, cancellationToken);
@@ -166,4 +166,4 @@ app.MapPost("/api/internal/telegram-database-backup", async (HttpRequest request
 app.Run();
 
 public sealed record TelegramRelayRequest(string ItemName, string StockType, int Quantity, int Threshold);
-public sealed record DesignTypeRelayRequest(string Name, decimal Rate);
+public sealed record DesignTypeRelayRequest(string Name, decimal Rate, decimal ExportRate);

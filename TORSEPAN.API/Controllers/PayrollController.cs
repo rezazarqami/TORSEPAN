@@ -228,7 +228,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         }).Select(g =>
         {
             var rate = g.Key.Action == ProductionAction.Design && g.Key.DesignTypeId.HasValue && designTypes.TryGetValue(g.Key.DesignTypeId.Value, out var designType)
-                ? designType.Rate
+                ? (g.Key.IsExport ? designType.ExportRate : designType.Rate)
                 : rates.Where(r => r.IsExport == g.Key.IsExport && r.Action == g.Key.Action && (!r.MaterialId.HasValue || r.MaterialId == g.Key.MaterialId) && (!r.BowlType.HasValue || (int)r.BowlType == g.Key.BowlType) && (!r.ScaleId.HasValue || r.ScaleId == g.Key.ScaleId))
                     .OrderByDescending(r => r.MaterialId.HasValue).ThenByDescending(r => r.BowlType.HasValue).ThenByDescending(r => r.ScaleId.HasValue).FirstOrDefault()?.Amount ?? 0;
             var count = g.Key.Action == ProductionAction.Glue ? g.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId).Distinct().Count()

@@ -213,6 +213,11 @@ public sealed class BowlsController : ControllerBase
         => this.ToActionResult(await _mediator.Send(
             new CompleteExportPackagingCommand(productionCode), cancellationToken));
 
+    [HttpPost("production/{productionCode}/export-packaging/send-to-glue")]
+    [Authorize(Roles = "Workshop,Administrator")]
+    public async Task<ActionResult> ReturnExportBowlToGlue(string productionCode, CancellationToken cancellationToken)
+        => this.ToActionResult(await _mediator.Send(new ReturnExportBowlToGlueCommand(productionCode), cancellationToken));
+
     [HttpGet("export-warehouse")]
     public async Task<IActionResult> ExportWarehouse(CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new GetExportWarehouseQuery(), cancellationToken));

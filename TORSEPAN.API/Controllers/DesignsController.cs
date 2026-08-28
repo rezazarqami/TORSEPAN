@@ -12,7 +12,7 @@ namespace TORSEPAN.API.Controllers;
 public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
 {
     [HttpGet("types")]
-    public async Task<IActionResult> Types(CancellationToken ct) => Ok(await db.DesignTypes.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Rate }).ToListAsync(ct));
+    public async Task<IActionResult> Types(CancellationToken ct) => Ok(await db.DesignTypes.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Rate, x.ExportRate }).ToListAsync(ct));
 
     [HttpGet("users")]
     public async Task<IActionResult> Users(CancellationToken ct) => Ok(await db.Users.AsNoTracking().Where(x => x.IsActive)
@@ -24,12 +24,12 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
         var name=request.Name?.Trim()??""; if(name.Length==0)return BadRequest("نام دیزاین الزامی است.");
         var existing=await db.DesignTypes.FirstOrDefaultAsync(x=>x.Name.ToLower()==name.ToLower(),ct);
         if(existing?.IsActive==true)return Conflict("این نوع دیزاین قبلاً ثبت شده است.");
-        var item=existing??new DesignType(name);item.Rename(name);item.SetRate(request.Rate);item.Activate();if(existing is null)db.DesignTypes.Add(item);await db.SaveChangesAsync(ct);return Ok(new{id=item.Id,item.Name,item.Rate});
+        var item=existing??new DesignType(name);item.Rename(name);item.SetRate(request.Rate);item.SetExportRate(request.ExportRate);item.Activate();if(existing is null)db.DesignTypes.Add(item);await db.SaveChangesAsync(ct);return Ok(new{id=item.Id,item.Name,item.Rate,item.ExportRate});
     }
 
     [HttpPut("types/{id:guid}"), Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> UpdateType(Guid id, DesignTypeRequest request, CancellationToken ct)
-    { var item=await db.DesignTypes.FirstOrDefaultAsync(x=>x.Id==id&&x.IsActive,ct);if(item is null)return NotFound();var name=request.Name?.Trim()??"";if(name.Length==0)return BadRequest("نام دیزاین الزامی است.");if(await db.DesignTypes.AnyAsync(x=>x.Id!=id&&x.IsActive&&x.Name.ToLower()==name.ToLower(),ct))return Conflict("این نام قبلاً ثبت شده است.");item.Rename(name);item.SetRate(request.Rate);await db.SaveChangesAsync(ct);return NoContent(); }
+    { var item=await db.DesignTypes.FirstOrDefaultAsync(x=>x.Id==id&&x.IsActive,ct);if(item is null)return NotFound();var name=request.Name?.Trim()??"";if(name.Length==0)return BadRequest("نام دیزاین الزامی است.");if(await db.DesignTypes.AnyAsync(x=>x.Id!=id&&x.IsActive&&x.Name.ToLower()==name.ToLower(),ct))return Conflict("این نام قبلاً ثبت شده است.");item.Rename(name);item.SetRate(request.Rate);item.SetExportRate(request.ExportRate);await db.SaveChangesAsync(ct);return NoContent(); }
 
     [HttpDelete("types/{id:guid}"), Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> DeleteType(Guid id,CancellationToken ct){var item=await db.DesignTypes.FirstOrDefaultAsync(x=>x.Id==id,ct);if(item is null)return NotFound();item.Deactivate();await db.SaveChangesAsync(ct);return NoContent();}
@@ -62,6 +62,6 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
     private static Guid? ParseDesignTypeId(string? value)
     { if(string.IsNullOrWhiteSpace(value)||!value.StartsWith("DESIGN:"))return null;var parts=value.Split(':');return parts.Length>1&&Guid.TryParse(parts[1],out var id)?id:null; }
 }
-public sealed record DesignTypeRequest(string? Name, decimal Rate = 0);
+public sealed record DesignTypeRequest(string? Name, decimal Rate = 0, decimal ExportRate = 0);
 public sealed record RegisterDesignItem(Guid DesignTypeId, Guid? UserId);
 public sealed record RegisterDesignRequest(string? ProductionCode,List<RegisterDesignItem>? Items);
