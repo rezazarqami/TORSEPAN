@@ -79,9 +79,31 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     public async Task<IActionResult> Payments(CancellationToken ct)
     {
         var payments = await db.PayrollPayments.AsNoTracking().OrderByDescending(x => x.PaidAt).ToListAsync(ct);
+        var accountingIds = (await db.AccountingDocuments.AsNoTracking()
+            .Where(x => x.PayrollPaymentId.HasValue)
+            .Select(x => x.PayrollPaymentId!.Value).ToListAsync(ct)).ToHashSet();
         return Ok(payments.Select(x => new PayrollPaymentDto(x.Id, x.From, x.To, x.PaidAt, x.PaidBy,
-            x.TotalAmount, Deserialize<string>(x.HandpanCodesJson), Deserialize<PayrollLine>(x.LinesJson))));
+            x.TotalAmount, Deserialize<string>(x.HandpanCodesJson), Deserialize<PayrollLine>(x.LinesJson),
+            accountingIds.Contains(x.Id))));
     }
+
+    [HttpPost("payments/{id:guid}/accounting")]
+    public async Task<IActionResult> SendPaymentToAccounting(Guid id, CancellationToken ct)
+    {
+        var payment = await db.PayrollPayments.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (payment is null) return NotFound();
+        if (await db.AccountingDocuments.AnyAsync(x => x.PayrollPaymentId == id, ct))
+            return Conflict("این پرداخت قبلاً به حسابداری ارسال شده است.");
+
+        var notes = $"بازه دستمزد: {payment.From:yyyy/MM/dd} تا {payment.To:yyyy/MM/dd} — ثبت‌کننده پرداخت: {payment.PaidBy}";
+        db.AccountingDocuments.Add(new AccountingDocument(
+            AccountingDocumentType.Expense, "دستمزد تولید", payment.TotalAmount, payment.TotalAmount,
+            null, null, null, notes, UserId(), payment.Id));
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    private Guid UserId() => Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpPost("rates")]
     public async Task<IActionResult> SaveRate(PayrollRateRequest request, CancellationToken ct)
@@ -408,4 +430,4 @@ public sealed record PayrollRateDto(Guid Id, int Action, string ActionTitle, Gui
 public sealed record PayrollRateRequest(Guid? Id, int Action, Guid? MaterialId, int? BowlType, Guid? ScaleId, bool IsExport, decimal Amount);
 public sealed record UserOrderRequest(Guid UserId, int Order);
 public sealed record PayrollPaymentRequest(DateTime From, DateTime To, bool ReadyForQc, bool ReadyForPackaging, bool EnteredWarehouse, bool ReadyForExportPackaging, bool ExportWarehouse);
-public sealed record PayrollPaymentDto(Guid Id, DateTime From, DateTime To, DateTime PaidAt, string PaidBy, decimal TotalAmount, List<string> HandpanCodes, List<PayrollLine> Lines);
+public sealed record PayrollPaymentDto(Guid Id, DateTime From, DateTime To, DateTime PaidAt, string PaidBy, decimal TotalAmount, List<string> HandpanCodes, List<PayrollLine> Lines, bool SentToAccounting);

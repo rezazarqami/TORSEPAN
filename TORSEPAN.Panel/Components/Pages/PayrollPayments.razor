@@ -15,7 +15,7 @@ else
     @foreach(var payment in _payments)
     {
         <Card>
-            <div class="d-flex justify-content-between flex-wrap gap-2"><div><strong>پرداخت @PersianDateTime.FormatDateTime(payment.PaidAt)</strong><div class="text-muted small">بازه: @PersianDateTime.FormatDate(payment.From) تا @PersianDateTime.FormatDate(payment.To) — ثبت‌کننده: @payment.PaidBy</div></div><div class="d-flex align-items-center gap-2"><button class="btn btn-success btn-sm" disabled="@(_sendingId.HasValue)" @onclick="() => SendToTelegramAsync(payment.Id)">@(_sendingId == payment.Id ? "در حال ارسال..." : "ارسال PDF به تلگرام")</button><div class="fs-5 fw-bold">@payment.TotalAmount.ToString("N0")</div></div></div>
+            <div class="d-flex justify-content-between flex-wrap gap-2"><div><strong>پرداخت @PersianDateTime.FormatDateTime(payment.PaidAt)</strong><div class="text-muted small">بازه: @PersianDateTime.FormatDate(payment.From) تا @PersianDateTime.FormatDate(payment.To) — ثبت‌کننده: @payment.PaidBy</div></div><div class="d-flex align-items-center flex-wrap gap-2">@if(payment.SentToAccounting){<span class="badge bg-primary p-2">ارسال‌شده به حسابداری</span>}else{<button class="btn btn-primary btn-sm" disabled="@(_accountingId.HasValue)" @onclick="() => SendToAccountingAsync(payment)">@(_accountingId == payment.Id ? "در حال ثبت..." : "ارسال به حسابداری")</button>}<button class="btn btn-success btn-sm" disabled="@(_sendingId.HasValue)" @onclick="() => SendToTelegramAsync(payment.Id)">@(_sendingId == payment.Id ? "در حال ارسال..." : "ارسال PDF به تلگرام")</button><div class="fs-5 fw-bold">@payment.TotalAmount.ToString("N0")</div></div></div>
             <div class="my-3"><strong>سازهای تسویه‌شده:</strong> @string.Join("، ",payment.HandpanCodes)</div>
             <div class="table-responsive"><table class="table table-sm"><thead><tr><th>عضو</th><th>عملیات</th><th>تعداد</th><th>نرخ</th><th>جمع</th></tr></thead><tbody>@foreach(var line in payment.Lines){<tr><td>@line.UserName</td><td>@line.ActionTitle — @line.MaterialName</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td>@line.Total.ToString("N0")</td></tr>}</tbody></table></div>
         </Card>
@@ -25,7 +25,8 @@ else
 @if(!string.IsNullOrWhiteSpace(_message)){<div class="app-toast alert @(_sendSucceeded ? "alert-success" : "alert-danger")">@_message</div>}
 
 @code{
-private bool _loading=true;private List<PayrollPaymentDto> _payments=[];private Guid? _sendingId;private string? _message;private bool _sendSucceeded;
+private bool _loading=true;private List<PayrollPaymentDto> _payments=[];private Guid? _sendingId,_accountingId;private string? _message;private bool _sendSucceeded;
 protected override async Task OnInitializedAsync(){try{_payments=(await PayrollService.GetPaymentsAsync()).ToList();}finally{_loading=false;}}
 private async Task SendToTelegramAsync(Guid id){_sendingId=id;_message=null;try{await PayrollService.SendPaymentReportToTelegramAsync(id);_sendSucceeded=true;_message="PDF این پرداخت با موفقیت به تلگرام ارسال شد.";}catch{_sendSucceeded=false;_message="ارسال PDF به تلگرام انجام نشد. دوباره تلاش کنید.";}finally{_sendingId=null;}}
+private async Task SendToAccountingAsync(PayrollPaymentDto payment){_accountingId=payment.Id;_message=null;try{await PayrollService.SendPaymentToAccountingAsync(payment.Id);payment.SentToAccounting=true;_sendSucceeded=true;_message="دستمزد تولید به‌عنوان سند هزینه پرداخت‌شده در حسابداری ثبت شد.";}catch{_sendSucceeded=false;_message="ارسال این پرداخت به حسابداری انجام نشد.";}finally{_accountingId=null;}}
 }
