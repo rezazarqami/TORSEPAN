@@ -232,7 +232,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                 : rates.Where(r => r.IsExport == g.Key.IsExport && r.Action == g.Key.Action && (!r.MaterialId.HasValue || r.MaterialId == g.Key.MaterialId) && (!r.BowlType.HasValue || (int)r.BowlType == g.Key.BowlType) && (!r.ScaleId.HasValue || r.ScaleId == g.Key.ScaleId))
                     .OrderByDescending(r => r.MaterialId.HasValue).ThenByDescending(r => r.BowlType.HasValue).ThenByDescending(r => r.ScaleId.HasValue).FirstOrDefault()?.Amount ?? 0;
             var count = g.Key.Action == ProductionAction.Glue ? g.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId).Distinct().Count()
-                : g.Key.Action == ProductionAction.Design ? g.Sum(x => x.Description.EndsWith(":BOTTOM:1", StringComparison.Ordinal) ? 2 : 1) : g.Count();
+                : g.Count();
             return new PayrollLine(g.Key.UserId, string.IsNullOrWhiteSpace(g.Key.FullName) ? g.Key.UserName : g.Key.FullName, g.Key.DisplayOrder, (int)g.Key.Action, Title(g.Key.Action), g.Key.MaterialId, g.Key.Material, g.Key.BowlType, g.Key.ScaleId, g.Key.Scale, count, rate, count * rate, g.Key.IsExport);
         }).OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName)
             .ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)

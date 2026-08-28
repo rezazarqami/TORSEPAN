@@ -15,7 +15,7 @@ public sealed class DimpleBowlDto
     public string TopBowlCode { get; set; } = string.Empty;
     public string BottomBowlCode { get; set; } = string.Empty;
     public string DesignName { get; set; } = "ساده";
-    public bool BottomBowlDesigned { get; set; }
+    public string BottomDesignName { get; set; } = "ساده";
     public List<string> Notes { get; set; } = [];
     public List<string> InstrumentNotes { get; set; } = [];
     public List<BowlStageHistoryDto> History { get; set; } = [];

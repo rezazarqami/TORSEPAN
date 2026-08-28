@@ -12,7 +12,6 @@
   <div class="section-title"><span>نوع دیزاین</span><small>@SelectedCount مورد انتخاب شده</small></div>
   @if (_types.Count == 0) { <div class="empty-state">هنوز نوع دیزاینی تعریف نشده است.</div> }
   else { <div class="design-options">@foreach (var item in _types) { var selection = SelectionFor(item.Id); <div class="design-option @(selection.Selected ? "selected" : "")"><label class="option-check"><input type="checkbox" checked="@selection.Selected" @onchange="e => Toggle(item.Id, (bool)(e.Value ?? false))" /><span class="check-mark">✓</span><span class="option-name">@item.Name</span></label>@if (selection.Selected) { <div class="performer-row"><label>مجری این دیزاین</label><select class="form-select" value="@selection.UserId" @onchange="e => SetUser(item.Id, e.Value?.ToString())"><option value="">خودم (کاربر ثبت‌کننده)</option>@foreach (var user in _users) { <option value="@user.Id">@user.Name</option> }</select></div> }</div> }</div> }
-  <label class="bottom-option"><input type="checkbox" @bind="_bottom" /><span><strong>کاسه زیر هم دیزاین دارد</strong><small>اگر کاسه زیر ساده است، این گزینه را خاموش بگذارید.</small></span></label>
   @if (!string.IsNullOrWhiteSpace(_message)) { <div class="app-message @(_success ? "success" : "error")">@_message</div> }
   <button class="btn btn-primary register-button" disabled="@(_busy || SelectedCount == 0)" @onclick="AskRegister">ثبت @SelectedCount دیزاین</button>
  </section>
@@ -27,7 +26,7 @@
 
 @code {
  private List<DesignTypeDto> _types=[]; private List<DesignUserDto> _users=[]; private readonly Dictionary<Guid,DesignSelection> _selections=[]; private readonly Dictionary<Guid,decimal> _rates=[]; private readonly Dictionary<Guid,string> _names=[];
- private string _code="",_newName="",_message="",_confirmTitle="",_confirmText=""; private decimal _newRate; private bool _bottom,_busy,_success,_confirm; private Func<Task>? _action;
+ private string _code="",_newName="",_message="",_confirmTitle="",_confirmText=""; private decimal _newRate; private bool _busy,_success,_confirm; private Func<Task>? _action;
  private int SelectedCount=>_selections.Values.Count(x=>x.Selected);
  protected override async Task OnInitializedAsync()=>await LoadAsync();
  private async Task LoadAsync(){_types=await DesignService.GetTypesAsync();_users=await DesignService.GetUsersAsync();foreach(var item in _types){_selections.TryAdd(item.Id,new());_rates[item.Id]=item.Rate;_names[item.Id]=item.Name;}}
@@ -38,7 +37,7 @@
  private string NameFor(DesignTypeDto item)=>_names.TryGetValue(item.Id,out var value)?value:item.Name;
  private void ChangeName(Guid id,string? value)=>_names[id]=value?.Trim()??"";
  private void ChangeRate(Guid id,string? value)=>_rates[id]=decimal.TryParse(value,out var rate)?Math.Max(0,rate):0;
- private void AskRegister(){var selected=_types.Where(x=>SelectionFor(x.Id).Selected).ToList();if(string.IsNullOrWhiteSpace(_code)||selected.Count==0){_success=false;_message="کد و حداقل یک دیزاین را انتخاب کنید.";return;}var summary=string.Join("، ",selected.Select(x=>x.Name));Show("تأیید ثبت دیزاین",$"دیزاین‌های «{summary}» برای کد «{_code.Trim()}» ثبت شوند؟",async()=>{await DesignService.RegisterAsync(_code.Trim(),selected.Select(x=>(x.Id,SelectionFor(x.Id).UserId)),_bottom);_success=true;_message=$"{selected.Count} دیزاین با موفقیت ثبت شد.";_code="";_bottom=false;foreach(var value in _selections.Values){value.Selected=false;value.UserId=null;}});}
+ private void AskRegister(){var selected=_types.Where(x=>SelectionFor(x.Id).Selected).ToList();if(string.IsNullOrWhiteSpace(_code)||selected.Count==0){_success=false;_message="کد و حداقل یک دیزاین را انتخاب کنید.";return;}var summary=string.Join("، ",selected.Select(x=>x.Name));Show("تأیید ثبت دیزاین",$"دیزاین‌های «{summary}» فقط برای کاسه با کد «{_code.Trim()}» ثبت شوند؟",async()=>{await DesignService.RegisterAsync(_code.Trim(),selected.Select(x=>(x.Id,SelectionFor(x.Id).UserId)));_success=true;_message=$"{selected.Count} دیزاین با موفقیت برای همین کاسه ثبت شد.";_code="";foreach(var value in _selections.Values){value.Selected=false;value.UserId=null;}});}
  private async Task AddTypeAsync(){if(string.IsNullOrWhiteSpace(_newName)){_success=false;_message="نام دیزاین جدید را وارد کنید.";return;}try{await DesignService.AddTypeAsync(_newName.Trim(),_newRate);_newName="";_newRate=0;await LoadAsync();_success=true;_message="دیزاین جدید همراه با نرخ آن ایجاد شد.";}catch{_success=false;_message="این نوع دیزاین قبلاً ثبت شده یا معتبر نیست.";}}
  private async Task SaveTypeAsync(DesignTypeDto item){var name=NameFor(item);if(string.IsNullOrWhiteSpace(name)){_success=false;_message="نام دیزاین نمی‌تواند خالی باشد.";return;}try{await DesignService.UpdateTypeAsync(item.Id,name,RateFor(item));await LoadAsync();_success=true;_message=$"نام و نرخ «{name}» ذخیره شد و در محاسبه دستمزد اعمال می‌شود.";}catch{_success=false;_message="ذخیره تغییرات انجام نشد؛ نام تکراری نباشد.";}}
  private void AskDelete(DesignTypeDto item)=>Show("حذف نوع دیزاین",$"نوع دیزاین «{item.Name}» از فهرست انتخاب حذف شود؟",async()=>{await DesignService.DeleteTypeAsync(item.Id);await LoadAsync();});

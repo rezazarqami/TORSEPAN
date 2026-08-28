@@ -70,10 +70,14 @@ public sealed class GetBowlForDimpleQueryHandler
 
         var designEvents = events.Where(x => x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value) && x.Action == ProductionAction.Design)
             .OrderBy(x => x.EventDate).ToList();
-        if (designEvents.Count > 0)
+        if (assembly is null)
         {
-            dto.DesignName = string.Join("، ", designEvents.Select(x => { var parts=x.Description.Split(':');return parts.Length>=3?parts[2]:"دیزاین‌شده"; }).Distinct());
-            dto.BottomBowlDesigned = designEvents.Any(x => x.Description.EndsWith(":BOTTOM:1", StringComparison.Ordinal));
+            dto.DesignName = DesignNames(designEvents.Where(x => x.BowlId == bowl.Id));
+        }
+        else
+        {
+            dto.DesignName = DesignNames(designEvents.Where(x => x.BowlId == assembly.TopBowlId));
+            dto.BottomDesignName = DesignNames(designEvents.Where(x => x.BowlId == assembly.BottomBowlId));
         }
 
         var users = (await _unitOfWork.Users.GetAllAsync()).ToDictionary(x => x.Id);
@@ -103,6 +107,16 @@ public sealed class GetBowlForDimpleQueryHandler
     {
         var parts = description.Split(':', 4);
         return parts.Length == 4 ? parts[3] : description;
+    }
+
+    private static string DesignNames(IEnumerable<TORSEPAN.Domain.Entities.ProductionEvent> designEvents)
+    {
+        var names = designEvents.Select(x =>
+        {
+            var parts = x.Description.Split(':');
+            return parts.Length >= 3 ? parts[2] : "دیزاین‌شده";
+        }).Distinct().ToList();
+        return names.Count == 0 ? "ساده" : string.Join("، ", names);
     }
 
     private static string ShapeContributionDetails(IEnumerable<string> descriptions,

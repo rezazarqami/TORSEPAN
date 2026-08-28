@@ -127,8 +127,8 @@
             @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
             {
                 <div class="passport-secondary-info">
-                    <div><span>کد کاسه زیر</span><strong>@_bowl.BottomBowlCode</strong></div>
-                    <div><span>دیزاین</span><strong>@_bowl.DesignName</strong>@if(_bowl.DesignName != "ساده"){<small>کاسه زیر @(_bowl.BottomBowlDesigned ? "دیزاین دارد" : "ساده است")</small>}</div>
+                    <div><span>کد کاسه زیر</span><strong>@_bowl.BottomBowlCode (@_bowl.BottomDesignName)</strong></div>
+                    <div><span>دیزاین</span><strong>@_bowl.DesignName</strong><small>برگرفته از دیزاین کاسه رو</small></div>
                 </div>
             }
 

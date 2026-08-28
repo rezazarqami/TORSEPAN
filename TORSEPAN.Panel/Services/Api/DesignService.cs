@@ -7,5 +7,5 @@ public sealed class DesignService(ApiClient api)
     public Task AddTypeAsync(string name,decimal rate)=>api.PostAsync<object,object?>("designs/types",new{Name=name,Rate=rate});
     public Task UpdateTypeAsync(Guid id,string name,decimal rate)=>api.PutAsync<object,object?>($"designs/types/{id}",new{Name=name,Rate=rate});
     public Task DeleteTypeAsync(Guid id)=>api.DeleteAsync($"designs/types/{id}");
-    public Task RegisterAsync(string code,IEnumerable<(Guid TypeId,Guid? UserId)> items,bool bottom)=>api.PostAsync<object,object?>("designs",new{ProductionCode=code,Items=items.Select(x=>new{DesignTypeId=x.TypeId,x.UserId}),BottomBowlDesigned=bottom});
+    public Task RegisterAsync(string code,IEnumerable<(Guid TypeId,Guid? UserId)> items)=>api.PostAsync<object,object?>("designs",new{ProductionCode=code,Items=items.Select(x=>new{DesignTypeId=x.TypeId,x.UserId})});
 }

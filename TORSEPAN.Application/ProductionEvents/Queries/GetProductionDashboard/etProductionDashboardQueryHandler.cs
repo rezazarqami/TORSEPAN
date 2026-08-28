@@ -51,7 +51,7 @@ public sealed class GetProductionDashboardQueryHandler
                                    e.Description.StartsWith("Glued with bowl"))
                         .Select(e => e.HandpanId).Distinct().Count()
                     : x.Key.Action == ProductionAction.Design
-                        ? x.Sum(e => e.Description.EndsWith(":BOTTOM:1", StringComparison.Ordinal) ? 2 : 1)
+                        ? x.Count()
                         : x.Count(),
                 DisplayOrder=x.Key.DisplayOrder
             })

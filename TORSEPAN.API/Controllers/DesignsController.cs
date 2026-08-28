@@ -55,8 +55,8 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
         var existingTypeIds=existingDescriptions.Select(ParseDesignTypeId).Where(x=>x.HasValue).Select(x=>x!.Value).ToHashSet();
         if(typeIds.Any(existingTypeIds.Contains))return Conflict("یک یا چند دیزاین انتخاب‌شده قبلاً برای این کد ثبت شده است.");
         foreach(var entry in request.Items.GroupBy(x=>x.DesignTypeId).Select(x=>x.First()))
-        { var type=types[entry.DesignTypeId];var userId=entry.UserId??currentUserId;var description=$"DESIGN:{type.Id}:{type.Name}:BOTTOM:{(request.BottomBowlDesigned?1:0)}";db.ProductionEvents.Add(new ProductionEvent(handpan?.Id,assembly?.Id,bowl.Id,userId,ProductionAction.Design,EventResult.Completed,null,description)); }
-        await db.SaveChangesAsync(ct);return Ok(new{Count=typeIds.Count,request.BottomBowlDesigned});
+        { var type=types[entry.DesignTypeId];var userId=entry.UserId??currentUserId;var description=$"DESIGN:{type.Id}:{type.Name}";db.ProductionEvents.Add(new ProductionEvent(handpan?.Id,assembly?.Id,bowl.Id,userId,ProductionAction.Design,EventResult.Completed,null,description)); }
+        await db.SaveChangesAsync(ct);return Ok(new{Count=typeIds.Count});
     }
 
     private static Guid? ParseDesignTypeId(string? value)
@@ -64,4 +64,4 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
 }
 public sealed record DesignTypeRequest(string? Name, decimal Rate = 0);
 public sealed record RegisterDesignItem(Guid DesignTypeId, Guid? UserId);
-public sealed record RegisterDesignRequest(string? ProductionCode,List<RegisterDesignItem>? Items,bool BottomBowlDesigned);
+public sealed record RegisterDesignRequest(string? ProductionCode,List<RegisterDesignItem>? Items);
