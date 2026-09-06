@@ -20,7 +20,13 @@
 
     <script src="@Assets["login.js"]"></script>
     <script src="@Assets["handpan-photos.js"]"></script>
-    <script src="/blazor.web.js"></script>
+    <div id="torsepan-connection" role="status" aria-live="polite" hidden style="position:fixed;bottom:16px;left:16px;z-index:2000;background:#fff8e5;color:#633d00;padding:12px 18px;border:1px solid #ecd59c;border-radius:12px;max-width:90vw">
+        <span id="torsepan-connection-text">در حال برقراری اتصال…</span>
+        <button type="button" id="torsepan-connection-retry">تلاش دوباره</button>
+        <button type="button" id="torsepan-connection-reload" hidden>بازکردن مجدد صفحه</button>
+    </div>
+    <script src="/blazor.web.js" autostart="false"></script>
+    <script src="@Assets["connection.js"]"></script>
 
 </body>
 

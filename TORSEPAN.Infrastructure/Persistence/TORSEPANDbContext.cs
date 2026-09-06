@@ -11,6 +11,8 @@ public class TORSEPANDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<WorkshopMessage> WorkshopMessages => Set<WorkshopMessage>();
+    public DbSet<WorkshopMessageReceipt> WorkshopMessageReceipts => Set<WorkshopMessageReceipt>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
 

@@ -20,7 +20,7 @@ builder.Services.AddRazorComponents()
     })
     .AddHubOptions(options =>
     {
-        options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(120);
         options.HandshakeTimeout = TimeSpan.FromSeconds(30);
         options.KeepAliveInterval = TimeSpan.FromSeconds(15);
         options.MaximumParallelInvocationsPerClient = 2;
@@ -84,6 +84,7 @@ builder.Services.AddScoped<HandpanPhotoService>();
 builder.Services.AddScoped<AccountingService>();
 builder.Services.AddScoped<ScaleService>();
 builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<PersonalWorkspaceService>();
 builder.Services.AddScoped<MarketingService>();
 
 var app = builder.Build();
@@ -108,6 +109,35 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+
+app.MapPost("/api/internal/handpans/{handpanId:guid}/photos", async (
+    Guid handpanId, HttpRequest incoming, IHttpClientFactory httpClientFactory,
+    CancellationToken cancellationToken) =>
+{
+    var incomingForm = await incoming.ReadFormAsync(cancellationToken);
+    var image = incomingForm.Files.GetFile("file");
+    var thumbnail = incomingForm.Files.GetFile("thumbnail");
+    if (image is null || thumbnail is null) return Results.BadRequest("فایل عکس کامل دریافت نشد.");
+
+    using var content = new MultipartFormDataContent();
+    await using var imageStream = image.OpenReadStream();
+    await using var thumbnailStream = thumbnail.OpenReadStream();
+    var imageContent = new StreamContent(imageStream);
+    imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/webp");
+    var thumbnailContent = new StreamContent(thumbnailStream);
+    thumbnailContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/webp");
+    content.Add(imageContent, "file", image.FileName);
+    content.Add(thumbnailContent, "thumbnail", thumbnail.FileName);
+
+    using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBaseUrl}handpans/{handpanId}/photos")
+    { Content = content };
+    if (incoming.Headers.TryGetValue("Authorization", out var authorization))
+        request.Headers.TryAddWithoutValidation("Authorization", authorization.ToString());
+    using var response = await httpClientFactory.CreateClient().SendAsync(request, cancellationToken);
+    var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+    return Results.Content(responseBody, response.Content.Headers.ContentType?.MediaType ?? "application/json",
+        Encoding.UTF8, (int)response.StatusCode);
+}).DisableAntiforgery();
 
 app.MapPost("/api/internal/design-types", async (HttpRequest incoming, DesignTypeRelayRequest body,
     IHttpClientFactory httpClientFactory, CancellationToken cancellationToken) =>

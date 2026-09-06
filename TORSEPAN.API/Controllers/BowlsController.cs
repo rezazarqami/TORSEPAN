@@ -76,6 +76,17 @@ public sealed class BowlsController : ControllerBase
         [FromBody] CreateBowlCommand command,
         CancellationToken cancellationToken)
     {
+        var canOverrideCode = User.IsInRole("Administrator") || User.IsInRole("ProductionManager");
+        if (!canOverrideCode)
+        {
+            var suggestion = await BuildSuggestedCode(command.MaterialId, (int)command.BowlType, cancellationToken);
+            if (!string.Equals(
+                    ProductionCodeNormalizer.Normalize(command.ProductionCode),
+                    ProductionCodeNormalizer.Normalize(suggestion.SuggestedCode),
+                    StringComparison.OrdinalIgnoreCase))
+                return BadRequest($"ثبت کاسه فقط با کد پیشنهادی «{suggestion.SuggestedCode}» مجاز است.");
+        }
+
         var result = await _mediator.Send(command, cancellationToken);
 
         if (result.IsFailure)
@@ -115,28 +126,41 @@ public sealed class BowlsController : ControllerBase
     [HttpGet("suggested-code")]
     public async Task<IActionResult> SuggestedCode([FromQuery] Guid? materialId, [FromQuery] int? bowlType, CancellationToken cancellationToken)
     {
-        var bowls = await _unitOfWork.Bowls.GetAllAsync(cancellationToken);
-        var codes = bowls.Select(x => ProductionCodeNormalizer.Normalize(x.ProductionCode)).ToList();
-        var last = codes.FirstOrDefault() ?? "—";
-        var max = codes.Select(x => int.TryParse(x, out var n) ? n : 0).DefaultIfEmpty().Max();
-        var suggested = (max + 1).ToString(); var template = string.Empty;
-        if (materialId.HasValue && bowlType.HasValue)
-        {
-            var material = await _unitOfWork.Materials.GetByIdAsync(materialId.Value);
-            template = bowlType.Value == 1 ? material?.TopBowlCodeTemplate ?? "" : material?.BottomBowlCodeTemplate ?? "";
-            if (!string.IsNullOrWhiteSpace(template))
-            {
-                var prefix = template[..^5];
-                var matching = bowls.Where(x => x.MaterialId == materialId && (int)x.BowlType == bowlType &&
-                    x.ProductionCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    .Select(x => x.ProductionCode).Where(x => x.Length == prefix.Length + 5).ToList();
-                last = matching.FirstOrDefault() ?? "—";
-                var sequence = matching.Select(x => int.TryParse(x[^5..], out var n) ? n : 0).DefaultIfEmpty().Max() + 1;
-                suggested = $"{prefix}{sequence:00000}";
-            }
-        }
-        return Ok(new { LastCode = last, SuggestedCode = suggested, Template = template });
+        return Ok(await BuildSuggestedCode(materialId, bowlType, cancellationToken));
     }
+
+    private async Task<SuggestedBowlCode> BuildSuggestedCode(Guid? materialId, int? bowlType, CancellationToken cancellationToken)
+    {
+        var bowls = await _unitOfWork.Bowls.GetAllAsync(cancellationToken);
+        if (!materialId.HasValue || !bowlType.HasValue)
+            return new SuggestedBowlCode("—", string.Empty, string.Empty);
+
+        var material = await _unitOfWork.Materials.GetByIdAsync(materialId.Value);
+        var template = ProductionCodeNormalizer.Normalize(
+            bowlType.Value == 1 ? material?.TopBowlCodeTemplate : material?.BottomBowlCodeTemplate)
+            .ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(template))
+            return new SuggestedBowlCode("—", string.Empty, string.Empty);
+
+        var digits = template.Reverse().TakeWhile(x => x == '0').Count();
+        if (digits == 0)
+            return new SuggestedBowlCode("—", string.Empty, template);
+
+        var prefix = template[..^digits];
+        var matching = bowls
+            .Where(x => x.MaterialId == materialId.Value && (int)x.BowlType == bowlType.Value)
+            .Select(x => ProductionCodeNormalizer.Normalize(x.ProductionCode).ToUpperInvariant())
+            .Where(x => x.StartsWith(prefix, StringComparison.Ordinal) && x.Length == prefix.Length + digits)
+            .Select(x => new { Code = x, Number = int.TryParse(x[prefix.Length..], out var number) ? number : -1 })
+            .Where(x => x.Number >= 0)
+            .OrderByDescending(x => x.Number)
+            .ToList();
+        var last = matching.FirstOrDefault();
+        var next = (last?.Number ?? 0) + 1;
+        return new SuggestedBowlCode(last?.Code ?? "—", $"{prefix}{next.ToString($"D{digits}")}", template);
+    }
+
+    private sealed record SuggestedBowlCode(string LastCode, string SuggestedCode, string Template);
 
     [HttpPost("production/{productionCode}/notes")]
     [Authorize(Roles = "Dimpler,Shaper,Workshop,Tuner,FineTuner,QualityControl,ProductionManager,Administrator")]

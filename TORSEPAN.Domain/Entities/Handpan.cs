@@ -49,14 +49,25 @@ public class Handpan : Entity
     public decimal? SalePrice { get; private set; }
     public string? SaleDestination { get; private set; }
 
-    public void Sell(string buyerName, decimal price, string destination, Guid soldByUserId)
+    public void Sell(string? buyerName, decimal? price, string? destination, Guid soldByUserId)
     {
         if (Stage != ProductionStage.FinishedWarehouse) throw new InvalidOperationException("Handpan is not in warehouse.");
-        if (string.IsNullOrWhiteSpace(buyerName)) throw new ArgumentException("Buyer name is required.");
         if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
-        if (string.IsNullOrWhiteSpace(destination)) throw new ArgumentException("Destination is required.");
-        BuyerName = buyerName.Trim(); SalePrice = price; SaleDestination = destination.Trim(); SoldByUserId = soldByUserId; SoldAt = DateTime.UtcNow;
+        BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
+        SalePrice = price;
+        SaleDestination = string.IsNullOrWhiteSpace(destination) ? null : destination.Trim();
+        SoldByUserId = soldByUserId; SoldAt = DateTime.UtcNow;
         Stage = ProductionStage.Sold; UpdatedAt = SoldAt;
+    }
+
+    public void UpdateSaleDetails(string? buyerName, decimal? price, string? destination)
+    {
+        if (Stage != ProductionStage.Sold) throw new InvalidOperationException("Handpan is not sold.");
+        if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
+        BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
+        SalePrice = price;
+        SaleDestination = string.IsNullOrWhiteSpace(destination) ? null : destination.Trim();
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public IReadOnlyCollection<ProductionEvent> ProductionEvents => _productionEvents;

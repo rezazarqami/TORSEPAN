@@ -1,0 +1,52 @@
+@page "/my-activity"
+@inject PersonalWorkspaceService Workspace
+<PageTitle>عملکرد من</PageTitle>
+<div class="personal-heading"><div><span class="eyebrow">دفتر فعالیت شخصی</span><h2>عملکرد من</h2><p>جزئیات کارهای ثبت‌شده به نام شما؛ از ابتدای ماه تا امروز</p></div><a href="/" class="btn btn-outline-primary">بازگشت به داشبورد</a></div>
+<section class="personal-card">
+    <div class="activity-filters">
+        <div><label>از تاریخ</label><PersianDatePicker @bind-Value="_from" /></div>
+        <div><label>تا تاریخ</label><PersianDatePicker @bind-Value="_to" /></div>
+        <button class="btn btn-primary" disabled="@_loading" @onclick="Apply">نمایش بازه</button>
+        <button class="btn btn-outline-secondary" disabled="@_loading" @onclick="CurrentMonth">ماه جاری</button>
+    </div>
+    <small class="text-muted">برای نمایش یک روز، تاریخ شروع و پایان را یکسان انتخاب کنید. حداکثر بازه: یک سال.</small>
+</section>
+@if(_error is not null){<div class="alert alert-danger mt-3" role="alert">@_error</div>}
+@if(_loading){<div class="personal-empty" role="status">در حال دریافت فعالیت‌ها…</div>}
+else if(_data is not null){
+    <div class="activity-summary"><div><small>کل فعالیت‌ها</small><strong>@_data.Total</strong></div><div><small>تکمیل‌شده</small><strong>@_data.Completed</strong></div><div><small>بازه گزارش</small><strong class="range">@PersianDatePicker.Format(_data.From) — @PersianDatePicker.Format(_data.To)</strong></div></div>
+    <section class="personal-card activity-table">
+        @if(_data.Items.Count==0){<div class="personal-empty">در این بازه فعالیتی برای شما ثبت نشده است.</div>}
+        else{
+            <div class="table-responsive"><table class="table align-middle"><thead><tr><th>روز / ساعت</th><th>عملیات</th><th>کد کاسه / ساز</th><th>زمان کار</th><th>نتیجه</th><th>جزئیات</th></tr></thead><tbody>
+                @foreach(var day in _data.Items.GroupBy(x=>PersianDateTime.FormatDate(x.EventDate))){
+                    <tr class="day-divider"><td colspan="6">@day.Key <small>• @day.Count() فعالیت در این صفحه</small></td></tr>
+                    @foreach(var row in day){
+                        <tr @key="row.Id"><td class="activity-time">@PersianDateTime.FormatTime(row.EventDate)</td><td><strong>@row.Operation</strong></td><td><span class="activity-code" dir="ltr">@(string.IsNullOrWhiteSpace(row.Code)?"—":row.Code)</span></td><td>@row.Duration</td><td>@row.Result</td><td class="activity-detail">@(string.IsNullOrWhiteSpace(row.Details)?"—":row.Details)</td></tr>
+                    }
+                }
+            </tbody></table></div>
+        }
+        <div class="personal-pager"><button class="btn btn-outline-secondary" disabled="@(_data.Page<=1)" @onclick="()=>Load(_data.Page-1)">قبلی</button><span>صفحه @_data.Page از @Math.Max(1,(int)Math.Ceiling(_data.Total/50d))</span><button class="btn btn-outline-secondary" disabled="@(_data.Page*50>=_data.Total)" @onclick="()=>Load(_data.Page+1)">بعدی</button></div>
+    </section>
+}
+@code{
+    private DateTime? _from,_to;
+    private DateTime? _appliedFrom,_appliedTo;
+    private MyActivityDto? _data;
+    private bool _loading;
+    private string? _error;
+    protected override async Task OnInitializedAsync()=>await CurrentMonth();
+    private async Task CurrentMonth(){_appliedFrom=_appliedTo=null;await Load(1);if(_data is not null){_from=_data.From;_to=_data.To;_appliedFrom=_from;_appliedTo=_to;}}
+    private async Task Apply(){
+        if(!_from.HasValue||!_to.HasValue||_from>_to||_to.Value-_from.Value>TimeSpan.FromDays(366)){_error="تاریخ شروع و پایان معتبر تا حداکثر یک سال انتخاب کنید.";return;}
+        _appliedFrom=_from;_appliedTo=_to;await Load(1);
+    }
+    private async Task Load(int page){
+        if(_loading)return;_loading=true;_error=null;
+        try{_data=await Workspace.ActivityAsync(_appliedFrom,_appliedTo,page);}
+        catch{_error="دریافت گزارش انجام نشد؛ اتصال و ورود به حساب را بررسی کنید.";}
+        finally{_loading=false;}
+    }
+}
+

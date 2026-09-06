@@ -22,6 +22,24 @@ namespace TORSEPAN.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessage", b =>
+            {
+                b.Property<Guid>("Id").HasColumnType("uuid");
+                b.Property<Guid>("SenderId").HasColumnType("uuid");
+                b.Property<string>("Title").IsRequired().HasMaxLength(150).HasColumnType("character varying(150)");
+                b.Property<string>("Body").IsRequired().HasMaxLength(4000).HasColumnType("character varying(4000)");
+                b.Property<bool>("Broadcast").HasColumnType("boolean");
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id"); b.HasIndex("SenderId"); b.HasIndex("CreatedAt"); b.ToTable("WorkshopMessages");
+            });
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessageReceipt", b =>
+            {
+                b.Property<Guid>("MessageId").HasColumnType("uuid");
+                b.Property<Guid>("RecipientId").HasColumnType("uuid");
+                b.Property<DateTime?>("ReadAt").HasColumnType("timestamp with time zone");
+                b.HasKey("MessageId","RecipientId"); b.HasIndex("RecipientId","ReadAt"); b.ToTable("WorkshopMessageReceipts");
+            });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.Bowl", b =>
                 {
                     b.Property<Guid>("Id")
@@ -829,6 +847,18 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.ProductionEvent", b => b.HasIndex("UserId","EventDate"));
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessage", b =>
+            {
+                b.HasOne("TORSEPAN.Domain.Entities.User","Sender").WithMany().HasForeignKey("SenderId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                b.Navigation("Sender");
+            });
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessageReceipt", b =>
+            {
+                b.HasOne("TORSEPAN.Domain.Entities.WorkshopMessage","Message").WithMany().HasForeignKey("MessageId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.HasOne("TORSEPAN.Domain.Entities.User","Recipient").WithMany().HasForeignKey("RecipientId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                b.Navigation("Message"); b.Navigation("Recipient");
+            });
         }
     }
 }

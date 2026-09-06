@@ -7,12 +7,19 @@ retryButton.addEventListener("click", retry);
 
 const resumeButton = document.getElementById("components-resume-button");
 resumeButton.addEventListener("click", resume);
+let reconnectState = "hide";
+let showTimer;
 
 function handleReconnectStateChanged(event) {
+    reconnectState = event.detail.state;
     if (event.detail.state === "show") {
-        reconnectModal.showModal();
+        clearTimeout(showTimer);
+        showTimer = setTimeout(() => {
+            if (reconnectState === "show" && !reconnectModal.open) reconnectModal.showModal();
+        }, 2500);
     } else if (event.detail.state === "hide") {
-        reconnectModal.close();
+        clearTimeout(showTimer);
+        if (reconnectModal.open) reconnectModal.close();
     } else if (event.detail.state === "failed") {
         document.addEventListener("visibilitychange", retryWhenDocumentBecomesVisible);
     } else if (event.detail.state === "rejected") {
@@ -61,3 +68,13 @@ async function retryWhenDocumentBecomesVisible() {
         await retry();
     }
 }
+
+document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState === "visible" && reconnectState !== "hide") await retry();
+});
+window.addEventListener("pageshow", async () => {
+    if (reconnectState !== "hide") await retry();
+});
+window.addEventListener("online", async () => {
+    if (reconnectState !== "hide") await retry();
+});

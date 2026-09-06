@@ -9,6 +9,7 @@ public class ProductionEventConfiguration : IEntityTypeConfiguration<ProductionE
     public void Configure(EntityTypeBuilder<ProductionEvent> builder)
     {
         builder.ToTable("ProductionEvents");
+        builder.HasIndex(x => new { x.UserId, x.EventDate });
 
         builder.HasKey(x => x.Id);
 

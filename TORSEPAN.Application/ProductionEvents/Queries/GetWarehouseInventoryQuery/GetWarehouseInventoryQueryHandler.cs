@@ -19,7 +19,16 @@ public sealed class GetWarehouseInventoryQueryHandler
         GetWarehouseInventoryQuery request,
         CancellationToken cancellationToken)
     {
-        var handpans = await _unitOfWork.Handpans.GetWarehouseInventoryAsync();
+        IEnumerable<TORSEPAN.Domain.Entities.Handpan> handpans;
+        if (request.HandpanId.HasValue)
+        {
+            var item = await _unitOfWork.Handpans.GetWarehouseInventoryItemAsync(request.HandpanId.Value);
+            handpans = item is null ? [] : [item];
+        }
+        else
+        {
+            handpans = await _unitOfWork.Handpans.GetWarehouseInventorySummaryAsync();
+        }
 
         return handpans.Select(x =>
         {

@@ -6,6 +6,10 @@
 @using System.Globalization
 
 <PageTitle>داشبورد تولید</PageTitle>
+<div class="dashboard-shortcuts">
+    <a href="/my-activity"><span class="shortcut-icon">▦</span><span><strong>عملکرد من</strong><small>جزئیات کارها</small></span></a>
+    <a href="/notifications"><span class="shortcut-icon">♢</span><span><strong>پیام‌های من</strong><small>اطلاعیه‌های کارگاه</small></span></a>
+</div>
 
 @if (_loading)
 {
@@ -17,7 +21,7 @@ else
     {
         <div class="alert alert-danger">@_error <button class="btn btn-sm btn-outline-danger me-2" @onclick="ReloadAsync">تلاش دوباره</button></div>
     }
-    <div class="card shadow-sm mb-4">
+    <div class="card shadow-sm mb-4 production-entry-card">
         <div class="card-body p-4">
             <h4 class="fw-bold mb-3">ورود به عملیات تولید</h4>
             <div class="input-group input-group-lg">
@@ -28,10 +32,10 @@ else
         </div>
     </div>
 
-    <div class="row g-4 align-items-start">
-    <div class="col-xl-6 order-1">
+    <div class="row g-4 align-items-start dashboard-sections">
+    <div class="col-xl-6 order-1 queue-column">
     <Card>
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="queue-heading">
             <div>
                 <h4 class="mb-1">صف‌های آماده تولید</h4>
                 <div class="text-muted">کد کاسه‌ها و سازهایی که منتظر مرحله بعد هستند</div>
@@ -39,7 +43,7 @@ else
             <button class="btn btn-outline-primary" @onclick="ReloadAsync">به‌روزرسانی</button>
         </div>
 
-        <DataTable>
+        <div class="queue-table"><DataTable>
             <thead>
                 <tr><th style="width:210px">مرحله آماده</th><th style="width:70px">تعداد</th><th>کدها</th></tr>
             </thead>
@@ -58,18 +62,18 @@ else
                             {
                                 @foreach (var userGroups in queue.Groups.GroupBy(x => x.UserName))
                                 {
-                                    <div class="mb-2">
-                                        <strong class="small ms-2">@userGroups.Key:</strong>
+                                    <div class="queue-group">
+                                        @if(!string.IsNullOrWhiteSpace(userGroups.Key)){<strong class="queue-performer">@userGroups.Key</strong>}
                                         @foreach (var group in userGroups)
                                         {
-                                            <div class="@(string.IsNullOrWhiteSpace(group.BowlTypeLabel) ? "d-inline" : "me-3 mt-1")">
+                                            <div class="queue-code-group">
                                                 @if (!string.IsNullOrWhiteSpace(group.BowlTypeLabel))
                                                 {
-                                                    <span class="text-muted small ms-2">@group.BowlTypeLabel:</span>
+                                                    <span class="queue-type">@group.BowlTypeLabel</span>
                                                 }
-                                                @foreach (var itemCode in group.Codes)
+                                                @foreach (var item in group.Items)
                                                 {
-                                                    <span class="badge bg-light text-dark border me-1 mb-1 dashboard-code">@itemCode</span>
+                                                    <span class="dashboard-code @(queue.ColorByAge ? AgeClass(item.DaysInStage) : "age-neutral")" title="@(queue.ColorByAge ? AgeTitle(item.DaysInStage) : null)">@item.Code</span>
                                                 }
                                             </div>
                                         }
@@ -78,16 +82,18 @@ else
                             }
                             else
                             {
-                                @foreach (var itemCode in queue.Codes)
-                                {
-                                    <span class="badge bg-light text-dark border me-1 mb-1 dashboard-code">@itemCode</span>
-                                }
+                                <div class="queue-code-list">
+                                    @foreach (var item in queue.Items)
+                                    {
+                                        <span class="dashboard-code @(queue.ColorByAge ? AgeClass(item.DaysInStage) : "age-neutral")" title="@(queue.ColorByAge ? AgeTitle(item.DaysInStage) : null)">@item.Code</span>
+                                    }
+                                </div>
                             }
                         </td>
                     </tr>
                 }
             </tbody>
-        </DataTable>
+        </DataTable></div>
     </Card>
     </div>
     <div class="col-xl-3 order-2">
@@ -112,7 +118,7 @@ else
                 {
                     @foreach(var user in DailyUsers)
                     {
-                        <div class="daily-user"><strong>@user.UserName</strong><div>@foreach(var op in user.Operations){<span class="badge bg-light text-dark border">@op.Operation: @op.Count</span>}</div></div>
+                        <div class="daily-user"><strong>@user.UserName</strong><div class="operation-list">@foreach(var op in user.Operations){<span class="operation-chip"><span>@op.Operation</span><b>@op.Count</b></span>}</div></div>
                     }
                 }
             </div>
@@ -125,8 +131,8 @@ else
             { <div class="text-center text-muted py-4">هنوز عملیاتی در این ماه ثبت نشده است.</div> }
             else
             {
-                <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>کاربر</th><th>عملیات</th><th class="text-center">تعداد</th></tr></thead><tbody>
-                @foreach(var user in MonthlyUsers){<tr><td class="small fw-semibold">@user.UserName</td><td>@foreach(var op in user.Operations){<span class="badge bg-light text-dark border me-1 mb-1">@op.Operation: <strong>@op.Count</strong></span>}</td><td class="text-center"><strong>@user.Operations.Sum(x=>x.Count)</strong></td></tr>}
+                <div class="table-responsive monthly-table"><table class="table table-sm align-middle mb-0"><thead><tr><th>کاربر</th><th>عملیات</th><th class="text-center">تعداد</th></tr></thead><tbody>
+                @foreach(var user in MonthlyUsers){<tr><td class="small fw-semibold">@user.UserName</td><td><div class="operation-list">@foreach(var op in user.Operations){<span class="operation-chip"><span>@op.Operation</span><b>@op.Count</b></span>}</div></td><td class="text-center"><strong>@user.Operations.Sum(x=>x.Count)</strong></td></tr>}
                 </tbody></table></div>
             }
         </Card>
@@ -144,6 +150,8 @@ else
     private IEnumerable<UserMonthlyGroup> DailyUsers => _dashboard.DailyUserOperations.GroupBy(x=>new{x.UserName,x.DisplayOrder}).OrderBy(x=>x.Key.DisplayOrder).ThenBy(x=>x.Key.UserName).Select(x=>new UserMonthlyGroup(x.Key.UserName,x.ToList()));
     private static readonly string[] WeekTitles = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
     private sealed record UserMonthlyGroup(string UserName,List<MonthlyUserOperationDto> Operations);
+    private static string AgeClass(int days) => days < 3 ? "age-green" : days < 7 ? "age-orange" : days <= 10 ? "age-purple" : "age-red";
+    private static string AgeTitle(int days) => $"{days} روز در این مرحله";
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
 

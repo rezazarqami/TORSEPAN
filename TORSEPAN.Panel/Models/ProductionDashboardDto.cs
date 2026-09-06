@@ -56,7 +56,9 @@ public sealed class MonthlyUserOperationDto
 public sealed class ProductionQueueItemDto
 {
     public string Stage { get; set; } = string.Empty;
+    public bool ColorByAge { get; set; } = true;
     public List<string> Codes { get; set; } = [];
+    public List<ProductionQueueCodeDto> Items { get; set; } = [];
     public List<ProductionQueueGroupDto> Groups { get; set; } = [];
 }
 
@@ -65,4 +67,11 @@ public sealed class ProductionQueueGroupDto
     public string UserName { get; set; } = string.Empty;
     public string BowlTypeLabel { get; set; } = string.Empty;
     public List<string> Codes { get; set; } = [];
+    public List<ProductionQueueCodeDto> Items { get; set; } = [];
+}
+
+public sealed class ProductionQueueCodeDto
+{
+    public string Code { get; set; } = string.Empty;
+    public int DaysInStage { get; set; }
 }

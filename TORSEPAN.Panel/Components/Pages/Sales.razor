@@ -3,26 +3,41 @@
 @using Microsoft.AspNetCore.Authorization
 @inject ProductionService ProductionService
 @inject BowlService BowlService
+@inject TORSEPAN.Panel.Services.Api.AccountingService AccountingService
 @inject IJSRuntime JS
 
-<PageTitle>فروش</PageTitle>
-<PageHeader Title="فروش" SubTitle="سازهای فروخته‌شده و کاسه‌های صادراتی ارسال‌شده" />
+<PageTitle>فروش</PageTitle><PageHeader Title="فروش" SubTitle="سازهای فروخته‌شده و کاسه‌های صادراتی ارسال‌شده" />
 <div class="mb-4"><input class="form-control" placeholder="جست‌وجوی کد، نوع، خریدار یا متریال..." @bind="_search" @bind:event="oninput" /></div>
 <Card>
-    @if (_loading) { <div class="text-center p-5"><div class="spinner-border"></div></div> }
-    else if (!Items.Any()) { <EmptyState Title="هنوز فروشی ثبت نشده است" Description="سازهای فروخته‌شده و کاسه‌های صادراتی ارسال‌شده اینجا نمایش داده می‌شوند." /> }
-    else
-    {
-        <DataTable><thead><tr><th>نوع</th><th>کد</th><th>خریدار</th><th>قیمت</th><th>مقصد</th><th>متریال</th><th>اسکیل</th><th>ثبت‌کننده</th><th>تاریخ</th><th>حذف</th></tr></thead>
-        <tbody>@foreach(var item in Items){<tr><td><span class="badge @(item.IsBowl ? "bg-warning text-dark" : "bg-primary")">@item.ItemType</span></td><td><strong>@item.SerialNumber</strong></td><td>@item.BuyerName</td><td>@(item.Price?.ToString("N0") ?? "—")</td><td>@(string.IsNullOrWhiteSpace(item.Destination)?"—":item.Destination)</td><td>@item.MaterialName</td><td>@item.ScaleName</td><td>@item.SoldBy</td><td>@PersianDateTime.FormatDateTime(item.SoldAt)</td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></td></tr>}</tbody></DataTable>
-    }
+@if(_loading){<div class="text-center p-5"><div class="spinner-border"></div></div>}
+else if(!Items.Any()){<EmptyState Title="هنوز فروشی ثبت نشده است" Description="سازهای فروخته‌شده و کاسه‌های صادراتی ارسال‌شده اینجا نمایش داده می‌شوند." />}
+else{<DataTable><thead><tr><th>نوع</th><th>کد</th><th>خریدار</th><th>قیمت</th><th>مقصد</th><th>متریال</th><th>اسکیل</th><th>ثبت‌کننده</th><th>تاریخ</th><th>عملیات</th></tr></thead><tbody>@foreach(var item in Items){<tr><td><span class="badge @(item.IsBowl?"bg-warning text-dark":"bg-primary")">@item.ItemType</span></td><td><strong>@item.SerialNumber</strong></td><td>@(string.IsNullOrWhiteSpace(item.BuyerName)?"—":item.BuyerName)</td><td>@(item.Price?.ToString("N0")??"—")</td><td>@(string.IsNullOrWhiteSpace(item.Destination)?"—":item.Destination)</td><td>@item.MaterialName</td><td>@item.ScaleName</td><td>@item.SoldBy</td><td>@PersianDateTime.FormatDateTime(item.SoldAt)</td><td><div class="sale-actions">@if(!item.IsBowl){<button class="btn btn-sm btn-outline-primary" @onclick="()=>Edit(item)">ویرایش</button>}<AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></div></td></tr>}</tbody></DataTable>}
 </Card>
 
-@code {
-    private List<SaleItemDto> _items=[];
-    private bool _loading=true;
-    private string _search="";
+@if(_editing is not null)
+{
+<div class="edit-sale-overlay" @onclick="CloseEdit"><section class="edit-sale-dialog" role="dialog" aria-modal="true" @onclick:stopPropagation="true">
+    <header><div><small>تکمیل اطلاعات فروش</small><h3>ساز @_editing.SerialNumber</h3></div><button @onclick="CloseEdit">×</button></header>
+    <div class="edit-sale-fields">
+        <label><span>خریدار از حسابداری</span><select class="form-select" @bind="_partyId"><option value="">انتخاب نشده</option>@foreach(var p in _parties){<option value="@p.Id">@p.DisplayName</option>}</select></label>
+        <label><span>نام خریدار آزاد</span><input class="form-control" @bind="_buyer" placeholder="اختیاری" /></label>
+        <label><span>قیمت</span><input type="number" min="0" class="form-control" @bind="_price" placeholder="اختیاری" /></label>
+        <label><span>مقصد</span><input class="form-control" @bind="_destination" placeholder="اختیاری" /></label>
+        <label class="paid"><input type="checkbox" @bind="_isPaid" /><span>مبلغ کامل دریافت شده است</span></label>
+        @if(!_isPaid){<label><span>تاریخ سررسید</span><input type="date" class="form-control" @bind="_dueDate" /></label>}
+    </div>
+    @if(!string.IsNullOrWhiteSpace(_editError)){<div class="edit-error">@_editError</div>}
+    <footer><button class="btn btn-light" disabled="@_saving" @onclick="CloseEdit">انصراف</button><button class="btn btn-primary" disabled="@_saving" @onclick="SaveEdit">ذخیره تغییرات</button></footer>
+</section></div>
+}
+
+@code{
+    private List<SaleItemDto> _items=[];private List<TORSEPAN.Panel.Models.AccountingPartyDto> _parties=[];private bool _loading=true,_saving,_isPaid;private string _search="",_buyer="",_destination="";private SaleItemDto?_editing;private decimal?_price;private Guid?_partyId;private DateTime?_dueDate;private string?_editError;
     private IEnumerable<SaleItemDto> Items=>string.IsNullOrWhiteSpace(_search)?_items:_items.Where(x=>x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ItemType.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BuyerName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search,StringComparison.OrdinalIgnoreCase));
+    protected override async Task OnInitializedAsync(){await LoadAsync();}
+    private async Task LoadAsync(){_loading=true;try{var sales=ProductionService.GetSalesAsync();var parties=AccountingService.PartiesAsync();await Task.WhenAll(sales,parties);_items=(await sales).ToList();_parties=await parties;}finally{_loading=false;}}
+    private void Edit(SaleItemDto item){_editing=item;_buyer=item.BuyerName;_destination=item.Destination;_price=item.Price;_partyId=item.PartyId;_isPaid=item.Price.HasValue&&item.PaidAmount==item.Price.Value;_dueDate=item.DueDate;_editError=null;}
+    private void CloseEdit(){if(!_saving)_editing=null;}
+    private async Task SaveEdit(){if(_editing is null)return;_saving=true;_editError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_partyId);await ProductionService.UpdateSaleAsync(_editing.HandpanId,party?.Name??_buyer.Trim(),_price,_destination.Trim(),party?.Id,_isPaid,_dueDate);_editing=null;await LoadAsync();}catch{_editError="ذخیره اطلاعات فروش انجام نشد. مقادیر را بررسی و دوباره تلاش کنید.";}finally{_saving=false;}}
     private async Task DeleteAsync(SaleItemDto item){if(!await JS.InvokeAsync<bool>("confirm",$"رکورد {item.ItemType} با کد {item.SerialNumber} و تمام سوابق آن برای همیشه حذف شود؟"))return;if(item.IsBowl)await BowlService.DeleteAsync(item.HandpanId);else await ProductionService.DeleteAsync(item.HandpanId);_items.Remove(item);}
-    protected override async Task OnAfterRenderAsync(bool firstRender){if(!firstRender)return;try{_items=(await ProductionService.GetSalesAsync()).ToList();}finally{_loading=false;StateHasChanged();}}
 }

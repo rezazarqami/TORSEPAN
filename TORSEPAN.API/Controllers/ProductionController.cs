@@ -100,6 +100,14 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Warehouse()
         => Ok(await _mediator.Send(new GetWarehouseInventoryQuery()));
 
+    [HttpGet("warehouse/{handpanId:guid}/details")]
+    public async Task<IActionResult> WarehouseDetails(Guid handpanId)
+    {
+        var items = await _mediator.Send(new GetWarehouseInventoryQuery(handpanId));
+        var item = items.FirstOrDefault();
+        return item is null ? NotFound() : Ok(item);
+    }
+
     [HttpGet("finished")]
     public async Task<IActionResult> Finished()
         => Ok(await _mediator.Send(new GetFinishedHandpansQuery()));
@@ -144,31 +152,11 @@ public sealed class ProductionController : ControllerBase
     [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> Sell(Guid handpanId, [FromBody] SellHandpanRequest request)
     {
-        var party = request.PartyId.HasValue
-            ? await _db.AccountingParties.FirstOrDefaultAsync(x => x.Id == request.PartyId && x.IsActive)
-            : null;
-        if (request.PartyId.HasValue && party is null)
-            return BadRequest("شخص انتخاب‌شده معتبر نیست.");
-
         await using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            var buyer = party?.Name ?? request.BuyerName;
-            await _mediator.Send(new SellHandpanCommand(handpanId, buyer, request.Price, request.Destination));
-
-            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-            var serialNumber = await _db.Handpans.Where(x => x.Id == handpanId).Select(x => x.SerialNumber).SingleAsync();
-            _db.AccountingDocuments.Add(new AccountingDocument(
-                AccountingDocumentType.Revenue,
-                $"فروش ساز {serialNumber}",
-                request.Price,
-                request.IsPaid ? request.Price : 0,
-                party?.Id,
-                handpanId,
-                request.IsPaid ? null : request.DueDate,
-                $"مقصد: {request.Destination}",
-                userId));
-            await _db.SaveChangesAsync();
+            var error = await SellOneAsync(handpanId, request);
+            if (error is not null) return BadRequest(error);
             await transaction.CommitAsync();
             return NoContent();
         }
@@ -179,9 +167,90 @@ public sealed class ProductionController : ControllerBase
         }
     }
 
+    [HttpPost("sales/bulk")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
+    public async Task<IActionResult> SellBulk([FromBody] BulkSellHandpansRequest request)
+    {
+        var ids = request.HandpanIds.Distinct().ToList();
+        if (ids.Count == 0) return BadRequest("حداقل یک ساز را انتخاب کنید.");
+        if (ids.Count > 200) return BadRequest("در هر مرحله حداکثر ۲۰۰ ساز قابل ثبت است.");
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        try
+        {
+            foreach (var id in ids)
+            {
+                var error = await SellOneAsync(id, request.Sale);
+                if (error is not null) return BadRequest(error);
+            }
+            await transaction.CommitAsync();
+            return NoContent();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    [HttpPut("{handpanId:guid}/sale")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
+    public async Task<IActionResult> UpdateSale(Guid handpanId, [FromBody] SellHandpanRequest request)
+    {
+        var party = request.PartyId.HasValue ? await _db.AccountingParties.FirstOrDefaultAsync(x => x.Id == request.PartyId && x.IsActive) : null;
+        if (request.PartyId.HasValue && party is null) return BadRequest("شخص انتخاب‌شده معتبر نیست.");
+        var handpan = await _db.Handpans.FirstOrDefaultAsync(x => x.Id == handpanId);
+        if (handpan is null) return NotFound();
+        try { handpan.UpdateSaleDetails(party?.Name ?? request.BuyerName, request.Price, request.Destination); }
+        catch (InvalidOperationException) { return BadRequest("این ساز در وضعیت فروخته‌شده نیست."); }
+        var document = await _db.AccountingDocuments.FirstOrDefaultAsync(x => x.HandpanId == handpanId && x.Type == AccountingDocumentType.Revenue);
+        if (request.Price.HasValue)
+        {
+            var paid = request.IsPaid ? request.Price.Value : document?.PaidAmount ?? 0;
+            if (document is null)
+                _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {handpan.SerialNumber}", request.Price.Value, paid, party?.Id, handpanId, request.IsPaid ? null : request.DueDate, SaleNotes(request.Destination), CurrentUserId()));
+            else
+                try { document.UpdateSale(request.Price.Value, paid, party?.Id, request.IsPaid ? null : request.DueDate, SaleNotes(request.Destination)); }
+                catch (ArgumentOutOfRangeException) { return BadRequest("قیمت نمی‌تواند از مبلغی که قبلاً دریافت شده کمتر باشد."); }
+        }
+        else if (document is not null && document.PaidAmount == 0)
+            _db.AccountingDocuments.Remove(document);
+        else if (document is not null)
+            return BadRequest("به دلیل ثبت دریافت وجه، قیمت این فروش نمی‌تواند خالی شود.");
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    private async Task<string?> SellOneAsync(Guid handpanId, SellHandpanRequest request)
+    {
+        var party = request.PartyId.HasValue ? await _db.AccountingParties.FirstOrDefaultAsync(x => x.Id == request.PartyId && x.IsActive) : null;
+        if (request.PartyId.HasValue && party is null) return "شخص انتخاب‌شده معتبر نیست.";
+        var serial = await _db.Handpans.Where(x => x.Id == handpanId).Select(x => x.SerialNumber).FirstOrDefaultAsync();
+        if (serial is null) return "یکی از سازهای انتخاب‌شده پیدا نشد.";
+        await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, request.Price, request.Destination));
+        if (request.Price.HasValue)
+            _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {serial}", request.Price.Value, request.IsPaid ? request.Price.Value : 0, party?.Id, handpanId, request.IsPaid ? null : request.DueDate, SaleNotes(request.Destination), CurrentUserId()));
+        await _db.SaveChangesAsync();
+        return null;
+    }
+
+    private Guid CurrentUserId() => Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+    private static string? SaleNotes(string? destination) => string.IsNullOrWhiteSpace(destination) ? null : $"مقصد: {destination.Trim()}";
+
     [HttpGet("sales")]
     [Authorize(Roles = "Administrator,ProductionManager")]
-    public async Task<IActionResult> Sales() => Ok(await _mediator.Send(new GetSalesQuery()));
+    public async Task<IActionResult> Sales()
+    {
+        var items = (await _mediator.Send(new GetSalesQuery())).ToList();
+        var ids = items.Where(x => !x.IsBowl).Select(x => x.HandpanId).ToList();
+        var documents = await _db.AccountingDocuments.AsNoTracking().Where(x => x.HandpanId.HasValue && ids.Contains(x.HandpanId.Value) && x.Type == AccountingDocumentType.Revenue).ToListAsync();
+        foreach (var item in items.Where(x => !x.IsBowl))
+        {
+            var document = documents.FirstOrDefault(x => x.HandpanId == item.HandpanId);
+            if (document is null) continue;
+            item.PartyId = document.PartyId; item.PaidAmount = document.PaidAmount; item.DueDate = document.DueDate;
+        }
+        return Ok(items);
+    }
 
     [HttpDelete("{handpanId:guid}")]
     [Authorize(Roles = "Administrator")]
@@ -193,4 +262,5 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Rollback(Guid handpanId, CancellationToken cancellationToken)
         => await _rollbackService.RollbackHandpanAsync(handpanId, cancellationToken) ? NoContent() : BadRequest();
 }
-public sealed record SellHandpanRequest(string BuyerName, decimal Price, string Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate);
+public sealed record SellHandpanRequest(string? BuyerName, decimal? Price, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate);
+public sealed record BulkSellHandpansRequest(IReadOnlyCollection<Guid> HandpanIds, SellHandpanRequest Sale);

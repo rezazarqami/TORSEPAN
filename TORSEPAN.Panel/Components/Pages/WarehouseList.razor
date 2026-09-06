@@ -2,29 +2,83 @@
 @inject ProductionService ProductionService
 @inject TORSEPAN.Panel.Services.Api.AccountingService AccountingService
 @inject IJSRuntime JS
-<PageTitle>انبار سازها</PageTitle><PageHeader Title="انبار سازها" SubTitle="سازهای بسته‌بندی‌شده و آماده فروش" />
-<div class="mb-4"><input class="form-control" placeholder="جست‌وجوی کد ساز، کاسه، متریال یا اسکیل..." @bind="_search" @bind:event="oninput" /></div>
+<PageTitle>انبار سازها</PageTitle>
+<PageHeader Title="انبار سازها" SubTitle="سازهای بسته‌بندی‌شده و آماده فروش" />
+
+<div class="warehouse-tools">
+    <input class="form-control warehouse-search" placeholder="جست‌وجوی کد ساز، کاسه، متریال یا اسکیل..." @bind="_search" @bind:event="oninput" />
+    <button class="btn btn-success bulk-sale-button" disabled="@(_selected.Count == 0)" @onclick="BeginSelectedSale">فروش انتخاب‌شده‌ها <span>@_selected.Count</span></button>
+</div>
 <div class="warehouse-filter-bar">
-    <select class="form-select" @bind="_materialFilter">
-        <option value="">همه متریال‌ها</option>
-        @foreach(var name in _items.Select(x=>x.MaterialName).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x=>x))
-        {
-            <option value="@name">@name</option>
-        }
-    </select>
-    <select class="form-select" @bind="_scaleFilter">
-        <option value="">همه اسکیل‌ها</option>
-        @foreach(var name in _items.Select(x=>x.ScaleName).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x=>x))
-        {
-            <option value="@name">@name</option>
-        }
-    </select>
+    <select class="form-select" @bind="_materialFilter"><option value="">همه متریال‌ها</option>@foreach(var name in _items.Select(x=>x.MaterialName).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x=>x)){<option value="@name">@name</option>}</select>
+    <select class="form-select" @bind="_scaleFilter"><option value="">همه اسکیل‌ها</option>@foreach(var name in _items.Select(x=>x.ScaleName).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x=>x)){<option value="@name">@name</option>}</select>
     <button class="btn btn-primary" @onclick="ApplyFilters">اعمال</button>
 </div>
-<Card>@if(_loading){<div class="text-center p-5"><div class="spinner-border"></div></div>}else if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}else{<DataTable><thead><tr><th></th><th>کد ساز</th><th>کاسه رو</th><th>کاسه زیر</th><th>متریال</th><th>اسکیل</th><th>تاریخ ورود</th><th>فروش</th><th>حذف</th></tr></thead><tbody>
-@if(!Items.Any()){<tr><td colspan="9"><EmptyState Title="انبار خالی است" Description="ساز آماده فروشی در انبار وجود ندارد." /></td></tr>}
-@foreach(var item in Items){<tr><td><button class="btn btn-sm btn-outline-primary" @onclick="()=>Toggle(item.HandpanId)">@(_expanded.Contains(item.HandpanId)?"−":"+")</button></td><td>@item.SerialNumber</td><td>@item.TopBowlCode</td><td>@item.BottomBowlCode</td><td>@item.MaterialName</td><td>@item.ScaleName</td><td>@(item.WarehouseEntryDate.HasValue?PersianDateTime.FormatDateTime(item.WarehouseEntryDate.Value):null??"—")</td><td><button class="btn btn-sm btn-success" @onclick="()=>BeginSale(item)">فروخته شد</button></td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></td></tr>
-@if(_expanded.Contains(item.HandpanId)){<tr class="table-light"><td></td><td colspan="8"><div class="p-3 warehouse-detail"><div class="warehouse-packaging"><h6>اقلام بسته‌بندی ساز @item.SerialNumber</h6><div>@if(item.PackagingItems.Count==0){<span class="text-muted">ثبت نشده</span>}else{@foreach(var p in item.PackagingItems){<span class="badge bg-success me-2">✓ @p</span>}}</div></div><div class="warehouse-photo"><HandpanPhotoGallery HandpanId="@item.HandpanId" /></div><div class="warehouse-history"><div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>عملیات</th><th>انجام‌دهنده</th><th>زمان</th></tr></thead><tbody>@foreach(var op in item.Operations){<tr><td>@op.Operation</td><td>@op.PerformedBy</td><td>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</td></tr>}</tbody></table></div></div></div></td></tr>}}
-</tbody></DataTable>}</Card>
-@if(_selling is not null){<div class="modal d-block" style="background:rgba(0,0,0,.45)"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5>ثبت فروش ساز @_selling.SerialNumber</h5><button class="btn-close" @onclick="Cancel"></button></div><div class="modal-body"><label class="form-label">جست‌وجوی شخص یا شرکت</label><input class="form-control mb-2" @bind="_partySearch" @bind:event="oninput" placeholder="نام یا شرکت را جست‌وجو کنید..." /><select class="form-select mb-3" @bind="_selectedPartyId"><option value="">انتخاب خریدار از حسابداری</option>@foreach(var p in SaleParties){<option value="@p.Id">@p.DisplayName</option>}</select><label class="form-label">نام خریدار (اگر پرونده ندارد)</label><input class="form-control mb-3" @bind="_buyer" /><label class="form-label">قیمت</label><input type="number" min="0" class="form-control mb-3" @bind="_price" /><label class="form-label">مقصد</label><input class="form-control mb-3" @bind="_destination" placeholder="مثلاً کانادا" /><div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="sale-paid" @bind="_isPaid" /><label class="form-check-label" for="sale-paid">مبلغ کامل دریافت شده است</label></div>@if(!_isPaid){<label class="form-label">تاریخ سررسید پرداخت</label><input type="date" class="form-control" @bind="_dueDate" />}@if(!string.IsNullOrWhiteSpace(_saleError)){<div class="text-danger mt-2">@_saleError</div>}</div><div class="modal-footer"><button class="btn btn-secondary" @onclick="Cancel">انصراف</button><button class="btn btn-success" disabled="@_saving" @onclick="SellAsync">ثبت فروش و سند حسابداری</button></div></div></div></div>}
-@code{private List<WarehouseHandpanDto> _items=[];private List<TORSEPAN.Panel.Models.AccountingPartyDto>_parties=[];private bool _loading=true,_saving,_isPaid;private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_partySearch="";private string? _error,_saleError;private HashSet<Guid> _expanded=[];private WarehouseHandpanDto? _selling;private string _buyer="",_destination="";private decimal _price;private Guid?_selectedPartyId;private DateTime?_dueDate;private IEnumerable<TORSEPAN.Panel.Models.AccountingPartyDto>SaleParties=>_parties.Where(x=>string.IsNullOrWhiteSpace(_partySearch)||x.DisplayName.Contains(_partySearch,StringComparison.OrdinalIgnoreCase));private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(string.IsNullOrWhiteSpace(_search)||x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.TopBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BottomBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search,StringComparison.OrdinalIgnoreCase))&&(string.IsNullOrWhiteSpace(_appliedMaterialFilter)||x.MaterialName==_appliedMaterialFilter)&&(string.IsNullOrWhiteSpace(_appliedScaleFilter)||x.ScaleName==_appliedScaleFilter));protected override async Task OnInitializedAsync(){try{_items=(await ProductionService.GetWarehouseAsync()).ToList();_parties=await AccountingService.PartiesAsync();}catch(Exception e){_error=e.Message;}finally{_loading=false;}}private void ApplyFilters(){_appliedMaterialFilter=_materialFilter;_appliedScaleFilter=_scaleFilter;_expanded.Clear();}private async Task DeleteAsync(WarehouseHandpanDto item){if(!await JS.InvokeAsync<bool>("confirm",$"ساز {item.SerialNumber} و تمام سوابق آن برای همیشه حذف شود؟"))return;await ProductionService.DeleteAsync(item.HandpanId);_items.Remove(item);}private void Toggle(Guid id){if(!_expanded.Add(id))_expanded.Remove(id);}private void BeginSale(WarehouseHandpanDto x){_selling=x;_buyer="";_destination="";_partySearch="";_selectedPartyId=null;_isPaid=false;_dueDate=null;_price=0;_saleError=null;}private void Cancel(){_selling=null;}private async Task SellAsync(){if(_selling is null)return;var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);var buyer=party?.Name??_buyer.Trim();if(string.IsNullOrWhiteSpace(buyer)||string.IsNullOrWhiteSpace(_destination)){_saleError="خریدار و مقصد را وارد کنید.";return;}_saving=true;try{await ProductionService.SellAsync(_selling.HandpanId,buyer,_price,_destination.Trim(),party?.Id,_isPaid,_dueDate);_items.Remove(_selling);_selling=null;}catch{_saleError="ثبت فروش انجام نشد.";}finally{_saving=false;}}}
+
+<Card>
+@if(_loading){<div class="text-center p-5"><div class="spinner-border"></div></div>}
+else if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
+else
+{
+    <DataTable><thead><tr><th class="select-column"><input type="checkbox" aria-label="انتخاب همه سازهای نمایش‌داده‌شده" checked="@AllVisibleSelected" @onchange="ToggleAllVisible" /></th><th></th><th>کد ساز</th><th>کاسه رو</th><th>کاسه زیر</th><th>متریال</th><th>اسکیل</th><th>تاریخ ورود</th><th>فروش</th><th>حذف</th></tr></thead><tbody>
+    @if(!Items.Any()){<tr><td colspan="10"><EmptyState Title="انبار خالی است" Description="ساز آماده فروشی در انبار وجود ندارد." /></td></tr>}
+    @foreach(var item in Items)
+    {
+        <tr class="@(_selected.Contains(item.HandpanId)?"selected-row":null)">
+            <td class="select-column"><input type="checkbox" aria-label="انتخاب ساز @item.SerialNumber" checked="@_selected.Contains(item.HandpanId)" @onchange="e=>ToggleSelected(item.HandpanId,(bool?)e.Value==true)" /></td>
+            <td><button class="btn btn-sm btn-outline-primary" disabled="@_detailsLoading.Contains(item.HandpanId)" @onclick="()=>ToggleAsync(item)">@if(_detailsLoading.Contains(item.HandpanId)){<span class="spinner-border spinner-border-sm"></span>}else{@(_expanded.Contains(item.HandpanId)?"−":"+")}</button></td>
+            <td><strong>@item.SerialNumber</strong></td><td>@item.TopBowlCode</td><td>@item.BottomBowlCode</td><td>@item.MaterialName</td><td>@item.ScaleName</td><td>@(item.WarehouseEntryDate.HasValue?PersianDateTime.FormatDateTime(item.WarehouseEntryDate.Value):"—")</td>
+            <td><button class="btn btn-sm btn-success" @onclick="()=>BeginSale(item)">فروخته شد</button></td>
+            <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></td>
+        </tr>
+        @if(_expanded.Contains(item.HandpanId)){<tr class="table-light"><td></td><td colspan="9">@if(_detailErrors.Contains(item.HandpanId)){<div class="alert alert-warning m-2">دریافت جزئیات انجام نشد. <button class="btn btn-sm btn-outline-warning" @onclick="()=>RetryDetailsAsync(item)">تلاش دوباره</button></div>}else if(_detailsLoaded.Contains(item.HandpanId)){<div class="p-3 warehouse-detail"><div class="warehouse-packaging"><h6>اقلام بسته‌بندی ساز @item.SerialNumber</h6><div>@if(item.PackagingItems.Count==0){<span class="text-muted">ثبت نشده</span>}else{@foreach(var p in item.PackagingItems){<span class="badge bg-success me-2">✓ @p</span>}}</div></div><div class="warehouse-photo"><HandpanPhotoGallery HandpanId="@item.HandpanId" /></div><div class="warehouse-history"><div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>عملیات</th><th>انجام‌دهنده</th><th>زمان</th></tr></thead><tbody>@foreach(var op in item.Operations){<tr><td>@op.Operation</td><td>@op.PerformedBy</td><td>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</td></tr>}</tbody></table></div></div></div>}else{<div class="detail-loading"><span class="spinner-border spinner-border-sm"></span> در حال دریافت جزئیات ساز…</div>}</td></tr>}
+    }
+    </tbody></DataTable>
+}
+</Card>
+
+@if(_saleIds.Count > 0)
+{
+    <div class="sale-overlay" role="presentation" @onclick="Cancel">
+        <section class="sale-dialog" role="dialog" aria-modal="true" aria-labelledby="sale-title" @onclick:stopPropagation="true">
+            <header><div><span class="sale-eyebrow">ثبت خروج از انبار</span><h3 id="sale-title">@(_saleIds.Count==1?$"فروش ساز {SaleCodes.FirstOrDefault()}":$"فروش گروهی {_saleIds.Count} ساز")</h3></div><button class="sale-close" aria-label="بستن" @onclick="Cancel">×</button></header>
+            <div class="selected-sales">@foreach(var saleCode in SaleCodes){<span>@saleCode</span>}</div>
+            <div class="sale-hint">تمام اطلاعات زیر اختیاری است و بعداً از صفحه فروش قابل تکمیل یا ویرایش خواهد بود.</div>
+            <div class="sale-fields">
+                <label class="wide"><span>جست‌وجوی شخص یا شرکت</span><input class="form-control" @bind="_partySearch" @bind:event="oninput" placeholder="نام یا شرکت را جست‌وجو کنید..." /></label>
+                <label><span>خریدار از حسابداری</span><select class="form-select" @bind="_selectedPartyId"><option value="">انتخاب نشده</option>@foreach(var p in SaleParties){<option value="@p.Id">@p.DisplayName</option>}</select></label>
+                <label><span>نام خریدار آزاد</span><input class="form-control" @bind="_buyer" placeholder="اختیاری" /></label>
+                <label><span>قیمت هر ساز</span><input type="number" min="0" class="form-control" @bind="_price" placeholder="اختیاری" /></label>
+                <label><span>مقصد</span><input class="form-control" @bind="_destination" placeholder="مثلاً کانادا (اختیاری)" /></label>
+                <label class="paid-field"><input type="checkbox" @bind="_isPaid" /><span>مبلغ کامل دریافت شده است</span></label>
+                @if(!_isPaid){<label><span>تاریخ سررسید پرداخت</span><input type="date" class="form-control" @bind="_dueDate" /></label>}
+            </div>
+            @if(!string.IsNullOrWhiteSpace(_saleError)){<div class="sale-error">@_saleError</div>}
+            <footer><button class="btn btn-light" disabled="@_saving" @onclick="Cancel">انصراف</button><button class="btn btn-success" disabled="@_saving" @onclick="SellAsync">@if(_saving){<span class="spinner-border spinner-border-sm"></span>} ثبت فروش @(_saleIds.Count>1?$"{_saleIds.Count} ساز":"")</button></footer>
+        </section>
+    </div>
+}
+
+@code {
+    private List<WarehouseHandpanDto> _items=[]; private List<TORSEPAN.Panel.Models.AccountingPartyDto> _parties=[];
+    private readonly HashSet<Guid> _expanded=[]; private readonly HashSet<Guid> _selected=[]; private readonly HashSet<Guid> _detailsLoaded=[]; private readonly HashSet<Guid> _detailsLoading=[]; private readonly HashSet<Guid> _detailErrors=[]; private readonly List<Guid> _saleIds=[];
+    private bool _loading=true,_saving,_isPaid; private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_partySearch="",_buyer="",_destination="";
+    private string? _error,_saleError; private decimal? _price; private Guid? _selectedPartyId; private DateTime? _dueDate;
+    private IEnumerable<TORSEPAN.Panel.Models.AccountingPartyDto> SaleParties=>_parties.Where(x=>string.IsNullOrWhiteSpace(_partySearch)||x.DisplayName.Contains(_partySearch,StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(string.IsNullOrWhiteSpace(_search)||x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.TopBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BottomBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search,StringComparison.OrdinalIgnoreCase))&&(string.IsNullOrWhiteSpace(_appliedMaterialFilter)||x.MaterialName==_appliedMaterialFilter)&&(string.IsNullOrWhiteSpace(_appliedScaleFilter)||x.ScaleName==_appliedScaleFilter));
+    private bool AllVisibleSelected=>Items.Any()&&Items.All(x=>_selected.Contains(x.HandpanId));
+    private IEnumerable<string> SaleCodes=>_items.Where(x=>_saleIds.Contains(x.HandpanId)).Select(x=>x.SerialNumber);
+    protected override async Task OnInitializedAsync(){try{var inventoryTask=ProductionService.GetWarehouseAsync();var partiesTask=AccountingService.PartiesAsync();await Task.WhenAll(inventoryTask,partiesTask);_items=(await inventoryTask).ToList();_parties=await partiesTask;}catch(Exception e){_error=e.Message;}finally{_loading=false;}}
+    private void ApplyFilters(){_appliedMaterialFilter=_materialFilter;_appliedScaleFilter=_scaleFilter;_expanded.Clear();}
+    private void ToggleSelected(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
+    private void ToggleAllVisible(ChangeEventArgs e){var select=(bool?)e.Value==true;foreach(var item in Items.ToList()){if(select)_selected.Add(item.HandpanId);else _selected.Remove(item.HandpanId);}}
+    private async Task DeleteAsync(WarehouseHandpanDto item){if(!await JS.InvokeAsync<bool>("confirm",$"ساز {item.SerialNumber} و تمام سوابق آن برای همیشه حذف شود؟"))return;await ProductionService.DeleteAsync(item.HandpanId);_items.Remove(item);_selected.Remove(item.HandpanId);}
+    private async Task ToggleAsync(WarehouseHandpanDto item){if(!_expanded.Add(item.HandpanId)){_expanded.Remove(item.HandpanId);return;}if(!_detailsLoaded.Contains(item.HandpanId))await LoadDetailsAsync(item);}
+    private async Task RetryDetailsAsync(WarehouseHandpanDto item){_detailErrors.Remove(item.HandpanId);await LoadDetailsAsync(item);}
+    private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
+    private void BeginSale(WarehouseHandpanDto item){_selected.Clear();_selected.Add(item.HandpanId);OpenSale([item.HandpanId]);}
+    private void BeginSelectedSale()=>OpenSale(_selected.ToList());
+    private void OpenSale(IEnumerable<Guid> ids){_saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_destination="";_partySearch="";_selectedPartyId=null;_isPaid=false;_dueDate=null;_price=null;_saleError=null;}
+    private void Cancel(){if(_saving)return;_saleIds.Clear();}
+    private async Task SellAsync(){if(_saleIds.Count==0)return;_saving=true;_saleError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);await ProductionService.SellManyAsync(_saleIds,party?.Name??_buyer.Trim(),_price,_destination.Trim(),party?.Id,_isPaid,_dueDate);_items.RemoveAll(x=>_saleIds.Contains(x.HandpanId));_selected.Clear();_saleIds.Clear();}catch(HttpRequestException ex){_saleError=string.IsNullOrWhiteSpace(ex.Message)?"ثبت فروش انجام نشد.":"ثبت فروش انجام نشد؛ لطفاً دوباره تلاش کنید.";}finally{_saving=false;}}
+}

@@ -3,6 +3,7 @@
 @using TORSEPAN.Panel.Services.Api
 @inject HandpanPhotoService PhotoService
 @inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <section class="photo-gallery">
     @if (_loading) { <div class="gallery-empty"><div class="spinner-border spinner-border-sm"></div></div> }
@@ -22,14 +23,16 @@
     }
     <div class="gallery-upload-actions">
         <label class="gallery-action @(Uploading?"disabled":"")" title="گرفتن عکس با دوربین">
-            <span>📷</span> @(Uploading ? "ثبت..." : "دوربین")
-            <InputFile id="@CameraInputId" class="d-none" OnChange="UploadCameraAsync" accept="image/*" capture="environment" disabled="@Uploading" />
+            <span>📷</span> <span data-camera-label>دوربین</span>
+            <input id="@CameraInputId" class="d-none" type="file" accept="image/*" capture="environment"
+                   onchange="handpanPhotos.uploadCamera(this, '@HandpanId')" disabled="@Uploading" />
         </label>
         <label class="gallery-action @(Uploading?"disabled":"")" title="انتخاب از گالری">
             <span>🖼️</span> گالری
             <InputFile id="@GalleryInputId" class="d-none" OnChange="UploadGalleryAsync" multiple accept="image/jpeg,image/png,image/webp" disabled="@Uploading" />
         </label>
     </div>
+    <div id="@(CameraInputId + "-status")" class="small mt-2" role="status" aria-live="polite"></div>
     @if(!string.IsNullOrWhiteSpace(_error)){<div class="text-danger small mt-2">@_error</div>}
 </section>
 @if(_showPreview && _mainUrl is not null)
@@ -48,13 +51,37 @@
     private Guid _loadedId,_selectedId; private string? _mainUrl,_error; private bool _loading,Uploading,_showPreview;
     private string GalleryInputId => $"handpan-photo-gallery-{HandpanId:N}";
     private string CameraInputId => $"handpan-photo-camera-{HandpanId:N}";
+    private DotNetObjectReference<HandpanPhotoGallery>? _cameraReference;
+    private string? _registeredInput;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_registeredInput == CameraInputId) return;
+        if (_registeredInput is not null) await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput);
+        _cameraReference ??= DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("handpanPhotos.register", CameraInputId, _cameraReference);
+        _registeredInput = CameraInputId;
+    }
+    [JSInvokable]
+    public async Task CameraUploaded(Guid photoId)
+    {
+        await LoadAsync();
+        if (_error is not null || !_photos.Any(x => x.Id == photoId))
+            throw new InvalidOperationException("Gallery refresh has not completed.");
+        await SelectAsync(photoId);
+        await InvokeAsync(StateHasChanged);
+    }
+    public async ValueTask DisposeAsync()
+    {
+        try { if (_registeredInput is not null) await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput); }
+        catch (JSDisconnectedException) { }
+        _cameraReference?.Dispose();
+    }
     protected override async Task OnParametersSetAsync(){if(HandpanId==Guid.Empty||HandpanId==_loadedId)return;_loadedId=HandpanId;await LoadAsync();}
-    private async Task LoadAsync(){_loading=true;try{_photos=await PhotoService.ListAsync(HandpanId);_thumbs.Clear();foreach(var p in _photos)_thumbs[p.Id]=await PhotoService.DataUrlAsync(HandpanId,p.Id,true);if(_photos.Count>0)await SelectAsync(_photos[0].Id);}catch{_error="بارگذاری عکس‌ها انجام نشد.";}finally{_loading=false;}}
+    private async Task LoadAsync(){_loading=true;_error=null;try{_photos=await PhotoService.ListAsync(HandpanId);_thumbs.Clear();foreach(var p in _photos)_thumbs[p.Id]=await PhotoService.DataUrlAsync(HandpanId,p.Id,true);if(_photos.Count>0)await SelectAsync(_photos[0].Id);}catch{_error="بارگذاری عکس‌ها انجام نشد.";}finally{_loading=false;}}
     private async Task SelectAsync(Guid id){_selectedId=id;_mainUrl=await PhotoService.DataUrlAsync(HandpanId,id,false);}
     private void OpenPreview()=>_showPreview=true;
     private void ClosePreview()=>_showPreview=false;
     private Task UploadGalleryAsync(InputFileChangeEventArgs _) => OptimizeAndUploadAsync(GalleryInputId,8);
-    private Task UploadCameraAsync(InputFileChangeEventArgs _) => OptimizeAndUploadAsync(CameraInputId,1);
     private async Task OptimizeAndUploadAsync(string inputId,int limit){Uploading=true;_error=null;try{var files=await JS.InvokeAsync<List<OptimizedPhoto>>("handpanPhotos.optimize",inputId);foreach(var file in files.Take(limit))await PhotoService.UploadAsync(HandpanId,file.Image,file.Thumbnail,file.Name);await LoadAsync();if(_photos.Count>0)await SelectAsync(_photos[^1].Id);}catch(Exception){_error="ثبت عکس انجام نشد؛ لطفاً دوباره امتحان کنید.";}finally{Uploading=false;}}
     private async Task DeleteAsync(HandpanPhotoDto photo){if(!await JS.InvokeAsync<bool>("confirm","این عکس حذف شود؟"))return;await PhotoService.DeleteAsync(HandpanId,photo.Id);_photos.Remove(photo);_thumbs.Remove(photo.Id);if(_selectedId==photo.Id){_mainUrl=null;if(_photos.Count>0)await SelectAsync(_photos[0].Id);}}
     private sealed class OptimizedPhoto { public string Name { get; set; }="photo"; public byte[] Image { get; set; }=[]; public byte[] Thumbnail { get; set; }=[]; }

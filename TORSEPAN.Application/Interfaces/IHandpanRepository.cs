@@ -14,6 +14,8 @@ public interface IHandpanRepository : IRepository<Handpan>
     Task<IEnumerable<Handpan>> GetReadyForPackagingAsync();
 
     Task<IEnumerable<Handpan>> GetWarehouseInventoryAsync();
+    Task<IEnumerable<Handpan>> GetWarehouseInventorySummaryAsync();
+    Task<Handpan?> GetWarehouseInventoryItemAsync(Guid handpanId);
 
     Task<IEnumerable<Handpan>> GetAllWithAssemblyAsync();
     Task<IEnumerable<Handpan>> GetSoldInventoryAsync();

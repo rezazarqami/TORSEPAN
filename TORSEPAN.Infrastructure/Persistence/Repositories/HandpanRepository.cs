@@ -68,6 +68,31 @@ public class HandpanRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Handpan>> GetWarehouseInventorySummaryAsync()
+    {
+        return await _dbSet.AsNoTracking()
+            .Where(x => x.Stage == ProductionStage.FinishedWarehouse)
+            .Include(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
+            .Include(x => x.Assembly).ThenInclude(x => x.BottomBowl)
+            .Include(x => x.Scale)
+            .OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Handpan?> GetWarehouseInventoryItemAsync(Guid handpanId)
+    {
+        return await _dbSet.AsNoTracking().AsSplitQuery()
+            .Where(x => x.Id == handpanId && x.Stage == ProductionStage.FinishedWarehouse)
+            .Include(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
+            .Include(x => x.Assembly).ThenInclude(x => x.BottomBowl)
+            .Include(x => x.Assembly).ThenInclude(x => x.ProductionEvents).ThenInclude(x => x.User)
+            .Include(x => x.Scale)
+            .Include(x => x.ProductionEvents).ThenInclude(x => x.User)
+            .Include(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.ProductionEvents).ThenInclude(x => x.User)
+            .Include(x => x.Assembly).ThenInclude(x => x.BottomBowl).ThenInclude(x => x.ProductionEvents).ThenInclude(x => x.User)
+            .SingleOrDefaultAsync();
+    }
+
     public async Task<IEnumerable<Handpan>> GetAllWithAssemblyAsync()
     {
         return await _dbSet

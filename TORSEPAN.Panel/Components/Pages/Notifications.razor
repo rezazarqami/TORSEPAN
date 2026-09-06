@@ -1,0 +1,77 @@
+@page "/notifications"
+@inject PersonalWorkspaceService Workspace
+<PageTitle>پیام‌های من</PageTitle>
+<header class="inbox-heading"><div><span>ارتباطات کارگاه</span><h2>پیام‌های من</h2><p>اطلاعیه‌ها و پیام‌های مدیریت؛ بدون نیاز به پاسخ</p></div><a class="btn btn-outline-primary" href="/">داشبورد</a></header>
+<AuthorizeView Roles="Administrator,ProductionManager">
+    <Authorized>
+        <section class="message-compose">
+            <button class="btn btn-primary" disabled="@_sending" @onclick="ToggleCompose">@(_compose?"بستن فرم":"＋ ارسال پیام جدید")</button>
+            @if(_compose){
+                <div class="compose-grid">
+                    <div><label for="message-recipient">گیرنده</label><select id="message-recipient" class="form-select" @bind="_recipient"><option value="">انتخاب کنید</option><option value="all">همه اعضای فعال کارگاه</option>@foreach(var u in _recipients){<option value="@u.Id">@u.Name</option>}</select></div>
+                    <div><label for="message-title">عنوان پیام</label><input id="message-title" class="form-control" maxlength="150" @bind="_title" /></div>
+                    <div class="compose-body"><label for="message-body">متن پیام</label><textarea id="message-body" class="form-control" maxlength="4000" rows="5" @bind="_body"></textarea></div>
+                </div>
+                <div class="compose-footer"><small>پیام به گیرنده انتخاب‌شده ارسال می‌شود و امکان پاسخ ندارد.</small><button class="btn btn-success" disabled="@_sending" @onclick="Send">@(_sending?"در حال ارسال…":"ارسال پیام")</button></div>
+            }
+        </section>
+    </Authorized>
+</AuthorizeView>
+@if(_error is not null){<div class="alert alert-danger" role="alert">@_error</div>}
+@if(_success is not null){<div class="alert alert-success" role="status">@_success</div>}
+<div class="inbox-toolbar"><strong>@(Workspace.UnreadCount?.ToString()??"—") پیام خوانده‌نشده</strong><button class="btn btn-outline-secondary" disabled="@_loading" @onclick="()=>Load(1)">به‌روزرسانی</button></div>
+@if(_loading){<div class="inbox-empty">در حال دریافت پیام‌ها…</div>}
+else if(_inbox.Items.Count==0){<div class="inbox-empty">هنوز پیامی برای شما ارسال نشده است.</div>}
+else{
+    @foreach(var item in _inbox.Items){
+        <article class="inbox-message @(item.ReadAt is null?"unread":"")" @key="item.Id">
+            <button class="message-header" @onclick="()=>Open(item)" aria-expanded="@(_open==item.Id)">
+                <div><strong>@item.Title</strong><small>از طرف @item.SenderName • @PersianDateTime.FormatDateTime(item.CreatedAt)</small></div>
+                <span>@(item.ReadAt is null?"خوانده‌نشده":"خوانده‌شده")</span>
+            </button>
+            @if(_open==item.Id){<div class="message-body">@item.Body</div>}
+        </article>
+    }
+    <div class="inbox-pager"><button class="btn btn-outline-secondary" disabled="@(_inbox.Page<=1)" @onclick="()=>Load(_inbox.Page-1)">قبلی</button><span>صفحه @_inbox.Page از @Math.Max(1,(int)Math.Ceiling(_inbox.Total/20d))</span><button class="btn btn-outline-secondary" disabled="@(_inbox.Page*20>=_inbox.Total)" @onclick="()=>Load(_inbox.Page+1)">بعدی</button></div>
+}
+@code{
+    private InboxDto _inbox=new();
+    private List<MessageRecipientDto> _recipients=[];
+    private bool _loading,_sending,_compose;
+    private Guid? _open;
+    private Guid _sendId=Guid.NewGuid();
+    private string _recipient="",_title="",_body="";
+    private string? _error,_success;
+    protected override async Task OnInitializedAsync()=>await Load(1);
+    private async Task Load(int page){
+        if(_loading)return;_loading=true;_error=null;
+        try{_inbox=await Workspace.InboxAsync(page);await Workspace.RefreshUnreadAsync();}
+        catch{_error="دریافت پیام‌ها انجام نشد؛ دوباره تلاش کنید.";}
+        finally{_loading=false;}
+    }
+    private async Task Open(InboxMessageDto item){
+        _open=_open==item.Id?null:item.Id;
+        if(_open.HasValue&&item.ReadAt is null){
+            try{await Workspace.ReadAsync(item.Id);item.ReadAt=DateTime.UtcNow;}
+            catch{_error="پیام نمایش داده شد اما وضعیت خوانده‌شدن ثبت نشد؛ دوباره بازش کنید.";}
+        }
+    }
+    private async Task ToggleCompose(){
+        if(_compose){_compose=false;return;}
+        try{_recipients=await Workspace.RecipientsAsync();_compose=true;_error=null;}
+        catch{_error="ارسال پیام فقط برای مدیر و ادمین فعال است؛ اتصال را هم بررسی کنید.";}
+    }
+    private async Task Send(){
+        if(_sending)return;_error=_success=null;
+        var broadcast=_recipient=="all";Guid? recipient=Guid.TryParse(_recipient,out var id)?id:null;
+        if(string.IsNullOrWhiteSpace(_title)||string.IsNullOrWhiteSpace(_body)||(!broadcast&&!recipient.HasValue)){_error="عنوان، متن و گیرنده را تکمیل کنید.";return;}
+        _sending=true;
+        try{
+            await Workspace.SendAsync(_sendId,_title.Trim(),_body.Trim(),broadcast,recipient);
+            _sendId=Guid.NewGuid();_title=_body=_recipient="";_compose=false;
+            await Load(1);_success="پیام با موفقیت ارسال شد.";
+        }catch{_error="تأیید ارسال دریافت نشد؛ با تلاش دوباره همین پیام تکراری ثبت نمی‌شود.";}
+        finally{_sending=false;}
+    }
+}
+

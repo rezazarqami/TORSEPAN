@@ -30,6 +30,9 @@ public sealed class GetProductionDashboardQueryHandler
         var monthStartTehran = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
         var monthStartUtc = DateTime.SpecifyKind(monthStartTehran.AddHours(-3.5), DateTimeKind.Utc);
         var allEvents = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, EventResult.Completed);
+        var bowlStageDates = allEvents.Where(x => x.BowlId.HasValue && !x.Description.StartsWith("NOTE:"))
+            .GroupBy(x => x.BowlId!.Value)
+            .ToDictionary(x => x.Key, x => x.Max(e => e.EventDate));
         var events = allEvents.Where(x => x.EventDate >= monthStartUtc).ToList();
         var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Design, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune, ProductionAction.QualityCheck, ProductionAction.Packaging };
         List<MonthlyUserOperationResponse> Summarize(IEnumerable<TORSEPAN.Domain.Entities.ProductionEvent> source) => source.Where(x => tracked.Contains(x.Action) &&
@@ -81,11 +84,12 @@ public sealed class GetProductionDashboardQueryHandler
             [
                 BowlQueue("آماده دیمپل", ProductionStage.WaitingForDimple),
                 GroupedBowlQueue("آماده شیپ", ProductionStage.WaitingForShape, ProductionAction.Dimple, splitByBowlType: true),
+                BowlQueue("آماده پخت", ProductionStage.WaitingForBake),
                 GroupedBowlQueue("آماده تیون", ProductionStage.WaitingForTune, ProductionAction.Shape, splitByBowlType: true),
                 GroupedBowlQueue("آماده چسب — کاسه رو", ProductionStage.WaitingForGlue, ProductionAction.Tune, BowlType.Top),
                 GroupedBowlQueue("آماده چسب — کاسه زیر", ProductionStage.WaitingForGlue, ProductionAction.Tune, BowlType.Bottom),
                 HandpanQueue("اتاق چسب", ProductionStage.GlueRoom),
-                BowlQueue("آماده بسته‌بندی صادراتی", ProductionStage.WaitingForExportPackaging),
+                SplitBowlQueue("آماده بسته‌بندی صادراتی", ProductionStage.WaitingForExportPackaging),
                 GroupedHandpanQueue("آماده فاین تیون", ProductionStage.WaitingForFinalTune),
                 HandpanQueue("آماده کنترل کیفیت (QC)", ProductionStage.WaitingForQualityControl),
                 HandpanQueue("آماده بسته‌بندی", ProductionStage.WaitingForPackaging),
@@ -96,13 +100,16 @@ public sealed class GetProductionDashboardQueryHandler
         ProductionQueueItemResponse BowlQueue(string title, ProductionStage stage) => new()
         {
             Stage = title,
-            Codes = bowls.Where(x => x.Stage == stage).Select(x => x.ProductionCode).OrderBy(x => x).ToList()
+            Codes = bowls.Where(x => x.Stage == stage).Select(x => x.ProductionCode).OrderBy(x => x).ToList(),
+            Items = bowls.Where(x => x.Stage == stage).Select(x => BowlItem(x.Id, x.ProductionCode)).OrderBy(x => x.Code).ToList()
         };
 
-        ProductionQueueItemResponse HandpanQueue(string title, ProductionStage stage) => new()
+        ProductionQueueItemResponse HandpanQueue(string title, ProductionStage stage, bool colorByAge = true) => new()
         {
             Stage = title,
-            Codes = allHandpans.Where(x => x.Stage == stage).Select(x => x.SerialNumber).OrderBy(x => x).ToList()
+            ColorByAge = colorByAge,
+            Codes = allHandpans.Where(x => x.Stage == stage).Select(x => x.SerialNumber).OrderBy(x => x).ToList(),
+            Items = allHandpans.Where(x => x.Stage == stage).Select(HandpanItem).OrderBy(x => x.Code).ToList()
         };
 
         ProductionQueueItemResponse GroupedBowlQueue(string title, ProductionStage stage,
@@ -113,6 +120,7 @@ public sealed class GetProductionDashboardQueryHandler
             {
                 Stage = title,
                 Codes = items.Select(x => x.ProductionCode).OrderBy(x => x).ToList(),
+                Items = items.Select(x => BowlItem(x.Id, x.ProductionCode)).OrderBy(x => x.Code).ToList(),
                 Groups = items.GroupBy(x => new
                     {
                         UserName = PerformerForBowl(x.Id, action),
@@ -125,7 +133,8 @@ public sealed class GetProductionDashboardQueryHandler
                         BowlTypeLabel = x.Key.BowlType.HasValue
                             ? x.Key.BowlType == BowlType.Top ? "کاسه رو" : "کاسه زیر"
                             : string.Empty,
-                        Codes = x.Select(b => b.ProductionCode).OrderBy(code => code).ToList()
+                        Codes = x.Select(b => b.ProductionCode).OrderBy(code => code).ToList(),
+                        Items = x.Select(b => BowlItem(b.Id, b.ProductionCode)).OrderBy(item => item.Code).ToList()
                     }).ToList()
             };
         }
@@ -137,12 +146,14 @@ public sealed class GetProductionDashboardQueryHandler
             {
                 Stage = title,
                 Codes = items.Select(x => x.SerialNumber).OrderBy(x => x).ToList(),
+                Items = items.Select(HandpanItem).OrderBy(x => x.Code).ToList(),
                 Groups = items.GroupBy(x => PerformerForBowl(x.Assembly.TopBowlId, ProductionAction.Tune))
                     .OrderBy(x => x.Key)
                     .Select(x => new ProductionQueueGroupResponse
                     {
                         UserName = string.IsNullOrWhiteSpace(x.Key) ? "نامشخص" : x.Key,
-                        Codes = x.Select(h => h.SerialNumber).OrderBy(code => code).ToList()
+                        Codes = x.Select(h => h.SerialNumber).OrderBy(code => code).ToList(),
+                        Items = x.Select(HandpanItem).OrderBy(item => item.Code).ToList()
                     }).ToList()
             };
         }
@@ -157,6 +168,40 @@ public sealed class GetProductionDashboardQueryHandler
                 ? productionEvent.User.UserName
                 : productionEvent.User.FullName;
         }
+
+        ProductionQueueCodeResponse BowlItem(Guid bowlId, string code) => new()
+        {
+            Code = code,
+            DaysInStage = DaysSince(bowlStageDates.GetValueOrDefault(bowlId))
+        };
+
+        ProductionQueueItemResponse SplitBowlQueue(string title, ProductionStage stage)
+        {
+            var items = bowls.Where(x => x.Stage == stage).ToList();
+            return new ProductionQueueItemResponse
+            {
+                Stage = title,
+                Codes = items.Select(x => x.ProductionCode).OrderBy(x => x).ToList(),
+                Items = items.Select(x => BowlItem(x.Id, x.ProductionCode)).OrderBy(x => x.Code).ToList(),
+                Groups = items.GroupBy(x => x.BowlType).OrderBy(x => x.Key)
+                    .Select(x => new ProductionQueueGroupResponse
+                    {
+                        BowlTypeLabel = x.Key == BowlType.Top ? "کاسه رو" : "کاسه زیر",
+                        Codes = x.Select(b => b.ProductionCode).OrderBy(code => code).ToList(),
+                        Items = x.Select(b => BowlItem(b.Id, b.ProductionCode)).OrderBy(item => item.Code).ToList()
+                    }).ToList()
+            };
+        }
+
+        ProductionQueueCodeResponse HandpanItem(TORSEPAN.Domain.Entities.Handpan handpan) => new()
+        {
+            Code = handpan.SerialNumber,
+            DaysInStage = DaysSince(handpan.UpdatedAt ?? handpan.CreatedAt)
+        };
+
+        int DaysSince(DateTime? enteredAt) => enteredAt.HasValue
+            ? Math.Max(0, (int)(DateTime.UtcNow - enteredAt.Value).TotalDays)
+            : 0;
     }
 
     private static string OperationTitle(ProductionAction action) => action switch

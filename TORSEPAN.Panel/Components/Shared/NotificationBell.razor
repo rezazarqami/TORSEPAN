@@ -1,0 +1,18 @@
+@inject PersonalWorkspaceService Workspace
+@inject NavigationManager Navigation
+@implements IDisposable
+<a class="notification-bell" href="/notifications" title="صندوق پیام‌های من" aria-label="@Label">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+    @if(Workspace.UnreadCount>0){<span class="unread-count">@(Workspace.UnreadCount>99?"99+":Workspace.UnreadCount.ToString())</span>}
+    @if(Workspace.UnreadCount is null){<span class="unavailable" title="شمارنده پیام‌ها در دسترس نیست">•</span>}
+</a>
+@code{
+    private bool _disposed,_loading;
+    private string Label=>Workspace.UnreadCount.HasValue?$"پیام‌ها؛ {Workspace.UnreadCount} خوانده‌نشده":"پیام‌ها؛ شمارنده در دسترس نیست";
+    protected override async Task OnInitializedAsync(){Workspace.UnreadChanged+=Changed;Navigation.LocationChanged+=LocationChanged;await Load();}
+    private async Task Load(){if(_loading||_disposed)return;_loading=true;try{await Workspace.RefreshUnreadAsync();}finally{_loading=false;}}
+    private void Changed(){if(!_disposed)_=InvokeAsync(StateHasChanged);}
+    private async void LocationChanged(object? sender,LocationChangedEventArgs e){try{await InvokeAsync(Load);}catch{}}
+    public void Dispose(){_disposed=true;Workspace.UnreadChanged-=Changed;Navigation.LocationChanged-=LocationChanged;}
+}
+

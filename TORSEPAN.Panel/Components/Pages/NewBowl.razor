@@ -1,29 +1,76 @@
 @page "/bowls/new"
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
+@using Microsoft.AspNetCore.Components.Authorization
 @inject BowlService BowlService
 @inject MaterialService MaterialService
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>ثبت کاسه</PageTitle>
-<PageHeader Title="ثبت کاسه جدید" SubTitle="مشخصات را انتخاب کنید و سپس کد پیشنهادی یا کد دلخواه خود را ثبت کنید" />
-<EditForm Model="_model" FormName="CreateBowl" OnValidSubmit="SaveAsync">
- <DataAnnotationsValidator /><ValidationSummary />
- @if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
- <div class="card p-4">
-  <div class="mb-3"><label class="form-label">متریال</label><InputSelect class="form-select" @bind-Value="_model.MaterialId" @bind-Value:after="RefreshSuggestionAsync"><option value="@Guid.Empty">انتخاب کنید...</option>@foreach(var material in _materials){<option value="@material.Id">@material.Name</option>}</InputSelect></div>
-  <div class="mb-3"><label class="form-label">نوع کاسه</label><InputSelect class="form-select" @bind-Value="_model.BowlType" @bind-Value:after="RefreshSuggestionAsync"><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></InputSelect></div>
-  @if(_model.BowlType==2){<div class="mb-3"><div class="form-check"><InputCheckbox class="form-check-input" @bind-Value="_model.HasNotes"/><label class="form-check-label">دارای نت</label></div></div>}
-  <div class="mb-2"><label class="form-label">کد کاسه</label><InputText class="form-control" @bind-Value="_model.ProductionCode" /></div>
-  <div class="alert alert-light border">@if(!string.IsNullOrWhiteSpace(_template)){<div>قالب این انتخاب: <strong dir="ltr">@_template</strong></div>}<div>آخرین کد ثبت‌شده با این انتخاب: <strong dir="ltr">@_lastCode</strong></div><div>کد پیشنهادی: <strong dir="ltr">@_suggestedCode</strong> <button type="button" class="btn btn-sm btn-outline-primary me-2" @onclick="UseSuggestedCode">استفاده از کد پیشنهادی</button></div><small class="text-muted">استفاده از کد پیشنهادی الزامی نیست و کد دلخواه نیز پذیرفته می‌شود.</small></div>
-  <button class="btn btn-primary" type="submit">ثبت کاسه</button>
- </div>
+<PageHeader Title="ثبت کاسه جدید" SubTitle="متریال و نوع کاسه را انتخاب کنید؛ کد استاندارد به‌صورت خودکار پیشنهاد می‌شود" />
+
+<EditForm Model="_model" FormName="CreateBowl" OnValidSubmit="SaveAsync" class="new-bowl-form">
+    <DataAnnotationsValidator />
+    <section class="bowl-form-card">
+        <div class="bowl-form-heading"><span>🥣</span><div><h3>مشخصات کاسه</h3><p>اطلاعات موردنیاز را در چند مرحله‌ی کوتاه وارد کنید.</p></div></div>
+        <ValidationSummary class="validation-summary" />
+        @if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
+
+        <div class="bowl-fields">
+            <label class="field-card">
+                <span class="field-title"><b>۱</b> متریال</span>
+                <InputSelect class="form-select" @bind-Value="_model.MaterialId" @bind-Value:after="RefreshSuggestionAsync">
+                    <option value="@Guid.Empty">متریال را انتخاب کنید</option>
+                    @foreach(var material in _materials){<option value="@material.Id">@material.Name</option>}
+                </InputSelect>
+            </label>
+            <label class="field-card">
+                <span class="field-title"><b>۲</b> نوع کاسه</span>
+                <InputSelect class="form-select" @bind-Value="_model.BowlType" @bind-Value:after="RefreshSuggestionAsync"><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></InputSelect>
+            </label>
+        </div>
+
+        @if(_model.BowlType==2)
+        {
+            <label class="notes-option"><InputCheckbox @bind-Value="_model.HasNotes" /><span><strong>دارای نت</strong><small>برای کاسه‌ی زیر، وجود نت را مشخص کنید.</small></span></label>
+        }
+
+        <div class="code-section">
+            <div class="code-section-title"><div><span>کد کاسه</span><small>بر اساس قالب متریال و نوع انتخاب‌شده</small></div>@if(_refreshing){<span class="spinner-border spinner-border-sm"></span>}</div>
+            <AuthorizeView Roles="Administrator,ProductionManager">
+                <Authorized Context="codeAuth"><InputText class="form-control code-input" dir="ltr" @bind-Value="_model.ProductionCode" placeholder="ابتدا متریال را انتخاب کنید" /></Authorized>
+                <NotAuthorized Context="codeAuth"><InputText class="form-control code-input" dir="ltr" readonly @bind-Value="_model.ProductionCode" placeholder="ابتدا متریال را انتخاب کنید" /></NotAuthorized>
+            </AuthorizeView>
+
+            @if(_model.MaterialId == Guid.Empty)
+            {
+                <div class="code-empty">برای مشاهده‌ی کد پیشنهادی، متریال را انتخاب کنید.</div>
+            }
+            else if(string.IsNullOrWhiteSpace(_suggestedCode))
+            {
+                <div class="code-warning">برای این متریال و نوع کاسه، قالب معتبر تعریف نشده است.</div>
+            }
+            else
+            {
+                <div class="code-info">
+                    <div><span>قالب</span><strong dir="ltr">@_template</strong></div>
+                    <div><span>آخرین کد ثبت‌شده</span><strong dir="ltr">@_lastCode</strong></div>
+                    <div class="suggested"><span>کد پیشنهادی بعدی</span><strong dir="ltr">@_suggestedCode</strong></div>
+                </div>
+                <button type="button" class="use-code-button" @onclick="UseSuggestedCode"><span>✓</span> استفاده از کد پیشنهادی</button>
+            }
+        </div>
+
+        <button class="btn btn-primary submit-bowl" type="submit" disabled="@(_saving || _refreshing || string.IsNullOrWhiteSpace(_model.ProductionCode))">@if(_saving){<span class="spinner-border spinner-border-sm"></span>} ثبت کاسه</button>
+    </section>
 </EditForm>
 
-@code{
- private readonly CreateBowlRequest _model=new(); private readonly List<MaterialDto> _materials=[]; private string? _error; private string _lastCode="—",_suggestedCode="",_template="";
- protected override async Task OnInitializedAsync(){_model.HasNotes=true;_model.BowlType=1;_model.InstrumentType=1;_materials.AddRange((await MaterialService.GetAsync()).Where(x=>x.Category==4));var suggestion=await BowlService.GetSuggestedCodeAsync();if(suggestion is not null){_lastCode=suggestion.LastCode;_suggestedCode=suggestion.SuggestedCode;_model.ProductionCode=_suggestedCode;}}
- private void UseSuggestedCode()=>_model.ProductionCode=_suggestedCode;
- private async Task RefreshSuggestionAsync(){var suggestion=await BowlService.GetSuggestedCodeAsync(_model.MaterialId==Guid.Empty?null:_model.MaterialId,_model.BowlType);if(suggestion is null)return;_lastCode=suggestion.LastCode;_suggestedCode=suggestion.SuggestedCode;_template=suggestion.Template;_model.ProductionCode=_suggestedCode;}
- private async Task SaveAsync(){try{_error=null;if(_model.BowlType==1)_model.HasNotes=true;var id=await BowlService.CreateAsync(_model);if(id.HasValue){Navigation.NavigateTo("/bowls",true);return;}_error="ثبت انجام نشد.";}catch(Exception ex){_error=ex.Message;}}
+@code {
+    private readonly CreateBowlRequest _model=new(); private readonly List<MaterialDto> _materials=[];
+    private string? _error; private string _lastCode="—",_suggestedCode="",_template=""; private bool _refreshing,_saving;
+    protected override async Task OnInitializedAsync(){_model.HasNotes=true;_model.BowlType=1;_model.InstrumentType=1;_materials.AddRange((await MaterialService.GetAsync()).Where(x=>x.Category==4));_model.ProductionCode="";}
+    private void UseSuggestedCode()=>_model.ProductionCode=_suggestedCode;
+    private async Task RefreshSuggestionAsync(){_error=null;if(_model.MaterialId==Guid.Empty){_lastCode="—";_suggestedCode="";_template="";_model.ProductionCode="";return;}_refreshing=true;try{var suggestion=await BowlService.GetSuggestedCodeAsync(_model.MaterialId,_model.BowlType);if(suggestion is null)return;_lastCode=suggestion.LastCode;_suggestedCode=suggestion.SuggestedCode;_template=suggestion.Template;_model.ProductionCode=_suggestedCode;}finally{_refreshing=false;}}
+    private async Task SaveAsync(){_saving=true;try{_error=null;var user=(await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;if(!user.IsInRole("Administrator")&&!user.IsInRole("ProductionManager"))_model.ProductionCode=_suggestedCode;if(_model.BowlType==1)_model.HasNotes=true;var id=await BowlService.CreateAsync(_model);if(id.HasValue){Navigation.NavigateTo("/bowls",true);return;}_error="ثبت انجام نشد.";}catch(Exception ex){_error=ex.Message;}finally{_saving=false;}}
 }

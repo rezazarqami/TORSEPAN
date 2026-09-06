@@ -9,11 +9,12 @@ public sealed class AuthStateProvider(TokenStorage storage)
 {
     private static readonly AuthenticationState Anonymous =
         new(new ClaimsPrincipal(new ClaimsIdentity()));
+    private AuthenticationState _current = Anonymous;
 
     public override Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         // هنگام Prerender به localStorage دسترسی نزن.
-        return Task.FromResult(Anonymous);
+        return Task.FromResult(_current);
     }
 
     public async Task RefreshAsync()
@@ -24,7 +25,8 @@ public sealed class AuthStateProvider(TokenStorage storage)
 
             if (string.IsNullOrWhiteSpace(token))
             {
-                NotifyAuthenticationStateChanged(Task.FromResult(Anonymous));
+                _current = Anonymous;
+                NotifyAuthenticationStateChanged(Task.FromResult(_current));
                 return;
             }
 
@@ -32,19 +34,19 @@ public sealed class AuthStateProvider(TokenStorage storage)
                 JwtParser.ParseClaims(token),
                 "jwt");
 
-            NotifyAuthenticationStateChanged(
-                Task.FromResult(
-                    new AuthenticationState(
-                        new ClaimsPrincipal(identity))));
+            _current = new AuthenticationState(new ClaimsPrincipal(identity));
+            NotifyAuthenticationStateChanged(Task.FromResult(_current));
         }
         catch
         {
-            NotifyAuthenticationStateChanged(Task.FromResult(Anonymous));
+            _current = Anonymous;
+            NotifyAuthenticationStateChanged(Task.FromResult(_current));
         }
     }
 
     public void NotifyUserLogout()
     {
-        NotifyAuthenticationStateChanged(Task.FromResult(Anonymous));
+        _current = Anonymous;
+        NotifyAuthenticationStateChanged(Task.FromResult(_current));
     }
 }
