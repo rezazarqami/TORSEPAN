@@ -98,4 +98,15 @@ function connectionEnv(result=true, probeResult=true) {
     assert.match(layoutCss,/width:\s*calc\(100% - 25px\)/);assert.match(layoutCss,/margin-right:\s*25px/);
     assert.doesNotMatch(warehouseCss,/warehouse-detail[^}]*100vw/);
     console.log("PASS mobile content reserves the menu rail without clipping the left edge");
+    const components=path.resolve(base,"../Components");
+    const salesPage=fs.readFileSync(path.join(components,"Pages/Sales.razor"),"utf8");
+    const warehousePage=fs.readFileSync(path.join(components,"Pages/WarehouseList.razor"),"utf8");
+    const confirmCss=fs.readFileSync(path.join(components,"Shared/AppConfirmDialog.razor.css"),"utf8");
+    const salesRollback=salesPage.slice(salesPage.indexOf("private bool RollbackBusy"));
+    const warehouseRollback=warehousePage.slice(warehousePage.indexOf("private bool RollbackBusy"),warehousePage.indexOf("private async Task ToggleAsync"));
+    assert.match(salesPage,/<AppConfirmDialog/);assert.match(warehousePage,/<AppConfirmDialog/);
+    assert.doesNotMatch(salesRollback,/JS\.InvokeAsync/);assert.doesNotMatch(warehouseRollback,/JS\.InvokeAsync/);
+    assert.match(confirmCss,/@media \(max-width: 520px\)/);
+    assert.match(salesPage,/class="sale-actions-cell"/);assert.match(warehousePage,/class="warehouse-admin-cell"/);
+    console.log("PASS rollback actions use the responsive in-app confirmation dialog");
 })().catch(error=>{console.error(error);process.exitCode=1;});

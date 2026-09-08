@@ -24,7 +24,7 @@
 else if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
 else
 {
-    <DataTable><thead><tr><th class="select-column">@if(_canSell){<input type="checkbox" aria-label="انتخاب همه سازهای نمایش‌داده‌شده" checked="@AllVisibleSelected" @onchange="ToggleAllVisible" />}</th><th></th><th>کد ساز</th><th>کاسه رو</th><th>کاسه زیر</th><th>متریال</th><th>اسکیل</th><th>تاریخ ورود</th><th>فروش</th><th>مدیریت</th></tr></thead><tbody>
+    <DataTable><thead><tr><th class="select-column">@if(_canSell){<input type="checkbox" aria-label="انتخاب همه سازهای نمایش‌داده‌شده" checked="@AllVisibleSelected" @onchange="ToggleAllVisible" />}</th><th></th><th>کد ساز</th><th>کاسه رو</th><th>کاسه زیر</th><th>متریال</th><th>اسکیل</th><th>تاریخ ورود</th><th>فروش</th><th class="warehouse-admin-cell">مدیریت</th></tr></thead><tbody>
     @if(!Items.Any()){<tr><td colspan="10"><EmptyState Title="انبار خالی است" Description="ساز آماده فروشی در انبار وجود ندارد." /></td></tr>}
     @foreach(var item in Items)
     {
@@ -33,13 +33,22 @@ else
             <td><button class="btn btn-sm btn-outline-primary" disabled="@_detailsLoading.Contains(item.HandpanId)" @onclick="()=>ToggleAsync(item)">@if(_detailsLoading.Contains(item.HandpanId)){<span class="spinner-border spinner-border-sm"></span>}else{@(_expanded.Contains(item.HandpanId)?"−":"+")}</button></td>
             <td><strong>@item.SerialNumber</strong></td><td>@item.TopBowlCode</td><td>@item.BottomBowlCode</td><td>@item.MaterialName</td><td>@item.ScaleName</td><td>@(item.WarehouseEntryDate.HasValue?PersianDateTime.FormatDateTime(item.WarehouseEntryDate.Value):"—")</td>
             <td>@if(_canSell){<button class="btn btn-sm btn-success" @onclick="()=>BeginSale(item)">فروخته شد</button>}</td>
-            <td><AuthorizeView Roles="Administrator"><div class="warehouse-admin-actions"><button class="btn btn-sm btn-outline-warning" disabled="@_rollingBack.Contains(item.HandpanId)" @onclick="()=>RollbackAsync(item)">@(_rollingBack.Contains(item.HandpanId)?"در حال بازگشت…":"بازگشت مرحله")</button><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></div></AuthorizeView></td>
+            <td class="warehouse-admin-cell"><AuthorizeView Roles="Administrator"><div class="warehouse-admin-actions"><button class="btn btn-sm btn-outline-warning rollback-action" title="بازگشت به مرحله قبل" disabled="@_rollingBack.Contains(item.HandpanId)" @onclick="()=>RequestRollback(item)">@(_rollingBack.Contains(item.HandpanId)?"در حال انجام…":"↩ بازگشت")</button><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></div></AuthorizeView></td>
         </tr>
         @if(_expanded.Contains(item.HandpanId)){<tr class="table-light"><td></td><td colspan="9">@if(_detailErrors.Contains(item.HandpanId)){<div class="alert alert-warning m-2">دریافت جزئیات انجام نشد. <button class="btn btn-sm btn-outline-warning" @onclick="()=>RetryDetailsAsync(item)">تلاش دوباره</button></div>}else if(_detailsLoaded.Contains(item.HandpanId)){<div class="p-3 warehouse-detail"><div class="warehouse-packaging"><h6>اقلام بسته‌بندی ساز @item.SerialNumber</h6><div>@if(item.PackagingItems.Count==0){<span class="text-muted">ثبت نشده</span>}else{@foreach(var p in item.PackagingItems){<span class="badge bg-success me-2">✓ @p</span>}}</div></div><div class="warehouse-photo"><HandpanPhotoGallery HandpanId="@item.HandpanId" /></div><div class="warehouse-history"><div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>عملیات</th><th>انجام‌دهنده</th><th>زمان</th></tr></thead><tbody>@foreach(var op in item.Operations){<tr><td>@op.Operation</td><td>@op.PerformedBy</td><td>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</td></tr>}</tbody></table></div></div></div>}else{<div class="detail-loading"><span class="spinner-border spinner-border-sm"></span> در حال دریافت جزئیات ساز…</div>}</td></tr>}
     }
     </tbody></DataTable>
 }
 </Card>
+
+<AppConfirmDialog IsOpen="@(_rollbackCandidate is not null)"
+                  Title="بازگشت از انبار سازها"
+                  Message="@RollbackMessage"
+                  ConfirmText="بازگشت به بسته‌بندی"
+                  Error="@_rollbackError"
+                  Busy="@RollbackBusy"
+                  OnConfirm="ConfirmRollbackAsync"
+                  OnCancel="CancelRollback" />
 
 @if(_showGallery)
 {
@@ -78,7 +87,7 @@ else
     private bool _canSell;
     private bool _loading=true,_saving,_isPaid,_galleryLoading,_showGallery; private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_partySearch="",_buyer="",_destination="";
     private List<WarehouseGalleryPhotoDto> _galleryPhotos=[]; private string? _galleryPreviewUrl;
-    private string? _error,_saleError; private decimal? _price; private Guid? _selectedPartyId; private DateTime? _dueDate;
+    private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price; private Guid? _selectedPartyId; private DateTime? _dueDate;
     private IEnumerable<TORSEPAN.Panel.Models.AccountingPartyDto> SaleParties=>_parties.Where(x=>string.IsNullOrWhiteSpace(_partySearch)||x.DisplayName.Contains(_partySearch,StringComparison.OrdinalIgnoreCase));
     private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(string.IsNullOrWhiteSpace(_search)||x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.TopBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BottomBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search,StringComparison.OrdinalIgnoreCase))&&(string.IsNullOrWhiteSpace(_appliedMaterialFilter)||x.MaterialName==_appliedMaterialFilter)&&(string.IsNullOrWhiteSpace(_appliedScaleFilter)||x.ScaleName==_appliedScaleFilter));
     private bool HasActiveFilter=>!string.IsNullOrWhiteSpace(_search)||!string.IsNullOrWhiteSpace(_appliedMaterialFilter)||!string.IsNullOrWhiteSpace(_appliedScaleFilter);
@@ -94,7 +103,11 @@ else
     private void ToggleSelected(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
     private void ToggleAllVisible(ChangeEventArgs e){var select=(bool?)e.Value==true;foreach(var item in Items.ToList()){if(select)_selected.Add(item.HandpanId);else _selected.Remove(item.HandpanId);}}
     private async Task DeleteAsync(WarehouseHandpanDto item){if(!await JS.InvokeAsync<bool>("confirm",$"ساز {item.SerialNumber} و تمام سوابق آن برای همیشه حذف شود؟"))return;await ProductionService.DeleteAsync(item.HandpanId);_items.Remove(item);_selected.Remove(item.HandpanId);}
-    private async Task RollbackAsync(WarehouseHandpanDto item){if(_rollingBack.Contains(item.HandpanId)||!await JS.InvokeAsync<bool>("confirm",$"ساز {item.SerialNumber} به مرحله «در انتظار بسته‌بندی عادی» برگردد؟ اقلام بسته‌بندی مصرف‌شده نیز به موجودی بازمی‌گردند."))return;_rollingBack.Add(item.HandpanId);try{await ProductionService.RollbackAsync(item.HandpanId);_items.Remove(item);_selected.Remove(item.HandpanId);}catch{await JS.InvokeVoidAsync("alert","بازگشت ساز انجام نشد. وضعیت ساز را دوباره بررسی کنید.");}finally{_rollingBack.Remove(item.HandpanId);}}
+    private bool RollbackBusy=>_rollbackCandidate is not null&&_rollingBack.Contains(_rollbackCandidate.HandpanId);
+    private string RollbackMessage=>_rollbackCandidate is null?string.Empty:$"ساز {_rollbackCandidate.SerialNumber} به مرحله «در انتظار بسته‌بندی عادی» برگردد؟ اقلام بسته‌بندی مصرف‌شده نیز به موجودی انبار مواد اولیه بازمی‌گردند.";
+    private void RequestRollback(WarehouseHandpanDto item){if(_rollingBack.Contains(item.HandpanId))return;_rollbackCandidate=item;_rollbackError=null;}
+    private void CancelRollback(){if(RollbackBusy)return;_rollbackCandidate=null;_rollbackError=null;}
+    private async Task ConfirmRollbackAsync(){var item=_rollbackCandidate;if(item is null||!_rollingBack.Add(item.HandpanId))return;_rollbackError=null;try{await ProductionService.RollbackAsync(item.HandpanId);_items.Remove(item);_selected.Remove(item.HandpanId);_rollbackCandidate=null;}catch{_rollbackError="بازگشت ساز انجام نشد. وضعیت ساز را دوباره بررسی کنید.";}finally{_rollingBack.Remove(item.HandpanId);}}
     private async Task ToggleAsync(WarehouseHandpanDto item){if(!_expanded.Add(item.HandpanId)){_expanded.Remove(item.HandpanId);return;}if(!_detailsLoaded.Contains(item.HandpanId))await LoadDetailsAsync(item);}
     private async Task RetryDetailsAsync(WarehouseHandpanDto item){_detailErrors.Remove(item.HandpanId);await LoadDetailsAsync(item);}
     private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
