@@ -41,6 +41,9 @@ public sealed class GetProductionDashboardQueryHandler
             .GroupBy(x => new
             {
                 x.UserId, x.User.UserName, x.User.FullName, x.User.DisplayOrder, x.Action,
+                PackagingKind = x.Action == ProductionAction.Packaging
+                    ? x.BowlId.HasValue ? 2 : 1
+                    : 0,
                 BowlType = x.Action is ProductionAction.Dimple or ProductionAction.Shape or ProductionAction.Tune
                     ? x.Bowl == null ? (BowlType?)null : x.Bowl.BowlType
                     : null
@@ -48,7 +51,7 @@ public sealed class GetProductionDashboardQueryHandler
             .Select(x => new MonthlyUserOperationResponse
             {
                 UserName = string.IsNullOrWhiteSpace(x.Key.FullName) ? x.Key.UserName : x.Key.FullName,
-                Operation = OperationTitle(x.Key.Action) + BowlTypeSuffix(x.Key.BowlType),
+                Operation = OperationTitle(x.Key.Action, x.Key.PackagingKind) + BowlTypeSuffix(x.Key.BowlType),
                 Count = x.Key.Action == ProductionAction.Glue
                     ? x.Where(e => e.HandpanId.HasValue &&
                                    e.Description.StartsWith("Glued with bowl"))
@@ -92,7 +95,7 @@ public sealed class GetProductionDashboardQueryHandler
                 SplitBowlQueue("آماده بسته‌بندی صادراتی", ProductionStage.WaitingForExportPackaging),
                 GroupedHandpanQueue("آماده فاین تیون", ProductionStage.WaitingForFinalTune),
                 HandpanQueue("آماده کنترل کیفیت (QC)", ProductionStage.WaitingForQualityControl),
-                HandpanQueue("آماده بسته‌بندی", ProductionStage.WaitingForPackaging),
+                HandpanQueue("آماده بسته‌بندی عادی", ProductionStage.WaitingForPackaging),
                 HandpanQueue("انبار سازها", ProductionStage.FinishedWarehouse)
             ]
         };
@@ -204,8 +207,8 @@ public sealed class GetProductionDashboardQueryHandler
             : 0;
     }
 
-    private static string OperationTitle(ProductionAction action) => action switch
-    { ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",ProductionAction.Design=>"دیزاین",ProductionAction.Furnace=>"پخت",ProductionAction.Glue=>"چسب",ProductionAction.Tune=>"تیون",ProductionAction.FineTune=>"فاین تیون",ProductionAction.QualityCheck=>"کنترل کیفیت",ProductionAction.Packaging=>"بسته‌بندی",_=>action.ToString() };
+    private static string OperationTitle(ProductionAction action, int packagingKind) => action switch
+    { ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",ProductionAction.Design=>"دیزاین",ProductionAction.Furnace=>"پخت",ProductionAction.Glue=>"چسب",ProductionAction.Tune=>"تیون",ProductionAction.FineTune=>"فاین تیون",ProductionAction.QualityCheck=>"کنترل کیفیت",ProductionAction.Packaging=>packagingKind==2?"بسته‌بندی صادراتی":"بسته‌بندی عادی",_=>action.ToString() };
     private static string BowlTypeSuffix(BowlType? bowlType) => bowlType switch
     { BowlType.Top => " کاسه رو", BowlType.Bottom => " کاسه زیر", _ => string.Empty };
     private static string PersianMonthName(int month) => new[] { "", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند" }[month];

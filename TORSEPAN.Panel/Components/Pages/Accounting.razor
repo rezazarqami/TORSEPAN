@@ -1,6 +1,6 @@
 @page "/accounting"
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "Administrator,ProductionManager")]
+@attribute [Authorize(Roles = "Administrator,ProductionManager,SalesAdmin")]
 @using TORSEPAN.Panel.Models
 @inject TORSEPAN.Panel.Services.Api.AccountingService AccountingService
 <PageTitle>حسابداری</PageTitle><PageHeader Title="حسابداری" SubTitle="اشخاص، درآمدها، هزینه‌ها و مطالبات" />

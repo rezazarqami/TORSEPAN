@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using TORSEPAN.Panel.Components;
 using TORSEPAN.Panel.Services;
@@ -30,6 +31,17 @@ builder.Services.AddRazorComponents()
     });
 
 builder.Services.AddAuthorizationCore();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        // Direct requests for protected component routes bootstrap through the
+        // public shell. The interactive router then applies the roles from the
+        // access token kept in browser storage.
+        options.LoginPath = "/";
+        options.AccessDeniedPath = "/";
+        options.ReturnUrlParameter = "returnUrl";
+    });
+builder.Services.AddAuthorization();
 builder.Services.AddHttpClient();
 
 builder.Services.AddCascadingAuthenticationState();
@@ -100,6 +112,9 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseAntiforgery();
 

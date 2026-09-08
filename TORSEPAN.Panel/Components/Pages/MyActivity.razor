@@ -15,6 +15,10 @@
 @if(_loading){<div class="personal-empty" role="status">در حال دریافت فعالیت‌ها…</div>}
 else if(_data is not null){
     <div class="activity-summary"><div><small>کل فعالیت‌ها</small><strong>@_data.Total</strong></div><div><small>تکمیل‌شده</small><strong>@_data.Completed</strong></div><div><small>بازه گزارش</small><strong class="range">@PersianDatePicker.Format(_data.From) — @PersianDatePicker.Format(_data.To)</strong></div></div>
+    <section class="personal-card operation-totals"><div class="operation-totals-heading"><div><span class="eyebrow">نمای کلی بازه</span><h3>خلاصه عملکرد من</h3></div><strong>@_data.Completed <small>عملیات تکمیل‌شده</small></strong></div>
+        @if(_data.Summary.Count==0){<div class="personal-empty compact">خلاصه‌ای برای این بازه وجود ندارد.</div>}
+        else{<div class="operation-total-grid">@foreach(var item in _data.Summary){<div><span>@item.Operation</span><strong>@item.Count</strong></div>}</div>}
+    </section>
     <section class="personal-card activity-table">
         @if(_data.Items.Count==0){<div class="personal-empty">در این بازه فعالیتی برای شما ثبت نشده است.</div>}
         else{
@@ -49,4 +53,3 @@ else if(_data is not null){
         finally{_loading=false;}
     }
 }
-

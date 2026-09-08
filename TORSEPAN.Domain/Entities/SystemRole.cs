@@ -11,5 +11,6 @@ public enum SystemRole
     QualityControl = 7,
     Workshop = 8,
     Warehouse = 9,
-    Marketer = 10
+    Marketer = 10,
+    SalesAdmin = 11
 }

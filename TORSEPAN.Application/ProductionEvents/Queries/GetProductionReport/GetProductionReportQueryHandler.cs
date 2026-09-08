@@ -16,7 +16,7 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
         var activities = events.Where(x => x.Description != "Released from glue room").Select(x => new ProductionActivityItem
         {
             Id = x.Id, EventDate = x.EventDate, UserId = x.UserId, UserName = x.User.UserName,
-            FullName = x.User.FullName, Action = (int)x.Action, ActionTitle = ActionTitle(x.Action),
+            FullName = x.User.FullName, Action = (int)x.Action, ActionTitle = ActionTitle(x),
             Result = (int)x.Result, ResultTitle = ResultTitle(x.Result), DurationMinutes = DurationMinutes(x),
             DurationTitle = DurationTitle(x), ProductionCode = x.Bowl?.ProductionCode ?? x.Handpan?.SerialNumber ?? "",
             Description = x.Description.StartsWith("PACKAGING_ITEMS:")
@@ -45,13 +45,13 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
         ? item.Duration == OperationDuration.Over60 ? 65 : (int)item.Duration.Value * 5 : null;
     private static string DurationTitle(ProductionEvent item) => item.Duration.HasValue
         ? item.Duration == OperationDuration.Over60 ? "بیشتر از ۶۰ دقیقه" : $"{(int)item.Duration.Value * 5} دقیقه" : "ثبت نشده";
-    private static string ActionTitle(ProductionAction action) => action switch
+    private static string ActionTitle(ProductionEvent item) => item.Action switch
     {
         ProductionAction.Created => "ثبت اولیه", ProductionAction.Dimple => "دیمپل", ProductionAction.Shape => "شیپ",
         ProductionAction.Furnace => "پخت", ProductionAction.Glue => "چسب", ProductionAction.Tune => "تیون",
         ProductionAction.FineTune => "فاین‌تیون", ProductionAction.Design => "دیزاین", ProductionAction.QualityCheck => "کنترل کیفیت",
-        ProductionAction.Packaging => "بسته‌بندی", ProductionAction.WarehouseEntry => "ورود به انبار",
-        ProductionAction.Reject => "برگشتی", ProductionAction.Sale => "فروش", _ => action.ToString()
+        ProductionAction.Packaging => item.BowlId.HasValue ? "بسته‌بندی صادراتی" : "بسته‌بندی عادی", ProductionAction.WarehouseEntry => "ورود به انبار",
+        ProductionAction.Reject => "برگشتی", ProductionAction.Sale => "فروش", _ => item.Action.ToString()
     };
     private static string ResultTitle(EventResult result) => result switch
     {

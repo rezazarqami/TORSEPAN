@@ -46,12 +46,16 @@
         <span>انبار صادراتی</span>
     </NavLink>
 
+    <AuthorizeView Roles="Administrator,ProductionManager,Marketer">
     <NavLink href="/marketing"><span>📣</span><span>بازاریابی</span></NavLink>
+    </AuthorizeView>
 
-    <AuthorizeView Roles="Administrator,ProductionManager">
+    <AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin">
     <NavLink href="/sales"><span>💰</span><span>فروش</span></NavLink>
     <NavLink href="/accounting"><span>🧾</span><span>حسابداری</span></NavLink>
 
+    </AuthorizeView>
+    <AuthorizeView Roles="Administrator,ProductionManager">
     <NavLink href="/users/list">
         <span>👤</span>
         <span>کاربران</span>

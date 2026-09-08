@@ -6,7 +6,7 @@ using TORSEPAN.Infrastructure.Persistence;
 
 namespace TORSEPAN.API.Controllers;
 
-[ApiController,Route("api/marketing"),Authorize]
+[ApiController,Route("api/marketing"),Authorize(Roles="Administrator,ProductionManager,Marketer")]
 public sealed class MarketingController(TORSEPANDbContext db):ControllerBase
 {
     [HttpGet]

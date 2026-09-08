@@ -42,12 +42,60 @@
     stroke-linecap: round;
 }
 
+.topbar-title-block {
+    min-width: 0;
+}
+
+.page-title {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    font-family: Tahoma, "Vazirmatn", sans-serif;
+    font-weight: 900;
+    letter-spacing: -.45px;
+}
+
+.page-title-brand {
+    font-family: "Arial Black", Arial, sans-serif;
+    font-weight: 900;
+    letter-spacing: .45px;
+}
+
 @media (max-width: 768px) {
     .logout-button {
         min-height: 40px;
         padding: 0 11px;
         border-radius: 11px;
         font-size: 13px;
+    }
+
+    .topbar-title-block {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    .page-title {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        font-size: clamp(14px, 4.15vw, 18px);
+        line-height: 1.25;
+    }
+
+    .page-title-brand {
+        display: block;
+        width: 100%;
+        margin-top: 2px;
+        text-align: center;
+        font-size: .88em;
+        letter-spacing: 1px;
+    }
+
+    .page-subtitle {
+        margin-top: 3px;
+        text-align: center;
+        font-size: 9px;
     }
 }
 

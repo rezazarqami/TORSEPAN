@@ -17,36 +17,52 @@ public sealed class AuthStateProvider(TokenStorage storage)
         return Task.FromResult(_current);
     }
 
-    public async Task RefreshAsync()
+    public async Task<bool> RefreshAsync()
     {
+        string? token;
         try
         {
-            var token = await storage.GetAccessTokenAsync();
-
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                _current = Anonymous;
-                NotifyAuthenticationStateChanged(Task.FromResult(_current));
-                return;
-            }
-
-            var identity = new ClaimsIdentity(
-                JwtParser.ParseClaims(token),
-                "jwt");
-
-            _current = new AuthenticationState(new ClaimsPrincipal(identity));
-            NotifyAuthenticationStateChanged(Task.FromResult(_current));
+            token = await storage.GetAccessTokenAsync();
         }
         catch
         {
-            _current = Anonymous;
-            NotifyAuthenticationStateChanged(Task.FromResult(_current));
+            // Browser storage can be briefly unavailable while a mobile tab is
+            // being restored. Let the caller retry instead of treating that as
+            // a signed-out user.
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            SetCurrent(Anonymous);
+            return true;
+        }
+
+        try
+        {
+            var identity = new ClaimsIdentity(
+                JwtParser.ParseClaims(token),
+                "jwt");
+            SetCurrent(new AuthenticationState(new ClaimsPrincipal(identity)));
+            return true;
+        }
+        catch
+        {
+            // A malformed saved token is a real anonymous state, not a
+            // temporary browser restoration failure.
+            SetCurrent(Anonymous);
+            return true;
         }
     }
 
     public void NotifyUserLogout()
     {
-        _current = Anonymous;
+        SetCurrent(Anonymous);
+    }
+
+    private void SetCurrent(AuthenticationState state)
+    {
+        _current = state;
         NotifyAuthenticationStateChanged(Task.FromResult(_current));
     }
 }

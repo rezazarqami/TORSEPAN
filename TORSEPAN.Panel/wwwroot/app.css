@@ -837,3 +837,114 @@ body { color:#17263b; background:#edf1f5; }
 .login-heading h2 { color:#102b4d; }.login-heading p,.login-help,.official-site-link{color:#7d8b9b}.modern-field label{color:#2c4562}
 .field-wrap{background:#f1f4f7;border-color:#d5dee7}.field-wrap:focus-within{background:#fff;border-color:#3c6591;box-shadow:0 0 0 4px rgba(42,83,127,.11)}.field-wrap input{color:#132b49}.password-visibility:hover{background:#e5ebf1}
 .modern-login-button{background:linear-gradient(135deg,#315f91,#12345d);box-shadow:0 15px 32px rgba(13,48,86,.3)}.modern-login-button:hover:not(:disabled){box-shadow:0 19px 38px rgba(13,48,86,.38)}
+
+/* Compact slide-out navigation for phones */
+@media (max-width: 768px) {
+    body .layout {
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        overflow-x: clip;
+    }
+
+    body .layout > .sidebar {
+        position: fixed;
+        inset: 0 0 0 auto;
+        z-index: 1041;
+        width: min(56vw, 250px);
+        min-width: 0;
+        height: 100dvh;
+        border: 0;
+        border-radius: 18px 0 0 18px;
+        box-shadow: -14px 0 42px rgba(3, 16, 35, .34);
+        transform: translateX(105%);
+        visibility: hidden;
+        pointer-events: none;
+        overflow: hidden;
+        transition: transform .24s ease, visibility .24s ease;
+    }
+
+    body .layout > .sidebar.mobile-open {
+        transform: translateX(0);
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    body .layout > .sidebar .sidebar-header {
+        flex: 0 0 auto;
+        min-height: 72px;
+        height: 72px;
+        padding: 9px 12px;
+    }
+
+    body .layout > .sidebar .brand-logo {
+        width: 58px !important;
+        height: 58px !important;
+        border-radius: 16px !important;
+    }
+
+    body .layout > .sidebar .sidebar-menu {
+        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+        flex-direction: column;
+        gap: 3px;
+        padding: 9px 8px 12px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(190, 203, 217, .42) transparent;
+    }
+
+    body .layout > .sidebar .sidebar-menu a {
+        flex: 0 0 auto;
+        min-height: 40px;
+        gap: 8px;
+        padding: 7px 9px;
+        border-radius: 10px;
+        font-size: .76rem;
+        font-weight: 700;
+        white-space: normal;
+    }
+
+    body .layout > .sidebar .sidebar-menu a span:first-child {
+        flex: 0 0 25px;
+        width: 25px;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    body .layout > .sidebar .sidebar-menu a.active {
+        box-shadow: inset 0 0 0 1px rgba(210, 220, 231, .28), 0 6px 15px rgba(2, 13, 30, .2);
+    }
+
+    body .layout > .sidebar .sidebar-footer {
+        display: block;
+        flex: 0 0 auto;
+        padding: 8px;
+        font-size: 9px;
+    }
+
+    body .layout > .main {
+        width: calc(100% - 25px);
+        max-width: calc(100% - 25px);
+        min-width: 0;
+        margin-right: 25px;
+        box-sizing: border-box;
+    }
+
+    body .layout > .main > .topbar {
+        position: relative;
+        z-index: 10;
+    }
+
+    body .layout > .main > .content {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+}

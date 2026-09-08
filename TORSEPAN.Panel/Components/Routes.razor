@@ -1,29 +1,87 @@
-﻿<Router AppAssembly="@typeof(App).Assembly">
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.WebUtilities
 
-    <Found Context="routeData">
-
-        @if (routeData.PageType == typeof(TORSEPAN.Panel.Components.Pages.Login))
+@if (!_authenticationReady)
+{
+    <div class="text-center p-5" role="status">
+        @if (_authenticationLoadFailed)
         {
-            <RouteView RouteData="@routeData"
-                       DefaultLayout="@typeof(EmptyLayout)" />
+            <p>بازیابی صفحه کامل نشد.</p>
+            <button class="btn btn-primary" @onclick="RetryAuthenticationAsync">تلاش دوباره</button>
         }
         else
         {
-            <RouteView RouteData="@routeData"
-                       DefaultLayout="@typeof(MainLayout)" />
+            <span>در حال بارگذاری…</span>
+        }
+    </div>
+}
+else
+{
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            @if (routeData.PageType == typeof(TORSEPAN.Panel.Components.Pages.Login))
+            {
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(EmptyLayout)" />
+            }
+            else
+            {
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <NotAuthorized>
+                        <div class="alert alert-warning">دسترسی به این بخش برای حساب شما فعال نیست. <a href="/">داشبورد</a></div>
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+            }
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)"><p>صفحه مورد نظر پیدا نشد.</p></LayoutView>
+        </NotFound>
+    </Router>
+}
+
+@code {
+    private bool _authenticationReady;
+    private bool _authenticationLoadFailed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await LoadAuthenticationAsync();
+    }
+
+    private async Task LoadAuthenticationAsync()
+    {
+        _authenticationLoadFailed = false;
+        var loaded = AuthenticationStateProvider is not AuthStateProvider;
+        if (AuthenticationStateProvider is AuthStateProvider authProvider)
+        {
+            for (var attempt = 0; attempt < 3 && !loaded; attempt++)
+            {
+                loaded = await authProvider.RefreshAsync();
+                if (!loaded) await Task.Delay(150 * (attempt + 1));
+            }
         }
 
-        <FocusOnNavigate RouteData="@routeData"
-                         Selector="h1" />
+        _authenticationReady = loaded;
+        _authenticationLoadFailed = !loaded;
+        StateHasChanged();
 
-    </Found>
+        if (!loaded) return;
+        var current = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var query = QueryHelpers.ParseQuery(Navigation.ToAbsoluteUri(Navigation.Uri).Query);
+        if (!query.TryGetValue("returnUrl", out var value)) return;
 
-    <NotFound>
+        var returnUrl = value.ToString();
+        if (!IsSafeReturnUrl(returnUrl)) return;
 
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p>صفحه مورد نظر پیدا نشد.</p>
-        </LayoutView>
+        Navigation.NavigateTo(
+            current.User.Identity?.IsAuthenticated == true
+                ? returnUrl
+                : "/login?returnUrl=" + Uri.EscapeDataString(returnUrl));
+    }
 
-    </NotFound>
-
-</Router>
+    private Task RetryAuthenticationAsync() => LoadAuthenticationAsync();
+    private static bool IsSafeReturnUrl(string? value)
+        => !string.IsNullOrWhiteSpace(value) && value.StartsWith('/') && !value.StartsWith("//");
+}

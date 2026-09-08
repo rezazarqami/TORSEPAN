@@ -82,7 +82,7 @@ public class HandpanRepository
     public async Task<Handpan?> GetWarehouseInventoryItemAsync(Guid handpanId)
     {
         return await _dbSet.AsNoTracking().AsSplitQuery()
-            .Where(x => x.Id == handpanId && x.Stage == ProductionStage.FinishedWarehouse)
+            .Where(x => x.Id == handpanId && (x.Stage == ProductionStage.FinishedWarehouse || x.Stage == ProductionStage.Sold))
             .Include(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
             .Include(x => x.Assembly).ThenInclude(x => x.BottomBowl)
             .Include(x => x.Assembly).ThenInclude(x => x.ProductionEvents).ThenInclude(x => x.User)

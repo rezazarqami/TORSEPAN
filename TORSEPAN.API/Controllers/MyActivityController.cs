@@ -28,21 +28,36 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
             &&!x.Description.StartsWith("NOTE:")&&x.Description!="Released from glue room");
         var total=await query.CountAsync(ct);
         var completed=await query.CountAsync(x=>x.Result==EventResult.Completed,ct);
+        var summaryRows=await query.Where(x=>x.Result==EventResult.Completed).GroupBy(x=>new{
+                x.Action,
+                BowlType=x.Bowl!=null?(BowlType?)x.Bowl.BowlType:null,
+                IsExport=EF.Functions.ILike(x.Description,"%export%")
+            }).Select(x=>new{x.Key.Action,x.Key.BowlType,x.Key.IsExport,Count=x.Count()})
+            .OrderByDescending(x=>x.Count).ToListAsync(ct);
         var rows=await query.OrderByDescending(x=>x.EventDate).ThenBy(x=>x.Id)
             .Skip((page-1)*50).Take(50).Select(x=>new{
                 x.Id,x.EventDate,x.Action,x.Result,x.Duration,x.Description,
                 Code=x.Bowl!=null?x.Bowl.ProductionCode:x.Handpan!=null?x.Handpan.SerialNumber:
                     x.Assembly!=null?x.Assembly.TopBowl.ProductionCode+" / "+x.Assembly.BottomBowl.ProductionCode:"",
-                BowlType=x.Bowl!=null?(BowlType?)x.Bowl.BowlType:null
+                BowlType=x.Bowl!=null?(BowlType?)x.Bowl.BowlType:null,
+                IsExport=EF.Functions.ILike(x.Description,"%export%")
             }).ToListAsync(ct);
         return Ok(new{From=start,To=end,Total=total,Completed=completed,Page=page,PageSize=50,
+            Summary=summaryRows.Select(x=>new{Operation=OperationLabel(x.Action,x.BowlType,x.IsExport),x.Count}),
             Items=rows.Select(x=>new{
                 x.Id,x.EventDate,x.Code,
-                Operation=Operation(x.Action)+(x.BowlType.HasValue?(x.BowlType==BowlType.Top?" کاسه رو":" کاسه زیر"):""),
+                Operation=OperationLabel(x.Action,x.BowlType,x.IsExport),
                 Result=Result(x.Result),
                 Duration=x.Duration.HasValue?(x.Duration==OperationDuration.Over60?"بیش از ۶۰ دقیقه":$"{(int)x.Duration.Value*5} دقیقه"):"—",
                 Details=Details(x.Description)
             })});
+    }
+    private static string OperationLabel(ProductionAction action,BowlType? bowlType,bool isExport)
+    {
+        var suffix=bowlType.HasValue?(bowlType==BowlType.Top?" کاسه رو":" کاسه زیر"):"";
+        return action==ProductionAction.Packaging
+            ? (isExport?"بسته‌بندی صادراتی":"بسته‌بندی عادی")+suffix
+            : Operation(action)+suffix+(isExport?" صادراتی":"");
     }
     private static string Operation(ProductionAction a)=>a switch{
         ProductionAction.Created=>"ثبت اولیه",ProductionAction.Dimple=>"دیمپل",ProductionAction.Shape=>"شیپ",

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using Microsoft.EntityFrameworkCore;using TORSEPAN.Domain.Entities;using TORSEPAN.Infrastructure.Persistence;
 namespace TORSEPAN.API.Controllers;
-[ApiController,Route("api/accounting"),Authorize(Roles="Administrator,ProductionManager")]
+[ApiController,Route("api/accounting"),Authorize(Roles="Administrator,ProductionManager,SalesAdmin")]
 public sealed class AccountingController(TORSEPANDbContext db):ControllerBase
 {
  [HttpGet("summary")]public async Task<IActionResult> Summary(CancellationToken ct){var d=await db.AccountingDocuments.AsNoTracking().ToListAsync(ct);return Ok(new{CashIn=d.Where(x=>x.Type==AccountingDocumentType.Revenue).Sum(x=>x.PaidAmount),CashOut=d.Where(x=>x.Type==AccountingDocumentType.Expense).Sum(x=>x.PaidAmount),Receivables=d.Where(x=>x.Type==AccountingDocumentType.Revenue).Sum(x=>x.TotalAmount-x.PaidAmount),Payables=d.Where(x=>x.Type==AccountingDocumentType.Expense).Sum(x=>x.TotalAmount-x.PaidAmount),Overdue=d.Count(x=>x.DueDate<DateTime.UtcNow&&x.PaidAmount<x.TotalAmount)});}

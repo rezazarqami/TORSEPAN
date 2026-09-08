@@ -88,15 +88,15 @@ public sealed class GetBowlForDimpleQueryHandler
                         x.Description != "Released from glue room" &&
                         ((x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value)) ||
                          (handpanId.HasValue && x.HandpanId == handpanId)))
-            .GroupBy(x => x.Action)
+            .GroupBy(x => new { x.Action, PackagingKind = x.Action == ProductionAction.Packaging ? (x.BowlId.HasValue ? 2 : 1) : 0 })
             .Select(group => new BowlStageHistoryDto
             {
-                Action = (int)group.Key,
-                ActionTitle = ActionTitle(group.Key),
+                Action = (int)group.Key.Action,
+                ActionTitle = ActionTitle(group.Key.Action, group.Key.PackagingKind),
                 PerformedBy = string.Join("، ", group.Select(x =>
                         string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)
                     .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct()),
-                Details = group.Key == ProductionAction.Shape
+                Details = group.Key.Action == ProductionAction.Shape
                     ? ShapeContributionDetails(group.Select(x => x.Description), users)
                     : string.Empty,
                 PerformedAt = group.Max(x => x.EventDate)
@@ -139,7 +139,7 @@ public sealed class GetBowlForDimpleQueryHandler
         return string.Join("، ", result.Distinct());
     }
 
-    private static string ActionTitle(ProductionAction action) => action switch
+    private static string ActionTitle(ProductionAction action, int packagingKind) => action switch
     {
         ProductionAction.Dimple => "دیمپل",
         ProductionAction.Shape => "شیپ",
@@ -148,7 +148,7 @@ public sealed class GetBowlForDimpleQueryHandler
         ProductionAction.Glue => "چسب",
         ProductionAction.FineTune => "فاین تیون",
         ProductionAction.QualityCheck => "کنترل کیفیت",
-        ProductionAction.Packaging => "بسته‌بندی",
+        ProductionAction.Packaging => packagingKind == 2 ? "بسته‌بندی صادراتی" : "بسته‌بندی عادی",
         ProductionAction.Design => "دیزاین",
         _ => action.ToString()
     };

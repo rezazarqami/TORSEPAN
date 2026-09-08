@@ -32,6 +32,7 @@ using Microsoft.EntityFrameworkCore;
 namespace TORSEPAN.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public sealed class ProductionController : ControllerBase
 {
@@ -108,6 +109,18 @@ public sealed class ProductionController : ControllerBase
         return item is null ? NotFound() : Ok(item);
     }
 
+    [HttpPost("warehouse/gallery")]
+    public async Task<IActionResult> WarehouseGallery([FromBody] WarehouseGalleryRequest request, CancellationToken ct)
+    {
+        var ids = request.HandpanIds.Distinct().Take(500).ToArray();
+        if (ids.Length == 0) return Ok(Array.Empty<object>());
+        var photos = await _db.HandpanPhotos.AsNoTracking().Where(x => ids.Contains(x.HandpanId))
+            .GroupBy(x => x.HandpanId)
+            .Select(x => x.OrderBy(y => y.CreatedAt).Select(y => new { y.HandpanId, y.Id, y.Thumbnail }).First())
+            .ToListAsync(ct);
+        return Ok(photos);
+    }
+
     [HttpGet("finished")]
     public async Task<IActionResult> Finished()
         => Ok(await _mediator.Send(new GetFinishedHandpansQuery()));
@@ -149,7 +162,7 @@ public sealed class ProductionController : ControllerBase
         => Ok(await _mediator.Send(new GetCurrentProductionStageQuery(serialNumber)));
 
     [HttpPost("{handpanId:guid}/sell")]
-    [Authorize(Roles = "Administrator,ProductionManager")]
+    [Authorize(Roles = "Administrator,ProductionManager,SalesAdmin")]
     public async Task<IActionResult> Sell(Guid handpanId, [FromBody] SellHandpanRequest request)
     {
         await using var transaction = await _db.Database.BeginTransactionAsync();
@@ -168,7 +181,7 @@ public sealed class ProductionController : ControllerBase
     }
 
     [HttpPost("sales/bulk")]
-    [Authorize(Roles = "Administrator,ProductionManager")]
+    [Authorize(Roles = "Administrator,ProductionManager,SalesAdmin")]
     public async Task<IActionResult> SellBulk([FromBody] BulkSellHandpansRequest request)
     {
         var ids = request.HandpanIds.Distinct().ToList();
@@ -193,7 +206,7 @@ public sealed class ProductionController : ControllerBase
     }
 
     [HttpPut("{handpanId:guid}/sale")]
-    [Authorize(Roles = "Administrator,ProductionManager")]
+    [Authorize(Roles = "Administrator,ProductionManager,SalesAdmin")]
     public async Task<IActionResult> UpdateSale(Guid handpanId, [FromBody] SellHandpanRequest request)
     {
         var party = request.PartyId.HasValue ? await _db.AccountingParties.FirstOrDefaultAsync(x => x.Id == request.PartyId && x.IsActive) : null;
@@ -237,7 +250,7 @@ public sealed class ProductionController : ControllerBase
     private static string? SaleNotes(string? destination) => string.IsNullOrWhiteSpace(destination) ? null : $"مقصد: {destination.Trim()}";
 
     [HttpGet("sales")]
-    [Authorize(Roles = "Administrator,ProductionManager")]
+    [Authorize(Roles = "Administrator,ProductionManager,SalesAdmin")]
     public async Task<IActionResult> Sales()
     {
         var items = (await _mediator.Send(new GetSalesQuery())).ToList();
@@ -264,3 +277,4 @@ public sealed class ProductionController : ControllerBase
 }
 public sealed record SellHandpanRequest(string? BuyerName, decimal? Price, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate);
 public sealed record BulkSellHandpansRequest(IReadOnlyCollection<Guid> HandpanIds, SellHandpanRequest Sale);
+public sealed record WarehouseGalleryRequest(IReadOnlyCollection<Guid> HandpanIds);

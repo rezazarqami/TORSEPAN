@@ -39,9 +39,11 @@ public sealed class ProductionService
             "production/warehouse") ?? [];
     }
     public Task<WarehouseHandpanDto?> GetWarehouseDetailsAsync(Guid id) => _api.GetAsync<WarehouseHandpanDto>($"production/warehouse/{id}/details");
+    public async Task<List<WarehouseGalleryPhotoDto>> GetWarehouseGalleryAsync(IEnumerable<Guid> ids) => await _api.PostAsync<object,List<WarehouseGalleryPhotoDto>>("production/warehouse/gallery",new{HandpanIds=ids}) ?? [];
     public async Task SellAsync(Guid id,string? buyerName,decimal? price,string? destination,Guid? partyId,bool isPaid,DateTime? dueDate) => await _api.PostAsync<object,object?>($"production/{id}/sell",new { BuyerName=buyerName, Price=price, Destination=destination,PartyId=partyId,IsPaid=isPaid,DueDate=dueDate });
     public async Task SellManyAsync(IReadOnlyCollection<Guid> ids,string? buyerName,decimal? price,string? destination,Guid? partyId,bool isPaid,DateTime? dueDate) => await _api.PostAsync<object,object?>("production/sales/bulk",new { HandpanIds=ids,Sale=new { BuyerName=buyerName,Price=price,Destination=destination,PartyId=partyId,IsPaid=isPaid,DueDate=dueDate } });
     public async Task UpdateSaleAsync(Guid id,string? buyerName,decimal? price,string? destination,Guid? partyId,bool isPaid,DateTime? dueDate) => await _api.PutAsync<object,object?>($"production/{id}/sale",new { BuyerName=buyerName,Price=price,Destination=destination,PartyId=partyId,IsPaid=isPaid,DueDate=dueDate });
     public async Task<IReadOnlyList<SaleItemDto>> GetSalesAsync() => await _api.GetAsync<List<SaleItemDto>>("production/sales") ?? [];
+    public Task RollbackAsync(Guid id) => _api.PostAsync<object, object?>($"production/{id}/rollback", new { });
     public Task DeleteAsync(Guid id) => _api.DeleteAsync($"production/{id}");
 }

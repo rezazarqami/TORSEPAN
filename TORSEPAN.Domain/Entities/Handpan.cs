@@ -70,6 +70,21 @@ public class Handpan : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void ReturnToWarehouse()
+    {
+        if (Stage != ProductionStage.Sold)
+            throw new InvalidOperationException("Handpan is not sold.");
+
+        BuyerName = null;
+        SalePrice = null;
+        SaleDestination = null;
+        SoldByUserId = null;
+        SoldAt = null;
+        Stage = ProductionStage.FinishedWarehouse;
+        Status = ProductionStatus.Completed;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public IReadOnlyCollection<ProductionEvent> ProductionEvents => _productionEvents;
 
     public void RegisterProductionOperation(

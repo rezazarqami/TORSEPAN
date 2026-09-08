@@ -1,5 +1,5 @@
 @page "/marketing"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Administrator,ProductionManager,Marketer")]
 @using Microsoft.AspNetCore.Authorization
 @inject MarketingService MarketingService
 

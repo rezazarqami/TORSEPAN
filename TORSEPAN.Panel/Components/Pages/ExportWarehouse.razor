@@ -1,4 +1,5 @@
 @page "/warehouse/export"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject BowlService BowlService
 @inject IJSRuntime JS
 
@@ -12,7 +13,7 @@
     else
     {
         <DataTable><thead><tr><th>کد کاسه</th><th>نوع کاسه</th><th>متریال</th><th>وضعیت</th><th>ارسال</th><th>حذف</th></tr></thead>
-        <tbody>@foreach (var item in Items) { <tr><td><strong>@item.ProductionCode</strong></td><td>@(item.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</td><td>@item.MaterialName</td><td><span class="badge bg-success">آماده ارسال</span></td><td><button class="btn btn-sm btn-success" @onclick="()=>ShipAsync(item)">ارسال شد</button></td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></td></tr> }</tbody></DataTable>
+        <tbody>@foreach (var item in Items) { <tr><td><strong>@item.ProductionCode</strong></td><td>@(item.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</td><td>@item.MaterialName</td><td><span class="badge bg-success">آماده ارسال</span></td><td><AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>ShipAsync(item)">ارسال شد</button></AuthorizeView></td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></td></tr> }</tbody></DataTable>
     }
 </Card>
 

@@ -1,10 +1,18 @@
 @inherits LayoutComponentBase
-@using Microsoft.AspNetCore.Components.Authorization
-@using TORSEPAN.Panel.Services.Auth
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <div class="layout">
-    <aside class="sidebar"><Sidebar /></aside>
+    <button type="button" class="mobile-nav-rail @(_mobileMenuOpen ? "is-open" : null)" aria-label="باز کردن منوی اصلی" aria-expanded="@_mobileMenuOpen" @onclick="ToggleMobileMenu">
+        <span class="mobile-nav-grip" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="mobile-nav-label">منو</span>
+    </button>
+    @if (_mobileMenuOpen)
+    {
+        <button type="button" class="mobile-menu-backdrop" aria-label="بستن منوی اصلی" @onclick="CloseMobileMenu"></button>
+    }
+    <aside class="sidebar @(_mobileMenuOpen ? "mobile-open" : null)"><Sidebar /></aside>
     <div class="main">
         <header class="topbar"><Topbar /></header>
         <main class="content"><GlobalProductionSearch />@Body</main>
@@ -12,9 +20,18 @@
 </div>
 
 @code {
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private bool _mobileMenuOpen;
+
+    protected override void OnInitialized() => Navigation.LocationChanged += HandleLocationChanged;
+
+    private void ToggleMobileMenu() => _mobileMenuOpen = !_mobileMenuOpen;
+    private void CloseMobileMenu() => _mobileMenuOpen = false;
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        if (firstRender && AuthenticationStateProvider is AuthStateProvider provider)
-            await provider.RefreshAsync();
+        _mobileMenuOpen = false;
+        _ = InvokeAsync(StateHasChanged);
     }
+
+    public void Dispose() => Navigation.LocationChanged -= HandleLocationChanged;
 }

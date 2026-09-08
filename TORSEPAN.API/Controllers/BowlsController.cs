@@ -247,7 +247,7 @@ public sealed class BowlsController : ControllerBase
         => Ok(await _mediator.Send(new GetExportWarehouseQuery(), cancellationToken));
 
     [HttpPost("export-warehouse/{id:guid}/ship")]
-    [Authorize(Roles = "Workshop,Administrator")]
+    [Authorize(Roles = "Workshop,Administrator,ProductionManager,SalesAdmin")]
     public async Task<IActionResult> ShipExportBowl(Guid id, CancellationToken cancellationToken)
     {
         await _mediator.Send(new ShipExportBowlCommand(id), cancellationToken);

@@ -21,6 +21,7 @@ public sealed class ProductionRollbackService(TORSEPANDbContext db) : IProductio
             ProductionStage.WaitingForGlue => (ProductionStage.WaitingForTune, ProductionAction.Tune),
             ProductionStage.WaitingForExportPackaging => (ProductionStage.WaitingForTune, ProductionAction.Tune),
             ProductionStage.ExportWarehouse => (ProductionStage.WaitingForExportPackaging, ProductionAction.Packaging),
+            ProductionStage.Sold => (ProductionStage.ExportWarehouse, ProductionAction.Sale),
             _ => ((ProductionStage)(-1), (ProductionAction)(-1))
         };
         if ((int)transition.Item1 < 0) return false;
@@ -28,7 +29,9 @@ public sealed class ProductionRollbackService(TORSEPANDbContext db) : IProductio
             .OrderByDescending(x => x.EventDate).FirstOrDefaultAsync(ct);
         if (lastEvent is not null) db.ProductionEvents.Remove(lastEvent);
         if (bowl.Stage == ProductionStage.WaitingForShape) bowl.ClearScale();
-        bowl.ChangeStage(transition.Item1); bowl.MarkAsWaiting();
+        bowl.ChangeStage(transition.Item1);
+        if (transition.Item1 == ProductionStage.ExportWarehouse) bowl.CompleteProduction();
+        else bowl.MarkAsWaiting();
         await db.SaveChangesAsync(ct); return true;
     }
 
@@ -37,6 +40,55 @@ public sealed class ProductionRollbackService(TORSEPANDbContext db) : IProductio
         var handpan = await db.Handpans.Include(x => x.Assembly).FirstOrDefaultAsync(x => x.Id == handpanId, ct);
         if (handpan is null) return false;
         var bowls = await db.Bowls.Where(x => x.Id == handpan.Assembly.TopBowlId || x.Id == handpan.Assembly.BottomBowlId).ToListAsync(ct);
+        if (handpan.Stage == ProductionStage.Sold)
+        {
+            var saleEvents = await db.ProductionEvents
+                .Where(x => x.HandpanId == handpan.Id && x.Action == ProductionAction.Sale &&
+                            !x.Description.StartsWith("NOTE:"))
+                .ToListAsync(ct);
+            var saleDocuments = await db.AccountingDocuments
+                .Where(x => x.HandpanId == handpan.Id && x.Type == AccountingDocumentType.Revenue)
+                .ToListAsync(ct);
+            db.ProductionEvents.RemoveRange(saleEvents);
+            db.AccountingDocuments.RemoveRange(saleDocuments);
+            handpan.ReturnToWarehouse();
+            await db.SaveChangesAsync(ct);
+            return true;
+        }
+        if (handpan.Stage == ProductionStage.FinishedWarehouse)
+        {
+            const string packagingPrefix = "PACKAGING_ITEMS:";
+            var packagingEvent = await db.ProductionEvents
+                .Where(x => x.HandpanId == handpan.Id && x.Action == ProductionAction.Packaging &&
+                            x.Description.StartsWith(packagingPrefix))
+                .OrderByDescending(x => x.EventDate)
+                .FirstOrDefaultAsync(ct);
+            if (packagingEvent is null) return false;
+
+            var usedMaterials = packagingEvent.Description[packagingPrefix.Length..]
+                .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .GroupBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(x => x.Key, x => x.Count(), StringComparer.OrdinalIgnoreCase);
+            if (usedMaterials.Count > 0)
+            {
+                var names = usedMaterials.Keys.ToArray();
+                var materials = await db.Materials.Where(x => names.Contains(x.Name)).ToListAsync(ct);
+                if (materials.Count != usedMaterials.Count) return false;
+                foreach (var material in materials)
+                    material.AddStock(usedMaterials[material.Name]);
+            }
+
+            db.ProductionEvents.Remove(packagingEvent);
+            handpan.ChangeStage(ProductionStage.WaitingForPackaging);
+            handpan.ChangeStatus(ProductionStatus.Waiting);
+            foreach (var bowl in bowls)
+            {
+                bowl.ChangeStage(ProductionStage.WaitingForPackaging);
+                bowl.MarkAsWaiting();
+            }
+            await db.SaveChangesAsync(ct);
+            return true;
+        }
         if (handpan.Stage == ProductionStage.GlueRoom)
         {
             var glueEvents = await db.ProductionEvents.Where(x => x.HandpanId == handpan.Id && x.Action == ProductionAction.Glue).ToListAsync(ct);

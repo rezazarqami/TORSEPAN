@@ -1,4 +1,5 @@
 @page "/login"
+@using Microsoft.AspNetCore.Components
 @layout LoginLayout
 @using TORSEPAN.Application.Auth.Commands.Login
 @using TORSEPAN.Panel.Services.Auth
@@ -63,6 +64,7 @@
     string ErrorMessage = "";
     bool IsSubmitting;
     bool _showPassword;
+    [SupplyParameterFromQuery(Name = "returnUrl")] public string? ReturnUrl { get; set; }
 
     void TogglePassword() => _showPassword = !_showPassword;
     async Task HandleKeyDown(KeyboardEventArgs args) { if (args.Key == "Enter") await LoginUser(); }
@@ -74,12 +76,13 @@
         {
             var credentials = await JS.InvokeAsync<LoginCredentials>("torsepanLogin.readCredentials", UsernameInput, PasswordInput);
             var result = await AuthenticationService.LoginAsync(new LoginCommand(credentials.Username.Trim(), credentials.Password));
-            if (result.Success) { Navigation.NavigateTo("/"); return; }
+            if (result.Success) { Navigation.NavigateTo(SafeReturnUrl()); return; }
             ErrorMessage = "نام کاربری یا رمز عبور صحیح نیست.";
         }
         catch (HttpRequestException) { ErrorMessage = "ارتباط با سرویس ورود برقرار نشد. لطفاً دوباره تلاش کنید."; }
         catch { ErrorMessage = "ورود انجام نشد. لطفاً اطلاعات خود را بررسی و دوباره تلاش کنید."; }
         finally { IsSubmitting = false; }
     }
+    string SafeReturnUrl() => !string.IsNullOrWhiteSpace(ReturnUrl) && ReturnUrl.StartsWith('/') && !ReturnUrl.StartsWith("//") ? ReturnUrl : "/";
     sealed record LoginCredentials(string Username, string Password);
 }

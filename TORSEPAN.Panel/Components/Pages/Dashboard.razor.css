@@ -18,3 +18,90 @@
     .queue-table ::deep td:nth-child(3),.queue-group,.queue-code-list,.queue-code-group{width:100%;max-width:100%;min-width:0}
     .dashboard-code{max-width:100%;flex:0 0 auto}
 }
+
+/* Dashboard headings and navy calendar */
+.production-entry-card h4,
+.queue-heading h4,
+.dashboard-sections h4,
+.daily-performance h5 {
+    color: #102f55;
+    font-family: Tahoma, "Vazirmatn", sans-serif;
+    font-weight: 900;
+    letter-spacing: -.35px;
+}
+
+.production-entry-card h4,
+.queue-heading h4,
+.dashboard-sections h4 {
+    font-size: 1.18rem;
+}
+
+.daily-performance h5 {
+    font-size: 1.02rem;
+    line-height: 1.55;
+}
+
+.dashboard-calendar {
+    gap: 7px;
+    padding: 11px;
+    border: 1px solid #d9e2ec;
+    border-radius: 17px;
+    background: linear-gradient(145deg, #f7f9fc, #edf2f7);
+    box-shadow: inset 0 1px 0 #fff, 0 8px 22px rgba(15, 42, 75, .07);
+}
+
+.calendar-weekday {
+    color: #526983;
+    font-weight: 900;
+}
+
+.calendar-day {
+    border: 1px solid #dbe3ec;
+    border-radius: 11px;
+    background: linear-gradient(145deg, #f8fafc, #e8eef5);
+    color: #17375f;
+    font-weight: 850;
+    box-shadow: 0 3px 8px rgba(18, 51, 91, .06);
+    transition: transform .15s ease, background .15s ease, box-shadow .15s ease, color .15s ease;
+}
+
+.calendar-day:hover {
+    background: linear-gradient(145deg, #e8eef5, #dbe5ef);
+    transform: translateY(-1px);
+}
+
+.calendar-day.selected {
+    border-color: #173f6d;
+    background: linear-gradient(145deg, #315f92, #102f55);
+    color: #fff;
+    box-shadow: 0 7px 16px rgba(18, 51, 91, .3);
+    transform: translateY(-1px);
+}
+
+.daily-performance {
+    border-top-color: #dbe3ec;
+}
+
+@media(max-width:700px) {
+    .production-entry-card h4,
+    .queue-heading h4,
+    .dashboard-sections h4 {
+        font-size: 1.13rem;
+    }
+
+    .daily-performance h5 {
+        font-size: 1rem;
+    }
+
+    .dashboard-calendar {
+        gap: 5px;
+        padding: 9px;
+        border-radius: 15px;
+    }
+
+    .calendar-day {
+        min-height: 36px;
+        border-radius: 10px;
+        font-size: .82rem;
+    }
+}

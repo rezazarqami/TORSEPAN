@@ -143,7 +143,7 @@
                                 <tbody>
                                 @foreach (var item in _bowl.History)
                                 {
-                                    <tr><td>@item.ActionTitle</td><td>@item.PerformedBy@if(!string.IsNullOrWhiteSpace(item.Details)){<small class="d-block text-muted mt-1">@item.Details</small>}</td><td>@PersianDateTime.FormatDateTime(item.PerformedAt)</td></tr>
+                                    <tr><td>@item.ActionTitle</td><td><div class="passport-performers">@foreach(var performer in PerformerNames(item.PerformedBy)){<span>@performer</span>}</div>@if(!string.IsNullOrWhiteSpace(item.Details)){<small class="d-block text-muted mt-1">@item.Details</small>}</td><td>@PersianDateTime.FormatDateTime(item.PerformedAt)</td></tr>
                                 }
                                 </tbody>
                             </table>
@@ -365,29 +365,31 @@
             }
             else if (_bowl.Stage == 16)
             {
-                <div class="card bg-light border-0 p-3 mt-3">
-                    <h5>اقلام مصرف‌شده در بسته‌بندی</h5>
-                    <p class="text-muted">هر قلم استفاده‌شده را انتخاب کنید؛ پس از ثبت، یک عدد از موجودی آن کم می‌شود.</p>
-                    <div class="row g-2">
-                        @foreach (var material in _packagingMaterials)
+                <div class="packaging-picker mt-3">
+                    <div class="packaging-heading"><div><h5>اقلام بسته‌بندی عادی</h5><p>لوازم همراه ساز را انتخاب کنید.</p></div><span>@_selectedPackagingMaterialIds.Count انتخاب</span></div>
+                    <div class="packaging-accessories">
+                        @foreach (var material in OtherPackagingMaterials)
                         {
-                            <div class="col-md-4">
-                                <label class="form-check border rounded p-3 w-100 @(material.Quantity == 0 ? "opacity-50" : "")">
-                                    <input class="form-check-input" type="checkbox"
-                                           disabled="@(material.Quantity == 0)"
-                                           checked="@_selectedPackagingMaterialIds.Contains(material.Id)"
-                                           @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
-                                    <span class="me-2">@material.Name</span>
-                                    <small class="text-muted">(موجودی: @material.Quantity)</small>
-                                </label>
-                            </div>
+                            <label class="packaging-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity == 0?"disabled":"")">
+                                <input type="checkbox" disabled="@(material.Quantity == 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
+                                <span class="packaging-check">✓</span><strong>@material.Name</strong><small>موجودی @material.Quantity</small>
+                            </label>
                         }
                     </div>
+                    <div class="case-picker"><div class="case-picker-title"><strong>نوع کاور ساز</strong><small>فقط یک مورد انتخاب می‌شود</small></div><div class="case-options">
+                        @foreach (var material in CasePackagingMaterials)
+                        {
+                            <label class="case-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity == 0?"disabled":"")">
+                                <input type="radio" name="packaging-case" disabled="@(material.Quantity == 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
+                                <span>@material.Name</span><small>@material.Quantity موجود</small>
+                            </label>
+                        }
+                    </div></div>
                 </div>
                 <button class="btn btn-success mt-3"
                         disabled="@_loading"
                         @onclick="CompletePackagingAsync">
-                    بسته‌بندی انجام شد
+                    بسته‌بندی عادی انجام شد
                 </button>
             }
             else if (_bowl.Stage == 18)
@@ -425,6 +427,8 @@
         : _scales.Where(x => (x.Usage & (_bowl.BowlType == 1 ? 1 : 2)) != 0);
     private IEnumerable<ScaleDto> HandpanScales => _scales.Where(x => (x.Usage & 4) != 0);
     private readonly List<MaterialDto> _packagingMaterials = [];
+    private IEnumerable<MaterialDto> CasePackagingMaterials => _packagingMaterials.Where(x => IsExclusiveCase(x.Name)).OrderBy(x => CaseOrder(x.Name)).ThenBy(x => x.Name);
+    private IEnumerable<MaterialDto> OtherPackagingMaterials => _packagingMaterials.Where(x => !IsExclusiveCase(x.Name)).OrderBy(x => AccessoryOrder(x.Name)).ThenBy(x => x.Name);
     private readonly HashSet<Guid> _selectedPackagingMaterialIds = [];
     private string? _successMessage;
     private bool _showQcRejection;
@@ -681,7 +685,7 @@
         await ExecuteAsync(async () =>
         {
             var result = await BowlService.CompletePackagingAsync(_productionCode, _selectedPackagingMaterialIds);
-            SetOperationResult(result, "بسته‌بندی انجام شد و ساز وارد انبار شد.", "ثبت پایان بسته‌بندی انجام نشد.");
+            SetOperationResult(result, "بسته‌بندی عادی انجام شد و ساز وارد انبار شد.", "ثبت پایان بسته‌بندی عادی انجام نشد.");
         });
     }
 
@@ -739,6 +743,28 @@
         return normalized is "سافت کیس" or "میدل کیس" or "هارد کیس"
             or "soft case" or "middle case" or "hard case";
     }
+
+    private static int CaseOrder(string name)
+    {
+        var value = name.Trim().ToLowerInvariant();
+        if (value.Contains("سافت") || value.Contains("soft")) return 0;
+        if (value.Contains("میدل") || value.Contains("middle")) return 1;
+        return 2;
+    }
+
+    private static int AccessoryOrder(string name)
+    {
+        var value = name.Trim().ToLowerInvariant();
+        if (value.Contains("روغن") || value.Contains("oil")) return 0;
+        if (value.Contains("دستمال") || value.Contains("cloth")) return 1;
+        if (value.Contains("پایه") || value.Contains("stand")) return 2;
+        if (value.Contains("پنگارد") || value.Contains("پن گارد") || value.Contains("pan guard")) return 3;
+        return 10;
+    }
+
+    private static IEnumerable<string> PerformerNames(string names) => string.IsNullOrWhiteSpace(names)
+        ? ["ثبت نشده"]
+        : names.Split(["،", ",", " / "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private void ShowOperationConfirmation(string title, IEnumerable<(string Label, string Value)> details, Func<Task> confirmedOperation)
     {

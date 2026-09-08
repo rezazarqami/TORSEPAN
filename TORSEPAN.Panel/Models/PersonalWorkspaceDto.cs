@@ -7,8 +7,10 @@ public sealed class MyActivityDto
     public int Completed {get;set;}
     public int Page {get;set;} = 1;
     public int PageSize {get;set;} = 50;
+    public List<MyActivitySummaryRow> Summary {get;set;} = [];
     public List<MyActivityRow> Items {get;set;} = [];
 }
+public sealed class MyActivitySummaryRow { public string Operation {get;set;} = ""; public int Count {get;set;} }
 public sealed class MyActivityRow
 {
     public Guid Id {get;set;}
@@ -37,4 +39,3 @@ public sealed class InboxMessageDto
 }
 public sealed class MessageRecipientDto { public Guid Id {get;set;} public string Name {get;set;} = ""; }
 public sealed class UnreadDto { public int Count {get;set;} }
-
