@@ -158,7 +158,7 @@
             }
             @if (_bowl.HandpanId.HasValue && _bowl.Stage >= 12)
             {
-                <div class="mt-3"><HandpanPhotoGallery HandpanId="@_bowl.HandpanId.Value" /></div>
+                <section class="passport-photo-panel"><header><div><small>تصاویر ساز</small><strong>عکس‌های شناسنامه</strong></div><span>اختیاری</span></header><div class="passport-photo-body"><HandpanPhotoGallery HandpanId="@_bowl.HandpanId.Value" /></div></section>
             }
             @if (_bowl.Stage is >= 4 and <= 11)
             {
@@ -166,23 +166,26 @@
                 {
                     <div class="alert alert-info mt-3"><strong>توضیحات مراحل قبلی</strong><ul class="mb-0 mt-2">@foreach(var note in _bowl.Notes){<li>@note</li>}</ul></div>
                 }
-                <div class="mt-3"><label class="form-label">توضیحات این مرحله (اختیاری)</label><textarea class="form-control" rows="3" @bind="_stageNote" placeholder="اگر نکته‌ای برای همکار مرحله بعد وجود دارد اینجا بنویسید..."></textarea></div>
+                @if (_bowl.Stage is not (4 or 8))
+                {
+                    <div class="mt-3"><label class="form-label">توضیحات این مرحله (اختیاری)</label><textarea class="form-control" rows="3" @bind="_stageNote" placeholder="اگر نکته‌ای برای همکار مرحله بعد وجود دارد اینجا بنویسید..."></textarea></div>
+                }
             }
 
             @if (_bowl.Stage == 2)
             {
-                <div class="row align-items-end mt-3">
-                    <div class="col-md-4">
-                        <label class="form-label">مدت زمان انجام دیمپل</label>
+                <section class="stage-workspace">
+                    <header class="stage-workspace-header"><span class="stage-workspace-number">۱</span><div><small>مرحله جاری</small><h4>ثبت پایان دیمپل</h4><p>زمان انجام و اسکیل کاسه را بررسی کنید.</p></div></header>
+                    <div class="stage-workspace-body"><div class="stage-fields">
+                        <label class="stage-field"><span>مدت زمان انجام دیمپل</span>
                         <select class="form-select" @bind="_duration">
                             @foreach (var option in DurationOptions)
                             {
                                 <option value="@option.Value">@option.Text</option>
                             }
                         </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">اسکیل کاسه</label>
+                        </label>
+                        <label class="stage-field"><span>اسکیل کاسه</span>
                         <select class="form-select" @bind="_scaleId">
                             <option value="@Guid.Empty">انتخاب کنید...</option>
                             @foreach (var scale in DimpleScales)
@@ -190,36 +193,40 @@
                                 <option value="@scale.Id">@scale.Name</option>
                             }
                         </select>
-                    </div>
-                    <div class="col-md-4 mt-3 mt-md-0">
-                        <button class="btn btn-success w-100"
+                        </label>
+                    </div></div>
+                    <footer class="stage-workspace-actions">
+                        <button class="stage-submit"
                                 disabled="@(_loading || _scaleId == Guid.Empty)"
                                 @onclick="CompleteAsync">
-                            دیمپل انجام شد
+                            <strong>دیمپل انجام شد</strong><span>ثبت و انتقال به مرحله شیپ</span>
                         </button>
-                    </div>
-                </div>
+                    </footer>
+                </section>
             }
             else if (_bowl.Stage == 4)
             {
-                <div class="row align-items-end mt-3">
-                    <div class="col-md-6">
-                        <label class="form-label">مدت زمان انجام شیپ</label>
+                <section class="stage-workspace">
+                    <header class="stage-workspace-header"><span class="stage-workspace-number">۲</span><div><small>مرحله جاری</small><h4>ثبت پایان شیپ</h4><p>اطلاعات این مرحله را یکجا تکمیل کنید.</p></div></header>
+                    <div class="stage-workspace-body"><div class="stage-fields">
+                        <label class="stage-field stage-field-wide"><span>مدت زمان انجام شیپ</span>
                         <select class="form-select" @bind="_duration">
                             @foreach (var option in DurationOptions)
                             {
                                 <option value="@option.Value">@option.Text</option>
                             }
                         </select>
-                    </div>
-                    <div class="col-md-6 mt-3 mt-md-0">
-                        <button class="btn btn-success w-100"
+                        </label>
+                        <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>توضیحات این مرحله</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="4" @bind="_stageNote" placeholder="نکته‌ای که باید در مرحله بعد دیده شود را بنویسید..."></textarea></label>
+                    </div></div>
+                    <footer class="stage-workspace-actions">
+                        <button class="stage-submit"
                                 disabled="@_loading"
                                 @onclick="CompleteShapeAsync">
-                            شیپ انجام شد
+                            <strong>شیپ انجام شد</strong><span>بررسی و ثبت نتیجه مرحله</span>
                         </button>
-                    </div>
-                </div>
+                    </footer>
+                </section>
             }
             else if (_bowl.Stage == 6)
             {
@@ -231,33 +238,27 @@
             }
             else if (_bowl.Stage == 8)
             {
-                <div class="row align-items-end mt-3">
-                    <div class="col-md-6">
-                        <label class="form-label">مدت زمان انجام تیون</label>
+                <section class="stage-workspace">
+                    <header class="stage-workspace-header"><span class="stage-workspace-number">۴</span><div><small>مرحله جاری</small><h4>ثبت پایان تیون</h4><p>زمان، توضیحات و مسیر بعدی کاسه را مشخص کنید.</p></div></header>
+                    <div class="stage-workspace-body">
+                        <div class="stage-fields">
+                            <label class="stage-field stage-field-wide"><span>مدت زمان انجام تیون</span>
                         <select class="form-select" @bind="_duration">
                             @foreach (var option in DurationOptions)
                             {
                                 <option value="@option.Value">@option.Text</option>
                             }
                         </select>
-                    </div>
-                    <div class="col-md-6 mt-3 mt-md-0">
-                        <button class="btn btn-success w-100"
-                                disabled="@_loading"
-                                @onclick="CompleteTuneAsync">
-                            تیون انجام شد و ادامه مسیر عادی
-                        </button>
-                        <div class="export-route-box mt-3">
-                            <div class="export-route-title">✈ مسیر صادراتی</div>
-                            <div class="small mb-2">این کاسه بدون چسب، فاین تیون و QC مستقیماً بسته‌بندی می‌شود.</div>
-                            <button class="btn btn-warning w-100"
-                                    disabled="@_loading"
-                                    @onclick="CompleteTuneForExportAsync">
-                                تیون انجام شد؛ ارسال به بسته‌بندی صادراتی
-                            </button>
+                            </label>
+                            <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>توضیحات این مرحله</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="4" @bind="_stageNote" placeholder="نکته‌ای که باید در مرحله بعد دیده شود را بنویسید..."></textarea></label>
+                        </div>
+                        <div class="stage-route-heading"><strong>مرحله بعدی را انتخاب کنید</strong><span>جزئیات مسیر پیش از ثبت نهایی نمایش داده می‌شود.</span></div>
+                        <div class="stage-route-actions">
+                            <button type="button" class="stage-route-action" disabled="@_loading" @onclick="CompleteTuneAsync"><strong>ادامه مسیر ساخت ساز</strong><span>ارسال کاسه به مرحله چسب</span></button>
+                            <button type="button" class="stage-route-action" disabled="@_loading" @onclick="CompleteTuneForExportAsync"><strong>مسیر بسته‌بندی صادراتی</strong><span>ارسال مستقیم به بسته‌بندی صادراتی</span></button>
                         </div>
                     </div>
-                </div>
+                </section>
             }
             else if (_bowl.Stage == 21)
             {
@@ -305,24 +306,27 @@
             }
             else if (_bowl.Stage == 12)
             {
-                <div class="row align-items-end mt-3">
-                    <div class="col-md-6">
-                        <label class="form-label">مدت زمان انجام فاین تیون</label>
+                <section class="stage-workspace">
+                    <header class="stage-workspace-header"><span class="stage-workspace-number">۶</span><div><small>مرحله جاری</small><h4>ثبت پایان فاین تیون</h4><p>اطلاعات نهایی تیون ساز را پیش از ارسال به کنترل کیفیت ثبت کنید.</p></div></header>
+                    <div class="stage-workspace-body"><div class="stage-fields">
+                        <label class="stage-field stage-field-wide"><span>مدت زمان انجام فاین تیون</span>
                         <select class="form-select" @bind="_duration">
                             @foreach (var option in DurationOptions)
                             {
                                 <option value="@option.Value">@option.Text</option>
                             }
                         </select>
-                    </div>
-                    <div class="col-md-6">
-                <button class="btn btn-success mt-3"
+                        </label>
+                        <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>یادداشت مخصوص این ساز</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="4" @bind="_instrumentNote" placeholder="این یادداشت در پرونده ساز همیشه نمایش داده می‌شود..."></textarea></label>
+                    </div></div>
+                    <footer class="stage-workspace-actions">
+                        <button class="stage-submit"
                         disabled="@_loading"
                         @onclick="CompleteFinalTuneAsync">
-                    فاین تیون انجام شد
-                </button>
-                    </div>
-                </div>
+                            <strong>فاین تیون انجام شد</strong><span>ثبت و ارسال ساز به کنترل کیفیت</span>
+                        </button>
+                    </footer>
+                </section>
             }
             else if (_bowl.Stage == 14)
             {
@@ -380,7 +384,7 @@
                         @foreach (var material in CasePackagingMaterials)
                         {
                             <label class="case-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity == 0?"disabled":"")">
-                                <input type="radio" name="packaging-case" disabled="@(material.Quantity == 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
+                                <input type="radio" name="packaging-case" disabled="@(material.Quantity == 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="_ => TogglePackagingMaterial(material.Id, true)" />
                                 <span>@material.Name</span><small>@material.Quantity موجود</small>
                             </label>
                         }
@@ -398,7 +402,7 @@
                     این ساز در انبار است. تاریخ بسته‌بندی و سایر مراحل انجام‌شده در جدول بالا نمایش داده شده‌اند.
                 </div>
             }
-            @if (_bowl.Stage is 12 or 14 or 16 or 18 or 20)
+            @if (_bowl.Stage is 14 or 16 or 18 or 20)
             {
                 <div class="instrument-note-editor mt-3"><label class="form-label fw-bold">@(_bowl.Stage is 18 or 20 ? "افزودن یادداشت به شناسنامه ساز" : "یادداشت مخصوص این ساز (اختیاری)")</label><textarea class="form-control" rows="4" @bind="_instrumentNote" placeholder="این یادداشت در پرونده ساز همیشه نمایش داده می‌شود."></textarea>@if (_bowl.Stage is 18 or 20) { <button class="btn btn-primary mt-2" disabled="@string.IsNullOrWhiteSpace(_instrumentNote)" @onclick="SaveInstrumentNoteAsync">ثبت یادداشت در شناسنامه</button> }</div>
             }
@@ -572,7 +576,7 @@
     private Task CompleteTuneForExportAsync()
     {
         ShowOperationConfirmation("تیون و ارسال به بسته‌بندی صادراتی",
-            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مسیر", "بسته‌بندی صادراتی")],
+            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText()), ("مسیر", "بسته‌بندی صادراتی")],
             CompleteTuneForExportConfirmedAsync);
         return Task.CompletedTask;
     }
