@@ -1,2 +1,25 @@
-@if(Points.Count>0){<div class="trend-chart"><div class="trend-head"><div><h3>@Title</h3><small>مقایسه شش ماه اخیر با میانگین</small></div><span>میانگین @Points.Last().Average.ToString("N1")</span></div><div class="bars">@foreach(var p in Points){<div class="bar-column"><b>@p.Count</b><div class="bar-track"><i style="height:@Height(p.Count)%"></i><u style="bottom:@Height(p.Average)%"></u></div><small>@p.Label</small></div>}</div></div>}
-@code{[Parameter]public IReadOnlyList<ReportTrendDto> Points{get;set;}=[];[Parameter]public string Title{get;set;}="روند ماهانه";private double Max=>Math.Max(1,Points.Select(x=>Math.Max(x.Count,x.Average)).DefaultIfEmpty(1).Max());private string Height(double value)=>Math.Max(2,value/Max*100).ToString("0.##",System.Globalization.CultureInfo.InvariantCulture);}
+@if(Points.Count>0)
+{
+<div class="trend-chart"><div class="trend-head"><div><h3>@Title</h3><small>مقایسه شش ماه اخیر با میانگین</small></div><span>میانگین @Points.Last().Average.ToString("N1")</span></div>
+    <div class="line-stage"><svg viewBox="0 0 720 220" role="img" aria-label="@Title" preserveAspectRatio="none">
+        <defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b9cad" stop-opacity=".32"/><stop offset="1" stop-color="#2b9cad" stop-opacity="0"/></linearGradient></defs>
+        @foreach(var y in new[]{40,75,110,145,180}){<line class="grid-line" x1="38" y1="@y" x2="690" y2="@y" />}
+        <line class="average-line" x1="38" y1="@AverageY" x2="690" y2="@AverageY" />
+        <polygon class="trend-area" points="@AreaPoints" />
+        <polyline class="trend-line" points="@LinePoints" />
+        @for(var i=0;i<Points.Count;i++){var point=Points[i];<g><circle class="trend-dot" cx="@X(i)" cy="@Y(point.Count)" r="5"/><text x="@X(i)" y="@(Y(point.Count)-11)" text-anchor="middle">@point.Count</text></g>}
+    </svg></div>
+    <div class="trend-labels">@foreach(var point in Points){<span>@point.Label</span>}</div>
+</div>
+}
+@code{
+    [Parameter]public IReadOnlyList<ReportTrendDto> Points{get;set;}=[];
+    [Parameter]public string Title{get;set;}="روند ماهانه";
+    private double Max=>Math.Max(1,Points.Select(x=>Math.Max(x.Count,x.Average)).DefaultIfEmpty(1).Max());
+    private double X(int index)=>Points.Count==1?364:38+index*(652d/(Points.Count-1));
+    private double Y(double value)=>180-value/Max*140;
+    private double AverageY=>Y(Points.LastOrDefault()?.Average??0);
+    private string LinePoints=>string.Join(" ",Points.Select((p,i)=>$"{F(X(i))},{F(Y(p.Count))}"));
+    private string AreaPoints=>$"38,180 {LinePoints} 690,180";
+    private static string F(double value)=>value.ToString("0.##",System.Globalization.CultureInfo.InvariantCulture);
+}
