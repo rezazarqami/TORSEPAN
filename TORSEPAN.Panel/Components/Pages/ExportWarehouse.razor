@@ -1,28 +1,72 @@
 @page "/warehouse/export"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject BowlService BowlService
-@inject IJSRuntime JS
+@inject TORSEPAN.Panel.Services.Api.AccountingService AccountingService
 
 <PageTitle>انبار صادراتی</PageTitle>
 <PageHeader Title="انبار صادراتی" SubTitle="کاسه‌های تیون و بسته‌بندی‌شده برای ارسال خارجی" />
 
-<div class="mb-4"><input class="form-control" placeholder="جست‌وجوی کد کاسه یا متریال..." @bind="_search" @bind:event="oninput" /></div>
+<div class="export-tools">
+    <input class="form-control" placeholder="جست‌وجوی کد کاسه یا متریال..." @bind="_search" @bind:event="oninput" />
+    <AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin">
+        <button class="btn ship-selected" disabled="@(_selected.Count == 0)" @onclick="OpenSelectedShipment">ثبت ارسال <span>@_selected.Count</span></button>
+    </AuthorizeView>
+</div>
 <Card>
     @if (_loading) { <div class="text-center p-5"><div class="spinner-border"></div></div> }
     else if (!Items.Any()) { <EmptyState Title="انبار صادراتی خالی است" Description="پس از تکمیل بسته‌بندی صادراتی، کاسه‌ها در این قسمت قرار می‌گیرند." /> }
     else
     {
-        <DataTable><thead><tr><th>کد کاسه</th><th>نوع کاسه</th><th>متریال</th><th>وضعیت</th><th>ارسال</th><th>حذف</th></tr></thead>
-        <tbody>@foreach (var item in Items) { <tr><td><strong>@item.ProductionCode</strong></td><td>@(item.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</td><td>@item.MaterialName</td><td><span class="badge bg-success">آماده ارسال</span></td><td><AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>ShipAsync(item)">ارسال شد</button></AuthorizeView></td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></td></tr> }</tbody></DataTable>
+        <DataTable><thead><tr><th class="select-column"><input type="checkbox" checked="@AllVisibleSelected" @onchange="ToggleAll" aria-label="انتخاب همه" /></th><th>کد کاسه</th><th>نوع کاسه</th><th>متریال</th><th>وضعیت</th><th>ارسال</th><th>حذف</th></tr></thead>
+        <tbody>@foreach (var item in Items) { <tr class="@(_selected.Contains(item.Id)?"selected-row":null)"><td class="select-column"><input type="checkbox" checked="@_selected.Contains(item.Id)" @onchange="e=>Toggle(item.Id,(bool)(e.Value??false))" aria-label="انتخاب @item.ProductionCode" /></td><td><strong>@item.ProductionCode</strong></td><td>@(item.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</td><td>@item.MaterialName</td><td><span class="ready-badge">آماده ارسال</span></td><td><AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>OpenShipment(item)">ارسال</button></AuthorizeView></td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>RequestDelete(item)">حذف</button></AuthorizeView></td></tr> }</tbody></DataTable>
     }
 </Card>
 
+@if (_shipmentIds.Count > 0)
+{
+    <div class="shipment-overlay" @onclick="CloseShipment"><section class="shipment-dialog" role="dialog" aria-modal="true" aria-labelledby="shipment-title" @onclick:stopPropagation="true">
+        <header><div><small>ثبت خروج از انبار صادراتی</small><h3 id="shipment-title">اطلاعات ارسال</h3><p>@_shipmentIds.Count کاسه انتخاب شده است</p></div><button @onclick="CloseShipment" aria-label="بستن">×</button></header>
+        <div class="shipment-codes">@foreach(var id in _shipmentIds){<span>@_items.First(x=>x.Id==id).ProductionCode</span>}</div>
+        <div class="shipment-fields">
+            <label><span>نام خریدار از حسابداری</span><select class="form-select" @bind="_partyId"><option value="">انتخاب نشده</option>@foreach(var party in _parties){<option value="@party.Id">@party.DisplayName</option>}</select></label>
+            <label><span>نام خریدار تایپی</span><input class="form-control" @bind="_buyerName" placeholder="اختیاری" /></label>
+            <label><span>مقصد</span><input class="form-control" @bind="_destination" placeholder="کشور یا شهر مقصد، اختیاری" /></label>
+            <fieldset class="wide"><legend>نحوه ارسال</legend><div class="choice-row"><button type="button" class="@ChoiceClass(_shippingMethod,null)" @onclick="()=>_shippingMethod=null">ثبت نشده</button><button type="button" class="@ChoiceClass(_shippingMethod,"air")" @onclick='()=>_shippingMethod="air"'>هوایی</button><button type="button" class="@ChoiceClass(_shippingMethod,"land")" @onclick='()=>_shippingMethod="land"'>زمینی</button><button type="button" class="@ChoiceClass(_shippingMethod,"sea")" @onclick='()=>_shippingMethod="sea"'>دریایی</button></div></fieldset>
+            <fieldset class="wide"><legend>تسویه انجام شده؟</legend><div class="choice-row"><button type="button" class="@SettledClass(null)" @onclick="()=>_isSettled=null">ثبت نشده</button><button type="button" class="@SettledClass(true)" @onclick="()=>_isSettled=true">بله</button><button type="button" class="@SettledClass(false)" @onclick="()=>_isSettled=false">خیر</button></div></fieldset>
+        </div>
+        <p class="shipment-hint">تمام فیلدها اختیاری هستند و ارسال بدون تکمیل آن‌ها نیز ثبت می‌شود.</p>
+        @if(!string.IsNullOrWhiteSpace(_error)){<div class="shipment-error">@_error</div>}
+        <footer><button class="btn btn-light" disabled="@_saving" @onclick="CloseShipment">انصراف</button><button class="btn btn-success" disabled="@_saving" @onclick="ConfirmShipmentAsync">@(_saving?"در حال ثبت…":"تأیید و انتقال به فروش")</button></footer>
+    </section></div>
+}
+
+<AppConfirmDialog IsOpen="@(_deleteCandidate is not null)" Title="حذف کاسه صادراتی" Message="@DeleteMessage" ConfirmText="حذف برای همیشه" Error="@_deleteError" Busy="@_deleting" OnConfirm="ConfirmDeleteAsync" OnCancel="CancelDelete" />
+
 @code {
     private List<ExportWarehouseItemDto> _items = [];
-    private bool _loading = true;
-    private string _search = "";
+    private List<TORSEPAN.Panel.Models.AccountingPartyDto> _parties = [];
+    private readonly HashSet<Guid> _selected = [];
+    private readonly List<Guid> _shipmentIds = [];
+    private bool _loading = true, _saving, _deleting;
+    private string _search = "", _buyerName = "", _destination = "";
+    private string? _shippingMethod, _error, _deleteError;
+    private bool? _isSettled;
+    private Guid? _partyId;
+    private ExportWarehouseItemDto? _deleteCandidate;
     private IEnumerable<ExportWarehouseItemDto> Items => string.IsNullOrWhiteSpace(_search) ? _items : _items.Where(x => x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.MaterialName.Contains(_search, StringComparison.OrdinalIgnoreCase));
-    protected override async Task OnAfterRenderAsync(bool firstRender) { if (!firstRender) return; _items = (await BowlService.GetExportWarehouseAsync()).ToList(); _loading = false; StateHasChanged(); }
-    private async Task ShipAsync(ExportWarehouseItemDto item) { if (!await JS.InvokeAsync<bool>("confirm", $"ارسال کاسه صادراتی {item.ProductionCode} تأیید شود؟ این کاسه از انبار خارج و در فروش ثبت می‌شود.")) return; await BowlService.ShipExportBowlAsync(item.Id); _items.Remove(item); }
-    private async Task DeleteAsync(ExportWarehouseItemDto item) { if (!await JS.InvokeAsync<bool>("confirm", $"کاسه صادراتی {item.ProductionCode} برای همیشه حذف شود؟")) return; await BowlService.DeleteAsync(item.Id); _items.Remove(item); }
+    private bool AllVisibleSelected => Items.Any() && Items.All(x => _selected.Contains(x.Id));
+    private string DeleteMessage => _deleteCandidate is null ? "" : $"کاسه صادراتی {_deleteCandidate.ProductionCode} برای همیشه حذف شود؟";
+    protected override async Task OnInitializedAsync(){_loading=true;try{var bowls=BowlService.GetExportWarehouseAsync();var parties=AccountingService.PartiesAsync();await Task.WhenAll(bowls,parties);_items=(await bowls).ToList();_parties=await parties;}finally{_loading=false;}}
+    private void Toggle(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
+    private void ToggleAll(ChangeEventArgs e){var selected=(bool)(e.Value??false);foreach(var item in Items){if(selected)_selected.Add(item.Id);else _selected.Remove(item.Id);}}
+    private void OpenShipment(ExportWarehouseItemDto item){_shipmentIds.Clear();_shipmentIds.Add(item.Id);ResetShipment();}
+    private void OpenSelectedShipment(){_shipmentIds.Clear();_shipmentIds.AddRange(_selected.Where(id=>_items.Any(x=>x.Id==id)));ResetShipment();}
+    private void ResetShipment(){_partyId=null;_buyerName="";_destination="";_shippingMethod=null;_isSettled=null;_error=null;}
+    private void CloseShipment(){if(_saving)return;_shipmentIds.Clear();}
+    private static string ChoiceClass(string? current,string? value)=>current==value?"choice active":"choice";
+    private string SettledClass(bool? value)=>_isSettled==value?"choice active":"choice";
+    private async Task ConfirmShipmentAsync(){_saving=true;_error=null;try{var buyer=string.IsNullOrWhiteSpace(_buyerName)&&_partyId.HasValue?_parties.FirstOrDefault(x=>x.Id==_partyId)?.DisplayName:_buyerName;await BowlService.ShipExportBowlsAsync(_shipmentIds,buyer,_partyId,_destination,_shippingMethod,_isSettled);var shipped=_shipmentIds.ToHashSet();_items.RemoveAll(x=>shipped.Contains(x.Id));_selected.RemoveWhere(shipped.Contains);_shipmentIds.Clear();}catch(Exception ex){_error=ex.Message;}finally{_saving=false;}}
+    private void RequestDelete(ExportWarehouseItemDto item){_deleteCandidate=item;_deleteError=null;}
+    private void CancelDelete(){if(_deleting)return;_deleteCandidate=null;_deleteError=null;}
+    private async Task ConfirmDeleteAsync(){if(_deleteCandidate is null)return;_deleting=true;try{await BowlService.DeleteAsync(_deleteCandidate.Id);_items.Remove(_deleteCandidate);_selected.Remove(_deleteCandidate.Id);_deleteCandidate=null;}catch(Exception ex){_deleteError=ex.Message;}finally{_deleting=false;}}
 }

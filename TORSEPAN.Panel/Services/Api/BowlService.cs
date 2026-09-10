@@ -145,6 +145,14 @@ public sealed class BowlService
     public Task ShipExportBowlAsync(Guid id)
         => _api.PostAsync<object, object?>($"bowls/export-warehouse/{id}/ship", new { });
 
+    public Task ShipExportBowlsAsync(IReadOnlyCollection<Guid> ids, string? buyerName, Guid? partyId,
+        string? destination, string? shippingMethod, bool? isSettled)
+        => _api.PostAsync<object, object?>("bowls/export-warehouse/ship", new
+        {
+            BowlIds = ids, BuyerName = buyerName, PartyId = partyId, Destination = destination,
+            ShippingMethod = shippingMethod, IsSettled = isSettled
+        });
+
     public Task<DimpleBowlDto?> CompleteGlueAsync(
         string productionCode,
         string pairedProductionCode,

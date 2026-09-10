@@ -1,12 +1,15 @@
 using MediatR;
 using TORSEPAN.Application.Interfaces;
+using TORSEPAN.Application.Common.Interfaces;
+using TORSEPAN.Domain.Entities;
+using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.Application.Materials.Commands.AdjustBowlStock;
 
 public sealed class AdjustBowlStockHandler : IRequestHandler<AdjustBowlStockCommand>
 {
-    private readonly IUnitOfWork _unitOfWork; private readonly IInventoryAlertService _alerts;
-    public AdjustBowlStockHandler(IUnitOfWork unitOfWork, IInventoryAlertService alerts) { _unitOfWork = unitOfWork; _alerts = alerts; }
+    private readonly IUnitOfWork _unitOfWork; private readonly IInventoryAlertService _alerts; private readonly IUserContext _user;
+    public AdjustBowlStockHandler(IUnitOfWork unitOfWork, IInventoryAlertService alerts, IUserContext user) { _unitOfWork = unitOfWork; _alerts = alerts; _user = user; }
 
     public async Task Handle(AdjustBowlStockCommand request, CancellationToken cancellationToken)
     {
@@ -23,6 +26,12 @@ public sealed class AdjustBowlStockHandler : IRequestHandler<AdjustBowlStockComm
             material.AddBowlStock(request.TopQuantity, request.BottomQuantity);
 
         _unitOfWork.Materials.Update(material);
+        if (_user.UserId is Guid userId)
+        {
+            var topDelta=material.TopBowlQuantity-previousTop;var bottomDelta=material.BottomBowlQuantity-previousBottom;
+            if(topDelta!=0)await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(null,null,null,userId,ProductionAction.WarehouseEntry,EventResult.Completed,null,MaterialStockMetadata.Encode(material.Id,material.Name,"top",topDelta,material.TopBowlQuantity,request.SetAbsolute?"اصلاح موجودی":"ورود به انبار")));
+            if(bottomDelta!=0)await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(null,null,null,userId,ProductionAction.WarehouseEntry,EventResult.Completed,null,MaterialStockMetadata.Encode(material.Id,material.Name,"bottom",bottomDelta,material.BottomBowlQuantity,request.SetAbsolute?"اصلاح موجودی":"ورود به انبار")));
+        }
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         if (material.TopBowlLowStockThreshold > 0 && previousTop >= material.TopBowlLowStockThreshold && material.TopBowlQuantity < material.TopBowlLowStockThreshold)
             await _alerts.SendLowStockAsync(material.Name, "کاسه رو", material.TopBowlQuantity, material.TopBowlLowStockThreshold, cancellationToken);

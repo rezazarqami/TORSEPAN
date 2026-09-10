@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using TORSEPAN.API.Controllers;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Infrastructure.Persistence;
+using TORSEPAN.Application.Sales;
+using TORSEPAN.Application.Materials;
 
 static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
 var options=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused;Password=unused").Options;
@@ -42,4 +44,17 @@ var normalTune = new ProductionEvent(null, null, Guid.NewGuid(), Guid.NewGuid(),
     null, "Tune completed");
 Check(!normalTune.ConvertExportTuneToNormalRoute() && normalTune.Description == "Tune completed",
     "normal tune events remain unchanged");
+var saleJson=ExportSaleMetadata.Encode("خریدار",Guid.NewGuid(),"آلمان","air",true);
+var saleData=ExportSaleMetadata.Decode(saleJson);
+Check(saleData is {BuyerName:"خریدار",Destination:"آلمان",ShippingMethod:"air",IsSettled:true},"export shipment details round-trip safely");
+var stockJson=MaterialStockMetadata.Encode(Guid.NewGuid(),"استیل","top",12,40,"ورود");
+Check(MaterialStockMetadata.Decode(stockJson) is {Delta:12,Balance:40,StockKind:"top"},"material stock movement round-trips safely");
+Check(typeof(ManagementReportsController).GetCustomAttribute<AuthorizeAttribute>()?.Roles=="Administrator,ProductionManager","management reports restricted to managers");
+var root=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"../../../../../"));
+var exportPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/ExportWarehouse.razor"));
+Check(!exportPage.Contains("InvokeAsync<bool>(\"confirm\"")&&exportPage.Contains("ShipExportBowlsAsync"),"export shipping uses themed bulk confirmation");
+var warehouseCss=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/WarehouseList.razor.css"));
+var salesCss=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Sales.razor.css"));
+Check(warehouseCss.Contains("flex-direction:column")&&warehouseCss.Contains("min-width:calc(100vw - 24px)"),"warehouse details fit a mobile viewport");
+Check(salesCss.Contains("flex-direction:column")&&salesCss.Contains("min-width:calc(100vw - 24px)"),"sales details fit a mobile viewport");
 Console.WriteLine("Database-backed send/read isolation still requires integration testing against a test PostgreSQL database.");

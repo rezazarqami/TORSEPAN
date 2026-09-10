@@ -254,6 +254,19 @@ public sealed class BowlsController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("export-warehouse/ship")]
+    [Authorize(Roles = "Workshop,Administrator,ProductionManager,SalesAdmin")]
+    public async Task<IActionResult> ShipExportBowls([FromBody] ExportShipmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var method = string.IsNullOrWhiteSpace(request.ShippingMethod) ? null : request.ShippingMethod.Trim().ToLowerInvariant();
+        if (method is not null && method is not ("air" or "land" or "sea"))
+            return BadRequest("روش ارسال معتبر نیست.");
+        await _mediator.Send(new ShipExportBowlsCommand(request.BowlIds ?? [], request.BuyerName,
+            request.PartyId, request.Destination, method, request.IsSettled), cancellationToken);
+        return NoContent();
+    }
+
     [HttpPost("production/{productionCode}/glue/complete")]
     [Authorize(Roles = "Workshop,Administrator")]
     public async Task<ActionResult> CompleteGlue(
@@ -333,3 +346,5 @@ public sealed class BowlsController : ControllerBase
 
 public sealed record ProductionNoteRequest(string? Description, bool IsInstrumentNote = false);
 public sealed record CompleteShapeRequest(TORSEPAN.Domain.Enums.OperationDuration Duration, Guid? StretchUserId, Guid? NoteAreaUserId, Guid? EditUserId);
+public sealed record ExportShipmentRequest(IReadOnlyCollection<Guid>? BowlIds, string? BuyerName,
+    Guid? PartyId, string? Destination, string? ShippingMethod, bool? IsSettled);

@@ -4,6 +4,7 @@ using TORSEPAN.Application.Common.Results;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
+using TORSEPAN.Application.Materials;
 
 namespace TORSEPAN.Application.Bowls.Dimpling;
 
@@ -66,6 +67,9 @@ public sealed class CompleteHandpanPackagingCommandHandler
         {
             material.TryConsume();
             _unitOfWork.Materials.Update(material);
+            await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(handpan.Id,assembly.Id,null,userId,
+                ProductionAction.WarehouseEntry,EventResult.Completed,null,
+                MaterialStockMetadata.Encode(material.Id,material.Name,"general",-1,material.Quantity,"مصرف در بسته‌بندی")));
         }
 
         handpan.ChangeStage(ProductionStage.FinishedWarehouse);

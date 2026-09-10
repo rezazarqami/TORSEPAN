@@ -4,6 +4,7 @@
 @inject PayrollService PayrollService
 @inject MaterialService MaterialService
 @inject ScaleService ScaleService
+@inject ReportService ReportService
 @inject NavigationManager Navigation
 
 <PageTitle>محاسبه دستمزد تولید</PageTitle>
@@ -130,6 +131,11 @@ else
     </div>
 }
 
+@if(!_loading && _analytics.Donuts.Count>0)
+{
+    <section class="payroll-analytics"><header><div><small>ترکیب تولید ماه جاری</small><h3>سهم مراحل، اعضا، متریال و اسکیل</h3></div><span>شش نمودار مدیریتی</span></header><ReportDonutGrid Charts="@_analytics.Donuts" /></section>
+}
+
 @if (_confirmVisible)
 {
     <div class="modal d-block" style="background:rgba(0,0,0,.45)" role="dialog" aria-modal="true">
@@ -153,6 +159,7 @@ else
 
 @code {
     private PayrollDto _payroll = new();
+    private ProductionAnalyticsDto _analytics = new();
     private List<MaterialDto> _materials = [];
     private List<ScaleDto> _scales = [];
     private bool _loading = true, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse, _savingPayment;
@@ -182,7 +189,7 @@ else
         "2" => _scales.Where(x => (x.Usage & 2) != 0),
         _ => _scales.Where(x => (x.Usage & 3) != 0)
     };
-    private async Task LoadAsync() { _loading = true; try { _payroll = await PayrollService.GetAsync(_from, _to, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse) ?? new(); if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
+    private async Task LoadAsync() { _loading = true; try { var payroll=PayrollService.GetAsync(_from, _to, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse);var analytics=ReportService.GetProductionAsync(null,null,[],[],"all","all");await Task.WhenAll(payroll,analytics);_payroll=await payroll??new();_analytics=await analytics;if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
     private async Task SaveRateAsync()
     {
         Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null;

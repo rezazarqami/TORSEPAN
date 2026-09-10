@@ -1,51 +1,96 @@
 @page "/reports"
-@attribute [Authorize(Roles = "Administrator,ProductionManager")]
 @using Microsoft.AspNetCore.Authorization
-@using TORSEPAN.Panel.Models
-@using TORSEPAN.Panel.Services.Api
+@attribute [Authorize(Roles = "Administrator,ProductionManager")]
 @inject ReportService ReportService
+@inject MaterialService MaterialService
+@inject ScaleService ScaleService
+@inject IJSRuntime JS
 
-<PageTitle>گزارش‌ها</PageTitle>
-<PageHeader Title="گزارش‌های مدیریتی" SubTitle="گزارش کامل فعالیت کاربران و مراحل تولید" />
+<PageTitle>گزارش‌های مدیریتی</PageTitle>
+<section class="report-hero"><small>مرکز تحلیل TORSEPAN</small><h1>گزارش‌های مدیریتی</h1><p>نمای یکپارچه از عملیات، تولید و موجودی کارگاه</p></section>
+<nav class="report-tabs">
+    <button class="@TabClass("operations")" @onclick='()=>SwitchTab("operations")'><i>01</i><span><b>گزارش عملیات</b><small>کارکرد اعضای کارگاه</small></span></button>
+    <button class="@TabClass("production")" @onclick='()=>SwitchTab("production")'><i>02</i><span><b>گزارش تولید</b><small>تحلیل سازها و مراحل</small></span></button>
+    <button class="@TabClass("inventory")" @onclick='()=>SwitchTab("inventory")'><i>03</i><span><b>گزارش انبار</b><small>سازها و مواد اولیه</small></span></button>
+</nav>
 
-<div class="card border-0 shadow-sm mb-4"><div class="card-body">
-    <div class="row g-3 align-items-end">
-        <div class="col-lg-2 col-md-4"><label class="form-label">از تاریخ</label><PersianDatePicker @bind-Value="_from" /></div>
-        <div class="col-lg-2 col-md-4"><label class="form-label">تا تاریخ</label><PersianDatePicker @bind-Value="_to" /></div>
-        <div class="col-lg-2 col-md-4"><label class="form-label">کاربر</label><select class="form-select" @bind="_user"><option value="">همه کاربران</option>@foreach (var u in _report.Users){<option value="@u.Id">@(string.IsNullOrWhiteSpace(u.FullName) ? u.UserName : u.FullName)</option>}</select></div>
-        <div class="col-lg-2 col-md-4"><label class="form-label">عملیات</label><select class="form-select" @bind="_action"><option value="">همه عملیات‌ها</option>@foreach(var a in Actions){<option value="@a.Id">@a.Title</option>}</select></div>
-        <div class="col-lg-2 col-md-4"><label class="form-label">نتیجه</label><select class="form-select" @bind="_result"><option value="">همه نتایج</option><option value="1">تکمیل‌شده</option><option value="2">ناموفق</option><option value="3">ردشده</option><option value="4">ردشده از مرحله</option></select></div>
-        <div class="col-lg-2 col-md-4 d-flex gap-2"><button class="btn btn-primary flex-grow-1" @onclick="LoadAsync" disabled="@_loading">نمایش گزارش</button><button class="btn btn-outline-secondary" @onclick="ClearAsync">پاک‌کردن</button></div>
+<section class="report-filter-card">
+    <header><div><small>فیلتر گزارش</small><h2>@TabTitle</h2></div><span>انتخاب نکردن فیلتر یعنی همه موارد</span></header>
+    <div class="filter-grid">
+        <label><span>از تاریخ</span><PersianDatePicker @bind-Value="_from" /></label>
+        <label><span>تا تاریخ</span><PersianDatePicker @bind-Value="_to" /></label>
+        @if(_tab=="operations")
+        {
+            <label><span>کاربر</span><select class="form-select" @bind="_user"><option value="">همه کاربران</option>@foreach(var u in _operations.Users){<option value="@u.Id">@(string.IsNullOrWhiteSpace(u.FullName)?u.UserName:u.FullName)</option>}</select></label>
+            <label><span>عملیات</span><select class="form-select" @bind="_action"><option value="">همه عملیات‌ها</option>@foreach(var a in Actions){<option value="@a.Id">@a.Title</option>}</select></label>
+        }
+        else if(_tab=="production")
+        {
+            <MultiPicker Title="متریال" Items="@MaterialOptions" Selected="@_materials" OnToggle="ToggleMaterial" />
+            <MultiPicker Title="اسکیل" Items="@ScaleOptions" Selected="@_scales" OnToggle="ToggleScale" />
+            <label><span>دستمزد</span><select class="form-select" @bind="_payroll"><option value="all">همه موارد</option><option value="calculated">محاسبه شده</option><option value="uncalculated">محاسبه نشده</option></select></label>
+            <label><span>مقصد</span><select class="form-select" @bind="_destination"><option value="all">همه</option><option value="domestic">داخلی</option><option value="export">صادراتی</option></select></label>
+        }
+        else
+        {
+            <label><span>نوع انبار</span><select class="form-select" @bind="_inventoryKind"><option value="instruments">انبار سازها</option><option value="materials">انبار مواد اولیه</option></select></label>
+            @if(_inventoryKind=="instruments")
+            {
+                <MultiPicker Title="متریال" Items="@MaterialOptions" Selected="@_materials" OnToggle="ToggleMaterial" />
+                <MultiPicker Title="اسکیل" Items="@ScaleOptions" Selected="@_scales" OnToggle="ToggleScale" />
+                <label><span>مقصد</span><select class="form-select" @bind="_destination"><option value="all">همه</option><option value="domestic">داخلی</option><option value="export">صادراتی</option></select></label>
+            }
+        }
     </div>
-</div></div>
+    @if(!string.IsNullOrWhiteSpace(_filterNotice)){<p class="filter-notice">@_filterNotice</p>}
+    <footer><button class="btn run-report" @onclick="LoadCurrentAsync" disabled="@_loading">@(_loading?"در حال تحلیل…":"نمایش گزارش")</button><button class="btn btn-light" @onclick="ClearAsync">پاک کردن فیلترها</button><div class="export-actions"><button class="btn pdf-button" disabled="@_exporting" @onclick="DownloadPdfAsync">↓ خروجی PDF</button><button class="btn telegram-button" disabled="@_exporting" @onclick="SendTelegramAsync">ارسال PDF به تلگرام</button></div></footer>
+    @if(!string.IsNullOrWhiteSpace(_message)){<div class="report-message @(_messageError?"error":"success")">@_message</div>}
+</section>
 
-@if (_loading){<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>}
+@if(_loading){<div class="report-loading"><div class="spinner-border"></div><span>در حال ساخت گزارش…</span></div>}
+else if(_tab=="operations")
+{
+    <div class="metric-row two"><article><small>کل عملیات</small><strong>@_operations.TotalOperations</strong></article><article><small>مجموع زمان ثبت‌شده</small><strong>@_operations.TotalDurationMinutes <i>دقیقه</i></strong></article></div>
+    @if(_operations.Trend.Count>0){<ReportTrendChart Points="@_operations.Trend" Title="روند عملکرد فرد انتخاب‌شده" />}
+    <section class="result-card"><header><h3>عملکرد اعضای کارگاه</h3><span>@_operations.UserPerformance.Count نفر</span></header><div class="table-responsive"><table class="table"><thead><tr><th>کاربر</th><th>تعداد عملیات</th><th>زمان ثبت‌شده</th></tr></thead><tbody>@if(_operations.UserPerformance.Count==0){<tr><td colspan="3" class="empty-cell">اطلاعاتی پیدا نشد.</td></tr>}@foreach(var user in _operations.UserPerformance){<tr><td><strong>@(string.IsNullOrWhiteSpace(user.FullName)?user.UserName:user.FullName)</strong><small>@user.UserName</small></td><td>@user.OperationCount</td><td>@user.DurationMinutes دقیقه</td></tr>}</tbody></table></div></section>
+    <section class="result-card"><header><h3>ریز فعالیت‌ها</h3><span>@_operations.Activities.Count مورد</span></header><div class="table-responsive"><table class="table"><thead><tr><th>تاریخ</th><th>کاربر</th><th>عملیات</th><th>کد</th><th>مدت</th><th>توضیحات</th></tr></thead><tbody>@if(_operations.Activities.Count==0){<tr><td colspan="6" class="empty-cell">فعالیتی در این بازه ثبت نشده است.</td></tr>}@foreach(var item in _operations.Activities){<tr><td class="text-nowrap">@PersianDateTime.FormatDateTime(item.EventDate)</td><td>@(string.IsNullOrWhiteSpace(item.FullName)?item.UserName:item.FullName)</td><td><span class="operation-pill">@item.ActionTitle</span></td><td>@(string.IsNullOrWhiteSpace(item.ProductionCode)?"—":item.ProductionCode)</td><td>@item.DurationTitle</td><td>@(string.IsNullOrWhiteSpace(item.Description)?"—":item.Description)</td></tr>}</tbody></table></div></section>
+}
+else if(_tab=="production")
+{
+    <div class="metric-row"><article><small>کل کاسه‌های تولیدشده</small><strong>@_production.TotalBowlCount</strong></article><article><small>کاسه رو</small><strong>@_production.TopBowlCount</strong></article><article><small>کاسه زیر نت‌دار</small><strong>@_production.BottomNoteBowlCount</strong></article><article><small>فاصله با میانگین ماهانه</small><strong class="@(_production.DifferenceFromAverage>=0?"positive":"negative")">@_production.DifferenceFromAverage.ToString("+0.#;-0.#;0")</strong></article></div>
+    <ReportTrendChart Points="@_production.Trend" Title="تولید ماهانه و فاصله با میانگین" />
+    <section class="analytics-card"><header><div><small>نمای فشرده کارگاه</small><h3>شش نمودار کلیدی تولید</h3></div><span>بازه انتخاب‌شده</span></header><ReportDonutGrid Charts="@_production.Donuts" /></section>
+    <section class="result-card"><header><h3>خلاصه تولید</h3><span>@_production.Summary.Sum(x=>x.Count) کاسه</span></header><div class="table-responsive"><table class="table"><thead><tr><th>متریال</th><th>اسکیل</th><th>مقصد</th><th>تعداد</th></tr></thead><tbody>@foreach(var item in _production.Summary){<tr><td><strong>@item.Material</strong></td><td>@item.Scale</td><td><span class="destination-pill">@item.Destination</span></td><td>@item.Count</td></tr>}</tbody></table></div></section>
+}
 else
 {
-    <div class="row g-3 mb-4">
-        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">کل عملیات</small><h2 class="mt-2 mb-0">@_report.TotalOperations</h2></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">عملیات موفق</small><h2 class="mt-2 mb-0 text-success">@_report.CompletedOperations</h2></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">ناموفق یا برگشتی</small><h2 class="mt-2 mb-0 text-danger">@_report.RejectedOrFailedOperations</h2></div></div></div>
-        <div class="col-md-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><small class="text-muted">مجموع زمان ثبت‌شده</small><h2 class="mt-2 mb-0">@_report.TotalDurationMinutes <small class="fs-6">دقیقه</small></h2></div></div></div>
-    </div>
-
-    <div class="card border-0 shadow-sm mb-4"><div class="card-header bg-white py-3"><h5 class="mb-0">عملکرد کاربران</h5></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>کاربر</th><th>تعداد عملیات</th><th>تکمیل‌شده</th><th>زمان ثبت‌شده</th></tr></thead><tbody>
-    @if (_report.UserPerformance.Count == 0){<tr><td colspan="4" class="text-center text-muted py-4">در بازه انتخاب‌شده اطلاعاتی وجود ندارد.</td></tr>}
-    @foreach(var user in _report.UserPerformance){<tr><td><strong>@(string.IsNullOrWhiteSpace(user.FullName) ? user.UserName : user.FullName)</strong><div class="small text-muted">@user.UserName</div></td><td>@user.OperationCount</td><td>@user.CompletedCount</td><td>@user.DurationMinutes دقیقه</td></tr>}
-    </tbody></table></div></div>
-
-    <div class="card border-0 shadow-sm"><div class="card-header bg-white py-3 d-flex justify-content-between"><h5 class="mb-0">ریز فعالیت‌ها</h5><span class="badge bg-primary rounded-pill">@_report.Activities.Count مورد</span></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>تاریخ و ساعت</th><th>کاربر</th><th>عملیات</th><th>کد ساز/کاسه</th><th>نتیجه</th><th>مدت</th><th>توضیحات</th></tr></thead><tbody>
-    @if (_report.Activities.Count == 0){<tr><td colspan="7" class="text-center text-muted py-5">فعالیتی با این فیلترها پیدا نشد.</td></tr>}
-    @foreach(var item in _report.Activities){<tr><td class="text-nowrap">@PersianDateTime.FormatDateTime(item.EventDate)</td><td>@(string.IsNullOrWhiteSpace(item.FullName) ? item.UserName : item.FullName)</td><td><span class="badge text-bg-light">@item.ActionTitle</span></td><td>@(string.IsNullOrWhiteSpace(item.ProductionCode) ? "—" : item.ProductionCode)</td><td><span class="@(item.Result == 1 ? "text-success" : "text-danger")">@item.ResultTitle</span></td><td class="text-nowrap">@item.DurationTitle</td><td class="small">@(string.IsNullOrWhiteSpace(item.Description) ? "—" : item.Description)</td></tr>}
-    </tbody></table></div></div>
+    @if(_inventoryKind=="instruments")
+    {
+        <div class="metric-row two"><article><small>موجودی داخلی</small><strong>@_inventory.DomesticCount</strong></article><article><small>موجودی صادراتی</small><strong>@_inventory.ExportCount</strong></article></div>
+        <section class="result-card"><header><h3>موجودی انبار سازها</h3><span>@_inventory.Instruments.Count مورد</span></header><div class="table-responsive"><table class="table"><thead><tr><th>کد</th><th>نوع</th><th>متریال</th><th>اسکیل</th><th>مقصد</th></tr></thead><tbody>@if(_inventory.Instruments.Count==0){<tr><td colspan="5" class="empty-cell">موردی با این فیلترها پیدا نشد.</td></tr>}@foreach(var item in _inventory.Instruments){<tr><td><strong>@item.Code</strong></td><td>@item.ItemType</td><td>@item.Material</td><td>@item.Scale</td><td><span class="destination-pill">@item.Destination</span></td></tr>}</tbody></table></div></section>
+    }
+    else
+    {
+        <section class="result-card"><header><h3>موجودی فعلی مواد اولیه</h3><span>@_inventory.Stock.Count قلم</span></header><div class="stock-grid">@foreach(var item in _inventory.Stock){<article><div><strong>@item.Name</strong><small>@item.Category</small></div>@if(item.TopQuantity>0||item.BottomQuantity>0){<span>رو <b>@item.TopQuantity</b></span><span>زیر <b>@item.BottomQuantity</b></span>}else{<span>موجودی <b>@item.Quantity</b></span>}</article>}</div></section>
+        <section class="result-card"><header><h3>خروجی مواد در بازه انتخاب‌شده</h3><span>@_inventory.Outflow.Sum(x=>x.Quantity) عدد</span></header><div class="outflow-grid">@if(_inventory.Outflow.Count==0){<p>خروجی ثبت‌شده‌ای در این بازه وجود ندارد.</p>}@foreach(var item in _inventory.Outflow){<article><strong>@item.Quantity</strong><span>@item.MaterialName</span><small>@item.StockKind</small></article>}</div></section>
+        <section class="result-card"><header><h3>گردش ورودی و خروجی انبار</h3><span>@_inventory.Movements.Count رویداد</span></header><div class="table-responsive"><table class="table"><thead><tr><th>تاریخ</th><th>متریال</th><th>نوع</th><th>گردش</th><th>تعداد</th><th>ثبت‌کننده</th></tr></thead><tbody>@if(_inventory.Movements.Count==0){<tr><td colspan="6" class="empty-cell">از زمان فعال شدن گزارش جدید، گردشی در این بازه ثبت نشده است.</td></tr>}@foreach(var item in _inventory.Movements){<tr><td>@PersianDateTime.FormatDateTime(item.OccurredAt)</td><td><strong>@item.MaterialName</strong></td><td>@item.StockKind</td><td>@item.Direction</td><td>@Math.Abs(item.Delta)</td><td>@item.PerformedBy</td></tr>}</tbody></table></div></section>
+    }
 }
 
-@code {
-    private ProductionReportDto _report = new(); private bool _loading = true;
-    private DateTime? _from, _to; private string _user = "", _action = "", _result = "";
-    private static readonly (int Id,string Title)[] Actions = [(1,"ثبت اولیه"),(2,"دیمپل"),(3,"شیپ"),(4,"پخت"),(5,"چسب"),(6,"تیون"),(7,"فاین‌تیون"),(8,"کنترل کیفیت"),(9,"بسته‌بندی"),(10,"ورود به انبار"),(11,"برگشتی"),(12,"فروش")];
-    protected override Task OnInitializedAsync() => LoadAsync();
-    private async Task LoadAsync(){_loading=true; try { Guid? user=Guid.TryParse(_user,out var u)?u:null; int? action=int.TryParse(_action,out var a)?a:null; int? result=int.TryParse(_result,out var r)?r:null; _report=await ReportService.GetAsync(_from,_to,user,action,result); } finally {_loading=false;}}
-    private async Task ClearAsync(){_from=_to=null; _user=_action=_result=""; await LoadAsync();}
+@code{
+    private string _tab="operations",_user="",_action="",_payroll="all",_destination="all",_inventoryKind="instruments";
+    private DateTime? _from,_to;private bool _loading=true,_exporting,_messageError;private string? _message,_filterNotice;
+    private ProductionReportDto _operations=new();private ProductionAnalyticsDto _production=new();private InventoryReportDto _inventory=new();
+    private List<MaterialDto> _materialOptions=[];private List<ScaleDto> _scaleOptions=[];private readonly HashSet<Guid> _materials=[];private readonly HashSet<Guid> _scales=[];
+    private IEnumerable<PickerItem> MaterialOptions=>_materialOptions.Where(x=>x.Category==4).Select(x=>new PickerItem(x.Id,x.Name));private IEnumerable<PickerItem> ScaleOptions=>_scaleOptions.Select(x=>new PickerItem(x.Id,x.Name));
+    private static readonly (int Id,string Title)[] Actions=[(1,"ثبت اولیه"),(2,"دیمپل"),(3,"شیپ"),(4,"پخت"),(5,"چسب"),(6,"تیون"),(7,"فاین‌تیون"),(8,"کنترل کیفیت"),(9,"بسته‌بندی"),(10,"ورود به انبار"),(11,"برگشتی"),(12,"فروش")];
+    private string TabTitle=>_tab switch{"production"=>"گزارش تولید","inventory"=>"گزارش انبار",_=>"گزارش عملیات"};private string TabClass(string value)=>_tab==value?"report-tab active":"report-tab";
+    protected override async Task OnInitializedAsync(){var materials=MaterialService.GetAsync();var scales=ScaleService.GetAsync();var operations=ReportService.GetAsync();await Task.WhenAll(materials,scales,operations);_materialOptions=(await materials).ToList();_scaleOptions=(await scales).ToList();_operations=await operations;_loading=false;}
+    private async Task SwitchTab(string tab){_tab=tab;_message=null;await LoadCurrentAsync();}
+    private async Task LoadCurrentAsync(){_loading=true;_message=null;try{if(_tab=="operations"){Guid? user=Guid.TryParse(_user,out var u)?u:null;int? action=int.TryParse(_action,out var a)?a:null;_operations=await ReportService.GetAsync(_from,_to,user,action);}else if(_tab=="production")_production=await ReportService.GetProductionAsync(_from,_to,_materials,_scales,_payroll,_destination);else _inventory=await ReportService.GetInventoryAsync(_from,_to,_inventoryKind,_materials,_scales,_destination);}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_loading=false;}}
+    private Task ToggleMaterial(Guid id)=>ToggleLimited(_materials,id,"متریال");private Task ToggleScale(Guid id)=>ToggleLimited(_scales,id,"اسکیل");private Task ToggleLimited(HashSet<Guid> set,Guid id,string title){if(!set.Remove(id)){if(set.Count>=3){_filterNotice=$"حداکثر سه {title} را می‌توانید هم‌زمان انتخاب کنید.";return Task.CompletedTask;}set.Add(id);}_filterNotice=null;return Task.CompletedTask;}
+    private async Task ClearAsync(){_from=_to=null;_user=_action="";_payroll=_destination="all";_materials.Clear();_scales.Clear();_filterNotice=null;await LoadCurrentAsync();}
+    private (Guid? User,int? Action) OperationFilters(){Guid? u=Guid.TryParse(_user,out var user)?user:null;int? a=int.TryParse(_action,out var action)?action:null;return(u,a);}
+    private async Task DownloadPdfAsync(){_exporting=true;_message=null;try{var f=OperationFilters();var bytes=await ReportService.PdfAsync(_tab,_from,_to,_materials,_scales,_payroll,_destination,_inventoryKind,f.User,f.Action);await JS.InvokeVoidAsync("torsepanReports.download",$"torsepan-{_tab}-{DateTime.Now:yyyyMMdd-HHmm}.pdf",bytes);_message="فایل PDF آماده و دانلود شد.";_messageError=false;}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_exporting=false;}}
+    private async Task SendTelegramAsync(){_exporting=true;_message=null;try{var f=OperationFilters();await ReportService.SendTelegramAsync(_tab,_from,_to,_materials,_scales,_payroll,_destination,_inventoryKind,f.User,f.Action);_message="فایل PDF به ربات هشدار تلگرام ارسال شد.";_messageError=false;}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_exporting=false;}}
 }
-

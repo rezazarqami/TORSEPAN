@@ -9,7 +9,10 @@ public sealed class GetProductionReportResponse
     public IReadOnlyList<ReportUserItem> Users { get; set; } = [];
     public IReadOnlyList<UserPerformanceItem> UserPerformance { get; set; } = [];
     public IReadOnlyList<ProductionActivityItem> Activities { get; set; } = [];
+    public IReadOnlyList<ReportTrendItem> Trend { get; set; } = [];
 }
+
+public sealed record ReportTrendItem(string Label, int Count, double Average);
 
 public sealed class ReportUserItem
 {

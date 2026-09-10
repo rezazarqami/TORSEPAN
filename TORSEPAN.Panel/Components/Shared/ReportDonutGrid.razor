@@ -1,0 +1,14 @@
+<div class="donut-grid">
+@foreach(var chart in Charts)
+{
+    <article class="donut-card"><div class="donut-head"><div><h4>@chart.Title</h4><small>@chart.Subtitle</small></div><strong>@chart.Total.ToString("N0")</strong></div>
+        <div class="donut-body"><div class="donut" style="@Gradient(chart)"><span>@chart.Segments.Count</span><small>گروه</small></div><div class="donut-legend">
+        @if(chart.Segments.Count==0){<em>داده‌ای ثبت نشده</em>}else{@foreach(var segment in chart.Segments.Take(5)){<div><i style="background:@segment.Color"></i><span title="@segment.Label">@segment.Label</span><b>@segment.Percentage٪</b></div>}
+        }</div></div>
+    </article>
+}
+</div>
+@code{
+    [Parameter] public IReadOnlyList<ReportDonutDto> Charts{get;set;}=[];
+    private static string Gradient(ReportDonutDto chart){if(chart.Segments.Count==0)return "background:conic-gradient(#e5ebef 0 100%)";double start=0;var parts=new List<string>();foreach(var s in chart.Segments){var end=start+s.Percentage;parts.Add($"{s.Color} {start:0.##}% {end:0.##}%");start=end;}if(start<100)parts.Add($"#e5ebef {start:0.##}% 100%");return $"background:conic-gradient({string.Join(',',parts)})";}
+}

@@ -43,6 +43,7 @@ public sealed class GetSalesQueryHandler(IUnitOfWork unitOfWork)
             results.AddRange(soldBowls.Select(bowl =>
             {
                 var saleEvent = saleEvents.FirstOrDefault(x => x.BowlId == bowl.Id);
+                var metadata = ExportSaleMetadata.Decode(saleEvent?.Description);
                 var user = saleEvent is null ? null : users.FirstOrDefault(x => x.Id == saleEvent.UserId);
                 return new SaleItemResponse
                 {
@@ -50,7 +51,11 @@ public sealed class GetSalesQueryHandler(IUnitOfWork unitOfWork)
                     IsBowl = true,
                     ItemType = "کاسه صادراتی",
                     SerialNumber = bowl.ProductionCode,
-                    BuyerName = "ارسال صادراتی",
+                    BuyerName = metadata?.BuyerName ?? "ارسال صادراتی",
+                    PartyId = metadata?.PartyId,
+                    Destination = metadata?.Destination ?? "",
+                    ShippingMethod = metadata?.ShippingMethod ?? "",
+                    IsSettled = metadata?.IsSettled,
                     SoldAt = saleEvent?.EventDate ?? DateTime.MinValue,
                     SoldBy = UserName(user),
                     MaterialName = materials.GetValueOrDefault(bowl.MaterialId, "—"),

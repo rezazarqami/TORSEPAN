@@ -3,17 +3,20 @@ using TORSEPAN.Application.Common.Results;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
+using TORSEPAN.Application.Common.Interfaces;
+using TORSEPAN.Application.Materials;
 
 namespace TORSEPAN.Application.Features.Bowls.Commands.CreateBowl;
 
 public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand, Result<Guid>>
 {
-    private readonly IUnitOfWork _unitOfWork; private readonly IInventoryAlertService _alerts;
+    private readonly IUnitOfWork _unitOfWork; private readonly IInventoryAlertService _alerts; private readonly IUserContext _user;
 
-    public CreateBowlCommandHandler(IUnitOfWork unitOfWork, IInventoryAlertService alerts)
+    public CreateBowlCommandHandler(IUnitOfWork unitOfWork, IInventoryAlertService alerts, IUserContext user)
     {
         _unitOfWork = unitOfWork;
         _alerts = alerts;
+        _user = user;
     }
 
     public async Task<Result<Guid>> Handle(
@@ -53,10 +56,11 @@ public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand
             request.InstrumentType,
             request.MaterialId);
 
+        var current = isTop ? material.TopBowlQuantity : material.BottomBowlQuantity;
         await _unitOfWork.Bowls.AddAsync(bowl);
+        if(_user.UserId is Guid userId)await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(null,null,bowl.Id,userId,ProductionAction.Created,EventResult.Completed,null,MaterialStockMetadata.Encode(material.Id,material.Name,isTop?"top":"bottom",-1,current,"مصرف برای ساخت کاسه")));
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         var threshold = isTop ? material.TopBowlLowStockThreshold : material.BottomBowlLowStockThreshold;
-        var current = isTop ? material.TopBowlQuantity : material.BottomBowlQuantity;
         if (threshold > 0 && previous >= threshold && current < threshold)
             await _alerts.SendLowStockAsync(material.Name, isTop ? "کاسه رو" : "کاسه زیر", current, threshold, cancellationToken);
 

@@ -8,6 +8,7 @@
 .payroll-rates-table { max-height:390px; border:1px solid #e1e9e5; border-radius:12px; }
 .payroll-rates-table thead { position:sticky; top:0; z-index:1; background:#edf4f1; }
 .payroll-rates-table th, .payroll-rates-table td { padding:.65rem .45rem; white-space:nowrap; }
+.payroll-analytics{margin-top:20px;padding:18px;border:1px solid #dfe8ed;border-radius:21px;background:#fff;box-shadow:0 10px 30px rgba(15,53,78,.08)}.payroll-analytics>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}.payroll-analytics header small{color:#198061;font-size:.68rem;font-weight:900}.payroll-analytics h3{margin:2px 0 0;color:#173f63;font-size:1rem;font-weight:950}.payroll-analytics header>span{padding:5px 9px;border-radius:9px;background:#edf4f6;color:#527082;font-size:.68rem;font-weight:850}
 
 @media(max-width:700px) {
     .payroll-date-row { grid-template-columns:1fr 1fr; }
