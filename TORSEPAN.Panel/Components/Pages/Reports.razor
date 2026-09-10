@@ -52,7 +52,49 @@ else if(_tab=="operations")
 {
     <div class="metric-row two"><article><small>کل عملیات</small><strong>@_operations.TotalOperations</strong></article><article><small>مجموع زمان ثبت‌شده</small><strong>@_operations.TotalDurationMinutes <i>دقیقه</i></strong></article></div>
     @if(_operations.Trend.Count>0){<ReportTrendChart Points="@_operations.Trend" Title="روند عملکرد فرد انتخاب‌شده" />}
-    <section class="result-card"><header><h3>عملکرد اعضای کارگاه</h3><span>@_operations.UserPerformance.Count نفر</span></header><div class="table-responsive"><table class="table"><thead><tr><th>کاربر</th><th>تعداد عملیات</th><th>زمان ثبت‌شده</th></tr></thead><tbody>@if(_operations.UserPerformance.Count==0){<tr><td colspan="3" class="empty-cell">اطلاعاتی پیدا نشد.</td></tr>}@foreach(var user in _operations.UserPerformance){<tr><td><strong>@(string.IsNullOrWhiteSpace(user.FullName)?user.UserName:user.FullName)</strong><small>@user.UserName</small></td><td>@user.OperationCount</td><td>@user.DurationMinutes دقیقه</td></tr>}</tbody></table></div></section>
+    <section class="result-card performance-section">
+        <header><h3>عملکرد اعضای کارگاه</h3><span>@_operations.UserPerformance.Count نفر</span></header>
+        @if(_operations.UserPerformance.Count==0)
+        {
+            <p class="empty-cell">اطلاعاتی پیدا نشد.</p>
+        }
+        else
+        {
+            <div class="performance-grid">
+                @foreach(var user in _operations.UserPerformance)
+                {
+                    <article class="performance-card">
+                        <div class="performance-user">
+                            <div><strong>@(string.IsNullOrWhiteSpace(user.FullName)?user.UserName:user.FullName)</strong><small>@user.UserName</small></div>
+                            <span>@user.TimedOperations.Sum(x=>x.Count) عملیات زمان‌دار</span>
+                        </div>
+                        @if(user.TimedOperations.Count>0)
+                        {
+                            <div class="timed-operation-list">
+                                @foreach(var operation in user.TimedOperations)
+                                {
+                                    <div class="timed-operation">
+                                        <strong>@operation.ActionTitle</strong>
+                                        <span><b>@operation.Count</b><small>تعداد</small></span>
+                                        <span><b>@operation.TotalDurationMinutes</b><small>دقیقه کل</small></span>
+                                        <span><b>@operation.AverageDurationMinutes.ToString("0.#")</b><small>میانگین دقیقه</small></span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="no-timed-operation">برای این کاربر عملیات زمان‌دار ثبت نشده است.</p>
+                        }
+                        @if(user.UntimedOperations.Count>0)
+                        {
+                            <div class="untimed-operations"><small>سایر عملیات بدون زمان</small><div>@foreach(var operation in user.UntimedOperations){<span>@operation.ActionTitle <b>@operation.Count</b></span>}</div></div>
+                        }
+                    </article>
+                }
+            </div>
+        }
+    </section>
     <section class="result-card"><header><h3>ریز فعالیت‌ها</h3><span>@_operations.Activities.Count مورد</span></header><div class="table-responsive"><table class="table"><thead><tr><th>تاریخ</th><th>کاربر</th><th>عملیات</th><th>کد</th><th>مدت</th><th>توضیحات</th></tr></thead><tbody>@if(_operations.Activities.Count==0){<tr><td colspan="6" class="empty-cell">فعالیتی در این بازه ثبت نشده است.</td></tr>}@foreach(var item in _operations.Activities){<tr><td class="text-nowrap">@PersianDateTime.FormatDateTime(item.EventDate)</td><td>@(string.IsNullOrWhiteSpace(item.FullName)?item.UserName:item.FullName)</td><td><span class="operation-pill">@item.ActionTitle</span></td><td>@(string.IsNullOrWhiteSpace(item.ProductionCode)?"—":item.ProductionCode)</td><td>@item.DurationTitle</td><td>@(string.IsNullOrWhiteSpace(item.Description)?"—":item.Description)</td></tr>}</tbody></table></div></section>
 }
 else if(_tab=="production")

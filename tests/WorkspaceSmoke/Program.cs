@@ -11,6 +11,7 @@ using TORSEPAN.Domain.Entities;
 using TORSEPAN.Infrastructure.Persistence;
 using TORSEPAN.Application.Sales;
 using TORSEPAN.Application.Materials;
+using TORSEPAN.Application.Common.Reporting;
 
 static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
 var options=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused;Password=unused").Options;
@@ -57,4 +58,7 @@ var warehouseCss=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/P
 var salesCss=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Sales.razor.css"));
 Check(warehouseCss.Contains("flex-direction:column")&&warehouseCss.Contains("min-width:calc(100vw - 24px)"),"warehouse details fit a mobile viewport");
 Check(salesCss.Contains("flex-direction:column")&&salesCss.Contains("min-width:calc(100vw - 24px)"),"sales details fit a mobile viewport");
+var persianMonths=PersianMonthCalendar.LastMonths(new DateTime(2026,9,10),6);
+Check(persianMonths.Select(x=>x.Label).SequenceEqual(new[]{"1405/01","1405/02","1405/03","1405/04","1405/05","1405/06"}),"report trend uses six consecutive Persian months");
+Check(persianMonths.Zip(persianMonths.Skip(1)).All(x=>x.First.LocalEnd==x.Second.LocalStart),"Persian report month boundaries are contiguous");
 Console.WriteLine("Database-backed send/read isolation still requires integration testing against a test PostgreSQL database.");

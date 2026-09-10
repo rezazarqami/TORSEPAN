@@ -16,10 +16,10 @@
     [Parameter]public IReadOnlyList<ReportTrendDto> Points{get;set;}=[];
     [Parameter]public string Title{get;set;}="روند ماهانه";
     private double Max=>Math.Max(1,Points.Select(x=>Math.Max(x.Count,x.Average)).DefaultIfEmpty(1).Max());
-    private double X(int index)=>Points.Count==1?364:38+index*(652d/(Points.Count-1));
+    private double X(int index)=>Points.Count==1?364:690-index*(652d/(Points.Count-1));
     private double Y(double value)=>180-value/Max*140;
     private double AverageY=>Y(Points.LastOrDefault()?.Average??0);
     private string LinePoints=>string.Join(" ",Points.Select((p,i)=>$"{F(X(i))},{F(Y(p.Count))}"));
-    private string AreaPoints=>$"38,180 {LinePoints} 690,180";
+    private string AreaPoints=>$"690,180 {LinePoints} 38,180";
     private static string F(double value)=>value.ToString("0.##",System.Globalization.CultureInfo.InvariantCulture);
 }

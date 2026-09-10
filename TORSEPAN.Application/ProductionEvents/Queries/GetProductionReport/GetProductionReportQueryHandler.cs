@@ -1,8 +1,8 @@
 using MediatR;
+using TORSEPAN.Application.Common.Reporting;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
-using System.Globalization;
 
 namespace TORSEPAN.Application.ProductionEvents.Queries.GetProductionReport;
 
@@ -28,8 +28,27 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
         {
             UserId = x.Key.UserId, UserName = x.Key.UserName, FullName = x.Key.FullName,
             OperationCount = x.Count(), CompletedCount = x.Count(y => y.Result == (int)EventResult.Completed),
-            DurationMinutes = x.Sum(y => y.DurationMinutes ?? 0)
-        }).OrderByDescending(x => x.OperationCount).ToList();
+            DurationMinutes = x.Sum(y => y.DurationMinutes ?? 0),
+            TimedOperations = x.Where(y => y.DurationMinutes.HasValue)
+                .GroupBy(y => new { y.Action, y.ActionTitle })
+                .Select(y => new TimedOperationPerformanceItem
+                {
+                    Action = y.Key.Action,
+                    ActionTitle = y.Key.ActionTitle,
+                    Count = y.Count(),
+                    TotalDurationMinutes = y.Sum(z => z.DurationMinutes!.Value),
+                    AverageDurationMinutes = Math.Round(y.Average(z => z.DurationMinutes!.Value), 1)
+                }).OrderBy(y => y.Action).ToList(),
+            UntimedOperations = x.Where(y => !y.DurationMinutes.HasValue)
+                .GroupBy(y => new { y.Action, y.ActionTitle })
+                .Select(y => new UntimedOperationPerformanceItem
+                {
+                    Action = y.Key.Action,
+                    ActionTitle = y.Key.ActionTitle,
+                    Count = y.Count()
+                }).OrderBy(y => y.Action).ToList()
+        }).OrderByDescending(x => x.TimedOperations.Sum(y => y.Count))
+            .ThenByDescending(x => x.OperationCount).ToList();
 
         var trend = request.UserId.HasValue
             ? await BuildTrendAsync(request, cancellationToken)
@@ -47,11 +66,10 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
 
     private async Task<IReadOnlyList<ReportTrendItem>> BuildTrendAsync(GetProductionReportQuery request, CancellationToken ct)
     {
-        var pc=new PersianCalendar();var local=(request.To??DateTime.UtcNow.AddHours(3.5)).Date;
-        var current=pc.ToDateTime(pc.GetYear(local),pc.GetMonth(local),1,0,0,0,0);
-        var starts=Enumerable.Range(0,6).Select(i=>current.AddMonths(i-5)).ToList();
-        var events=await unitOfWork.ProductionEvents.GetReportAsync(starts[0].AddHours(-3.5),current.AddMonths(1).AddHours(-3.5),request.UserId,request.Action,null);
-        var counts=starts.Select((s,i)=>new ReportTrendItem($"{pc.GetYear(s)}/{pc.GetMonth(s):00}",events.Count(x=>x.EventDate>=s.AddHours(-3.5)&&x.EventDate<(i==5?current.AddMonths(1):starts[i+1]).AddHours(-3.5)&&!x.Description.StartsWith("MATERIAL_STOCK:")),0)).ToList();
+        var local=(request.To??DateTime.UtcNow.AddHours(3.5)).Date;
+        var months=PersianMonthCalendar.LastMonths(local,6);
+        var events=await unitOfWork.ProductionEvents.GetReportAsync(months[0].UtcStart,months[^1].UtcEnd,request.UserId,request.Action,null);
+        var counts=months.Select(month=>new ReportTrendItem(month.Label,events.Count(x=>x.EventDate>=month.UtcStart&&x.EventDate<month.UtcEnd&&!x.Description.StartsWith("MATERIAL_STOCK:")),0)).ToList();
         var average=counts.Count==0?0:Math.Round(counts.Average(x=>x.Count),1);
         return counts.Select(x=>x with{Average=average}).ToList();
     }

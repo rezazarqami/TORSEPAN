@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using TORSEPAN.Application.Common.Reporting;
 using TORSEPAN.Application.Materials;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
@@ -122,7 +123,7 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
     private static List<Guid> ParseGuidJson(string value){try{return JsonSerializer.Deserialize<List<Guid>>(value)??[];}catch{return[];}}
     private static (DateTime Start,DateTime End) Range(DateTime? from,DateTime? to){var now=DateTime.UtcNow.AddHours(3.5);var pc=new PersianCalendar();var start=from?.Date??pc.ToDateTime(pc.GetYear(now),pc.GetMonth(now),1,0,0,0,0);var end=to?.Date.AddDays(1)??now.Date.AddDays(1);return(DateTime.SpecifyKind(start.AddHours(-3.5),DateTimeKind.Utc),DateTime.SpecifyKind(end.AddHours(-3.5),DateTimeKind.Utc));}
     private static List<Guid> ParseIds(string? text)=>string.IsNullOrWhiteSpace(text)?[]:text.Split(',',StringSplitOptions.RemoveEmptyEntries).Select(x=>Guid.TryParse(x,out var id)?id:Guid.Empty).Where(x=>x!=Guid.Empty).Distinct().Take(3).ToList();
-    private static List<TrendPoint> BuildTrend(List<ProductionEvent> events,Dictionary<Guid,Bowl> bowls,DateTime end){var pc=new PersianCalendar();var local=end.AddHours(3.5).AddTicks(-1);var y=pc.GetYear(local);var m=pc.GetMonth(local);var starts=new List<DateTime>();var cursor=pc.ToDateTime(y,m,1,0,0,0,0);for(var i=5;i>=0;i--)starts.Add(cursor.AddMonths(-i));var counts=starts.Select((s,i)=>{var next=i==starts.Count-1?cursor.AddMonths(1):starts[i+1];return new TrendPoint($"{pc.GetYear(s)}/{pc.GetMonth(s):00}",events.Count(e=>e.EventDate>=s.AddHours(-3.5)&&e.EventDate<next.AddHours(-3.5)&&e.BowlId.HasValue&&bowls.ContainsKey(e.BowlId.Value)),0);}).ToList();var avg=counts.Count==0?0:Math.Round(counts.Average(x=>x.Count),1);return counts.Select(x=>x with{Average=avg}).ToList();}
+    private static List<TrendPoint> BuildTrend(List<ProductionEvent> events,Dictionary<Guid,Bowl> bowls,DateTime end){var months=PersianMonthCalendar.LastMonths(end.AddHours(3.5).AddTicks(-1),6);var counts=months.Select(month=>new TrendPoint(month.Label,events.Count(e=>e.EventDate>=month.UtcStart&&e.EventDate<month.UtcEnd&&e.BowlId.HasValue&&bowls.ContainsKey(e.BowlId.Value)),0)).ToList();var avg=counts.Count==0?0:Math.Round(counts.Average(x=>x.Count),1);return counts.Select(x=>x with{Average=avg}).ToList();}
     private static DonutChart Donut(string title,string subtitle,IEnumerable<(string Label,double Value)> values){var clean=values.Where(x=>x.Value>0).OrderByDescending(x=>x.Value).ToList();var total=clean.Sum(x=>x.Value);return new(title,subtitle,total,clean.Select((x,i)=>new DonutSegment(x.Label,x.Value,total==0?0:Math.Round(x.Value*100/total,1),Palette[i%Palette.Length])).ToList());}
     private static int DurationMinutes(ProductionEvent x)=>x.Duration.HasValue?(x.Duration==OperationDuration.Over60?65:(int)x.Duration.Value*5):0;
     private static int NoteCount(string value){var m=Regex.Match(value,@"\d+");return m.Success&&int.TryParse(m.Value,out var n)?n:0;}

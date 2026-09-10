@@ -29,6 +29,24 @@ public sealed class UserPerformanceItem
     public int OperationCount { get; set; }
     public int CompletedCount { get; set; }
     public int DurationMinutes { get; set; }
+    public IReadOnlyList<TimedOperationPerformanceItem> TimedOperations { get; set; } = [];
+    public IReadOnlyList<UntimedOperationPerformanceItem> UntimedOperations { get; set; } = [];
+}
+
+public sealed class TimedOperationPerformanceItem
+{
+    public int Action { get; set; }
+    public string ActionTitle { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public int TotalDurationMinutes { get; set; }
+    public double AverageDurationMinutes { get; set; }
+}
+
+public sealed class UntimedOperationPerformanceItem
+{
+    public int Action { get; set; }
+    public string ActionTitle { get; set; } = string.Empty;
+    public int Count { get; set; }
 }
 
 public sealed class ProductionActivityItem
