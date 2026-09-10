@@ -7,7 +7,7 @@
 @inject IJSRuntime JS
 
 <PageTitle>گزارش‌های مدیریتی</PageTitle>
-<section class="report-hero"><small>مرکز تحلیل TORSEPAN</small><h1>گزارش‌های مدیریتی</h1><p>نمای یکپارچه از عملیات، تولید و موجودی کارگاه</p></section>
+<section class="report-hero"><small>مرکز تحلیل</small><h1>TORSEPAN</h1><p>نمای یکپارچه از عملیات، تولید و موجودی کارگاه</p></section>
 <nav class="report-tabs">
     <button class="@TabClass("operations")" @onclick='()=>SwitchTab("operations")'><i>01</i><span><b>گزارش عملیات</b><small>کارکرد اعضای کارگاه</small></span></button>
     <button class="@TabClass("production")" @onclick='()=>SwitchTab("production")'><i>02</i><span><b>گزارش تولید</b><small>تحلیل سازها و مراحل</small></span></button>
@@ -51,7 +51,18 @@
 else if(_tab=="operations")
 {
     <div class="metric-row two"><article><small>کل عملیات</small><strong>@_operations.TotalOperations</strong></article><article><small>مجموع زمان ثبت‌شده</small><strong>@_operations.TotalDurationMinutes <i>دقیقه</i></strong></article></div>
-    @if(_operations.Trend.Count>0){<ReportTrendChart Points="@_operations.Trend" Title="روند عملکرد فرد انتخاب‌شده" />}
+    @if(_operations.UserTrend is not null)
+    {
+        <div class="user-analysis-grid">
+            <article><small>عملیات این ماه</small><strong>@_operations.UserTrend.CurrentOperationCount</strong></article>
+            <article><small>تغییر نسبت به ماه قبل</small><strong class="@DeltaClass(_operations.UserTrend.CurrentOperationCount-_operations.UserTrend.PreviousOperationCount)">@Signed(_operations.UserTrend.CurrentOperationCount-_operations.UserTrend.PreviousOperationCount)</strong></article>
+            <article><small>میانگین شش‌ماهه عملیات</small><strong>@_operations.UserTrend.AverageOperationCount.ToString("0.#")</strong></article>
+            <article><small>زمان این ماه</small><strong>@_operations.UserTrend.CurrentDurationMinutes <i>دقیقه</i></strong></article>
+            <article><small>تغییر زمان نسبت به ماه قبل</small><strong class="@DeltaClass(_operations.UserTrend.CurrentDurationMinutes-_operations.UserTrend.PreviousDurationMinutes)">@Signed(_operations.UserTrend.CurrentDurationMinutes-_operations.UserTrend.PreviousDurationMinutes) <i>دقیقه</i></strong></article>
+            <article><small>میانگین شش‌ماهه زمان</small><strong>@_operations.UserTrend.AverageDurationMinutes.ToString("0.#") <i>دقیقه</i></strong></article>
+        </div>
+        <div class="user-trend-grid"><ReportTrendChart Points="@_operations.Trend" Title="روند تعداد عملیات فرد" /><ReportTrendChart Points="@_operations.DurationTrend" Title="روند زمان ثبت‌شده فرد (دقیقه)" /></div>
+    }
     <section class="result-card performance-section">
         <header><h3>عملکرد اعضای کارگاه</h3><span>@_operations.UserPerformance.Count نفر</span></header>
         @if(_operations.UserPerformance.Count==0)
@@ -127,6 +138,7 @@ else
     private IEnumerable<PickerItem> MaterialOptions=>_materialOptions.Where(x=>x.Category==4).Select(x=>new PickerItem(x.Id,x.Name));private IEnumerable<PickerItem> ScaleOptions=>_scaleOptions.Select(x=>new PickerItem(x.Id,x.Name));
     private static readonly (int Id,string Title)[] Actions=[(1,"ثبت اولیه"),(2,"دیمپل"),(3,"شیپ"),(4,"پخت"),(5,"چسب"),(6,"تیون"),(7,"فاین‌تیون"),(8,"کنترل کیفیت"),(9,"بسته‌بندی"),(10,"ورود به انبار"),(11,"برگشتی"),(12,"فروش")];
     private string TabTitle=>_tab switch{"production"=>"گزارش تولید","inventory"=>"گزارش انبار",_=>"گزارش عملیات"};private string TabClass(string value)=>_tab==value?"report-tab active":"report-tab";
+    private static string Signed(double value)=>value.ToString("+0.#;-0.#;0");private static string DeltaClass(double value)=>value>=0?"positive":"negative";
     protected override async Task OnInitializedAsync(){var materials=MaterialService.GetAsync();var scales=ScaleService.GetAsync();var operations=ReportService.GetAsync();await Task.WhenAll(materials,scales,operations);_materialOptions=(await materials).ToList();_scaleOptions=(await scales).ToList();_operations=await operations;_loading=false;}
     private async Task SwitchTab(string tab){_tab=tab;_message=null;await LoadCurrentAsync();}
     private async Task LoadCurrentAsync(){_loading=true;_message=null;try{if(_tab=="operations"){Guid? user=Guid.TryParse(_user,out var u)?u:null;int? action=int.TryParse(_action,out var a)?a:null;_operations=await ReportService.GetAsync(_from,_to,user,action);}else if(_tab=="production")_production=await ReportService.GetProductionAsync(_from,_to,_materials,_scales,_payroll,_destination);else _inventory=await ReportService.GetInventoryAsync(_from,_to,_inventoryKind,_materials,_scales,_destination);}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_loading=false;}}

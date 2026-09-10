@@ -61,4 +61,8 @@ Check(salesCss.Contains("flex-direction:column")&&salesCss.Contains("min-width:c
 var persianMonths=PersianMonthCalendar.LastMonths(new DateTime(2026,9,10),6);
 Check(persianMonths.Select(x=>x.Label).SequenceEqual(new[]{"1405/01","1405/02","1405/03","1405/04","1405/05","1405/06"}),"report trend uses six consecutive Persian months");
 Check(persianMonths.Zip(persianMonths.Skip(1)).All(x=>x.First.LocalEnd==x.Second.LocalStart),"Persian report month boundaries are contiguous");
+var pdfPreviews=ReportPdfPreviewFixtures.Build();
+Check(pdfPreviews.Count==3&&pdfPreviews.All(x=>x.Value.Length>5000),"all management report PDFs render with complete visual layouts");
+var previewDirectory=Environment.GetEnvironmentVariable("TORSEPAN_PDF_PREVIEW_DIR");
+if(!string.IsNullOrWhiteSpace(previewDirectory)){Directory.CreateDirectory(previewDirectory);foreach(var preview in pdfPreviews)await File.WriteAllBytesAsync(Path.Combine(previewDirectory,preview.Key),preview.Value);}
 Console.WriteLine("Database-backed send/read isolation still requires integration testing against a test PostgreSQL database.");

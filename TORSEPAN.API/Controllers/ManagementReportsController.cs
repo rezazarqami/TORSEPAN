@@ -1,14 +1,14 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 using TORSEPAN.Application.Common.Reporting;
 using TORSEPAN.Application.Materials;
+using TORSEPAN.Application.ProductionEvents.Queries.GetProductionReport;
+using TORSEPAN.API.Reporting;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
 using TORSEPAN.Infrastructure.Persistence;
@@ -16,7 +16,7 @@ using TORSEPAN.Infrastructure.Persistence;
 namespace TORSEPAN.API.Controllers;
 
 [ApiController, Route("api/management-reports"), Authorize(Roles="Administrator,ProductionManager")]
-public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClientFactory httpFactory, IConfiguration configuration) : ControllerBase
+public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClientFactory httpFactory, IConfiguration configuration, IMediator mediator) : ControllerBase
 {
     private static readonly string[] Palette=["#176B87","#27A17B","#F1B84B","#E56A54","#7B61A8","#38A3C7","#91B64B","#C85D8B"];
 
@@ -39,15 +39,14 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
         [FromQuery] int? action=null,CancellationToken ct=default)
     {
         var request=new ManagementReportRequest(from,to,ParseIds(materialIds),ParseIds(scaleIds),payroll,destination,inventoryKind,userId,action);
-        var (title,lines)=await ReportLinesAsync(kind,request,ct);
-        return File(BuildPdf(title,lines),"application/pdf",$"torsepan-{kind}-{DateTime.UtcNow:yyyyMMdd-HHmm}.pdf");
+        var bytes=await BuildReportPdfAsync(kind,request,ct);
+        return File(bytes,"application/pdf",$"torsepan-{kind}-{DateTime.UtcNow:yyyyMMdd-HHmm}.pdf");
     }
 
     [HttpPost("{kind}/telegram")]
     public async Task<IActionResult> Telegram(string kind,ManagementReportRequest request,CancellationToken ct)
     {
-        var (title,lines)=await ReportLinesAsync(kind,request,ct);
-        var bytes=BuildPdf(title,lines);var fileName=$"torsepan-{kind}-{DateTime.UtcNow:yyyyMMdd-HHmm}.pdf";
+        var bytes=await BuildReportPdfAsync(kind,request,ct);var fileName=$"torsepan-{kind}-{DateTime.UtcNow:yyyyMMdd-HHmm}.pdf";
         var relay=configuration["Telegram:BackupRelayUrl"]??configuration["Telegram:RelayUrl"];
         if(string.IsNullOrWhiteSpace(relay))return Problem("Telegram relay is not configured.");
         relay=relay.Replace("telegram-database-backup","telegram-payroll-report").Replace("telegram-inventory-alert","telegram-payroll-report").Replace("/database-backup","/payroll-report").Replace("/inventory-alert","/payroll-report");
@@ -111,14 +110,15 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
         return new(request.InventoryKind,start,end.AddTicks(-1),inventory.Count(x=>x.Destination=="داخلی"),inventory.Count(x=>x.Destination=="صادراتی"),inventory,stock,movements,outflow);
     }
 
-    private async Task<(string,List<string>)> ReportLinesAsync(string kind,ManagementReportRequest request,CancellationToken ct)
+    private async Task<byte[]> BuildReportPdfAsync(string kind,ManagementReportRequest request,CancellationToken ct)
     {
-        if(kind=="production") { var r=await BuildProductionAsync(request,ct);return("گزارش تولید",[$"تعداد کل کاسه‌ها: {r.TotalBowlCount}",$"کاسه رو: {r.TopBowlCount}",$"کاسه زیر نت‌دار: {r.BottomNoteBowlCount}",$"تولید ماه جاری: {r.CurrentMonthCount}",$"میانگین ماهانه: {r.MonthlyAverage}",..r.Summary.Select(x=>$"{x.Material} | {x.Scale} | {x.Destination}: {x.Count}")]); }
-        if(kind=="inventory") { var r=await BuildInventoryAsync(request,ct);return("گزارش انبار",request.InventoryKind=="materials"?[..r.Stock.Select(x=>$"{x.Name} | موجودی: {x.Quantity} | رو: {x.TopQuantity} | زیر: {x.BottomQuantity}"),..r.Movements.Select(x=>$"{x.OccurredAt:yyyy/MM/dd} | {x.MaterialName} | {x.Direction} {Math.Abs(x.Delta)} | {x.PerformedBy}")]:[$"ساز داخلی: {r.DomesticCount}",$"کاسه صادراتی: {r.ExportCount}",..r.Instruments.Select(x=>$"{x.Code} | {x.Material} | {x.Scale} | {x.Destination}")]); }
-        var (start,end)=Range(request.From,request.To);var events=await db.ProductionEvents.AsNoTracking().Include(x=>x.User).Where(x=>x.EventDate>=start&&x.EventDate<end&&!x.Description.StartsWith(MaterialStockMetadata.Prefix)).ToListAsync(ct);if(request.UserId.HasValue)events=events.Where(x=>x.UserId==request.UserId).ToList();if(request.Action.HasValue)events=events.Where(x=>(int)x.Action==request.Action).ToList();return("گزارش عملیات",[$"تعداد عملیات: {events.Count}",$"مجموع زمان ثبت‌شده: {events.Sum(DurationMinutes)} دقیقه",..events.OrderByDescending(x=>x.EventDate).Take(500).Select(x=>$"{x.EventDate:yyyy/MM/dd HH:mm} | {UserName(x.User)} | {ActionTitle(x.Action)}")]);
+        if(kind=="production")return ManagementReportPdfBuilder.Production(await BuildProductionAsync(request,ct));
+        if(kind=="inventory")return ManagementReportPdfBuilder.Inventory(await BuildInventoryAsync(request,ct));
+        if(kind!="operations")throw new ArgumentException("Unknown report type.",nameof(kind));
+        var action=request.Action.HasValue?(ProductionAction?)request.Action.Value:null;
+        var report=await mediator.Send(new GetProductionReportQuery(request.From,request.To,request.UserId,action),ct);
+        return ManagementReportPdfBuilder.Operations(report,request.From,request.To);
     }
-
-    private static byte[] BuildPdf(string title,IReadOnlyList<string> lines)=>Document.Create(doc=>doc.Page(page=>{page.Size(PageSizes.A4);page.Margin(34);page.DefaultTextStyle(x=>x.FontFamily("Vazirmatn").FontSize(10));page.Header().AlignCenter().Text(title).FontSize(22).Bold().FontColor("#173F63");page.Content().PaddingVertical(20).Column(c=>{c.Spacing(7);foreach(var line in lines.DefaultIfEmpty("اطلاعاتی در این بازه وجود ندارد."))c.Item().BorderBottom(1).BorderColor("#E5EDF2").Padding(7).AlignRight().Text(line);});page.Footer().AlignCenter().Text(x=>{x.Span("TORSEPAN • ");x.CurrentPageNumber();});})).GeneratePdf();
     private async Task<HashSet<Guid>> PaidBowlIdsAsync(CancellationToken ct){var json=await db.PayrollPayments.AsNoTracking().Select(x=>x.HandpanIdsJson).ToListAsync(ct);var paid=json.SelectMany(ParseGuidJson).ToHashSet();var maps=await db.Handpans.AsNoTracking().Include(x=>x.Assembly).Where(x=>paid.Contains(x.Id)).ToListAsync(ct);foreach(var h in maps){paid.Add(h.Assembly.TopBowlId);paid.Add(h.Assembly.BottomBowlId);}return paid;}
     private static List<Guid> ParseGuidJson(string value){try{return JsonSerializer.Deserialize<List<Guid>>(value)??[];}catch{return[];}}
     private static (DateTime Start,DateTime End) Range(DateTime? from,DateTime? to){var now=DateTime.UtcNow.AddHours(3.5);var pc=new PersianCalendar();var start=from?.Date??pc.ToDateTime(pc.GetYear(now),pc.GetMonth(now),1,0,0,0,0);var end=to?.Date.AddDays(1)??now.Date.AddDays(1);return(DateTime.SpecifyKind(start.AddHours(-3.5),DateTimeKind.Utc),DateTime.SpecifyKind(end.AddHours(-3.5),DateTimeKind.Utc));}

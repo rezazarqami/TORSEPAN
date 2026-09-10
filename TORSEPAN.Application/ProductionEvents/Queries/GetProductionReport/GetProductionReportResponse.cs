@@ -10,9 +10,21 @@ public sealed class GetProductionReportResponse
     public IReadOnlyList<UserPerformanceItem> UserPerformance { get; set; } = [];
     public IReadOnlyList<ProductionActivityItem> Activities { get; set; } = [];
     public IReadOnlyList<ReportTrendItem> Trend { get; set; } = [];
+    public IReadOnlyList<ReportTrendItem> DurationTrend { get; set; } = [];
+    public UserTrendSummaryItem? UserTrend { get; set; }
 }
 
 public sealed record ReportTrendItem(string Label, int Count, double Average);
+
+public sealed class UserTrendSummaryItem
+{
+    public int CurrentOperationCount { get; set; }
+    public int PreviousOperationCount { get; set; }
+    public double AverageOperationCount { get; set; }
+    public int CurrentDurationMinutes { get; set; }
+    public int PreviousDurationMinutes { get; set; }
+    public double AverageDurationMinutes { get; set; }
+}
 
 public sealed class ReportUserItem
 {
