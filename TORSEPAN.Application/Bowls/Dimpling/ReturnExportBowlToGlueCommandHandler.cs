@@ -13,6 +13,12 @@ public sealed class ReturnExportBowlToGlueCommandHandler(IUnitOfWork unitOfWork)
         if(bowl is null)return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);
         if(bowl.Stage!=ProductionStage.WaitingForExportPackaging)return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidStage);
         bowl.MarkAsWaiting(); bowl.ChangeStage(ProductionStage.WaitingForGlue); unitOfWork.Bowls.Update(bowl);
+        var productionEvents = await unitOfWork.ProductionEvents.GetByBowlIdAsync(bowl.Id);
+        foreach (var productionEvent in productionEvents)
+        {
+            if (productionEvent.ConvertExportTuneToNormalRoute())
+                unitOfWork.ProductionEvents.Update(productionEvent);
+        }
         await unitOfWork.SaveChangesAsync(ct); return Result<BowlDimpleDto>.Success(BowlDimpleMapper.Map(bowl));
     }
 }

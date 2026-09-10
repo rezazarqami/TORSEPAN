@@ -80,4 +80,16 @@ public class ProductionEvent : Entity
     public string Description { get; private set; } = string.Empty;
 
     public DateTime EventDate { get; private set; }
+
+    public bool ConvertExportTuneToNormalRoute()
+    {
+        if (Action != ProductionAction.Tune ||
+            !string.Equals(Description, "Tune completed - export package", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        Description = "Tune completed";
+        return true;
+    }
 }

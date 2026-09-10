@@ -31,6 +31,14 @@ public sealed class ProductionEventRepository
             .ToListAsync();
     }
 
+    public async Task<List<ProductionEvent>> GetByBowlIdAsync(Guid bowlId)
+    {
+        return await _context.ProductionEvents
+            .Where(x => x.BowlId == bowlId)
+            .OrderBy(x => x.EventDate)
+            .ToListAsync();
+    }
+
     public async Task AddAsync(
         ProductionEvent productionEvent)
     {

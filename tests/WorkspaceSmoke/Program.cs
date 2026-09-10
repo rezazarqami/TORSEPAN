@@ -32,5 +32,14 @@ Check(await activity.Get(new DateTime(1,1,1),new DateTime(1,1,1)) is BadRequestO
 var notifications=new NotificationsController(db){ControllerContext=context};
 Check(await notifications.Send(new SendWorkshopMessage(Guid.NewGuid()," ","body",true,null),default) is BadRequestObjectResult,"empty message title rejected");
 Check(await notifications.Send(new SendWorkshopMessage(Guid.NewGuid(),"title","body",true,Guid.NewGuid()),default) is BadRequestObjectResult,"ambiguous broadcast recipient rejected");
+var exportTune = new ProductionEvent(null, null, Guid.NewGuid(), Guid.NewGuid(),
+    TORSEPAN.Domain.Enums.ProductionAction.Tune, TORSEPAN.Domain.Enums.EventResult.Completed,
+    null, "Tune completed - export package");
+Check(exportTune.ConvertExportTuneToNormalRoute() && exportTune.Description == "Tune completed",
+    "returning an export-tuned bowl converts its tune event to the normal route");
+var normalTune = new ProductionEvent(null, null, Guid.NewGuid(), Guid.NewGuid(),
+    TORSEPAN.Domain.Enums.ProductionAction.Tune, TORSEPAN.Domain.Enums.EventResult.Completed,
+    null, "Tune completed");
+Check(!normalTune.ConvertExportTuneToNormalRoute() && normalTune.Description == "Tune completed",
+    "normal tune events remain unchanged");
 Console.WriteLine("Database-backed send/read isolation still requires integration testing against a test PostgreSQL database.");
-

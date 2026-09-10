@@ -7,6 +7,7 @@ public interface IProductionEventRepository
 {
     Task<ProductionEvent?> GetByIdAsync(Guid id);
     Task<List<ProductionEvent>> GetByHandpanIdAsync(Guid handpanId);
+    Task<List<ProductionEvent>> GetByBowlIdAsync(Guid bowlId);
     Task<List<ProductionEvent>> GetReportAsync(
         DateTime? from, DateTime? to, Guid? userId,
         ProductionAction? action, EventResult? result);
