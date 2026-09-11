@@ -28,6 +28,7 @@ using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Infrastructure.Persistence;
 using TORSEPAN.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using TORSEPAN.API.Services;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -40,13 +41,17 @@ public sealed class ProductionController : ControllerBase
     private readonly IProductionDeletionService _deletionService;
     private readonly IProductionRollbackService _rollbackService;
     private readonly TORSEPANDbContext _db;
+    private readonly GuaranteeServiceClient _guaranteeService;
+    private readonly ILogger<ProductionController> _logger;
 
-    public ProductionController(IMediator mediator, IProductionDeletionService deletionService, IProductionRollbackService rollbackService, TORSEPANDbContext db)
+    public ProductionController(IMediator mediator, IProductionDeletionService deletionService, IProductionRollbackService rollbackService, TORSEPANDbContext db, GuaranteeServiceClient guaranteeService, ILogger<ProductionController> logger)
     {
         _mediator = mediator;
         _deletionService = deletionService;
         _rollbackService = rollbackService;
         _db = db;
+        _guaranteeService = guaranteeService;
+        _logger = logger;
     }
 
     [HttpPost("event")]
@@ -165,19 +170,23 @@ public sealed class ProductionController : ControllerBase
     [Authorize(Roles = "Administrator,ProductionManager,SalesAdmin")]
     public async Task<IActionResult> Sell(Guid handpanId, [FromBody] SellHandpanRequest request)
     {
+        var validationError = ValidateWarrantyRequest(request);
+        if (validationError is not null) return BadRequest(validationError);
+        var serial = await _db.Handpans.Where(x => x.Id == handpanId).Select(x => x.SerialNumber).FirstOrDefaultAsync();
         await using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
             var error = await SellOneAsync(handpanId, request);
             if (error is not null) return BadRequest(error);
             await transaction.CommitAsync();
-            return NoContent();
         }
         catch
         {
             await transaction.RollbackAsync();
             throw;
         }
+        var warranty = await ActivateWarrantyAsync(serial is null ? [] : [serial], request);
+        return Ok(new SellHandpansResponse(true, warranty.IsActive, warranty.Error));
     }
 
     [HttpPost("sales/bulk")]
@@ -187,6 +196,9 @@ public sealed class ProductionController : ControllerBase
         var ids = request.HandpanIds.Distinct().ToList();
         if (ids.Count == 0) return BadRequest("حداقل یک ساز را انتخاب کنید.");
         if (ids.Count > 200) return BadRequest("در هر مرحله حداکثر ۲۰۰ ساز قابل ثبت است.");
+        var validationError = ValidateWarrantyRequest(request.Sale);
+        if (validationError is not null) return BadRequest(validationError);
+        var serials = await _db.Handpans.Where(x => ids.Contains(x.Id)).Select(x => x.SerialNumber).ToListAsync();
         await using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
@@ -196,13 +208,14 @@ public sealed class ProductionController : ControllerBase
                 if (error is not null) return BadRequest(error);
             }
             await transaction.CommitAsync();
-            return NoContent();
         }
         catch
         {
             await transaction.RollbackAsync();
             throw;
         }
+        var warranty = await ActivateWarrantyAsync(serials, request.Sale);
+        return Ok(new SellHandpansResponse(true, warranty.IsActive, warranty.Error));
     }
 
     [HttpPut("{handpanId:guid}/sale")]
@@ -262,7 +275,37 @@ public sealed class ProductionController : ControllerBase
             if (document is null) continue;
             item.PartyId = document.PartyId; item.PaidAmount = document.PaidAmount; item.DueDate = document.DueDate;
         }
+        try
+        {
+            var statuses = await _guaranteeService.GetStatusesAsync(items.Where(x => !x.IsBowl).Select(x => x.SerialNumber));
+            foreach (var item in items.Where(x => !x.IsBowl))
+                item.IsWarrantyActive = statuses.GetValueOrDefault(item.SerialNumber)?.IsActive == true;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Warranty statuses could not be loaded for the sales list.");
+        }
         return Ok(items);
+    }
+
+    private static string? ValidateWarrantyRequest(SellHandpanRequest request)
+    {
+        if (!request.ActivateWarranty) return null;
+        if (string.IsNullOrWhiteSpace(request.WarrantyFullName)) return "برای فعال‌سازی گارانتی، نام مالک را وارد کنید.";
+        if (string.IsNullOrWhiteSpace(request.WarrantyPhoneNumber)) return "برای فعال‌سازی گارانتی، شماره موبایل مالک را وارد کنید.";
+        if (string.IsNullOrWhiteSpace(request.WarrantyCity)) return "برای فعال‌سازی گارانتی، شهر مالک را وارد کنید.";
+        return null;
+    }
+
+    private async Task<WarrantyActivationResult> ActivateWarrantyAsync(IEnumerable<string> serials, SellHandpanRequest request)
+    {
+        if (!request.ActivateWarranty) return new WarrantyActivationResult(false, null);
+        foreach (var serial in serials)
+        {
+            var result = await _guaranteeService.ActivateAsync(serial, request.WarrantyFullName!, request.WarrantyPhoneNumber!, request.WarrantyCity!);
+            if (!result.IsActive) return result;
+        }
+        return new WarrantyActivationResult(true, null);
     }
 
     [HttpDelete("{handpanId:guid}")]
@@ -275,6 +318,7 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Rollback(Guid handpanId, CancellationToken cancellationToken)
         => await _rollbackService.RollbackHandpanAsync(handpanId, cancellationToken) ? NoContent() : BadRequest();
 }
-public sealed record SellHandpanRequest(string? BuyerName, decimal? Price, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate);
+public sealed record SellHandpanRequest(string? BuyerName, decimal? Price, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty, string? WarrantyFullName, string? WarrantyPhoneNumber, string? WarrantyCity);
 public sealed record BulkSellHandpansRequest(IReadOnlyCollection<Guid> HandpanIds, SellHandpanRequest Sale);
+public sealed record SellHandpansResponse(bool SaleRegistered, bool WarrantyActivated, string? Warning);
 public sealed record WarehouseGalleryRequest(IReadOnlyCollection<Guid> HandpanIds);
