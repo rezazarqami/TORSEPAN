@@ -8,6 +8,7 @@ using TORSEPAN.Infrastructure.Services;
 using QuestPDF.Drawing;
 using QuestPDF.Infrastructure;
 using System.Reflection;
+using TORSEPAN.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 QuestPDF.Settings.License = LicenseType.Community;
@@ -19,6 +20,12 @@ await using (var vazirmatn = Assembly.GetExecutingAssembly()
 }
 
 builder.Services.AddControllers();
+builder.Services.AddHttpClient<GuaranteeServiceClient>((services, client) =>
+{
+    var configuration = services.GetRequiredService<IConfiguration>();
+    client.BaseAddress = new Uri((configuration["GuaranteeService:BaseUrl"] ?? "http://torsepan-guarantee:8080").TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(12);
+});
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
