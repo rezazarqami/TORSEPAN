@@ -71,8 +71,14 @@ var uniqueTrendSource=new List<(Guid Id,DateTime EventDate)>
 var uniqueTrendMethod=typeof(ManagementReportsController).GetMethod("BuildUniqueTrend",BindingFlags.Static|BindingFlags.NonPublic)!;
 var uniqueTrend=(List<TrendPoint>)uniqueTrendMethod.Invoke(null,[uniqueTrendSource,new DateTime(2026,9,10)])!;
 Check(uniqueTrend.Sum(x=>x.Count)==2&&uniqueTrend[^1].Count==1,"production trend counts each bowl only once");
+var exportCompletionMethod=typeof(ManagementReportsController).GetMethod("IsExportCompletion",BindingFlags.Static|BindingFlags.NonPublic)!;
+var freshExportTune = new ProductionEvent(null, null, Guid.NewGuid(), Guid.NewGuid(),
+    TORSEPAN.Domain.Enums.ProductionAction.Tune, TORSEPAN.Domain.Enums.EventResult.Completed,
+    null, "Tune completed - export package");
+Check((bool)exportCompletionMethod.Invoke(null,[freshExportTune])!,"export-ready tune event qualifies as completed export production");
+Check(!(bool)exportCompletionMethod.Invoke(null,[normalTune])!,"ordinary tune event does not qualify as completed production");
 var reportsPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Reports.razor"));
-Check(reportsPage.Contains("روند ماهانه کاسه‌های ساخته‌شده")&&reportsPage.Contains("روند ماهانه سازهای واردشده به انبار"),"production report separates bowl and warehouse instrument trends");
+Check(reportsPage.Contains("کاسه‌های داخلی رسیده به انبار")&&reportsPage.Contains("کاسه‌های صادراتی آماده بسته‌بندی یا ارسال")&&reportsPage.Contains("روند ماهانه سازهای واردشده به انبار"),"production report separates domestic bowls, export bowls, and warehouse instruments");
 var pdfPreviews=ReportPdfPreviewFixtures.Build();
 Check(pdfPreviews.Count==3&&pdfPreviews.All(x=>x.Value.Length>5000),"all management report PDFs render with complete visual layouts");
 var previewDirectory=Environment.GetEnvironmentVariable("TORSEPAN_PDF_PREVIEW_DIR");

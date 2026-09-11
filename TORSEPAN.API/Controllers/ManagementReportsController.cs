@@ -59,25 +59,42 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
     {
         var (start,end)=Range(request.From,request.To);
         var allEvents=await db.ProductionEvents.AsNoTracking().Include(x=>x.User).Where(x=>x.Result==EventResult.Completed).ToListAsync(ct);
-        var dimple=allEvents.Where(x=>x.Action==ProductionAction.Dimple&&x.BowlId.HasValue).ToList();
         var allBowls=await db.Bowls.AsNoTracking().Include(x=>x.Material).Include(x=>x.Scale).ToListAsync(ct);
         var bowlsById=allBowls.ToDictionary(x=>x.Id);
-        var exportIds=allEvents.Where(x=>x.BowlId.HasValue&&(x.Description.Contains("export",StringComparison.OrdinalIgnoreCase)||x.Description.StartsWith("EXPORT_SALE:"))).Select(x=>x.BowlId!.Value).ToHashSet();
-        var paid=await PaidBowlIdsAsync(ct);
-        bool Matches(Bowl b)=>
-            (request.MaterialIds.Count==0||request.MaterialIds.Contains(b.MaterialId))&&
-            (request.ScaleIds.Count==0||(b.ScaleId.HasValue&&request.ScaleIds.Contains(b.ScaleId.Value)))&&
-            (request.Destination=="all"||(request.Destination=="export")==exportIds.Contains(b.Id))&&
-            (request.Payroll=="all"||(request.Payroll=="calculated")==paid.Contains(b.Id));
-        var firstDimpleEvents=dimple.Where(x=>x.BowlId.HasValue&&bowlsById.ContainsKey(x.BowlId.Value))
-            .GroupBy(x=>x.BowlId!.Value).Select(x=>x.MinBy(y=>y.EventDate)!).ToList();
-        var selected=firstDimpleEvents.Where(x=>x.EventDate>=start&&x.EventDate<end&&Matches(bowlsById[x.BowlId!.Value]))
-            .Select(x=>bowlsById[x.BowlId!.Value]).ToList();
-        var ids=selected.Select(x=>x.Id).ToHashSet();
         var assemblies=await db.HandpanAssemblies.AsNoTracking().ToListAsync(ct);
+        var assembliesById=assemblies.ToDictionary(x=>x.Id);
         var allHandpans=await db.Handpans.AsNoTracking().ToListAsync(ct);
-        var handpanMap=allHandpans.ToDictionary(x=>x.AssemblyId,x=>x.Id);
-        var selectedHandpanIds=assemblies.Where(x=>ids.Contains(x.TopBowlId)||ids.Contains(x.BottomBowlId)).Where(x=>handpanMap.ContainsKey(x.Id)).Select(x=>handpanMap[x.Id]).ToHashSet();
+        var handpansById=allHandpans.ToDictionary(x=>x.Id);
+        var paid=await PaidBowlIdsAsync(ct);
+
+        bool MatchesBowl(Bowl bowl)=>(request.MaterialIds.Count==0||request.MaterialIds.Contains(bowl.MaterialId))&&
+            (request.ScaleIds.Count==0||(bowl.ScaleId.HasValue&&request.ScaleIds.Contains(bowl.ScaleId.Value)))&&
+            (request.Payroll=="all"||(request.Payroll=="calculated")==paid.Contains(bowl.Id));
+
+        var warehouseDates=allEvents.Where(IsHandpanWarehouseEntry)
+            .GroupBy(x=>x.HandpanId!.Value).ToDictionary(x=>x.Key,x=>x.Min(y=>y.EventDate));
+        var domesticCompletions=new List<CompletedBowl>();
+        foreach(var entry in warehouseDates)
+        {
+            if(!handpansById.TryGetValue(entry.Key,out var handpan)||!assembliesById.TryGetValue(handpan.AssemblyId,out var assembly))continue;
+            if(bowlsById.TryGetValue(assembly.TopBowlId,out var top)&&top.HasNotes)domesticCompletions.Add(new(top,entry.Value,false));
+            if(bowlsById.TryGetValue(assembly.BottomBowlId,out var bottom)&&bottom.HasNotes)domesticCompletions.Add(new(bottom,entry.Value,false));
+        }
+        domesticCompletions=domesticCompletions.GroupBy(x=>x.Bowl.Id).Select(x=>x.MinBy(y=>y.CompletedAt)!).ToList();
+        var domesticIds=domesticCompletions.Select(x=>x.Bowl.Id).ToHashSet();
+
+        var exportCompletions=allEvents.Where(IsExportCompletion)
+            .GroupBy(x=>x.BowlId!.Value).Select(x=>x.MinBy(y=>y.EventDate)!)
+            .Where(x=>!domesticIds.Contains(x.BowlId!.Value)&&bowlsById.TryGetValue(x.BowlId.Value,out var bowl)&&bowl.HasNotes)
+            .Select(x=>new CompletedBowl(bowlsById[x.BowlId!.Value],x.EventDate,true)).ToList();
+
+        var completed=domesticCompletions.Concat(exportCompletions)
+            .Where(x=>MatchesBowl(x.Bowl)&&(request.Destination=="all"||(request.Destination=="export")==x.IsExport)).ToList();
+        var selectedEntries=completed.Where(x=>x.CompletedAt>=start&&x.CompletedAt<end).ToList();
+        var selected=selectedEntries.Select(x=>x.Bowl).ToList();
+        var ids=selected.Select(x=>x.Id).ToHashSet();
+        var selectedHandpanIds=warehouseDates.Where(x=>x.Value>=start&&x.Value<end&&handpansById.TryGetValue(x.Key,out var h)&&MatchesHandpan(h))
+            .Select(x=>x.Key).ToHashSet();
         var ranged=allEvents.Where(x=>x.EventDate>=start&&x.EventDate<end).ToList();
         var stageEvents=ranged.Where(x=>(x.BowlId.HasValue&&ids.Contains(x.BowlId.Value))||(x.HandpanId.HasValue&&selectedHandpanIds.Contains(x.HandpanId.Value))).ToList();
         var donuts=new List<DonutChart>
@@ -89,30 +106,29 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
             Donut("سهم شیپ‌کارها","از کل شیپ",stageEvents.Where(x=>x.Action==ProductionAction.Shape).GroupBy(x=>UserName(x.User)).Select(x=>(x.Key,(double)x.Count()))),
             Donut("توزیع اسکیل‌ها","بر اساس تعداد نت",selected.Where(x=>x.Scale!=null).GroupBy(x=>NoteCount(x.Scale!.Name)).Select(x=>($"{x.Key} نت",(double)x.Count())))
         };
-        var matchingBowls=allBowls.Where(Matches).ToDictionary(x=>x.Id);
-        var bowlTrend=BuildUniqueTrend(dimple.Where(x=>x.BowlId.HasValue&&matchingBowls.ContainsKey(x.BowlId.Value)).Select(x=>(x.BowlId!.Value,x.EventDate)),end);
-        var assembliesById=assemblies.ToDictionary(x=>x.Id);
+
+        var domesticBowlTrend=BuildUniqueTrend(completed.Where(x=>!x.IsExport).Select(x=>(x.Bowl.Id,x.CompletedAt)),end);
+        var exportBowlTrend=BuildUniqueTrend(completed.Where(x=>x.IsExport).Select(x=>(x.Bowl.Id,x.CompletedAt)),end);
+        var bowlTrend=CombineTrends(domesticBowlTrend,exportBowlTrend);
+
         bool MatchesHandpan(Handpan handpan)
         {
             if(request.Destination=="export"||!assembliesById.TryGetValue(handpan.AssemblyId,out var assembly))return false;
-            if(!matchingBowls.TryGetValue(assembly.TopBowlId,out var top))return false;
+            if(!bowlsById.TryGetValue(assembly.TopBowlId,out var top)||!MatchesBowl(top))return false;
             return (request.ScaleIds.Count==0||(handpan.ScaleId.HasValue&&request.ScaleIds.Contains(handpan.ScaleId.Value)))&&
                 (request.Payroll=="all"||(request.Payroll=="calculated")==paid.Contains(handpan.Id));
         }
-        var matchingHandpanIds=allHandpans.Where(MatchesHandpan).Select(x=>x.Id).ToHashSet();
-        var warehouseEntries=allEvents.Where(x=>x.HandpanId.HasValue&&matchingHandpanIds.Contains(x.HandpanId.Value)&&
-            ((x.Action==ProductionAction.WarehouseEntry&&!x.Description.StartsWith(MaterialStockMetadata.Prefix))||
-             (x.Action==ProductionAction.Packaging&&!x.BowlId.HasValue)))
-            .Select(x=>(x.HandpanId!.Value,x.EventDate));
+        var warehouseEntries=warehouseDates.Where(x=>handpansById.TryGetValue(x.Key,out var handpan)&&MatchesHandpan(handpan))
+            .Select(x=>(x.Key,x.Value)).ToList();
         var handpanTrend=BuildUniqueTrend(warehouseEntries,end);
         var bowlCurrent=bowlTrend.LastOrDefault()?.Count??0;var bowlAverage=Average(bowlTrend);
         var handpanCurrent=handpanTrend.LastOrDefault()?.Count??0;var handpanAverage=Average(handpanTrend);
-        var rangedHandpanCount=warehouseEntries.GroupBy(x=>x.Value).Count(x=>x.Min(y=>y.EventDate)>=start&&x.Min(y=>y.EventDate)<end);
+        var rangedHandpanCount=warehouseEntries.Count(x=>x.Value>=start&&x.Value<end);
         return new(start,end.AddTicks(-1),selected.Count(x=>x.BowlType==BowlType.Top),selected.Count(x=>x.BowlType==BowlType.Bottom&&x.HasNotes),selected.Count,
-            bowlCurrent,bowlAverage,bowlCurrent-bowlAverage,bowlTrend,rangedHandpanCount,handpanCurrent,handpanAverage,handpanCurrent-handpanAverage,handpanTrend,donuts,
-            selected.GroupBy(x=>new{x.Material.Name,Scale=x.Scale?.Name??"بدون اسکیل",Export=exportIds.Contains(x.Id)}).Select(x=>new ProductionSummaryRow(x.Key.Name,x.Key.Scale,x.Key.Export?"صادراتی":"داخلی",x.Count())).OrderByDescending(x=>x.Count).ToList());
+            selectedEntries.Count(x=>!x.IsExport),selectedEntries.Count(x=>x.IsExport),bowlCurrent,bowlAverage,bowlCurrent-bowlAverage,bowlTrend,domesticBowlTrend,exportBowlTrend,
+            rangedHandpanCount,handpanCurrent,handpanAverage,handpanCurrent-handpanAverage,handpanTrend,donuts,
+            selectedEntries.GroupBy(x=>new{x.Bowl.Material.Name,Scale=x.Bowl.Scale?.Name??"بدون اسکیل",x.IsExport}).Select(x=>new ProductionSummaryRow(x.Key.Name,x.Key.Scale,x.Key.IsExport?"صادراتی":"داخلی",x.Count())).OrderByDescending(x=>x.Count).ToList());
     }
-
     private async Task<InventoryReport> BuildInventoryAsync(ManagementReportRequest request,CancellationToken ct)
     {
         var (start,end)=Range(request.From,request.To);
@@ -152,6 +168,18 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
         var counts=months.Select(month=>new TrendPoint(month.Label,firstEvents.Count(x=>x.EventDate>=month.UtcStart&&x.EventDate<month.UtcEnd),0)).ToList();
         var avg=Average(counts);return counts.Select(x=>x with{Average=avg}).ToList();
     }
+    private static List<TrendPoint> CombineTrends(IReadOnlyList<TrendPoint> domestic,IReadOnlyList<TrendPoint> export)
+    {
+        var counts=domestic.Select((x,index)=>new TrendPoint(x.Label,x.Count+(index<export.Count?export[index].Count:0),0)).ToList();
+        var avg=Average(counts);return counts.Select(x=>x with{Average=avg}).ToList();
+    }
+    private static bool IsHandpanWarehouseEntry(ProductionEvent productionEvent)=>productionEvent.HandpanId.HasValue&&
+        ((productionEvent.Action==ProductionAction.WarehouseEntry&&!productionEvent.Description.StartsWith(MaterialStockMetadata.Prefix,StringComparison.Ordinal))||
+         (productionEvent.Action==ProductionAction.Packaging&&!productionEvent.BowlId.HasValue));
+    private static bool IsExportCompletion(ProductionEvent productionEvent)=>productionEvent.BowlId.HasValue&&
+        ((productionEvent.Action==ProductionAction.Tune&&string.Equals(productionEvent.Description,"Tune completed - export package",StringComparison.Ordinal))||
+         (productionEvent.Action==ProductionAction.Packaging&&productionEvent.Description.Contains("Export packaging completed",StringComparison.OrdinalIgnoreCase))||
+         (productionEvent.Action==ProductionAction.Sale&&productionEvent.Description.StartsWith("EXPORT_SALE:",StringComparison.Ordinal)));
     private static double Average(IReadOnlyCollection<TrendPoint> points)=>points.Count==0?0:Math.Round(points.Average(x=>x.Count),1);
     private static DonutChart Donut(string title,string subtitle,IEnumerable<(string Label,double Value)> values){var clean=values.Where(x=>x.Value>0).OrderByDescending(x=>x.Value).ToList();var total=clean.Sum(x=>x.Value);return new(title,subtitle,total,clean.Select((x,i)=>new DonutSegment(x.Label,x.Value,total==0?0:Math.Round(x.Value*100/total,1),Palette[i%Palette.Length])).ToList());}
     private static int DurationMinutes(ProductionEvent x)=>x.Duration.HasValue?(x.Duration==OperationDuration.Over60?65:(int)x.Duration.Value*5):0;
@@ -164,9 +192,11 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
 
 public sealed record ManagementReportRequest(DateTime? From,DateTime? To,List<Guid> MaterialIds,List<Guid> ScaleIds,string Payroll="all",string Destination="all",string InventoryKind="instruments",Guid? UserId=null,int? Action=null);
 public sealed record ProductionAnalytics(DateTime From,DateTime To,int TopBowlCount,int BottomNoteBowlCount,int TotalBowlCount,
-    int CurrentMonthCount,double MonthlyAverage,double DifferenceFromAverage,List<TrendPoint> Trend,
+    int DomesticBowlCount,int ExportBowlCount,int CurrentMonthCount,double MonthlyAverage,double DifferenceFromAverage,List<TrendPoint> Trend,
+    List<TrendPoint> DomesticBowlTrend,List<TrendPoint> ExportBowlTrend,
     int TotalHandpanCount,int CurrentMonthHandpanCount,double HandpanMonthlyAverage,double HandpanDifferenceFromAverage,List<TrendPoint> HandpanTrend,
     List<DonutChart> Donuts,List<ProductionSummaryRow> Summary);
+file sealed record CompletedBowl(Bowl Bowl,DateTime CompletedAt,bool IsExport);
 public sealed record TrendPoint(string Label,int Count,double Average);
 public sealed record DonutChart(string Title,string Subtitle,double Total,List<DonutSegment> Segments);
 public sealed record DonutSegment(string Label,double Value,double Percentage,string Color);
