@@ -137,4 +137,17 @@ public class Handpan : Entity
         Status = status;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void SetScale(Guid scaleId)
+    {
+        if(scaleId==Guid.Empty)throw new ArgumentException("Scale is required.",nameof(scaleId));
+        ScaleId=scaleId;
+        UpdatedAt=DateTime.UtcNow;
+    }
+
+    public void ClearScale()
+    {
+        ScaleId=null;
+        UpdatedAt=DateTime.UtcNow;
+    }
 }

@@ -92,4 +92,10 @@ public class ProductionEvent : Entity
         Description = "Tune completed";
         return true;
     }
+
+    public void ChangeUser(Guid userId)
+    {
+        if(userId==Guid.Empty)throw new ArgumentException("User is required.",nameof(userId));
+        UserId=userId;
+    }
 }

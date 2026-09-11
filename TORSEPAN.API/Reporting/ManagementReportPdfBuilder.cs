@@ -19,35 +19,22 @@ public static class ManagementReportPdfBuilder
 
     public static byte[] Production(ProductionAnalytics report) => Document.Create(document => document.Page(page =>
     {
-        Configure(page, "گزارش جامع تولید", PersianRange(report.From, report.To));
-        page.Content().PaddingTop(12).Column(column =>
+        Configure(page, "گزارش جامع تولید", PersianRange(report.From, report.To), portrait:true);
+        page.Content().PaddingTop(10).Column(column =>
         {
-            column.Spacing(10);
-            column.Item().Element(c => Metrics(c,
+            column.Spacing(8);
+            column.Item().Element(c => ProductionMetrics(c,
                 ("کاسه‌های یکتای تولیدشده", report.TotalBowlCount.ToString("N0")),
                 ("کاسه رو", report.TopBowlCount.ToString("N0")),
                 ("کاسه زیر نت‌دار", report.BottomNoteBowlCount.ToString("N0")),
-                ("سازهای واردشده به انبار", report.TotalHandpanCount.ToString("N0"))));
-            column.Item().Element(c => Metrics(c,
+                ("سازهای واردشده به انبار", report.TotalHandpanCount.ToString("N0")),
                 ("کاسه‌های داخلی رسیده به انبار", report.DomesticBowlCount.ToString("N0")),
                 ("کاسه‌های صادراتی آماده بسته‌بندی یا ارسال", report.ExportBowlCount.ToString("N0"))));
-            column.Item().Element(c => CompactLineChart(c, "روند ماهانه کاسه‌های داخلی رسیده به انبار", report.DomesticBowlTrend.Select(x => (x.Label, (double)x.Count)).ToList(), Average(report.DomesticBowlTrend)));
-            column.Item().Element(c => CompactLineChart(c, "روند ماهانه کاسه‌های صادراتی آماده بسته‌بندی یا ارسال", report.ExportBowlTrend.Select(x => (x.Label, (double)x.Count)).ToList(), Average(report.ExportBowlTrend)));
-            column.Item().PageBreak();
-            column.Item().Element(c => Metrics(c,
-                ("کاسه این ماه", report.CurrentMonthCount.ToString("N0")),
-                ("میانگین ماهانه کاسه", report.MonthlyAverage.ToString("N1")),
-                ("فاصله کاسه با میانگین", report.DifferenceFromAverage.ToString("+0.#;-0.#;0")),
-                ("ساز این ماه", report.CurrentMonthHandpanCount.ToString("N0")),
-                ("میانگین ماهانه ساز", report.HandpanMonthlyAverage.ToString("N1")),
-                ("فاصله ساز با میانگین", report.HandpanDifferenceFromAverage.ToString("+0.#;-0.#;0"))));
-            column.Item().Element(c => LineChart(c, "روند ماهانه سازهای واردشده به انبار", report.HandpanTrend.Select(x => (x.Label, (double)x.Count)).ToList(), report.HandpanMonthlyAverage));
             column.Item().Element(c => DonutGrid(c, report.Donuts));
             column.Item().PageBreak();
-            column.Item().Element(c => Section(c, "جزئیات کامل نمودارها", "مقدار و سهم هر بخش از نمودارهای تحلیلی"));
-            column.Item().Element(c => DonutDetailsTable(c, report.Donuts));
-            column.Item().Element(c => Section(c, "خلاصه تولید", $"{report.Summary.Sum(x => x.Count):N0} کاسه"));
-            column.Item().Element(c => ProductionTable(c, report.Summary));
+            column.Item().Element(c => PortraitLineChart(c, "روند ماهانه کاسه‌های داخلی رسیده به انبار", report.DomesticBowlTrend.Select(x => (x.Label, (double)x.Count)).ToList(), Average(report.DomesticBowlTrend)));
+            column.Item().Element(c => PortraitLineChart(c, "روند ماهانه کاسه‌های صادراتی آماده بسته‌بندی یا ارسال", report.ExportBowlTrend.Select(x => (x.Label, (double)x.Count)).ToList(), Average(report.ExportBowlTrend)));
+            column.Item().Element(c => PortraitLineChart(c, "روند ماهانه سازهای واردشده به انبار", report.HandpanTrend.Select(x => (x.Label, (double)x.Count)).ToList(), report.HandpanMonthlyAverage));
         });
     })).GeneratePdf();
 
@@ -116,9 +103,9 @@ public static class ManagementReportPdfBuilder
         });
     })).GeneratePdf();
 
-    private static void Configure(PageDescriptor page, string title, string subtitle)
+    private static void Configure(PageDescriptor page, string title, string subtitle, bool portrait=false)
     {
-        page.Size(PageSizes.A4.Landscape());
+        page.Size(portrait?PageSizes.A4:PageSizes.A4.Landscape());
         page.Margin(22);
         page.DefaultTextStyle(x => x.FontFamily("Vazirmatn").FontSize(9).FontColor("#314B5D"));
         page.Header().Background(Navy).PaddingVertical(10).PaddingHorizontal(14).ContentFromRightToLeft().Row(row =>
@@ -148,6 +135,22 @@ public static class ManagementReportPdfBuilder
             });
     });
 
+    private static void ProductionMetrics(IContainer container, params (string Title, string Value)[] items) => container.Column(column =>
+    {
+        column.Spacing(6);
+        foreach(var group in items.Chunk(3))
+            column.Item().ContentFromRightToLeft().Row(row =>
+            {
+                foreach(var item in group)
+                    row.RelativeItem().MinHeight(58).PaddingHorizontal(3).Border(1).BorderColor(Border).Background(Pale).Padding(9).Column(card =>
+                    {
+                        card.Item().AlignRight().Text(item.Title).FontSize(7.3f).FontColor("#6F8492");
+                        card.Item().PaddingTop(3).AlignRight().Text(item.Value).FontSize(18).Bold().FontColor(Teal);
+                    });
+                for(var i=group.Length;i<3;i++)row.RelativeItem();
+            });
+    });
+
     private static void Section(IContainer container, string title, string subtitle) => container.PaddingTop(4).PaddingBottom(3).ContentFromRightToLeft().Row(row =>
     {
         row.RelativeItem().AlignRight().Text(title).FontSize(12).Bold().FontColor(Navy);
@@ -163,6 +166,17 @@ public static class ManagementReportPdfBuilder
                 row.RelativeItem().AlignLeft().Text($"میانگین {average:N1}").FontSize(8).FontColor(Teal);
             });
             column.Item().Height(150).Svg(LineSvg(points, average));
+        });
+
+    private static void PortraitLineChart(IContainer container, string title, IReadOnlyList<(string Label, double Value)> points, double average) =>
+        container.ShowEntire().Border(1).BorderColor(Border).Background("#FBFDFE").Padding(9).Column(column =>
+        {
+            column.Item().ShowEntire().ContentFromRightToLeft().Row(row =>
+            {
+                row.RelativeItem().AlignRight().Text(title).FontSize(10).Bold().FontColor(Navy);
+                row.RelativeItem().AlignLeft().Text($"میانگین {average:N1}").FontSize(7.5f).FontColor(Teal);
+            });
+            column.Item().Height(112).Svg(LineSvg(points, average));
         });
 
     private static void CompactLineChart(IContainer container, string title, IReadOnlyList<(string Label, double Value)> points, double average) =>
@@ -209,9 +223,13 @@ public static class ManagementReportPdfBuilder
                     row.RelativeItem().PaddingHorizontal(3).Border(1).BorderColor(Border).Padding(7).Column(card =>
                     {
                         card.Item().AlignCenter().Text(chart.Title).FontSize(9).Bold().FontColor(Navy);
-                        card.Item().Height(82).Svg(DonutSvg(chart));
-                        card.Item().AlignCenter().Text(chart.Subtitle).FontSize(6.5f).FontColor("#748793");
-                        card.Item().PaddingTop(3).AlignCenter().Text(string.Join("  |  ",chart.Segments.Take(4).Select(x=>$"{x.Label} {x.Percentage:N1}%"))).FontSize(6.2f).FontColor("#526B7C");
+                        card.Item().Height(62).Svg(DonutSvg(chart));
+                        foreach(var segment in chart.Segments.Take(5))
+                            card.Item().PaddingTop(1).ContentFromRightToLeft().Row(detail =>
+                            {
+                                detail.RelativeItem().AlignRight().Text(segment.Label).FontSize(5.8f).FontColor("#526B7C");
+                                detail.AutoItem().AlignLeft().Text($"{segment.Value:N0}  |  {segment.Percentage:N1}%").FontFamily("Arial").FontSize(5.8f).FontColor(Teal);
+                            });
                     });
                 for(var i=chunk.Length;i<3;i++)row.RelativeItem();
             });

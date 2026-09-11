@@ -1,0 +1,118 @@
+@page "/admin/production-edit"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles="Administrator")]
+@using TORSEPAN.Application.Auth.Queries.GetUsers
+@inject AdminProductionEditService EditService
+@inject ScaleService ScaleService
+@inject IUserService UserService
+
+<PageTitle>ویرایش اطلاعات تولید</PageTitle>
+
+<section class="edit-hero">
+    <div class="edit-hero-copy"><small>ابزار اختصاصی مدیر سیستم</small><h1>ویرایش شناسنامه تولید</h1><p>کد ساز یا کاسه را وارد کنید؛ اطلاعات در هر مرحله‌ای از تولید، انبار یا فروش قابل بازیابی است.</p></div>
+    <EditForm Model="_search" OnValidSubmit="SearchAsync" class="edit-search">
+        <label for="production-code">کد ساز یا کاسه</label>
+        <div><InputText id="production-code" @bind-Value="_search.Code" autocomplete="off" placeholder="مثلاً 7113" /><button type="submit" disabled="@_loading">@if(_loading){<span class="spinner-border spinner-border-sm"></span>}else{<span>جست‌وجو</span>}</button></div>
+    </EditForm>
+</section>
+
+@if(!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="edit-message @(_messageError?"error":"success")">@_message</div>
+}
+
+@if(_record is not null)
+{
+    <section class="identity-card">
+        <div><small>شناسنامه بازیابی‌شده</small><h2>@_record.Code</h2><p>@_record.ItemType • @_record.StatusTitle</p></div>
+        <span class="stage-pill">@_record.StageTitle</span>
+    </section>
+
+    <section class="edit-section">
+        <header><div><small>تنظیمات فنی</small><h3>اسکیل ساز و کاسه‌ها</h3></div><span>@_record.Bowls.Count کاسه مرتبط</span></header>
+        <div class="scale-grid">
+            @if(_record.HandpanId.HasValue)
+            {
+                <article class="scale-card handpan-scale"><div class="card-icon">🎵</div><div class="scale-copy"><small>اسکیل نهایی ساز</small><strong>@_record.Code</strong><span>هماهنگ با شناسنامه ساز</span></div><label><span>انتخاب اسکیل</span><select @bind="_record.HandpanScaleId"><option value="">بدون اسکیل</option>@foreach(var scale in ScalesFor(4)){<option value="@scale.Id">@scale.Name</option>}</select></label></article>
+            }
+            @foreach(var bowl in _record.Bowls)
+            {
+                <article class="scale-card"><div class="card-icon">🥣</div><div class="scale-copy"><small>@bowl.BowlType</small><strong>@bowl.Code</strong><span>@bowl.Material • @bowl.StageTitle</span></div><label><span>اسکیل این کاسه</span><select @bind="bowl.ScaleId"><option value="">بدون اسکیل</option>@foreach(var scale in ScalesFor(bowl.BowlType.Contains("رو")?1:2)){<option value="@scale.Id">@scale.Name</option>}</select></label></article>
+            }
+        </div>
+    </section>
+
+    <section class="edit-section operations-section">
+        <header><div><small>سابقه تولید</small><h3>ثبت‌کننده مراحل</h3></div><span>@_record.Events.Count عملیات</span></header>
+        @if(_record.Events.Count==0)
+        {
+            <p class="empty-events">هنوز عملیاتی برای این کد ثبت نشده است.</p>
+        }
+        else
+        {
+            <div class="event-list">
+                @foreach(var item in _record.Events)
+                {
+                    <article class="event-card">
+                        <div class="event-mark">@ActionIcon(item.Action)</div>
+                        <div class="event-title"><strong>@item.ActionTitle</strong><span>@item.RelatedCode</span></div>
+                        <div class="event-meta"><span>@PersianDateTime.FormatDateTime(item.EventDate)</span><small>@item.Duration</small></div>
+                        <label><span>ثبت‌کننده</span><select @bind="item.UserId">@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</select></label>
+                        @if(!string.IsNullOrWhiteSpace(item.Description)){<p>@item.Description</p>}
+                    </article>
+                }
+            </div>
+        }
+        <footer><button class="save-button" @onclick="RequestSave" disabled="@_saving">ذخیره همه تغییرات</button><button class="secondary-button" @onclick="Reset">جست‌وجوی کد دیگر</button></footer>
+    </section>
+}
+
+@if(_confirming&&_record is not null)
+{
+    <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>اسکیل‌ها و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
+}
+
+@code{
+    private readonly SearchModel _search=new();
+    private AdminProductionEditDto? _record;
+    private List<ScaleDto> _scales=[];
+    private List<UserDto> _users=[];
+    private bool _loading,_saving,_confirming,_messageError;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var scales=ScaleService.GetAsync();var users=UserService.GetUsersAsync();
+        await Task.WhenAll(scales,users);_scales=(await scales).ToList();_users=(await users).OrderBy(x=>x.FullName).ToList();
+    }
+
+    private async Task SearchAsync()
+    {
+        if(string.IsNullOrWhiteSpace(_search.Code))return;
+        _loading=true;_message=null;_record=null;
+        try{_record=await EditService.GetAsync(_search.Code);if(_record is null){_message="ساز یا کاسه‌ای با این کد پیدا نشد.";_messageError=true;}}
+        catch{_message="ساز یا کاسه‌ای با این کد پیدا نشد یا بازیابی اطلاعات آن ممکن نیست.";_messageError=true;}
+        finally{_loading=false;}
+    }
+
+    private void RequestSave(){if(_record is not null)_confirming=true;}
+    private void CloseConfirmation()=>_confirming=false;
+    private async Task SaveAsync()
+    {
+        if(_record is null||_saving)return;
+        _saving=true;_message=null;
+        try
+        {
+            var request=new AdminProductionEditRequest(_record.HandpanScaleId,_record.Bowls.Select(x=>new AdminBowlScaleUpdate(x.Id,x.ScaleId)).ToList(),_record.Events.Select(x=>new AdminEventUserUpdate(x.Id,x.UserId)).ToList());
+            _record=await EditService.UpdateAsync(_record.RequestedCode,request)??_record;_confirming=false;_message="تغییرات شناسنامه با موفقیت ذخیره شد.";_messageError=false;
+        }
+        catch{_confirming=false;_message="ذخیره تغییرات انجام نشد. اسکیل و ثبت‌کننده‌های انتخاب‌شده را دوباره بررسی کنید.";_messageError=true;}
+        finally{_saving=false;}
+    }
+
+    private IEnumerable<ScaleDto> ScalesFor(int usage)=>_scales.Where(x=>(x.Usage&usage)==usage);
+    private static string UserLabel(UserDto user)=>string.IsNullOrWhiteSpace(user.FullName)?user.UserName:$"{user.FullName} ({user.UserName})";
+    private static string ActionIcon(int action)=>action switch{2=>"D",3=>"S",4=>"B",5=>"G",6=>"T",7=>"F",8=>"Q",9=>"P",10=>"W",12=>"$",13=>"A",_=>"•"};
+    private void Reset(){_record=null;_message=null;_search.Code="";}
+    private sealed class SearchModel{public string Code{get;set;}="";}
+}

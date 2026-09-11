@@ -9,6 +9,7 @@ internal static class ReportPdfPreviewFixtures
     public static IReadOnlyDictionary<string, byte[]> Build()
     {
         QuestPDF.Settings.License=LicenseType.Community;
+        QuestPDF.Settings.EnableDebugging=true;
         using var font=typeof(ManagementReportsController).Assembly.GetManifestResourceStream("TORSEPAN.API.Assets.Vazirmatn-Regular.ttf")
             ?? throw new InvalidOperationException("Embedded Vazirmatn font was not found.");
         FontManager.RegisterFont(font);

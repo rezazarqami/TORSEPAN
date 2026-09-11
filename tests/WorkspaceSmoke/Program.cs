@@ -51,6 +51,19 @@ Check(saleData is {BuyerName:"خریدار",Destination:"آلمان",ShippingMet
 var stockJson=MaterialStockMetadata.Encode(Guid.NewGuid(),"استیل","top",12,40,"ورود");
 Check(MaterialStockMetadata.Decode(stockJson) is {Delta:12,Balance:40,StockKind:"top"},"material stock movement round-trips safely");
 Check(typeof(ManagementReportsController).GetCustomAttribute<AuthorizeAttribute>()?.Roles=="Administrator,ProductionManager","management reports restricted to managers");
+Check(typeof(AdminProductionEditsController).GetCustomAttribute<AuthorizeAttribute>()?.Roles=="Administrator","production correction API restricted to administrators");
+var editedEvent = new ProductionEvent(null, null, Guid.NewGuid(), Guid.NewGuid(),
+    TORSEPAN.Domain.Enums.ProductionAction.Dimple, TORSEPAN.Domain.Enums.EventResult.Completed,
+    null, "Dimpling completed");
+var reassignedUser = Guid.NewGuid();
+editedEvent.ChangeUser(reassignedUser);
+Check(editedEvent.UserId==reassignedUser,"administrator correction can reassign an existing production event");
+var editableHandpan = new Handpan(Guid.NewGuid(), "EDIT-TEST");
+var editedScale = Guid.NewGuid();
+editableHandpan.SetScale(editedScale);
+Check(editableHandpan.ScaleId==editedScale,"administrator correction can change a handpan scale");
+editableHandpan.ClearScale();
+Check(editableHandpan.ScaleId is null,"administrator correction can clear a handpan scale");
 var root=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"../../../../../"));
 var exportPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/ExportWarehouse.razor"));
 Check(!exportPage.Contains("InvokeAsync<bool>(\"confirm\"")&&exportPage.Contains("ShipExportBowlsAsync"),"export shipping uses themed bulk confirmation");
@@ -79,6 +92,10 @@ Check((bool)exportCompletionMethod.Invoke(null,[freshExportTune])!,"export-ready
 Check(!(bool)exportCompletionMethod.Invoke(null,[normalTune])!,"ordinary tune event does not qualify as completed production");
 var reportsPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Reports.razor"));
 Check(reportsPage.Contains("کاسه‌های داخلی رسیده به انبار")&&reportsPage.Contains("کاسه‌های صادراتی آماده بسته‌بندی یا ارسال")&&reportsPage.Contains("روند ماهانه سازهای واردشده به انبار"),"production report separates domestic bowls, export bowls, and warehouse instruments");
+var sidebar=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Layout/Sidebar.razor"));
+var productionEditPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/AdminProductionEdit.razor"));
+Check(sidebar.Contains("AuthorizeView Roles=\"Administrator\"")&&sidebar.Contains("href=\"/admin/production-edit\""),"production correction navigation is visible only to administrators");
+Check(productionEditPage.Contains("@attribute [Authorize(Roles=\"Administrator\")]")&&productionEditPage.Contains("AdminProductionEditService"),"production correction page enforces administrator authorization");
 var pdfPreviews=ReportPdfPreviewFixtures.Build();
 Check(pdfPreviews.Count==3&&pdfPreviews.All(x=>x.Value.Length>5000),"all management report PDFs render with complete visual layouts");
 var previewDirectory=Environment.GetEnvironmentVariable("TORSEPAN_PDF_PREVIEW_DIR");
