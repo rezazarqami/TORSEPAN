@@ -1,6 +1,7 @@
 @if(Points.Count>0)
 {
-<div class="trend-chart"><div class="trend-head"><div><h3>@Title</h3><small>مقایسه شش ماه اخیر با میانگین</small></div><span>میانگین @Points.Last().Average.ToString("N1")</span></div>
+<div class="trend-chart"><div class="trend-head"><div><h3>@Title</h3><small>مقایسه شش ماه اخیر با میانگین</small></div><span>میانگین @Points.Last().Average.ToString("N1") @Unit</span></div>
+    <div class="trend-summary"><span><small>این ماه</small><b>@Current @Unit</b></span><span><small>ماه قبل</small><b>@Previous @Unit</b></span><span><small>تغییر</small><b class="@(Delta>=0?"up":"down")">@Delta.ToString("+0;-0;0")</b></span></div>
     <div class="line-stage"><svg viewBox="0 0 720 220" role="img" aria-label="@Title" preserveAspectRatio="none">
         <defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b9cad" stop-opacity=".32"/><stop offset="1" stop-color="#2b9cad" stop-opacity="0"/></linearGradient></defs>
         @foreach(var y in new[]{40,75,110,145,180}){<line class="grid-line" x1="38" y1="@y" x2="690" y2="@y" />}
@@ -15,6 +16,10 @@
 @code{
     [Parameter]public IReadOnlyList<ReportTrendDto> Points{get;set;}=[];
     [Parameter]public string Title{get;set;}="روند ماهانه";
+    [Parameter]public string Unit{get;set;}="مورد";
+    private int Current=>Points.LastOrDefault()?.Count??0;
+    private int Previous=>Points.Count>1?Points[^2].Count:0;
+    private int Delta=>Current-Previous;
     private double Max=>Math.Max(1,Points.Select(x=>Math.Max(x.Count,x.Average)).DefaultIfEmpty(1).Max());
     private double X(int index)=>Points.Count==1?364:690-index*(652d/(Points.Count-1));
     private double Y(double value)=>180-value/Max*140;

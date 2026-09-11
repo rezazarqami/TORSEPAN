@@ -24,13 +24,20 @@ public static class ManagementReportPdfBuilder
         {
             column.Spacing(10);
             column.Item().Element(c => Metrics(c,
-                ("کل کاسه‌های تولیدشده", report.TotalBowlCount.ToString("N0")),
+                ("کاسه‌های یکتای تولیدشده", report.TotalBowlCount.ToString("N0")),
                 ("کاسه رو", report.TopBowlCount.ToString("N0")),
                 ("کاسه زیر نت‌دار", report.BottomNoteBowlCount.ToString("N0")),
-                ("تولید ماه جاری", report.CurrentMonthCount.ToString("N0")),
-                ("میانگین ماهانه", report.MonthlyAverage.ToString("N1")),
-                ("فاصله با میانگین", report.DifferenceFromAverage.ToString("+0.#;-0.#;0"))));
-            column.Item().Element(c => LineChart(c, "تولید ماهانه و فاصله با میانگین", report.Trend.Select(x => (x.Label, (double)x.Count)).ToList(), report.MonthlyAverage));
+                ("سازهای واردشده به انبار", report.TotalHandpanCount.ToString("N0"))));
+            column.Item().Element(c => LineChart(c, "روند ماهانه کاسه‌های ساخته‌شده", report.Trend.Select(x => (x.Label, (double)x.Count)).ToList(), report.MonthlyAverage));
+            column.Item().Element(c => LineChart(c, "روند ماهانه سازهای واردشده به انبار", report.HandpanTrend.Select(x => (x.Label, (double)x.Count)).ToList(), report.HandpanMonthlyAverage));
+            column.Item().PageBreak();
+            column.Item().Element(c => Metrics(c,
+                ("کاسه این ماه", report.CurrentMonthCount.ToString("N0")),
+                ("میانگین ماهانه کاسه", report.MonthlyAverage.ToString("N1")),
+                ("فاصله کاسه با میانگین", report.DifferenceFromAverage.ToString("+0.#;-0.#;0")),
+                ("ساز این ماه", report.CurrentMonthHandpanCount.ToString("N0")),
+                ("میانگین ماهانه ساز", report.HandpanMonthlyAverage.ToString("N1")),
+                ("فاصله ساز با میانگین", report.HandpanDifferenceFromAverage.ToString("+0.#;-0.#;0"))));
             column.Item().Element(c => DonutGrid(c, report.Donuts));
             column.Item().PageBreak();
             column.Item().Element(c => Section(c, "جزئیات کامل نمودارها", "مقدار و سهم هر بخش از نمودارهای تحلیلی"));
@@ -213,7 +220,7 @@ public static class ManagementReportPdfBuilder
         [2f,2f,1f,1f]);
 
     private static void ProductionTable(IContainer container, IReadOnlyList<ProductionSummaryRow> rows) => SimpleTable(container,
-        ["متریال","اسکیل","مقصد","تعداد"],rows.Select(x=>new[]{x.Material,x.Scale,x.Destination,x.Count.ToString("N0")}).ToList(),[2f,2f,1f,1f]);
+        ["متریال","اسکیل","مقصد","تعداد"],rows.Select(x=>new[]{x.Material,x.Scale,x.Destination,x.Count.ToString("N0")}).ToList(),[2f,2f,1f,1f],3.5f);
 
     private static void PerformanceTable(IContainer container, IReadOnlyList<UserPerformanceItem> users)
     {
@@ -242,14 +249,14 @@ public static class ManagementReportPdfBuilder
     private static void MovementTable(IContainer container, IReadOnlyList<MaterialMovementRow> rows) => SimpleTable(container,
         ["تاریخ","متریال","نوع","گردش","تعداد","ثبت‌کننده","علت"],rows.Select(x=>new[]{PersianDateTime(x.OccurredAt),x.MaterialName,x.StockKind,x.Direction,Math.Abs(x.Delta).ToString("N0"),x.PerformedBy,x.Reason}).ToList(),[1.2f,1.5f,1f,.7f,.7f,1.2f,1.8f]);
 
-    private static void SimpleTable(IContainer container, IReadOnlyList<string> headers, IReadOnlyList<string[]> rows, IReadOnlyList<float> widths) => container.ContentFromRightToLeft().Table(table =>
+    private static void SimpleTable(IContainer container, IReadOnlyList<string> headers, IReadOnlyList<string[]> rows, IReadOnlyList<float> widths, float cellPadding=5) => container.ContentFromRightToLeft().Table(table =>
     {
         table.ColumnsDefinition(columns => { foreach(var width in widths)columns.RelativeColumn(width); });
         table.Header(header => { foreach(var title in headers)header.Cell().Background(Navy).Padding(6).AlignRight().Text(title).Bold().FontColor(Colors.White).FontSize(7.5f); });
         if(rows.Count==0)table.Cell().ColumnSpan((uint)headers.Count).Padding(18).AlignCenter().Text("اطلاعاتی برای نمایش وجود ندارد.").FontColor(Colors.Grey.Medium);
         foreach(var (row,index) in rows.Select((value,index)=>(value,index)))
             foreach(var value in row)
-                table.Cell().Background(index%2==0?Colors.White:Pale).BorderBottom(1).BorderColor(Border).Padding(5).AlignRight().Text(value??"-").FontSize(7);
+                table.Cell().Background(index%2==0?Colors.White:Pale).BorderBottom(1).BorderColor(Border).Padding(cellPadding).AlignRight().Text(value??"-").FontSize(7);
     });
 
     private static string RequestedRange(DateTime? from, DateTime? to) => from.HasValue||to.HasValue

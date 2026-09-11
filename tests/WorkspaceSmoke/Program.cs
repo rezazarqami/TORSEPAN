@@ -61,6 +61,18 @@ Check(salesCss.Contains("flex-direction:column")&&salesCss.Contains("min-width:c
 var persianMonths=PersianMonthCalendar.LastMonths(new DateTime(2026,9,10),6);
 Check(persianMonths.Select(x=>x.Label).SequenceEqual(new[]{"1405/01","1405/02","1405/03","1405/04","1405/05","1405/06"}),"report trend uses six consecutive Persian months");
 Check(persianMonths.Zip(persianMonths.Skip(1)).All(x=>x.First.LocalEnd==x.Second.LocalStart),"Persian report month boundaries are contiguous");
+var repeatedBowl=Guid.NewGuid();var earlierBowl=Guid.NewGuid();
+var uniqueTrendSource=new List<(Guid Id,DateTime EventDate)>
+{
+    (repeatedBowl,persianMonths[^1].UtcStart.AddDays(1)),
+    (repeatedBowl,persianMonths[^1].UtcStart.AddDays(2)),
+    (earlierBowl,persianMonths[^2].UtcStart.AddDays(1))
+};
+var uniqueTrendMethod=typeof(ManagementReportsController).GetMethod("BuildUniqueTrend",BindingFlags.Static|BindingFlags.NonPublic)!;
+var uniqueTrend=(List<TrendPoint>)uniqueTrendMethod.Invoke(null,[uniqueTrendSource,new DateTime(2026,9,10)])!;
+Check(uniqueTrend.Sum(x=>x.Count)==2&&uniqueTrend[^1].Count==1,"production trend counts each bowl only once");
+var reportsPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Reports.razor"));
+Check(reportsPage.Contains("روند ماهانه کاسه‌های ساخته‌شده")&&reportsPage.Contains("روند ماهانه سازهای واردشده به انبار"),"production report separates bowl and warehouse instrument trends");
 var pdfPreviews=ReportPdfPreviewFixtures.Build();
 Check(pdfPreviews.Count==3&&pdfPreviews.All(x=>x.Value.Length>5000),"all management report PDFs render with complete visual layouts");
 var previewDirectory=Environment.GetEnvironmentVariable("TORSEPAN_PDF_PREVIEW_DIR");

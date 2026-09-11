@@ -15,12 +15,13 @@ internal static class ReportPdfPreviewFixtures
 
         var months=new[]{"1405/01","1405/02","1405/03","1405/04","1405/05","1405/06"};
         var trend=months.Select((x,i)=>new TrendPoint(x,new[]{31,42,38,54,61,73}[i],49.8)).ToList();
+        var handpanTrend=months.Select((x,i)=>new TrendPoint(x,new[]{12,17,14,21,25,29}[i],19.7)).ToList();
         var charts=new[]{"متریال‌های تولیدشده","زمان مراحل","سهم تیونرها","سهم فاین‌تیونرها","سهم شیپ‌کارها","توزیع اسکیل‌ها"}
             .Select((title,index)=>new DonutChart(title,"خلاصه تحلیلی",100,[
                 new DonutSegment(index%2==0?"استیل":"رضا",55,55,"#176B87"),
                 new DonutSegment(index%2==0?"ولوت":"علیرضا",30,30,"#27A17B"),
                 new DonutSegment(index%2==0?"سایر":"جاوید",15,15,"#F1B84B")])).ToList();
-        var production=new ProductionAnalytics(new DateTime(2026,3,21,0,0,0,DateTimeKind.Utc),new DateTime(2026,9,11,0,0,0,DateTimeKind.Utc),66,25,91,73,49.8,23.2,trend,charts,
+        var production=new ProductionAnalytics(new DateTime(2026,3,21,0,0,0,DateTimeKind.Utc),new DateTime(2026,9,11,0,0,0,DateTimeKind.Utc),66,25,91,73,49.8,23.2,trend,38,29,19.7,9.3,handpanTrend,charts,
             Enumerable.Range(1,22).Select(i=>new ProductionSummaryRow(i%2==0?"Stainless Steel":"VELVET",$"{8+i%5} نت",i%3==0?"صادراتی":"داخلی",i+2)).ToList());
 
         var userId=Guid.NewGuid();

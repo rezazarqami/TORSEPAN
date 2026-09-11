@@ -110,8 +110,11 @@ else if(_tab=="operations")
 }
 else if(_tab=="production")
 {
-    <div class="metric-row"><article><small>کل کاسه‌های تولیدشده</small><strong>@_production.TotalBowlCount</strong></article><article><small>کاسه رو</small><strong>@_production.TopBowlCount</strong></article><article><small>کاسه زیر نت‌دار</small><strong>@_production.BottomNoteBowlCount</strong></article><article><small>فاصله با میانگین ماهانه</small><strong class="@(_production.DifferenceFromAverage>=0?"positive":"negative")">@_production.DifferenceFromAverage.ToString("+0.#;-0.#;0")</strong></article></div>
-    <ReportTrendChart Points="@_production.Trend" Title="تولید ماهانه و فاصله با میانگین" />
+    <div class="metric-row"><article><small>کاسه‌های یکتای تولیدشده</small><strong>@_production.TotalBowlCount</strong></article><article><small>کاسه رو</small><strong>@_production.TopBowlCount</strong></article><article><small>کاسه زیر نت‌دار</small><strong>@_production.BottomNoteBowlCount</strong></article><article><small>سازهای واردشده به انبار</small><strong>@_production.TotalHandpanCount</strong></article></div>
+    <div class="production-trend-grid">
+        <ReportTrendChart Points="@_production.Trend" Title="روند ماهانه کاسه‌های ساخته‌شده" Unit="کاسه" />
+        <ReportTrendChart Points="@_production.HandpanTrend" Title="روند ماهانه سازهای واردشده به انبار" Unit="ساز" />
+    </div>
     <section class="analytics-card"><header><div><small>نمای فشرده کارگاه</small><h3>شش نمودار کلیدی تولید</h3></div><span>بازه انتخاب‌شده</span></header><ReportDonutGrid Charts="@_production.Donuts" /></section>
     <section class="result-card"><header><h3>خلاصه تولید</h3><span>@_production.Summary.Sum(x=>x.Count) کاسه</span></header><div class="table-responsive"><table class="table"><thead><tr><th>متریال</th><th>اسکیل</th><th>مقصد</th><th>تعداد</th></tr></thead><tbody>@foreach(var item in _production.Summary){<tr><td><strong>@item.Material</strong></td><td>@item.Scale</td><td><span class="destination-pill">@item.Destination</span></td><td>@item.Count</td></tr>}</tbody></table></div></section>
 }
