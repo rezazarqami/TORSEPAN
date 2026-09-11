@@ -22,39 +22,80 @@ else if (!string.IsNullOrWhiteSpace(_error))
 }
 else
 {
-    <Card>
-        <h5 class="mb-3">موجودی کاسه‌ها بر اساس متریال</h5>
-        <DataTable>
-            <thead><tr><th>متریال</th><th>کاسه رو</th><th>کاسه زیر</th></tr></thead>
-            <tbody>
-                @foreach (var item in _items.Where(x => x.Category == 4).OrderBy(x => x.Name))
-                {
-                    <tr>
-                        <td><strong>@item.Name</strong></td>
-                        <td><span class="badge bg-primary fs-6">@item.TopBowlQuantity</span></td>
-                        <td><span class="badge bg-primary fs-6">@item.BottomBowlQuantity</span></td>
-                    </tr>
-                }
-            </tbody>
-        </DataTable>
-    </Card>
+    <div class="quick-stock-grid">
+        <section class="stock-panel bowl-stock-panel">
+            <header class="stock-panel-header">
+                <div class="stock-panel-title">
+                    <span class="stock-panel-icon" aria-hidden="true">🥣</span>
+                    <div>
+                        <h2>موجودی کاسه‌ها</h2>
+                        <p>تفکیک کاسه‌های رو و زیر بر اساس متریال</p>
+                    </div>
+                </div>
+                <div class="stock-panel-summary">
+                    <span><small>کاسه رو</small><strong>@BowlItems.Sum(x => x.TopBowlQuantity)</strong></span>
+                    <span><small>کاسه زیر</small><strong>@BowlItems.Sum(x => x.BottomBowlQuantity)</strong></span>
+                </div>
+            </header>
 
-    <div class="mt-4">
-        <Card>
-            <h5 class="mb-3">سایر مواد اولیه و اقلام بسته‌بندی</h5>
-            <DataTable>
-                <thead><tr><th>نام قلم</th><th>موجودی فعلی</th></tr></thead>
-                <tbody>
-                    @foreach (var item in _items.Where(x => x.Category == 3).OrderBy(x => x.Name))
-                    {
-                        <tr>
-                            <td>@item.Name</td>
-                            <td><span class="badge @(item.Quantity == 0 ? "bg-danger" : "bg-success") fs-6">@item.Quantity</span></td>
-                        </tr>
-                    }
-                </tbody>
-            </DataTable>
-        </Card>
+            <div class="stock-table-shell">
+                <table class="quick-stock-table">
+                    <thead><tr><th>متریال</th><th>کاسه رو</th><th>کاسه زیر</th></tr></thead>
+                    <tbody>
+                        @if (!BowlItems.Any())
+                        {
+                            <tr><td colspan="3" class="empty-stock">متریالی برای نمایش وجود ندارد.</td></tr>
+                        }
+                        @foreach (var item in BowlItems)
+                        {
+                            <tr>
+                                <td><strong>@item.Name</strong></td>
+                                <td><span class="stock-number top-stock">@item.TopBowlQuantity</span></td>
+                                <td><span class="stock-number bottom-stock">@item.BottomBowlQuantity</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="stock-panel supplies-stock-panel">
+            <header class="stock-panel-header">
+                <div class="stock-panel-title">
+                    <span class="stock-panel-icon" aria-hidden="true">📦</span>
+                    <div>
+                        <h2>مواد اولیه و بسته‌بندی</h2>
+                        <p>نمای سریع موجودی اقلام مصرفی کارگاه</p>
+                    </div>
+                </div>
+                <div class="single-summary">
+                    <small>کل موجودی</small>
+                    <strong>@OtherItems.Sum(x => x.Quantity)</strong>
+                </div>
+            </header>
+
+            <div class="stock-table-shell">
+                <table class="quick-stock-table supplies-table">
+                    <thead><tr><th>نام قلم</th><th>موجودی فعلی</th></tr></thead>
+                    <tbody>
+                        @if (!OtherItems.Any())
+                        {
+                            <tr><td colspan="2" class="empty-stock">قلمی برای نمایش وجود ندارد.</td></tr>
+                        }
+                        @foreach (var item in OtherItems)
+                        {
+                            <tr>
+                                <td><strong>@item.Name</strong></td>
+                                <td>
+                                    <span class="stock-number @(item.Quantity == 0 ? "out-of-stock" : "available-stock")">@item.Quantity</span>
+                                    @if (item.Quantity == 0) { <small class="stock-state">ناموجود</small> }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 }
 
@@ -62,6 +103,8 @@ else
     private readonly List<MaterialDto> _items = [];
     private bool _loading = true;
     private string? _error;
+    private IEnumerable<MaterialDto> BowlItems => _items.Where(x => x.Category == 4).OrderBy(x => x.Name);
+    private IEnumerable<MaterialDto> OtherItems => _items.Where(x => x.Category == 3).OrderBy(x => x.Name);
 
     protected override async Task OnInitializedAsync()
     {
