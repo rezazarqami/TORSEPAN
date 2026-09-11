@@ -65,7 +65,11 @@ else
         <section class="sale-dialog" role="dialog" aria-modal="true" aria-labelledby="sale-title" @onclick:stopPropagation="true">
             <header><div><span class="sale-eyebrow">ثبت خروج از انبار</span><h3 id="sale-title">@(_saleIds.Count==1?$"فروش ساز {SaleCodes.FirstOrDefault()}":$"فروش گروهی {_saleIds.Count} ساز")</h3></div><button class="sale-close" aria-label="بستن" @onclick="Cancel">×</button></header>
             <div class="selected-sales">@foreach(var saleCode in SaleCodes){<span>@saleCode</span>}</div>
-            <div class="sale-hint">تمام اطلاعات زیر اختیاری است و بعداً از صفحه فروش قابل تکمیل یا ویرایش خواهد بود.</div>
+            <div class="sale-hint">تمام اطلاعات فروش زیر اختیاری است و بعداً از صفحه فروش قابل تکمیل یا ویرایش خواهد بود.</div>
+            <div class="warranty-option">
+                <label class="warranty-switch"><input type="checkbox" @bind="_activateWarranty" /><span><strong>فعال‌سازی هم‌زمان گارانتی</strong><small>گارانتی این سازها پس از ثبت فروش آغاز شود.</small></span></label>
+                @if(_activateWarranty){<div class="warranty-fields"><label><span>نام و نام خانوادگی مالک</span><input class="form-control" @bind="_warrantyFullName" maxlength="150" /></label><label><span>شماره موبایل مالک</span><input class="form-control" @bind="_warrantyPhone" maxlength="20" inputmode="tel" /></label><label><span>شهر مالک</span><input class="form-control" @bind="_warrantyCity" maxlength="100" /></label></div>}
+            </div>
             <div class="sale-fields">
                 <label class="wide"><span>جست‌وجوی شخص یا شرکت</span><input class="form-control" @bind="_partySearch" @bind:event="oninput" placeholder="نام یا شرکت را جست‌وجو کنید..." /></label>
                 <label><span>خریدار از حسابداری</span><select class="form-select" @bind="_selectedPartyId"><option value="">انتخاب نشده</option>@foreach(var p in SaleParties){<option value="@p.Id">@p.DisplayName</option>}</select></label>
@@ -85,7 +89,7 @@ else
     private List<WarehouseHandpanDto> _items=[]; private List<TORSEPAN.Panel.Models.AccountingPartyDto> _parties=[];
     private readonly HashSet<Guid> _expanded=[]; private readonly HashSet<Guid> _selected=[]; private readonly HashSet<Guid> _detailsLoaded=[]; private readonly HashSet<Guid> _detailsLoading=[]; private readonly HashSet<Guid> _detailErrors=[]; private readonly HashSet<Guid> _rollingBack=[]; private readonly List<Guid> _saleIds=[];
     private bool _canSell;
-    private bool _loading=true,_saving,_isPaid,_galleryLoading,_showGallery; private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_partySearch="",_buyer="",_destination="";
+    private bool _loading=true,_saving,_isPaid,_galleryLoading,_showGallery,_activateWarranty; private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_partySearch="",_buyer="",_destination="",_warrantyFullName="",_warrantyPhone="",_warrantyCity="";
     private List<WarehouseGalleryPhotoDto> _galleryPhotos=[]; private string? _galleryPreviewUrl;
     private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price; private Guid? _selectedPartyId; private DateTime? _dueDate;
     private IEnumerable<TORSEPAN.Panel.Models.AccountingPartyDto> SaleParties=>_parties.Where(x=>string.IsNullOrWhiteSpace(_partySearch)||x.DisplayName.Contains(_partySearch,StringComparison.OrdinalIgnoreCase));
@@ -113,7 +117,7 @@ else
     private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
     private void BeginSale(WarehouseHandpanDto item){_selected.Clear();_selected.Add(item.HandpanId);OpenSale([item.HandpanId]);}
     private void BeginSelectedSale()=>OpenSale(_selected.ToList());
-    private void OpenSale(IEnumerable<Guid> ids){_saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_destination="";_partySearch="";_selectedPartyId=null;_isPaid=false;_dueDate=null;_price=null;_saleError=null;}
+    private void OpenSale(IEnumerable<Guid> ids){_saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_destination="";_partySearch="";_selectedPartyId=null;_isPaid=false;_dueDate=null;_price=null;_activateWarranty=false;_warrantyFullName="";_warrantyPhone="";_warrantyCity="";_saleError=null;}
     private void Cancel(){if(_saving)return;_saleIds.Clear();}
-    private async Task SellAsync(){if(_saleIds.Count==0)return;_saving=true;_saleError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);await ProductionService.SellManyAsync(_saleIds,party?.Name??_buyer.Trim(),_price,_destination.Trim(),party?.Id,_isPaid,_dueDate);_items.RemoveAll(x=>_saleIds.Contains(x.HandpanId));_selected.Clear();_saleIds.Clear();}catch(HttpRequestException ex){_saleError=string.IsNullOrWhiteSpace(ex.Message)?"ثبت فروش انجام نشد.":"ثبت فروش انجام نشد؛ لطفاً دوباره تلاش کنید.";}finally{_saving=false;}}
+    private async Task SellAsync(){if(_saleIds.Count==0)return;if(_activateWarranty&&(string.IsNullOrWhiteSpace(_warrantyFullName)||string.IsNullOrWhiteSpace(_warrantyPhone)||string.IsNullOrWhiteSpace(_warrantyCity))){_saleError="برای فعال‌سازی گارانتی، نام مالک، شماره موبایل و شهر را کامل کنید.";return;}_saving=true;_saleError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);var result=await ProductionService.SellManyAsync(_saleIds,party?.Name??_buyer.Trim(),_price,_destination.Trim(),party?.Id,_isPaid,_dueDate,_activateWarranty,_warrantyFullName.Trim(),_warrantyPhone.Trim(),_warrantyCity.Trim());_items.RemoveAll(x=>_saleIds.Contains(x.HandpanId));_selected.Clear();_saleIds.Clear();if(!string.IsNullOrWhiteSpace(result?.Warning))await JS.InvokeVoidAsync("alert",result.Warning);}catch(HttpRequestException ex){_saleError=string.IsNullOrWhiteSpace(ex.Message)?"ثبت فروش انجام نشد.":"ثبت فروش انجام نشد؛ لطفاً دوباره تلاش کنید.";}finally{_saving=false;}}
 }
