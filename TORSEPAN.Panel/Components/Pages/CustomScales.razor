@@ -22,7 +22,7 @@
 
 <div class="card p-3">
     <h5 class="mb-3">اسکیل‌های کاستوم قابل انتخاب در شیپ</h5>
-    @if (CustomScales.Count == 0)
+    @if (CustomScaleItems.Count == 0)
     {
         <div class="alert alert-light border mb-0">هنوز اسکیل کاستومی ثبت نشده است.</div>
     }
@@ -31,7 +31,7 @@
         <div class="table-responsive">
             <table class="table table-striped mb-0">
                 <thead><tr><th>نام اسکیل</th></tr></thead>
-                <tbody>@foreach (var scale in CustomScales) { <tr><td>@scale.Name</td></tr> }</tbody>
+                <tbody>@foreach (var scale in CustomScaleItems) { <tr><td>@scale.Name</td></tr> }</tbody>
             </table>
         </div>
     }
@@ -43,7 +43,7 @@
     private bool _loading;
     private bool _success;
     private string? _message;
-    private List<ScaleDto> CustomScales => _scales.Where(x => (x.Usage & 8) != 0).OrderBy(x => x.Name).ToList();
+    private List<ScaleDto> CustomScaleItems => _scales.Where(x => (x.Usage & 8) != 0).OrderBy(x => x.Name).ToList();
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
 
