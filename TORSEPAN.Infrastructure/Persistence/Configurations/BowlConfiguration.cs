@@ -28,6 +28,10 @@ public class BowlConfiguration : IEntityTypeConfiguration<Bowl>
         builder.Property(x => x.HasNotes)
             .IsRequired();
 
+        builder.Property(x => x.IsCustomScale)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.Property(x => x.InstrumentType)
             .IsRequired();
 

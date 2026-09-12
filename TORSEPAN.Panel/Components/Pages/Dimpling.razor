@@ -192,6 +192,7 @@
                             {
                                 <option value="@scale.Id">@scale.Name</option>
                             }
+                            <option value="@CustomScaleChoiceId">کاستوم</option>
                         </select>
                         </label>
                     </div></div>
@@ -217,11 +218,24 @@
                             }
                         </select>
                         </label>
+                        @if (_bowl.IsCustomScale)
+                        {
+                            <label class="stage-field stage-field-wide"><span>اسکیل کاستوم</span>
+                                <select class="form-select" @bind="_scaleId">
+                                    <option value="@Guid.Empty">انتخاب کنید...</option>
+                                    @foreach (var scale in CustomScales)
+                                    {
+                                        <option value="@scale.Id">@scale.Name</option>
+                                    }
+                                </select>
+                                <small class="text-muted">اسکیل نهایی این ساز در همین مرحله ثبت می‌شود.</small>
+                            </label>
+                        }
                         <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>توضیحات این مرحله</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="4" @bind="_stageNote" placeholder="نکته‌ای که باید در مرحله بعد دیده شود را بنویسید..."></textarea></label>
                     </div></div>
                     <footer class="stage-workspace-actions">
                         <button class="stage-submit"
-                                disabled="@_loading"
+                                disabled="@(_loading || (_bowl.IsCustomScale && _scaleId == Guid.Empty))"
                                 @onclick="CompleteShapeAsync">
                             <strong>شیپ انجام شد</strong><span>بررسی و ثبت نتیجه مرحله</span>
                         </button>
@@ -278,16 +292,23 @@
                            placeholder="کد کاسه مکمل را وارد کنید"
                            @bind="_pairedProductionCode"
                            @bind:event="oninput" />
-                    <label class="form-label mt-3">اسکیل ساز</label>
-                    <select class="form-select" @bind="_scaleId">
-                        <option value="@Guid.Empty">انتخاب کنید...</option>
-                        @foreach (var scale in HandpanScales)
-                        {
-                            <option value="@scale.Id">@scale.Name</option>
-                        }
-                    </select>
+                    @if (_bowl.IsCustomScale)
+                    {
+                        <div class="alert alert-info mt-3 mb-0">اسکیل ساز از مرحله شیپ ثبت شده است: <strong>@_bowl.ScaleName</strong></div>
+                    }
+                    else
+                    {
+                        <label class="form-label mt-3">اسکیل ساز</label>
+                        <select class="form-select" @bind="_scaleId">
+                            <option value="@Guid.Empty">انتخاب کنید...</option>
+                            @foreach (var scale in HandpanScales)
+                            {
+                                <option value="@scale.Id">@scale.Name</option>
+                            }
+                        </select>
+                    }
                     <button class="btn btn-success mt-3"
-                            disabled="@(_loading || string.IsNullOrWhiteSpace(_pairedProductionCode) || _scaleId == Guid.Empty)"
+                            disabled="@(_loading || string.IsNullOrWhiteSpace(_pairedProductionCode) || (!_bowl.IsCustomScale && _scaleId == Guid.Empty))"
                             @onclick="CompleteGlueAsync">
                         چسب انجام شد
                     </button>
@@ -425,11 +446,13 @@
     private int _duration = 1;
     private string _pairedProductionCode = string.Empty;
     private Guid _scaleId;
+    private static readonly Guid CustomScaleChoiceId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
     private readonly List<ScaleDto> _scales = [];
     private IEnumerable<ScaleDto> DimpleScales => _bowl is null
         ? []
         : _scales.Where(x => (x.Usage & (_bowl.BowlType == 1 ? 1 : 2)) != 0);
     private IEnumerable<ScaleDto> HandpanScales => _scales.Where(x => (x.Usage & 4) != 0);
+    private IEnumerable<ScaleDto> CustomScales => _scales.Where(x => (x.Usage & 8) != 0);
     private readonly List<MaterialDto> _packagingMaterials = [];
     private IEnumerable<MaterialDto> CasePackagingMaterials => _packagingMaterials.Where(x => IsExclusiveCase(x.Name)).OrderBy(x => CaseOrder(x.Name)).ThenBy(x => x.Name);
     private IEnumerable<MaterialDto> OtherPackagingMaterials => _packagingMaterials.Where(x => !IsExclusiveCase(x.Name)).OrderBy(x => AccessoryOrder(x.Name)).ThenBy(x => x.Name);
@@ -501,6 +524,8 @@
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
             if (_bowl?.Stage == 2)
                 _scaleId = DimpleScales.FirstOrDefault()?.Id ?? Guid.Empty;
+            else if (_bowl?.Stage == 4 && _bowl.IsCustomScale)
+                _scaleId = CustomScales.FirstOrDefault()?.Id ?? Guid.Empty;
             else if (_bowl?.Stage == 10)
                 _scaleId = HandpanScales.FirstOrDefault()?.Id ?? Guid.Empty;
             if (_bowl is null)
@@ -511,7 +536,7 @@
     private Task CompleteAsync()
     {
         ShowOperationConfirmation("دیمپل انجام شد",
-            [("کد کاسه", _productionCode), ("اسکیل کاسه", SelectedScaleName()), ("مدت زمان", DurationText())],
+            [("کد کاسه", _productionCode), ("اسکیل کاسه", _scaleId == CustomScaleChoiceId ? "کاستوم — انتخاب در شیپ" : SelectedScaleName()), ("مدت زمان", DurationText())],
             CompleteDimpleConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -520,7 +545,8 @@
     {
         await ExecuteAsync(async () =>
         {
-            var result = await BowlService.CompleteDimplingAsync(_productionCode, _duration, _scaleId);
+            var isCustom = _scaleId == CustomScaleChoiceId;
+            var result = await BowlService.CompleteDimplingAsync(_productionCode, _duration, isCustom ? Guid.Empty : _scaleId, isCustom);
             SetOperationResult(result, "دیمپل با موفقیت انجام شد.", "ثبت پایان دیمپل انجام نشد.");
         });
     }
@@ -529,7 +555,7 @@
     {
         _isShapeConfirmation = true;
         ShowOperationConfirmation("شیپ انجام شد",
-            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
+            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.IsCustomScale == true ? SelectedScaleName() : _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
             CompleteShapeConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -540,7 +566,7 @@
         await ExecuteAsync(async () =>
         {
             Guid? UserFor(string key) => _useShapeContributors ? ShapeParts.First(x => x.Key == key).SelectedUserId : null;
-            var result = await BowlService.CompleteShapeAsync(_productionCode, _duration, UserFor("Stretch"), UserFor("NoteArea"), UserFor("Edit"));
+            var result = await BowlService.CompleteShapeAsync(_productionCode, _duration, _bowl?.IsCustomScale == true ? _scaleId : null, UserFor("Stretch"), UserFor("NoteArea"), UserFor("Edit"));
             SetOperationResult(result, "شیپ با موفقیت انجام شد.", "ثبت پایان شیپ انجام نشد.");
         });
     }
@@ -602,7 +628,7 @@
 
     private Task CompleteGlueAsync()
     {
-        if (string.IsNullOrWhiteSpace(_pairedProductionCode) || _scaleId == Guid.Empty)
+        if (string.IsNullOrWhiteSpace(_pairedProductionCode) || (_bowl?.IsCustomScale != true && _scaleId == Guid.Empty))
         {
             _error = "کد کاسه مکمل را وارد کنید.";
             return Task.CompletedTask;
@@ -611,7 +637,7 @@
         var topCode = _bowl?.BowlType == 1 ? _productionCode : _pairedProductionCode;
         var bottomCode = _bowl?.BowlType == 1 ? _pairedProductionCode : _productionCode;
         ShowOperationConfirmation("چسب انجام شد",
-            [("کد کاسه بالا", topCode), ("کد کاسه پایین", bottomCode), ("اسکیل ساز", SelectedScaleName())],
+            [("کد کاسه بالا", topCode), ("کد کاسه پایین", bottomCode), ("اسکیل ساز", _bowl?.IsCustomScale == true ? _bowl.ScaleName : SelectedScaleName())],
             CompleteGlueConfirmedAsync);
         return Task.CompletedTask;
     }

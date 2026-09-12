@@ -1,0 +1,75 @@
+@page "/custom-scales"
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+@inject ScaleService ScaleService
+
+<PageTitle>اسکیل کاستوم</PageTitle>
+<PageHeader Title="اسکیل کاستوم" SubTitle="ثبت اسکیل‌هایی که در مرحله شیپ انتخاب می‌شوند" />
+
+<div class="card p-4 mb-4">
+    <label class="form-label">نام اسکیل کاستوم جدید</label>
+    <div class="input-group">
+        <input class="form-control" placeholder="نام اسکیل را وارد کنید" @bind="_name" @bind:event="oninput" />
+        <button class="btn btn-primary" disabled="@(_loading || string.IsNullOrWhiteSpace(_name))" @onclick="CreateAsync">
+            @(_loading ? "در حال ثبت..." : "ثبت اسکیل")
+        </button>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="alert @(_success ? "alert-success" : "alert-danger") mt-3 mb-0">@_message</div>
+    }
+</div>
+
+<div class="card p-3">
+    <h5 class="mb-3">اسکیل‌های کاستوم قابل انتخاب در شیپ</h5>
+    @if (CustomScales.Count == 0)
+    {
+        <div class="alert alert-light border mb-0">هنوز اسکیل کاستومی ثبت نشده است.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead><tr><th>نام اسکیل</th></tr></thead>
+                <tbody>@foreach (var scale in CustomScales) { <tr><td>@scale.Name</td></tr> }</tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<ScaleDto> _scales = [];
+    private string _name = string.Empty;
+    private bool _loading;
+    private bool _success;
+    private string? _message;
+    private List<ScaleDto> CustomScales => _scales.Where(x => (x.Usage & 8) != 0).OrderBy(x => x.Name).ToList();
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task CreateAsync()
+    {
+        _loading = true;
+        _message = null;
+        try
+        {
+            await ScaleService.CreateAsync(_name, 8);
+            _name = string.Empty;
+            await ReloadAsync();
+            _success = true;
+            _message = "اسکیل کاستوم ثبت شد و در مرحله شیپ قابل انتخاب است.";
+        }
+        catch (Exception ex)
+        {
+            _success = false;
+            _message = ex.Message;
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task ReloadAsync()
+    {
+        _scales.Clear();
+        _scales.AddRange(await ScaleService.GetAsync());
+    }
+}

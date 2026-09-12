@@ -44,7 +44,7 @@ else
     <div class="row g-4">
         <div class="col-xl-8">
             <Card>
-                <h4>خلاصه دستمزد</h4>
+                <h4>دستمزد تولید عادی</h4>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle">
                         <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
@@ -67,6 +67,32 @@ else
                     </table>
                 </div>
             </Card>
+            @if (CustomUserGroups.Any())
+            {
+                <div class="mt-4">
+                <Card>
+                    <h4>دستمزد تولید کاستوم</h4>
+                    <div class="alert alert-light border">این بخش مربوط به سازهایی است که اسکیل آن‌ها در مرحله شیپ انتخاب شده است.</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
+                            <tbody>
+                            @foreach (var user in CustomUserGroups)
+                            {
+                                var first = true;
+                                @foreach (var line in user.Lines)
+                                {
+                                    <tr><td>@(first ? user.Name : "")</td><td>@LineDescription(line)</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td></tr>
+                                    first = false;
+                                }
+                                <tr class="table-light"><td colspan="4"><strong>جمع کاستوم @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+                </div>
+            }
             @if (ExportUserGroups.Any())
             {
                 <div class="mt-4">
@@ -102,7 +128,7 @@ else
             <Card>
                 <h4>تعریف نرخ عملیات</h4>
                 <label class="form-label mt-2">مسیر تولید</label>
-                <select class="form-select" @bind="_ratePath"><option value="0">عادی</option><option value="1">صادراتی</option></select>
+                <select class="form-select" @bind="_ratePath" @bind:after="RateFilterChanged"><option value="0">عادی</option><option value="2">کاستوم</option><option value="1">صادراتی</option></select>
                 <label class="form-label mt-2">عملیات</label>
                 <select class="form-select" @bind="_rateAction" @bind:after="RateFilterChanged">@foreach (var a in Actions) { <option value="@a.Id">@a.Title</option> }</select>
                 @if (!IsSimpleRate)
@@ -124,7 +150,7 @@ else
                 <hr /><h5>نرخ‌های ثبت‌شده</h5>
                 <div class="table-responsive payroll-rates-table"><table class="table table-sm align-middle mb-0">
                     <thead><tr><th>مسیر</th><th>عملیات</th><th>متریال</th><th>نوع</th><th>اسکیل</th><th>نرخ</th><th>مدیریت</th></tr></thead>
-                    <tbody>@foreach (var rate in SortedRates) { <tr class="@(_editingRateId == rate.Id ? "table-success" : "")"><td><span class="badge @(rate.IsExport ? "bg-warning text-dark" : "bg-secondary")">@(rate.IsExport ? "صادراتی" : "عادی")</span></td><td>@rate.ActionTitle</td><td>@rate.MaterialName</td><td>@RateTypeTitle(rate)</td><td>@(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)</td><td><strong>@rate.Amount.ToString("N0")</strong></td><td class="text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditRate(rate)">ویرایش</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRateAsync(rate)">حذف</button></td></tr> }</tbody>
+                    <tbody>@foreach (var rate in SortedRates) { <tr class="@(_editingRateId == rate.Id ? "table-success" : "")"><td><span class="badge @(rate.IsExport ? "bg-warning text-dark" : rate.IsCustom ? "bg-primary" : "bg-secondary")">@RatePathTitle(rate)</span></td><td>@rate.ActionTitle</td><td>@rate.MaterialName</td><td>@RateTypeTitle(rate)</td><td>@(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)</td><td><strong>@rate.Amount.ToString("N0")</strong></td><td class="text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditRate(rate)">ویرایش</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRateAsync(rate)">حذف</button></td></tr> }</tbody>
                 </table></div>
             </Card>
         </div>
@@ -174,9 +200,10 @@ else
     private string _confirmTitle = "", _confirmMessage = "", _confirmButton = "تأیید";
     private Func<Task>? _confirmAction;
     private static readonly (int Id, string Title)[] Actions = [(2, "دیمپل"), (3, "شیپ"), (5, "چسب"), (6, "تیون"), (7, "فاین تیون")];
-    private IEnumerable<UserPayrollGroup> UserGroups => GroupLines(_payroll.Lines.Where(x => !x.IsExport));
+    private IEnumerable<UserPayrollGroup> UserGroups => GroupLines(_payroll.Lines.Where(x => !x.IsExport && !x.IsCustom));
+    private IEnumerable<UserPayrollGroup> CustomUserGroups => GroupLines(_payroll.Lines.Where(x => x.IsCustom && !x.IsExport));
     private IEnumerable<UserPayrollGroup> ExportUserGroups => GroupLines(_payroll.Lines.Where(x => x.IsExport));
-    private IEnumerable<PayrollRateDto> SortedRates => _payroll.Rates.OrderBy(x => x.IsExport).ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName).ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ThenBy(x => x.Amount);
+    private IEnumerable<PayrollRateDto> SortedRates => _payroll.Rates.OrderBy(x => x.IsExport ? 2 : x.IsCustom ? 1 : 0).ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName).ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ThenBy(x => x.Amount);
     private static IEnumerable<UserPayrollGroup> GroupLines(IEnumerable<PayrollLineDto> lines) => lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.OrderBy(y => ActionOrder(y.Action)).ThenBy(y => y.MaterialName).ThenBy(y => y.BowlType).ThenBy(y => y.ScaleName).ToList()));
     protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); _scales = (await ScaleService.GetAsync()).ToList(); await LoadAsync(); }
     private bool HasStageFilter => _readyForQc || _readyForPackaging || _enteredWarehouse || _readyForExportPackaging || _exportWarehouse;
@@ -184,6 +211,7 @@ else
     private bool IsSimpleRate => _rateAction == 5;
     private IEnumerable<ScaleDto> AvailableRateScales => _rateBowlType switch
     {
+        _ when _ratePath == 2 => _scales.Where(x => (x.Usage & 8) != 0),
         _ when IsHandpanRate => _scales.Where(x => (x.Usage & 4) != 0),
         "1" => _scales.Where(x => (x.Usage & 1) != 0),
         "2" => _scales.Where(x => (x.Usage & 2) != 0),
@@ -197,32 +225,33 @@ else
         Guid? scale = Guid.TryParse(_rateScale, out var s) ? s : null;
         if (IsSimpleRate) { material = null; bowl = null; scale = null; }
         var isExport = _ratePath == 1;
-        var existing = _payroll.Rates.FirstOrDefault(x => x.Id != _editingRateId && x.Action == _rateAction && x.MaterialId == material && x.BowlType == bowl && x.ScaleId == scale && x.IsExport == isExport);
+        var isCustom = _ratePath == 2;
+        var existing = _payroll.Rates.FirstOrDefault(x => x.Id != _editingRateId && x.Action == _rateAction && x.MaterialId == material && x.BowlType == bowl && x.ScaleId == scale && x.IsExport == isExport && x.IsCustom == isCustom);
         if (existing is not null)
         {
             ShowConfirmation("جایگزینی نرخ", $"برای این حالت قبلاً نرخ {existing.Amount:N0} ثبت شده است. نرخ قبلی با مبلغ جدید جایگزین شود؟", "جایگزین شود", false,
-                () => PersistRateAsync(material, bowl, scale, isExport, true));
+                () => PersistRateAsync(material, bowl, scale, isExport, isCustom, true));
             return;
         }
-        await PersistRateAsync(material, bowl, scale, isExport, false);
+        await PersistRateAsync(material, bowl, scale, isExport, isCustom, false);
     }
-    private async Task PersistRateAsync(Guid? material, int? bowl, Guid? scale, bool isExport, bool replacing)
+    private async Task PersistRateAsync(Guid? material, int? bowl, Guid? scale, bool isExport, bool isCustom, bool replacing)
     {
-        await PayrollService.SaveRateAsync(_editingRateId, _rateAction, material, bowl, scale, isExport, _rateAmount);
+        await PayrollService.SaveRateAsync(_editingRateId, _rateAction, material, bowl, scale, isExport, isCustom, _rateAmount);
         _rateMessage = _editingRateId.HasValue ? "تغییرات نرخ ذخیره شد." : replacing ? "نرخ قبلی با مبلغ جدید جایگزین شد." : "نرخ جدید ثبت شد.";
         _editingRateId = null;
         await LoadAsync();
     }
     private void EditRate(PayrollRateDto rate)
     {
-        _editingRateId = rate.Id; _ratePath = rate.IsExport ? 1 : 0; _rateAction = rate.Action; _rateMaterial = rate.MaterialId?.ToString() ?? "";
+        _editingRateId = rate.Id; _ratePath = rate.IsExport ? 1 : rate.IsCustom ? 2 : 0; _rateAction = rate.Action; _rateMaterial = rate.MaterialId?.ToString() ?? "";
         _rateBowlType = rate.BowlType?.ToString() ?? ""; _rateScale = rate.ScaleId?.ToString() ?? ""; _rateAmount = rate.Amount;
         _rateMessage = ""; RateFilterChanged();
     }
     private void CancelRateEdit() { _editingRateId = null; _rateAmount = 0; _rateMessage = ""; }
     private Task DeleteRateAsync(PayrollRateDto rate)
     {
-        ShowConfirmation("حذف نرخ", $"نرخ {(rate.IsExport ? "صادراتی" : "عادی")} «{rate.ActionTitle} — {rate.MaterialName} — {RateTypeTitle(rate)} — {(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)}» حذف شود؟", "حذف نرخ", true, () => DeleteRateConfirmedAsync(rate));
+        ShowConfirmation("حذف نرخ", $"نرخ {RatePathTitle(rate)} «{rate.ActionTitle} — {rate.MaterialName} — {RateTypeTitle(rate)} — {(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)}» حذف شود؟", "حذف نرخ", true, () => DeleteRateConfirmedAsync(rate));
         return Task.CompletedTask;
     }
     private async Task DeleteRateConfirmedAsync(PayrollRateDto rate)
@@ -236,6 +265,7 @@ else
     private static string BowlTypeTitle(int? bowlType) => bowlType == 1 ? "کاسه رو" : bowlType == 2 ? "کاسه زیر" : "همه";
     private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 5 => 3, 6 => 4, 7 => 5, _ => 99 };
     private static string RateTypeTitle(PayrollRateDto rate) => rate.Action == 7 ? "ساز" : BowlTypeTitle(rate.BowlType);
+    private static string RatePathTitle(PayrollRateDto rate) => rate.IsExport ? "صادراتی" : rate.IsCustom ? "کاستوم" : "عادی";
     private static string LineDescription(PayrollLineDto line)
     {
         var parts = new List<string> { line.ActionTitle, line.MaterialName };

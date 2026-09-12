@@ -7,5 +7,6 @@ public enum ScaleUsage
     TopBowl = 1,
     BottomBowl = 2,
     Handpan = 4,
-    All = TopBowl | BottomBowl | Handpan
+    Custom = 8,
+    All = TopBowl | BottomBowl | Handpan | Custom
 }

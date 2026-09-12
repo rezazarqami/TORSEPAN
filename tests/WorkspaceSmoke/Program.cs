@@ -64,6 +64,14 @@ editableHandpan.SetScale(editedScale);
 Check(editableHandpan.ScaleId==editedScale,"administrator correction can change a handpan scale");
 editableHandpan.ClearScale();
 Check(editableHandpan.ScaleId is null,"administrator correction can clear a handpan scale");
+var customBowl = new Bowl("CUSTOM-TEST", TORSEPAN.Domain.Enums.BowlType.Top, true,
+    TORSEPAN.Domain.Enums.InstrumentType.Custom, Guid.NewGuid());
+customBowl.SetCustomScalePending();
+Check(customBowl.IsCustomScale && customBowl.ScaleId is null,"custom dimple defers scale selection to shape");
+customBowl.SetScale(editedScale);
+Check(customBowl.IsCustomScale && customBowl.ScaleId == editedScale,"shape assigns the real custom scale without losing custom classification");
+customBowl.ResetScaleSelection();
+Check(!customBowl.IsCustomScale && customBowl.ScaleId is null,"rolling back dimple clears custom scale selection");
 var root=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"../../../../../"));
 var exportPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/ExportWarehouse.razor"));
 Check(!exportPage.Contains("InvokeAsync<bool>(\"confirm\"")&&exportPage.Contains("ShipExportBowlsAsync"),"export shipping uses themed bulk confirmation");
@@ -93,6 +101,12 @@ Check(!(bool)exportCompletionMethod.Invoke(null,[normalTune])!,"ordinary tune ev
 var reportsPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Reports.razor"));
 Check(reportsPage.Contains("کاسه‌های داخلی رسیده به انبار")&&reportsPage.Contains("کاسه‌های صادراتی آماده بسته‌بندی یا ارسال")&&reportsPage.Contains("روند ماهانه سازهای واردشده به انبار"),"production report separates domestic bowls, export bowls, and warehouse instruments");
 var sidebar=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Layout/Sidebar.razor"));
+var customScalesPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/CustomScales.razor"));
+var dimplingPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Dimpling.razor"));
+var payrollPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Payroll.razor"));
+Check(sidebar.Contains("href=\"/custom-scales\"")&&customScalesPage.Contains("ScaleService.CreateAsync(_name, 8)"),"all signed-in users can register custom scales from the main navigation");
+Check(dimplingPage.Contains(">کاستوم</option>")&&dimplingPage.Contains("اسکیل کاستوم"),"dimple offers custom and shape captures its real scale");
+Check(payrollPage.Contains("دستمزد تولید عادی")&&payrollPage.Contains("دستمزد تولید کاستوم")&&payrollPage.Contains("دستمزد تولید صادراتی"),"payroll presents normal, custom, and export production separately");
 var productionEditPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/AdminProductionEdit.razor"));
 Check(sidebar.Contains("AuthorizeView Roles=\"Administrator\"")&&sidebar.Contains("href=\"/admin/production-edit\""),"production correction navigation is visible only to administrators");
 Check(productionEditPage.Contains("@attribute [Authorize(Roles=\"Administrator\")]")&&productionEditPage.Contains("AdminProductionEditService"),"production correction page enforces administrator authorization");

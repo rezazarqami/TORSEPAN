@@ -29,7 +29,6 @@ public sealed class CompleteBowlGlueCommandHandler
         var secondCode = request.PairedProductionCode.Trim();
 
         if (string.IsNullOrWhiteSpace(secondCode) ||
-            request.ScaleId == Guid.Empty ||
             string.Equals(firstCode, secondCode, StringComparison.OrdinalIgnoreCase))
         {
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
@@ -64,8 +63,12 @@ public sealed class CompleteBowlGlueCommandHandler
         if (alreadyUsed)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
-        var scale = await _unitOfWork.Scales.GetByIdAsync(request.ScaleId);
-        if (scale is null || !scale.IsActive || !scale.Usage.HasFlag(ScaleUsage.Handpan))
+        var actualScaleId = top.IsCustomScale ? top.ScaleId : request.ScaleId;
+        if (!actualScaleId.HasValue || actualScaleId.Value == Guid.Empty)
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
+        var scale = await _unitOfWork.Scales.GetByIdAsync(actualScaleId.Value);
+        if (scale is null || !scale.IsActive ||
+            (top.IsCustomScale ? !scale.Usage.HasFlag(ScaleUsage.Custom) : !scale.Usage.HasFlag(ScaleUsage.Handpan)))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
         if (_userContext.UserId is not Guid userId)
@@ -74,7 +77,7 @@ public sealed class CompleteBowlGlueCommandHandler
         var assembly = new HandpanAssembly(top.Id, bottom.Id);
         await _unitOfWork.HandpanAssemblies.AddAsync(assembly);
 
-        var handpan = new Handpan(assembly.Id, top.ProductionCode, request.ScaleId);
+        var handpan = new Handpan(assembly.Id, top.ProductionCode, actualScaleId);
         handpan.ChangeStatus(ProductionStatus.Waiting);
         handpan.ChangeStage(ProductionStage.GlueRoom);
         await _unitOfWork.Handpans.AddAsync(handpan);

@@ -54,6 +54,11 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<int>("InstrumentType")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsCustomScale")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid>("MaterialId")
                         .HasColumnType("uuid");
 
@@ -445,6 +450,11 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsCustom")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid?>("MaterialId")
                         .HasColumnType("uuid");
 
@@ -579,7 +589,7 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<int>("Usage")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(7);
+                        .HasDefaultValue(15);
 
                     b.HasKey("Id");
 

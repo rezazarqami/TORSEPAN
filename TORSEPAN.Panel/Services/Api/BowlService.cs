@@ -74,22 +74,23 @@ public sealed class BowlService
     public Task<DimpleBowlDto?> CompleteDimplingAsync(
         string productionCode,
         int duration,
-        Guid scaleId)
+        Guid scaleId,
+        bool isCustom = false)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/dimpling/{code}/complete",
-            new { Duration = duration, ScaleId = scaleId });
+            new { Duration = duration, ScaleId = scaleId, IsCustom = isCustom });
     }
 
     public Task<DimpleBowlDto?> CompleteShapeAsync(
         string productionCode,
-        int duration, Guid? stretchUserId = null, Guid? noteAreaUserId = null, Guid? editUserId = null)
+        int duration, Guid? scaleId = null, Guid? stretchUserId = null, Guid? noteAreaUserId = null, Guid? editUserId = null)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/shape/complete",
-            new { Duration = duration, StretchUserId = stretchUserId, NoteAreaUserId = noteAreaUserId, EditUserId = editUserId });
+            new { Duration = duration, ScaleId = scaleId, StretchUserId = stretchUserId, NoteAreaUserId = noteAreaUserId, EditUserId = editUserId });
     }
 
     public Task<DimpleBowlDto?> CompleteBakeAsync(string productionCode)

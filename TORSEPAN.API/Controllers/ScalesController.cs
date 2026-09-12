@@ -18,9 +18,11 @@ public sealed class ScalesController : ControllerBase
         Ok(await _mediator.Send(new GetAllScalesQuery(), cancellationToken));
 
     [HttpPost]
-    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<ActionResult<Guid>> Create(CreateScaleCommand command, CancellationToken cancellationToken)
     {
+        if (command.Usage != (int)TORSEPAN.Domain.Enums.ScaleUsage.Custom &&
+            !User.IsInRole("Administrator") && !User.IsInRole("ProductionManager"))
+            return Forbid();
         var id = await _mediator.Send(command, cancellationToken);
         return Ok(id);
     }

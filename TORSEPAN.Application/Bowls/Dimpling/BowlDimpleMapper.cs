@@ -12,6 +12,7 @@ internal static class BowlDimpleMapper
         HasNotes = bowl.HasNotes,
         InstrumentType = (int)bowl.InstrumentType,
         Status = (int)bowl.Status,
-        Stage = (int)bowl.Stage
+        Stage = (int)bowl.Stage,
+        IsCustomScale = bowl.IsCustomScale
     };
 }

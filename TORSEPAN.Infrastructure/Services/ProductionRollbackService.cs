@@ -28,7 +28,7 @@ public sealed class ProductionRollbackService(TORSEPANDbContext db) : IProductio
         var lastEvent = await db.ProductionEvents.Where(x => x.BowlId == bowl.Id && x.Action == transition.Item2 && !x.Description.StartsWith("NOTE:"))
             .OrderByDescending(x => x.EventDate).FirstOrDefaultAsync(ct);
         if (lastEvent is not null) db.ProductionEvents.Remove(lastEvent);
-        if (bowl.Stage == ProductionStage.WaitingForShape) bowl.ClearScale();
+        if (bowl.Stage == ProductionStage.WaitingForShape) bowl.ResetScaleSelection();
         bowl.ChangeStage(transition.Item1);
         if (transition.Item1 == ProductionStage.ExportWarehouse) bowl.CompleteProduction();
         else bowl.MarkAsWaiting();

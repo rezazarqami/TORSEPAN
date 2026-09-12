@@ -6,8 +6,8 @@ namespace TORSEPAN.Domain.Entities;
 public sealed class PayrollRate : Entity
 {
     private PayrollRate() { }
-    public PayrollRate(ProductionAction action, Guid? materialId, BowlType? bowlType, Guid? scaleId, bool isExport, decimal amount)
-    { Action=action;MaterialId=materialId;BowlType=bowlType;ScaleId=scaleId;IsExport=isExport;SetAmount(amount); }
+    public PayrollRate(ProductionAction action, Guid? materialId, BowlType? bowlType, Guid? scaleId, bool isExport, bool isCustom, decimal amount)
+    { Action=action;MaterialId=materialId;BowlType=bowlType;ScaleId=scaleId;IsExport=isExport;IsCustom=isCustom;SetAmount(amount); }
     public ProductionAction Action { get; private set; }
     public Guid? MaterialId { get; private set; }
     public Material? Material { get; private set; }
@@ -15,14 +15,16 @@ public sealed class PayrollRate : Entity
     public Guid? ScaleId { get; private set; }
     public Scale? Scale { get; private set; }
     public bool IsExport { get; private set; }
+    public bool IsCustom { get; private set; }
     public decimal Amount { get; private set; }
-    public void Update(ProductionAction action, Guid? materialId, BowlType? bowlType, Guid? scaleId, bool isExport, decimal amount)
+    public void Update(ProductionAction action, Guid? materialId, BowlType? bowlType, Guid? scaleId, bool isExport, bool isCustom, decimal amount)
     {
         Action = action;
         MaterialId = materialId;
         BowlType = bowlType;
         ScaleId = scaleId;
         IsExport = isExport;
+        IsCustom = isCustom;
         SetAmount(amount);
     }
     public void SetAmount(decimal amount){if(amount<0)throw new ArgumentOutOfRangeException(nameof(amount));Amount=amount;}

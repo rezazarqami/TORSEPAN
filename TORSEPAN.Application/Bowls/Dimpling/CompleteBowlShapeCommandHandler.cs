@@ -44,6 +44,16 @@ public sealed class CompleteBowlShapeCommandHandler
         if (_userContext.UserId is not Guid userId)
             throw new UnauthorizedAccessException();
 
+        if (bowl.IsCustomScale)
+        {
+            if (!request.ScaleId.HasValue)
+                return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidRequest);
+            var customScale = await _unitOfWork.Scales.GetByIdAsync(request.ScaleId.Value);
+            if (customScale is null || !customScale.IsActive || !customScale.Usage.HasFlag(ScaleUsage.Custom))
+                return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidRequest);
+            bowl.SetScale(customScale.Id);
+        }
+
         var contributors = new[]
         {
             (Key: "Stretch", UserId: request.StretchUserId),

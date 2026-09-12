@@ -38,8 +38,8 @@ public sealed class CompleteBowlDimpleCommandHandler
         var scale = request.ScaleId == Guid.Empty ? null : await _unitOfWork.Scales.GetByIdAsync(request.ScaleId);
         var requiredUsage = bowl.BowlType == BowlType.Top ? ScaleUsage.TopBowl : ScaleUsage.BottomBowl;
         if (bowl.Stage != ProductionStage.WaitingForDimple ||
-            !Enum.IsDefined(request.Duration) || scale is null || !scale.IsActive ||
-            !scale.Usage.HasFlag(requiredUsage))
+            !Enum.IsDefined(request.Duration) ||
+            (!request.IsCustom && (scale is null || !scale.IsActive || !scale.Usage.HasFlag(requiredUsage))))
         {
             return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidStage);
         }
@@ -48,7 +48,10 @@ public sealed class CompleteBowlDimpleCommandHandler
             throw new UnauthorizedAccessException();
 
         bowl.MarkAsWaiting();
-        bowl.SetScale(request.ScaleId);
+        if (request.IsCustom)
+            bowl.SetCustomScalePending();
+        else
+            bowl.SetStandardScale(request.ScaleId);
         bowl.ChangeStage(ProductionStage.WaitingForShape);
         _unitOfWork.Bowls.Update(bowl);
 

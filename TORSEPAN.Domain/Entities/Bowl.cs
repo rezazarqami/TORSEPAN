@@ -11,6 +11,7 @@ public class Bowl : Entity
     public InstrumentType InstrumentType { get; private set; }
     public Guid MaterialId { get; private set; }
     public Guid? ScaleId { get; private set; }
+    public bool IsCustomScale { get; private set; }
     public ProductionStatus Status { get; private set; }
     public ProductionStage Stage { get; private set; }
 
@@ -52,5 +53,20 @@ public class Bowl : Entity
         if (scaleId == Guid.Empty) throw new ArgumentException("Scale is required.");
         ScaleId = scaleId;
     }
+    public void SetStandardScale(Guid scaleId)
+    {
+        SetScale(scaleId);
+        IsCustomScale = false;
+    }
+    public void SetCustomScalePending()
+    {
+        ScaleId = null;
+        IsCustomScale = true;
+    }
     public void ClearScale() => ScaleId = null;
+    public void ResetScaleSelection()
+    {
+        ScaleId = null;
+        IsCustomScale = false;
+    }
 }

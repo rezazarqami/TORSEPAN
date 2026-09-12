@@ -22,6 +22,7 @@
                 <option value="1">اسکیل کاسه رو</option>
                 <option value="2">اسکیل کاسه زیر</option>
                 <option value="4">اسکیل ساز</option>
+                <option value="8">اسکیل کاستوم</option>
             </select>
         </div>
         <div class="col-md-2">
@@ -90,7 +91,7 @@
         _scales.AddRange(await ScaleService.GetAsync());
     }
     private static readonly (int Usage, string Title)[] Categories =
-        [(1, "اسکیل‌های کاسه رو"), (2, "اسکیل‌های کاسه زیر"), (4, "اسکیل‌های ساز")];
+        [(1, "اسکیل‌های کاسه رو"), (2, "اسکیل‌های کاسه زیر"), (4, "اسکیل‌های ساز"), (8, "اسکیل‌های کاستوم")];
     private async Task DeleteAsync(ScaleDto scale, int usage, string categoryTitle)
     {
         if (!await JS.InvokeAsync<bool>("confirm", $"اسکیل «{scale.Name}» فقط از «{categoryTitle}» حذف شود؟ سایر دسته‌ها و اطلاعات قبلی حفظ می‌شوند.")) return;

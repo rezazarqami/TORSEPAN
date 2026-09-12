@@ -27,6 +27,8 @@ public sealed class GetBowlForDimpleQueryHandler
         var dto = BowlDimpleMapper.Map(bowl);
         if (bowl.ScaleId.HasValue)
             dto.ScaleName = (await _unitOfWork.Scales.GetByIdAsync(bowl.ScaleId.Value))?.Name ?? "نامشخص";
+        else if (bowl.IsCustomScale)
+            dto.ScaleName = "در انتظار انتخاب اسکیل در شیپ";
         var events = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, null);
         dto.Notes.AddRange(events.Where(x => x.BowlId == bowl.Id && x.Description.StartsWith("NOTE:") &&
                                                 !x.Description.StartsWith("NOTE:INSTRUMENT:"))
