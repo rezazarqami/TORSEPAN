@@ -1,0 +1,1 @@
+Deploy TORSEPAN API and panel for warranty ownership and monthly warehouse updates.
