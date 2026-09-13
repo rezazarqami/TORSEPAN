@@ -4,60 +4,62 @@
 @inject ScaleService ScaleService
 
 <PageTitle>اسکیل کاستوم</PageTitle>
-<PageHeader Title="اسکیل کاستوم" SubTitle="ثبت اسکیل‌هایی که در مرحله شیپ انتخاب می‌شوند" />
+<PageHeader Title="اسکیل کاستوم" SubTitle="ثبت جداگانه اسکیل کاسه رو، کاسه زیر و ساز" />
 
-<div class="card p-4 mb-4">
-    <label class="form-label">نام اسکیل کاستوم جدید</label>
-    <div class="input-group">
-        <input class="form-control" placeholder="نام اسکیل را وارد کنید" @bind="_name" @bind:event="oninput" />
-        <button class="btn btn-primary" disabled="@(_loading || string.IsNullOrWhiteSpace(_name))" @onclick="CreateAsync">
-            @(_loading ? "در حال ثبت..." : "ثبت اسکیل")
-        </button>
-    </div>
-    @if (!string.IsNullOrWhiteSpace(_message))
-    {
-        <div class="alert @(_success ? "alert-success" : "alert-danger") mt-3 mb-0">@_message</div>
-    }
-</div>
-
-<div class="card p-3">
-    <h5 class="mb-3">اسکیل‌های کاستوم قابل انتخاب در شیپ</h5>
-    @if (CustomScaleItems.Count == 0)
-    {
-        <div class="alert alert-light border mb-0">هنوز اسکیل کاستومی ثبت نشده است.</div>
-    }
-    else
-    {
-        <div class="table-responsive">
-            <table class="table table-striped mb-0">
-                <thead><tr><th>نام اسکیل</th></tr></thead>
-                <tbody>@foreach (var scale in CustomScaleItems) { <tr><td>@scale.Name</td></tr> }</tbody>
-            </table>
+@foreach (var category in Categories)
+{
+    <div class="card p-4 mb-4">
+        <h5 class="mb-3">@category.Title</h5>
+        <div class="input-group mb-3">
+            <input class="form-control" placeholder="نام اسکیل را وارد کنید" @bind="category.Name" @bind:event="oninput" />
+            <button class="btn btn-primary" disabled="@(_loading || string.IsNullOrWhiteSpace(category.Name))" @onclick="() => CreateAsync(category)">
+                @(_loading ? "در حال ثبت..." : "ثبت اسکیل")
+            </button>
         </div>
-    }
-</div>
+        @if (Items(category.Usage).Count == 0)
+        {
+            <div class="alert alert-light border mb-0">هنوز اسکیلی در این بخش ثبت نشده است.</div>
+        }
+        else
+        {
+            <div class="table-responsive"><table class="table table-striped mb-0">
+                <thead><tr><th>نام اسکیل</th></tr></thead>
+                <tbody>@foreach (var scale in Items(category.Usage)) { <tr><td>@scale.Name</td></tr> }</tbody>
+            </table></div>
+        }
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert @(_success ? "alert-success" : "alert-danger")">@_message</div>
+}
 
 @code {
     private readonly List<ScaleDto> _scales = [];
-    private string _name = string.Empty;
     private bool _loading;
     private bool _success;
     private string? _message;
-    private List<ScaleDto> CustomScaleItems => _scales.Where(x => (x.Usage & 8) != 0).OrderBy(x => x.Name).ToList();
+    private readonly List<CustomScaleCategory> Categories =
+    [
+        new(8, "اسکیل کاستوم کاسه رو"),
+        new(16, "اسکیل کاستوم کاسه زیر"),
+        new(32, "اسکیل کاستوم ساز")
+    ];
+    private List<ScaleDto> Items(int usage) => _scales.Where(x => (x.Usage & usage) != 0).OrderBy(x => x.Name).ToList();
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
 
-    private async Task CreateAsync()
+    private async Task CreateAsync(CustomScaleCategory category)
     {
         _loading = true;
         _message = null;
         try
         {
-            await ScaleService.CreateAsync(_name, 8);
-            _name = string.Empty;
+            await ScaleService.CreateAsync(category.Name, category.Usage);
+            category.Name = string.Empty;
             await ReloadAsync();
             _success = true;
-            _message = "اسکیل کاستوم ثبت شد و در مرحله شیپ قابل انتخاب است.";
+            _message = "اسکیل کاستوم در بخش مربوطه ثبت شد.";
         }
         catch (Exception ex)
         {
@@ -71,5 +73,12 @@
     {
         _scales.Clear();
         _scales.AddRange(await ScaleService.GetAsync());
+    }
+
+    private sealed class CustomScaleCategory(int usage, string title)
+    {
+        public int Usage { get; } = usage;
+        public string Title { get; } = title;
+        public string Name { get; set; } = string.Empty;
     }
 }

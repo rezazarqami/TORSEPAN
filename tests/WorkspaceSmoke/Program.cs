@@ -104,7 +104,7 @@ var sidebar=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Layout
 var customScalesPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/CustomScales.razor"));
 var dimplingPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Dimpling.razor"));
 var payrollPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Payroll.razor"));
-Check(sidebar.Contains("href=\"/custom-scales\"")&&customScalesPage.Contains("ScaleService.CreateAsync(_name, 8)"),"all signed-in users can register custom scales from the main navigation");
+Check(sidebar.Contains("href=\"/custom-scales\"")&&customScalesPage.Contains("new(8, \"اسکیل کاستوم کاسه رو\")")&&customScalesPage.Contains("new(16, \"اسکیل کاستوم کاسه زیر\")")&&customScalesPage.Contains("new(32, \"اسکیل کاستوم ساز\")"),"custom scales are registered in separate top, bottom, and instrument categories");
 Check(dimplingPage.Contains(">کاستوم</option>")&&dimplingPage.Contains("اسکیل کاستوم"),"dimple offers custom and shape captures its real scale");
 Check(payrollPage.Contains("دستمزد تولید عادی")&&payrollPage.Contains("دستمزد تولید کاستوم")&&payrollPage.Contains("دستمزد تولید صادراتی"),"payroll presents normal, custom, and export production separately");
 var productionEditPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/AdminProductionEdit.razor"));

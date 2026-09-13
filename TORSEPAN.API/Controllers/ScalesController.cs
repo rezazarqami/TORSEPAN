@@ -20,7 +20,13 @@ public sealed class ScalesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Guid>> Create(CreateScaleCommand command, CancellationToken cancellationToken)
     {
-        if (command.Usage != (int)TORSEPAN.Domain.Enums.ScaleUsage.Custom &&
+        var customUsages = new[]
+        {
+            (int)TORSEPAN.Domain.Enums.ScaleUsage.CustomTopBowl,
+            (int)TORSEPAN.Domain.Enums.ScaleUsage.CustomBottomBowl,
+            (int)TORSEPAN.Domain.Enums.ScaleUsage.CustomHandpan
+        };
+        if (!customUsages.Contains(command.Usage) &&
             !User.IsInRole("Administrator") && !User.IsInRole("ProductionManager"))
             return Forbid();
         var id = await _mediator.Send(command, cancellationToken);

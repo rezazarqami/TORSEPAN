@@ -211,7 +211,10 @@ else
     private bool IsSimpleRate => _rateAction == 5;
     private IEnumerable<ScaleDto> AvailableRateScales => _rateBowlType switch
     {
-        _ when _ratePath == 2 => _scales.Where(x => (x.Usage & 8) != 0),
+        _ when _ratePath == 2 && IsHandpanRate => _scales.Where(x => (x.Usage & 32) != 0),
+        _ when _ratePath == 2 && _rateBowlType == "1" => _scales.Where(x => (x.Usage & 8) != 0),
+        _ when _ratePath == 2 && _rateBowlType == "2" => _scales.Where(x => (x.Usage & 16) != 0),
+        _ when _ratePath == 2 => _scales.Where(x => (x.Usage & 24) != 0),
         _ when IsHandpanRate => _scales.Where(x => (x.Usage & 4) != 0),
         "1" => _scales.Where(x => (x.Usage & 1) != 0),
         "2" => _scales.Where(x => (x.Usage & 2) != 0),

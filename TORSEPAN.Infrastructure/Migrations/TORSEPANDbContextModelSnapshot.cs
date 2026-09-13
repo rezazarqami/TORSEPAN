@@ -589,7 +589,7 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<int>("Usage")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(15);
+                        .HasDefaultValue(63);
 
                     b.HasKey("Id");
 

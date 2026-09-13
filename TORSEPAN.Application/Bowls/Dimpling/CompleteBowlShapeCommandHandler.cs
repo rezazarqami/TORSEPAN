@@ -49,7 +49,10 @@ public sealed class CompleteBowlShapeCommandHandler
             if (!request.ScaleId.HasValue)
                 return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidRequest);
             var customScale = await _unitOfWork.Scales.GetByIdAsync(request.ScaleId.Value);
-            if (customScale is null || !customScale.IsActive || !customScale.Usage.HasFlag(ScaleUsage.Custom))
+            var requiredUsage = bowl.BowlType == BowlType.Top
+                ? ScaleUsage.CustomTopBowl
+                : ScaleUsage.CustomBottomBowl;
+            if (customScale is null || !customScale.IsActive || !customScale.Usage.HasFlag(requiredUsage))
                 return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidRequest);
             bowl.SetScale(customScale.Id);
         }
