@@ -64,9 +64,9 @@ public sealed class CompleteBowlGlueCommandHandler
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
         var actualScaleId = request.ScaleId;
-        if (!actualScaleId.HasValue || actualScaleId.Value == Guid.Empty)
+        if (actualScaleId == Guid.Empty)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
-        var scale = await _unitOfWork.Scales.GetByIdAsync(actualScaleId.Value);
+        var scale = await _unitOfWork.Scales.GetByIdAsync(actualScaleId);
         if (scale is null || !scale.IsActive ||
             (top.IsCustomScale ? !scale.Usage.HasFlag(ScaleUsage.CustomHandpan) : !scale.Usage.HasFlag(ScaleUsage.Handpan)))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
