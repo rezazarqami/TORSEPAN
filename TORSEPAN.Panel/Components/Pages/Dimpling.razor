@@ -8,6 +8,7 @@
 @inject BowlService BowlService
 @inject ScaleService ScaleService
 @inject MaterialService MaterialService
+@inject ProductionService ProductionService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
@@ -415,6 +416,19 @@
                 <div class="alert alert-success mt-3 mb-0">
                     این ساز در انبار است. تاریخ بسته‌بندی و سایر مراحل انجام‌شده در جدول بالا نمایش داده شده‌اند.
                 </div>
+                <AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin">
+                    <button class="btn btn-success mt-3" @onclick="OpenPassportSale">فروخته شد</button>
+                </AuthorizeView>
+            }
+            else if (_bowl.Stage == 20)
+            {
+                <div class="alert alert-info mt-3">
+                    <strong>اطلاعات فروش و مالک</strong><br />
+                    خریدار هنگام فروش: @(string.IsNullOrWhiteSpace(_bowl.BuyerName) ? "ثبت نشده" : _bowl.BuyerName)<br />
+                    مالک/فعال‌کننده گارانتی: @(string.IsNullOrWhiteSpace(_bowl.WarrantyOwnerName) ? "گارانتی فعال نشده" : _bowl.WarrantyOwnerName)
+                    @if(!string.IsNullOrWhiteSpace(_bowl.WarrantyOwnerPhoneNumber)){<br /><span>موبایل مالک: @_bowl.WarrantyOwnerPhoneNumber</span>}
+                    @if(!string.IsNullOrWhiteSpace(_bowl.WarrantyOwnerCity)){<br /><span>شهر مالک: @_bowl.WarrantyOwnerCity</span>}
+                </div>
             }
             @if (_bowl.Stage is 14 or 16 or 18 or 20)
             {
@@ -427,6 +441,21 @@
         </div>
     }
 </div>
+
+@if (_showPassportSale && _bowl?.HandpanId is Guid saleHandpanId)
+{
+    <div class="sale-overlay" @onclick="ClosePassportSale"><section class="sale-dialog" role="dialog" aria-modal="true" @onclick:stopPropagation="true">
+        <header><div><span class="sale-eyebrow">ثبت فروش از شناسنامه</span><h3>فروش ساز @_bowl.HandpanCode</h3></div><button class="sale-close" @onclick="ClosePassportSale">×</button></header>
+        <div class="sale-hint">تمام اطلاعات زیر اختیاری است و بدون تکمیل آن‌ها نیز فروش ثبت می‌شود.</div>
+        <div class="sale-fields">
+            <label><span>نام خریدار</span><input class="form-control" @bind="_passportBuyer" placeholder="اختیاری" /></label>
+            <label><span>قیمت</span><input type="number" min="0" class="form-control" @bind="_passportPrice" placeholder="اختیاری" /></label>
+            <label><span>مقصد</span><input class="form-control" @bind="_passportDestination" placeholder="اختیاری" /></label>
+        </div>
+        @if(!string.IsNullOrWhiteSpace(_passportSaleError)){<div class="sale-error">@_passportSaleError</div>}
+        <footer><button class="btn btn-light" disabled="@_passportSaleSaving" @onclick="ClosePassportSale">انصراف</button><button class="btn btn-success" disabled="@_passportSaleSaving" @onclick="()=>SellFromPassportAsync(saleHandpanId)">ثبت فروش</button></footer>
+    </section></div>
+}
 
 @code {
     [SupplyParameterFromQuery(Name = "code")]
@@ -454,6 +483,10 @@
     private IEnumerable<MaterialDto> OtherPackagingMaterials => _packagingMaterials.Where(x => !IsExclusiveCase(x.Name)).OrderBy(x => AccessoryOrder(x.Name)).ThenBy(x => x.Name);
     private readonly HashSet<Guid> _selectedPackagingMaterialIds = [];
     private string? _successMessage;
+    private bool _showPassportSale, _passportSaleSaving;
+    private string _passportBuyer = string.Empty, _passportDestination = string.Empty;
+    private string? _passportSaleError;
+    private decimal? _passportPrice;
     private bool _showQcRejection;
     private string _qcRejectionReason = "OutOfTune";
     private string _qcDetails = string.Empty;
@@ -852,6 +885,22 @@
     }
 
     private void ReturnToDashboard() => Navigation.NavigateTo("/");
+
+    private void OpenPassportSale(){_passportBuyer="";_passportDestination="";_passportPrice=null;_passportSaleError=null;_showPassportSale=true;}
+    private void ClosePassportSale(){if(!_passportSaleSaving)_showPassportSale=false;}
+    private async Task SellFromPassportAsync(Guid handpanId)
+    {
+        if (_passportSaleSaving) return;
+        _passportSaleSaving = true; _passportSaleError = null;
+        try
+        {
+            await ProductionService.SellAsync(handpanId, _passportBuyer.Trim(), _passportPrice, _passportDestination.Trim(), null, false, null);
+            _showPassportSale = false;
+            await SearchAsync();
+        }
+        catch { _passportSaleError = "ثبت فروش انجام نشد؛ لطفاً دوباره تلاش کنید."; }
+        finally { _passportSaleSaving = false; }
+    }
 
     private async Task ExecuteAsync(Func<Task> action)
     {

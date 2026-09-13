@@ -49,5 +49,11 @@ public sealed class GuaranteeServiceClient(HttpClient httpClient, IConfiguration
     }
 }
 
-public sealed record WarrantyStatusDto(string ProductCode, bool IsActive, DateTime? ActivatedAtUtc);
+public sealed record WarrantyStatusDto(
+    string ProductCode,
+    bool IsActive,
+    DateTime? ActivatedAtUtc,
+    string? OwnerFullName = null,
+    string? OwnerPhoneNumber = null,
+    string? OwnerCity = null);
 public sealed record WarrantyActivationResult(bool IsActive, string? Error);

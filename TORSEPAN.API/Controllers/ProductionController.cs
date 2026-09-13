@@ -279,7 +279,13 @@ public sealed class ProductionController : ControllerBase
         {
             var statuses = await _guaranteeService.GetStatusesAsync(items.Where(x => !x.IsBowl).Select(x => x.SerialNumber));
             foreach (var item in items.Where(x => !x.IsBowl))
-                item.IsWarrantyActive = statuses.GetValueOrDefault(item.SerialNumber)?.IsActive == true;
+            {
+                var warranty = statuses.GetValueOrDefault(item.SerialNumber);
+                item.IsWarrantyActive = warranty?.IsActive == true;
+                item.WarrantyOwnerName = warranty?.OwnerFullName ?? string.Empty;
+                item.WarrantyOwnerPhoneNumber = warranty?.OwnerPhoneNumber ?? string.Empty;
+                item.WarrantyOwnerCity = warranty?.OwnerCity ?? string.Empty;
+            }
         }
         catch (Exception exception)
         {

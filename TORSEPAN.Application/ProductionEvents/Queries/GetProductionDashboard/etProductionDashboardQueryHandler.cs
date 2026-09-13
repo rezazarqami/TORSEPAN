@@ -96,7 +96,7 @@ public sealed class GetProductionDashboardQueryHandler
                 GroupedHandpanQueue("آماده فاین تیون", ProductionStage.WaitingForFinalTune),
                 HandpanQueue("آماده کنترل کیفیت (QC)", ProductionStage.WaitingForQualityControl),
                 HandpanQueue("آماده بسته‌بندی عادی", ProductionStage.WaitingForPackaging),
-                HandpanQueue("انبار سازها", ProductionStage.FinishedWarehouse)
+                MonthlyWarehouseQueue()
             ]
         };
 
@@ -114,6 +114,24 @@ public sealed class GetProductionDashboardQueryHandler
             Codes = allHandpans.Where(x => x.Stage == stage).Select(x => x.SerialNumber).OrderBy(x => x).ToList(),
             Items = allHandpans.Where(x => x.Stage == stage).Select(HandpanItem).OrderBy(x => x.Code).ToList()
         };
+
+        ProductionQueueItemResponse MonthlyWarehouseQueue()
+        {
+            var entries = events
+                .Where(x => x.HandpanId.HasValue && x.Action == ProductionAction.Packaging && !x.BowlId.HasValue)
+                .GroupBy(x => x.HandpanId!.Value)
+                .Select(x => x.OrderByDescending(e => e.EventDate).First())
+                .Join(allHandpans, e => e.HandpanId!.Value, h => h.Id, (e, h) => new { Event = e, Handpan = h })
+                .OrderBy(x => x.Event.EventDate)
+                .ToList();
+            return new ProductionQueueItemResponse
+            {
+                Stage = "ورودی انبار این ماه",
+                ColorByAge = false,
+                Codes = entries.Select(x => x.Handpan.SerialNumber).ToList(),
+                Items = entries.Select(x => new ProductionQueueCodeResponse { Code = x.Handpan.SerialNumber }).ToList()
+            };
+        }
 
         ProductionQueueItemResponse GroupedBowlQueue(string title, ProductionStage stage,
             ProductionAction action, BowlType? type = null, bool splitByBowlType = false)

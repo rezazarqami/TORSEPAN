@@ -53,6 +53,7 @@ public sealed class GetBowlForDimpleQueryHandler
                 handpanId = handpan?.Id;
                 dto.HandpanId = handpanId;
                 dto.HandpanCode = handpan?.SerialNumber ?? topBowl.ProductionCode;
+                dto.BuyerName = handpan?.BuyerName ?? string.Empty;
                 dto.TopBowlCode = topBowl.ProductionCode;
                 dto.BottomBowlCode = bottomBowl?.ProductionCode ?? string.Empty;
                 if (bowl.Stage >= ProductionStage.GlueRoom && handpan is not null)
