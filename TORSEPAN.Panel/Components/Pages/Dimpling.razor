@@ -420,16 +420,6 @@
                     <button class="btn btn-success mt-3" @onclick="OpenPassportSale">فروخته شد</button>
                 </AuthorizeView>
             }
-            else if (_bowl.Stage == 20)
-            {
-                <div class="alert alert-info mt-3">
-                    <strong>اطلاعات فروش و مالک</strong><br />
-                    خریدار هنگام فروش: @(string.IsNullOrWhiteSpace(_bowl.BuyerName) ? "ثبت نشده" : _bowl.BuyerName)<br />
-                    مالک/فعال‌کننده گارانتی: @(string.IsNullOrWhiteSpace(_bowl.WarrantyOwnerName) ? "گارانتی فعال نشده" : _bowl.WarrantyOwnerName)
-                    @if(!string.IsNullOrWhiteSpace(_bowl.WarrantyOwnerPhoneNumber)){<br /><span>موبایل مالک: @_bowl.WarrantyOwnerPhoneNumber</span>}
-                    @if(!string.IsNullOrWhiteSpace(_bowl.WarrantyOwnerCity)){<br /><span>شهر مالک: @_bowl.WarrantyOwnerCity</span>}
-                </div>
-            }
             @if (_bowl.Stage is 14 or 16 or 18 or 20)
             {
                 <div class="instrument-note-editor mt-3"><label class="form-label fw-bold">@(_bowl.Stage is 18 or 20 ? "افزودن یادداشت به شناسنامه ساز" : "یادداشت مخصوص این ساز (اختیاری)")</label><textarea class="form-control" rows="4" @bind="_instrumentNote" placeholder="این یادداشت در پرونده ساز همیشه نمایش داده می‌شود."></textarea>@if (_bowl.Stage is 18 or 20) { <button class="btn btn-primary mt-2" disabled="@string.IsNullOrWhiteSpace(_instrumentNote)" @onclick="SaveInstrumentNoteAsync">ثبت یادداشت در شناسنامه</button> }</div>

@@ -12,7 +12,6 @@ using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Application;
 using TORSEPAN.Application.Bowls.Queries.GetExportWarehouse;
 using TORSEPAN.Application.Sales;
-using TORSEPAN.API.Services;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -25,15 +24,13 @@ public sealed class BowlsController : ControllerBase
     private readonly IProductionDeletionService _deletionService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IProductionRollbackService _rollbackService;
-    private readonly GuaranteeServiceClient _guaranteeService;
 
-    public BowlsController(IMediator mediator, IProductionDeletionService deletionService, IUnitOfWork unitOfWork, IProductionRollbackService rollbackService, GuaranteeServiceClient guaranteeService)
+    public BowlsController(IMediator mediator, IProductionDeletionService deletionService, IUnitOfWork unitOfWork, IProductionRollbackService rollbackService)
     {
         _mediator = mediator;
         _deletionService = deletionService;
         _unitOfWork = unitOfWork;
         _rollbackService = rollbackService;
-        _guaranteeService = guaranteeService;
     }
 
     [HttpDelete("{id:guid}")]
@@ -112,21 +109,6 @@ public sealed class BowlsController : ControllerBase
         var result = await _mediator.Send(
             new GetBowlForDimpleQuery(productionCode),
             cancellationToken);
-
-        if (result.IsSuccess && result.Value is { HandpanCode.Length: > 0 } dto)
-        {
-            try
-            {
-                var statuses = await _guaranteeService.GetStatusesAsync([dto.HandpanCode], cancellationToken);
-                if (statuses.TryGetValue(dto.HandpanCode, out var warranty) && warranty.IsActive)
-                {
-                    dto.WarrantyOwnerName = warranty.OwnerFullName ?? string.Empty;
-                    dto.WarrantyOwnerPhoneNumber = warranty.OwnerPhoneNumber ?? string.Empty;
-                    dto.WarrantyOwnerCity = warranty.OwnerCity ?? string.Empty;
-                }
-            }
-            catch { /* Warranty details must never block the production passport. */ }
-        }
 
         return this.ToActionResult(result);
     }

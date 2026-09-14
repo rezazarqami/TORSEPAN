@@ -18,10 +18,6 @@ public sealed class BowlDimpleDto
     public string BottomBowlCode { get; set; } = string.Empty;
     public string DesignName { get; set; } = "ساده";
     public string BottomDesignName { get; set; } = "ساده";
-    public string BuyerName { get; set; } = string.Empty;
-    public string WarrantyOwnerName { get; set; } = string.Empty;
-    public string WarrantyOwnerPhoneNumber { get; set; } = string.Empty;
-    public string WarrantyOwnerCity { get; set; } = string.Empty;
     public List<string> Notes { get; init; } = [];
     public List<string> InstrumentNotes { get; init; } = [];
     public List<BowlStageHistoryDto> History { get; init; } = [];

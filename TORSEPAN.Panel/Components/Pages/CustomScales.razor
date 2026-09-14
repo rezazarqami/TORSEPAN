@@ -2,6 +2,7 @@
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 @inject ScaleService ScaleService
+@inject IJSRuntime JS
 
 <PageTitle>اسکیل کاستوم</PageTitle>
 <PageHeader Title="اسکیل کاستوم" SubTitle="ثبت جداگانه اسکیل کاسه رو، کاسه زیر و ساز" />
@@ -22,9 +23,9 @@
         }
         else
         {
-            <div class="table-responsive"><table class="table table-striped mb-0">
-                <thead><tr><th>نام اسکیل</th></tr></thead>
-                <tbody>@foreach (var scale in Items(category.Usage)) { <tr><td>@scale.Name</td></tr> }</tbody>
+            <div class="table-responsive"><table class="table table-striped align-middle mb-0">
+                <thead><tr><th>نام اسکیل</th><th style="width:190px">عملیات</th></tr></thead>
+                <tbody>@foreach (var scale in Items(category.Usage)) { <tr><td>@if(_editingId==scale.Id&&_editingUsage==category.Usage){<input class="form-control" @bind="_editingName" @bind:event="oninput" />}else{@scale.Name}</td><td>@if(_editingId==scale.Id&&_editingUsage==category.Usage){<div class="d-flex gap-2"><button class="btn btn-sm btn-success" disabled="@(_loading||string.IsNullOrWhiteSpace(_editingName))" @onclick="SaveEditAsync">ذخیره</button><button class="btn btn-sm btn-light" disabled="@_loading" @onclick="CancelEdit">انصراف</button></div>}else{<div class="d-flex gap-2"><button class="btn btn-sm btn-outline-primary" disabled="@_loading" @onclick="()=>BeginEdit(scale,category.Usage)">ویرایش</button><button class="btn btn-sm btn-outline-danger" disabled="@_loading" @onclick="()=>DeleteAsync(scale,category)">حذف</button></div>}</td></tr> }</tbody>
             </table></div>
         }
     </div>
@@ -39,6 +40,9 @@
     private bool _loading;
     private bool _success;
     private string? _message;
+    private Guid? _editingId;
+    private int _editingUsage;
+    private string _editingName = string.Empty;
     private readonly List<CustomScaleCategory> Categories =
     [
         new(8, "اسکیل کاستوم کاسه رو"),
@@ -73,6 +77,50 @@
     {
         _scales.Clear();
         _scales.AddRange(await ScaleService.GetAsync());
+    }
+
+    private void BeginEdit(ScaleDto scale, int usage)
+    {
+        _editingId = scale.Id;
+        _editingUsage = usage;
+        _editingName = scale.Name;
+        _message = null;
+    }
+
+    private void CancelEdit()
+    {
+        _editingId = null;
+        _editingName = string.Empty;
+    }
+
+    private async Task SaveEditAsync()
+    {
+        if (!_editingId.HasValue || string.IsNullOrWhiteSpace(_editingName)) return;
+        _loading = true; _message = null;
+        try
+        {
+            await ScaleService.RenameAsync(_editingId.Value, _editingName);
+            CancelEdit();
+            await ReloadAsync();
+            _success = true; _message = "نام اسکیل با موفقیت ویرایش شد.";
+        }
+        catch (Exception ex) { _success = false; _message = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task DeleteAsync(ScaleDto scale, CustomScaleCategory category)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"اسکیل «{scale.Name}» از بخش «{category.Title}» حذف شود؟")) return;
+        _loading = true; _message = null;
+        try
+        {
+            await ScaleService.DeleteAsync(scale.Id, category.Usage);
+            if (_editingId == scale.Id && _editingUsage == category.Usage) CancelEdit();
+            await ReloadAsync();
+            _success = true; _message = "اسکیل کاستوم حذف شد.";
+        }
+        catch (Exception ex) { _success = false; _message = ex.Message; }
+        finally { _loading = false; }
     }
 
     private sealed class CustomScaleCategory(int usage, string title)
