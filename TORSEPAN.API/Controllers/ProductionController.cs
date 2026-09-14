@@ -222,6 +222,8 @@ public sealed class ProductionController : ControllerBase
     [Authorize(Roles = "Administrator,ProductionManager,SalesAdmin")]
     public async Task<IActionResult> UpdateSale(Guid handpanId, [FromBody] SellHandpanRequest request)
     {
+        var validationError = ValidateWarrantyRequest(request);
+        if (validationError is not null) return BadRequest(validationError);
         var party = request.PartyId.HasValue ? await _db.AccountingParties.FirstOrDefaultAsync(x => x.Id == request.PartyId && x.IsActive) : null;
         if (request.PartyId.HasValue && party is null) return BadRequest("شخص انتخاب‌شده معتبر نیست.");
         var handpan = await _db.Handpans.FirstOrDefaultAsync(x => x.Id == handpanId);
@@ -243,7 +245,8 @@ public sealed class ProductionController : ControllerBase
         else if (document is not null)
             return BadRequest("به دلیل ثبت دریافت وجه، قیمت این فروش نمی‌تواند خالی شود.");
         await _db.SaveChangesAsync();
-        return NoContent();
+        var warranty = await ActivateWarrantyAsync([handpan.SerialNumber], request);
+        return Ok(new SellHandpansResponse(true, warranty.IsActive, warranty.Error));
     }
 
     private async Task<string?> SellOneAsync(Guid handpanId, SellHandpanRequest request)
@@ -275,6 +278,12 @@ public sealed class ProductionController : ControllerBase
             if (document is null) continue;
             item.PartyId = document.PartyId; item.PaidAmount = document.PaidAmount; item.DueDate = document.DueDate;
         }
+        var partyIds = documents.Where(x => x.PartyId.HasValue).Select(x => x.PartyId!.Value).Distinct().ToList();
+        var partyPhones = await _db.AccountingParties.AsNoTracking()
+            .Where(x => partyIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.Phone ?? string.Empty);
+        foreach (var item in items.Where(x => !x.IsBowl && x.PartyId.HasValue))
+            item.BuyerPhoneNumber = partyPhones.GetValueOrDefault(item.PartyId!.Value, string.Empty);
         try
         {
             var statuses = await _guaranteeService.GetStatusesAsync(items.Where(x => !x.IsBowl).Select(x => x.SerialNumber));
