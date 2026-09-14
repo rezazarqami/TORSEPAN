@@ -309,9 +309,8 @@ public sealed class ProductionController : ControllerBase
 
     private static string? ValidateWarrantyRequest(SellHandpanRequest request)
     {
-        if (!request.ActivateWarranty) return null;
-        if (string.IsNullOrWhiteSpace(request.BuyerName) && !request.PartyId.HasValue) return "برای فعال‌سازی گارانتی، نام خریدار را وارد کنید.";
-        if (string.IsNullOrWhiteSpace(request.BuyerPhoneNumber) && !request.PartyId.HasValue) return "برای فعال‌سازی گارانتی، شماره تلفن خریدار را وارد کنید.";
+        // Warranty activation during a sale is intentionally checkbox-only.
+        // Identity fields are required only in the public guarantee application.
         return null;
     }
 
@@ -319,7 +318,7 @@ public sealed class ProductionController : ControllerBase
     {
         if (!request.ActivateWarranty) return new WarrantyActivationResult(false, null);
         var party = request.PartyId.HasValue ? await _db.AccountingParties.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.PartyId) : null;
-        var name = party?.Name ?? request.BuyerName ?? string.Empty;
+        var name = party?.Name ?? request.BuyerName ?? "ثبت از فروش";
         var phone = party?.Phone ?? request.BuyerPhoneNumber ?? string.Empty;
         foreach (var serial in serials)
         {
