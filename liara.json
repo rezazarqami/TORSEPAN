@@ -1,6 +1,5 @@
 {
   "platform": "docker",
-  "app": "torsepan-api",
-  "port": 8080,
-  "dockerfile": "Dockerfile.api"
+  "app": "torsepan",
+  "port": 8080
 }
