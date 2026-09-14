@@ -49,6 +49,13 @@ public class Handpan : Entity
     public Guid? SoldByUserId { get; private set; }
     public decimal? SalePrice { get; private set; }
     public string? SaleDestination { get; private set; }
+    public DateTime? WarrantyActivatedAt { get; private set; }
+
+    public void ActivateWarranty()
+    {
+        WarrantyActivatedAt ??= DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
 
     public void Sell(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination, Guid soldByUserId)
     {

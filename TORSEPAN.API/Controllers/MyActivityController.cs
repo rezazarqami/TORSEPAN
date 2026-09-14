@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -63,10 +64,18 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
         var start=(from??calendar.ToDateTime(calendar.GetYear(today),calendar.GetMonth(today),1,0,0,0,0)).Date;var end=(to??today).Date;
         if(start.Year<1900||start>end||end-start>TimeSpan.FromDays(366))return BadRequest("بازه معتبر تا حداکثر یک سال انتخاب کنید.");
         var startUtc=DateTime.SpecifyKind(start.AddHours(-3.5),DateTimeKind.Utc);var endUtc=DateTime.SpecifyKind(end.AddDays(1).AddHours(-3.5),DateTimeKind.Utc);
+        var paidIds=(await db.PayrollPayments.AsNoTracking().Select(x=>x.HandpanIdsJson).ToListAsync(ct)).SelectMany(ParsePaidIds).ToHashSet();
+        var eligibleHandpanIds=(await db.ProductionEvents.AsNoTracking()
+            .Where(x=>x.HandpanId.HasValue&&x.Action==ProductionAction.Packaging&&x.Result==EventResult.Completed&&x.EventDate>=startUtc&&x.EventDate<endUtc)
+            .Select(x=>x.HandpanId!.Value).Distinct().ToListAsync(ct)).Where(x=>!paidIds.Contains(x)).ToHashSet();
+        var eligibleHandpans=await db.Handpans.AsNoTracking().Include(x=>x.Assembly).Where(x=>eligibleHandpanIds.Contains(x.Id)).ToListAsync(ct);
+        var eligibleAssemblyIds=eligibleHandpans.Select(x=>x.AssemblyId).ToHashSet();
+        var eligibleBowlIds=eligibleHandpans.SelectMany(x=>new[]{x.Assembly.TopBowlId,x.Assembly.BottomBowlId}).ToHashSet();
         var events=await db.ProductionEvents.AsNoTracking().Include(x=>x.Bowl)!.ThenInclude(x=>x.Material).Include(x=>x.Bowl)!.ThenInclude(x=>x.Scale)
             .Include(x=>x.Assembly)!.ThenInclude(x=>x.TopBowl).ThenInclude(x=>x.Material).Include(x=>x.Handpan)!.ThenInclude(x=>x.Scale)
             .Include(x=>x.Handpan)!.ThenInclude(x=>x.Assembly).ThenInclude(x=>x.TopBowl).ThenInclude(x=>x.Material)
-            .Where(x=>x.UserId==userId&&x.EventDate>=startUtc&&x.EventDate<endUtc&&x.Result==EventResult.Completed&&!x.Description.StartsWith("NOTE:")&&x.Description!="Released from glue room"&&
+            .Where(x=>x.UserId==userId&&x.Result==EventResult.Completed&&!x.Description.StartsWith("NOTE:")&&x.Description!="Released from glue room"&&
+                ((x.HandpanId.HasValue&&eligibleHandpanIds.Contains(x.HandpanId.Value))||(x.AssemblyId.HasValue&&eligibleAssemblyIds.Contains(x.AssemblyId.Value))||(x.BowlId.HasValue&&eligibleBowlIds.Contains(x.BowlId.Value)))&&
                 (x.Action==ProductionAction.Dimple||x.Action==ProductionAction.Shape||x.Action==ProductionAction.Glue||x.Action==ProductionAction.Tune||x.Action==ProductionAction.FineTune||x.Action==ProductionAction.Design)).ToListAsync(ct);
         var rates=await db.PayrollRates.AsNoTracking().ToListAsync(ct);var designs=await db.DesignTypes.AsNoTracking().ToDictionaryAsync(x=>x.Id,ct);
         var lines=events.GroupBy(x=>new{x.Action,IsExport=x.Description.Contains("export",StringComparison.OrdinalIgnoreCase),
@@ -82,6 +91,7 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
     }
 
     private static Guid? ParseDesignTypeId(string? value){if(string.IsNullOrWhiteSpace(value)||!value.StartsWith("DESIGN:"))return null;var parts=value.Split(':');return parts.Length>1&&Guid.TryParse(parts[1],out var id)?id:null;}
+    private static List<Guid> ParsePaidIds(string json){try{return JsonSerializer.Deserialize<List<Guid>>(json)??[];}catch{return[];}}
     private static string OperationLabel(ProductionAction action,BowlType? bowlType,bool isExport)
     {
         var suffix=bowlType.HasValue?(bowlType==BowlType.Top?" کاسه رو":" کاسه زیر"):"";

@@ -245,6 +245,11 @@ public sealed class ProductionController : ControllerBase
         else if (document is not null)
             return BadRequest("به دلیل ثبت دریافت وجه، قیمت این فروش نمی‌تواند خالی شود.");
         await _db.SaveChangesAsync();
+        if (request.ActivateWarranty)
+        {
+            handpan.ActivateWarranty();
+            await _db.SaveChangesAsync();
+        }
         var warranty = await ActivateWarrantyAsync([handpan.SerialNumber], request);
         return Ok(new SellHandpansResponse(true, warranty.IsActive, warranty.Error));
     }
@@ -253,9 +258,11 @@ public sealed class ProductionController : ControllerBase
     {
         var party = request.PartyId.HasValue ? await _db.AccountingParties.FirstOrDefaultAsync(x => x.Id == request.PartyId && x.IsActive) : null;
         if (request.PartyId.HasValue && party is null) return "شخص انتخاب‌شده معتبر نیست.";
-        var serial = await _db.Handpans.Where(x => x.Id == handpanId).Select(x => x.SerialNumber).FirstOrDefaultAsync();
-        if (serial is null) return "یکی از سازهای انتخاب‌شده پیدا نشد.";
+        var handpan = await _db.Handpans.FirstOrDefaultAsync(x => x.Id == handpanId);
+        if (handpan is null) return "یکی از سازهای انتخاب‌شده پیدا نشد.";
+        var serial = handpan.SerialNumber;
         await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination));
+        if (request.ActivateWarranty) handpan.ActivateWarranty();
         if (request.Price.HasValue)
             _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {serial}", request.Price.Value, request.IsPaid ? request.Price.Value : 0, party?.Id, handpanId, request.IsPaid ? null : request.DueDate, SaleNotes(request.Destination), CurrentUserId()));
         await _db.SaveChangesAsync();
@@ -271,6 +278,9 @@ public sealed class ProductionController : ControllerBase
     {
         var items = (await _mediator.Send(new GetSalesQuery())).ToList();
         var ids = items.Where(x => !x.IsBowl).Select(x => x.HandpanId).ToList();
+        var locallyActiveWarrantyIds = (await _db.Handpans.AsNoTracking()
+            .Where(x => ids.Contains(x.Id) && x.WarrantyActivatedAt.HasValue)
+            .Select(x => x.Id).ToListAsync()).ToHashSet();
         var documents = await _db.AccountingDocuments.AsNoTracking().Where(x => x.HandpanId.HasValue && ids.Contains(x.HandpanId.Value) && x.Type == AccountingDocumentType.Revenue).ToListAsync();
         foreach (var item in items.Where(x => !x.IsBowl))
         {
@@ -285,16 +295,19 @@ public sealed class ProductionController : ControllerBase
         var salePhones = await _db.Handpans.AsNoTracking().Where(x => ids.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, x => x.BuyerPhoneNumber ?? string.Empty);
         foreach (var item in items.Where(x => !x.IsBowl))
+        {
             item.BuyerPhoneNumber = item.PartyId.HasValue
                 ? partyPhones.GetValueOrDefault(item.PartyId.Value, salePhones.GetValueOrDefault(item.HandpanId, string.Empty))
                 : salePhones.GetValueOrDefault(item.HandpanId, string.Empty);
+            item.IsWarrantyActive = locallyActiveWarrantyIds.Contains(item.HandpanId);
+        }
         try
         {
             var statuses = await _guaranteeService.GetStatusesAsync(items.Where(x => !x.IsBowl).Select(x => x.SerialNumber));
             foreach (var item in items.Where(x => !x.IsBowl))
             {
                 var warranty = statuses.GetValueOrDefault(item.SerialNumber);
-                item.IsWarrantyActive = warranty?.IsActive == true;
+                item.IsWarrantyActive = locallyActiveWarrantyIds.Contains(item.HandpanId) || warranty?.IsActive == true;
                 item.WarrantyOwnerName = warranty?.OwnerFullName ?? string.Empty;
                 item.WarrantyOwnerPhoneNumber = warranty?.OwnerPhoneNumber ?? string.Empty;
                 item.WarrantyOwnerCity = warranty?.OwnerCity ?? string.Empty;

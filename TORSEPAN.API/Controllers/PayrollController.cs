@@ -179,13 +179,14 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var paidAssemblyIds = paidHandpans.Select(x => x.AssemblyId).ToHashSet();
         var paidBowlIds = paidHandpans.SelectMany(x => new[] { x.Assembly.TopBowlId, x.Assembly.BottomBowlId })
             .Concat(alreadyPaid).ToHashSet();
-        var filterByHandpanStage = readyForQc || readyForPackaging || enteredWarehouse || readyForExportPackaging || exportWarehouse;
+        var currentWarehousePeriod = !readyForQc && !readyForPackaging && !enteredWarehouse && !readyForExportPackaging && !exportWarehouse;
+        var filterByHandpanStage = true;
         if (filterByHandpanStage)
         {
             var selectedActions = new List<ProductionAction>();
             if (readyForQc) selectedActions.Add(ProductionAction.FineTune);
             if (readyForPackaging) selectedActions.Add(ProductionAction.QualityCheck);
-            if (enteredWarehouse) selectedActions.Add(ProductionAction.Packaging);
+            if (enteredWarehouse || currentWarehousePeriod) selectedActions.Add(ProductionAction.Packaging);
             var enteredIds = await db.ProductionEvents.AsNoTracking()
                 .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed &&
                             x.HandpanId.HasValue && selectedActions.Contains(x.Action))
