@@ -74,4 +74,11 @@ public sealed class AuthenticationService : IAuthService
 
         _authStateProvider.NotifyUserLogout();
     }
+
+    public async Task<bool> RenewSessionAsync()
+    {
+        var renewed = await _apiClient.RenewSessionAsync();
+        if (renewed) await _authStateProvider.RefreshAsync();
+        return renewed;
+    }
 }

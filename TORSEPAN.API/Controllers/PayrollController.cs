@@ -219,7 +219,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             .Include(x => x.Assembly)!.ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
             .Include(x => x.Handpan)!.ThenInclude(x => x.Scale)
             .Include(x => x.Handpan)!.ThenInclude(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
-            .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
+            .Where(x => x.Result == EventResult.Completed && !x.IsPayrollExcluded && !x.Description.StartsWith("NOTE:") &&
                 x.Description != "Released from glue room" &&
                 (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Glue || x.Action == ProductionAction.Tune || x.Action == ProductionAction.FineTune || x.Action == ProductionAction.Design));
         eventQuery = eventQuery.Where(x =>

@@ -505,6 +505,15 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid?>("HandpanId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsPayrollExcluded")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PayrollExcludedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PayrollExcludedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Result")
                         .HasColumnType("integer");
 

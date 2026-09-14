@@ -1,5 +1,6 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
+@inject TORSEPAN.Panel.Services.Auth.AuthenticationService AuthenticationService
 @using Microsoft.AspNetCore.WebUtilities
 
 @if (!_authenticationReady)
@@ -60,6 +61,12 @@ else
             {
                 loaded = await authProvider.RefreshAsync();
                 if (!loaded) await Task.Delay(150 * (attempt + 1));
+            }
+            if (loaded)
+            {
+                var state = await authProvider.GetAuthenticationStateAsync();
+                if (state.User.Identity?.IsAuthenticated == true)
+                    await AuthenticationService.RenewSessionAsync();
             }
         }
 

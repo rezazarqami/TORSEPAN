@@ -202,9 +202,12 @@ public sealed class ProductionController : ControllerBase
         await using var transaction = await _db.Database.BeginTransactionAsync();
         try
         {
-            foreach (var id in ids)
+            for (var index = 0; index < ids.Count; index++)
             {
-                var error = await SellOneAsync(id, request.Sale);
+                var count = ids.Count;
+                decimal? price = request.Sale.Price.HasValue ? (index == count - 1 ? request.Sale.Price.Value - Math.Floor(request.Sale.Price.Value / count) * (count - 1) : Math.Floor(request.Sale.Price.Value / count)) : null;
+                decimal? received = request.Sale.ReceivedAmount.HasValue ? (index == count - 1 ? request.Sale.ReceivedAmount.Value - Math.Floor(request.Sale.ReceivedAmount.Value / count) * (count - 1) : Math.Floor(request.Sale.ReceivedAmount.Value / count)) : null;
+                var error = await SellOneAsync(ids[index], request.Sale with { Price = price, ReceivedAmount = received });
                 if (error is not null) return BadRequest(error);
             }
             await transaction.CommitAsync();
@@ -233,11 +236,11 @@ public sealed class ProductionController : ControllerBase
         var document = await _db.AccountingDocuments.FirstOrDefaultAsync(x => x.HandpanId == handpanId && x.Type == AccountingDocumentType.Revenue);
         if (request.Price.HasValue)
         {
-            var paid = request.IsPaid ? request.Price.Value : document?.PaidAmount ?? 0;
+            var paid = Math.Min(request.Price.Value, request.ReceivedAmount ?? document?.PaidAmount ?? 0);
             if (document is null)
-                _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {handpan.SerialNumber}", request.Price.Value, paid, party?.Id, handpanId, request.IsPaid ? null : request.DueDate, SaleNotes(request.Destination), CurrentUserId()));
+                _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {handpan.SerialNumber}", request.Price.Value, paid, party?.Id, handpanId, null, SaleNotes(request.Destination), CurrentUserId()));
             else
-                try { document.UpdateSale(request.Price.Value, paid, party?.Id, request.IsPaid ? null : request.DueDate, SaleNotes(request.Destination)); }
+                try { document.UpdateSale(request.Price.Value, paid, party?.Id, null, SaleNotes(request.Destination)); }
                 catch (ArgumentOutOfRangeException) { return BadRequest("قیمت نمی‌تواند از مبلغی که قبلاً دریافت شده کمتر باشد."); }
         }
         else if (document is not null && document.PaidAmount == 0)
@@ -264,7 +267,7 @@ public sealed class ProductionController : ControllerBase
         await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination));
         if (request.ActivateWarranty) handpan.ActivateWarranty();
         if (request.Price.HasValue)
-            _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {serial}", request.Price.Value, request.IsPaid ? request.Price.Value : 0, party?.Id, handpanId, request.IsPaid ? null : request.DueDate, SaleNotes(request.Destination), CurrentUserId()));
+            _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {serial}", request.Price.Value, Math.Min(request.Price.Value, request.ReceivedAmount ?? 0), party?.Id, handpanId, null, SaleNotes(request.Destination), CurrentUserId()));
         await _db.SaveChangesAsync();
         return null;
     }
@@ -351,7 +354,7 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Rollback(Guid handpanId, CancellationToken cancellationToken)
         => await _rollbackService.RollbackHandpanAsync(handpanId, cancellationToken) ? NoContent() : BadRequest();
 }
-public sealed record SellHandpanRequest(string? BuyerName, string? BuyerPhoneNumber, decimal? Price, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty);
+public sealed record SellHandpanRequest(string? BuyerName, string? BuyerPhoneNumber, decimal? Price, decimal? ReceivedAmount, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty);
 public sealed record BulkSellHandpansRequest(IReadOnlyCollection<Guid> HandpanIds, SellHandpanRequest Sale);
 public sealed record SellHandpansResponse(bool SaleRegistered, bool WarrantyActivated, string? Warning);
 public sealed record WarehouseGalleryRequest(IReadOnlyCollection<Guid> HandpanIds);

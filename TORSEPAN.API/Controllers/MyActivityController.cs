@@ -74,7 +74,7 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
         var events=await db.ProductionEvents.AsNoTracking().Include(x=>x.Bowl)!.ThenInclude(x=>x.Material).Include(x=>x.Bowl)!.ThenInclude(x=>x.Scale)
             .Include(x=>x.Assembly)!.ThenInclude(x=>x.TopBowl).ThenInclude(x=>x.Material).Include(x=>x.Handpan)!.ThenInclude(x=>x.Scale)
             .Include(x=>x.Handpan)!.ThenInclude(x=>x.Assembly).ThenInclude(x=>x.TopBowl).ThenInclude(x=>x.Material)
-            .Where(x=>x.UserId==userId&&x.Result==EventResult.Completed&&!x.Description.StartsWith("NOTE:")&&x.Description!="Released from glue room"&&
+            .Where(x=>x.UserId==userId&&x.Result==EventResult.Completed&&!x.IsPayrollExcluded&&!x.Description.StartsWith("NOTE:")&&x.Description!="Released from glue room"&&
                 ((x.HandpanId.HasValue&&eligibleHandpanIds.Contains(x.HandpanId.Value))||(x.AssemblyId.HasValue&&eligibleAssemblyIds.Contains(x.AssemblyId.Value))||(x.BowlId.HasValue&&eligibleBowlIds.Contains(x.BowlId.Value)))&&
                 (x.Action==ProductionAction.Dimple||x.Action==ProductionAction.Shape||x.Action==ProductionAction.Glue||x.Action==ProductionAction.Tune||x.Action==ProductionAction.FineTune||x.Action==ProductionAction.Design)).ToListAsync(ct);
         var rates=await db.PayrollRates.AsNoTracking().ToListAsync(ct);var designs=await db.DesignTypes.AsNoTracking().ToDictionaryAsync(x=>x.Id,ct);
