@@ -52,6 +52,36 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
                 Details=Details(x.Description)
             })});
     }
+
+    [HttpGet("payroll")]
+    public async Task<IActionResult> Payroll([FromQuery]DateTime? from=null,[FromQuery]DateTime? to=null,CancellationToken ct=default)
+    {
+        var userId=Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var enabled=await db.Users.AsNoTracking().Where(x=>x.Id==userId).Select(x=>x.ShowMyPayroll).FirstOrDefaultAsync(ct);
+        if(!enabled)return Ok(new{Enabled=false,Total=0m,Lines=Array.Empty<object>()});
+        var today=DateTime.UtcNow.AddHours(3.5).Date;var calendar=new PersianCalendar();
+        var start=(from??calendar.ToDateTime(calendar.GetYear(today),calendar.GetMonth(today),1,0,0,0,0)).Date;var end=(to??today).Date;
+        if(start.Year<1900||start>end||end-start>TimeSpan.FromDays(366))return BadRequest("بازه معتبر تا حداکثر یک سال انتخاب کنید.");
+        var startUtc=DateTime.SpecifyKind(start.AddHours(-3.5),DateTimeKind.Utc);var endUtc=DateTime.SpecifyKind(end.AddDays(1).AddHours(-3.5),DateTimeKind.Utc);
+        var events=await db.ProductionEvents.AsNoTracking().Include(x=>x.Bowl)!.ThenInclude(x=>x.Material).Include(x=>x.Bowl)!.ThenInclude(x=>x.Scale)
+            .Include(x=>x.Assembly)!.ThenInclude(x=>x.TopBowl).ThenInclude(x=>x.Material).Include(x=>x.Handpan)!.ThenInclude(x=>x.Scale)
+            .Include(x=>x.Handpan)!.ThenInclude(x=>x.Assembly).ThenInclude(x=>x.TopBowl).ThenInclude(x=>x.Material)
+            .Where(x=>x.UserId==userId&&x.EventDate>=startUtc&&x.EventDate<endUtc&&x.Result==EventResult.Completed&&!x.Description.StartsWith("NOTE:")&&x.Description!="Released from glue room"&&
+                (x.Action==ProductionAction.Dimple||x.Action==ProductionAction.Shape||x.Action==ProductionAction.Glue||x.Action==ProductionAction.Tune||x.Action==ProductionAction.FineTune||x.Action==ProductionAction.Design)).ToListAsync(ct);
+        var rates=await db.PayrollRates.AsNoTracking().ToListAsync(ct);var designs=await db.DesignTypes.AsNoTracking().ToDictionaryAsync(x=>x.Id,ct);
+        var lines=events.GroupBy(x=>new{x.Action,IsExport=x.Description.Contains("export",StringComparison.OrdinalIgnoreCase),
+            IsCustom=x.Handpan!=null?x.Handpan.Assembly.TopBowl.IsCustomScale:x.Assembly!=null?x.Assembly.TopBowl.IsCustomScale:x.Bowl!=null&&x.Bowl.IsCustomScale,
+            MaterialId=x.Action is ProductionAction.Glue or ProductionAction.Design?(Guid?)null:x.Bowl!=null?x.Bowl.MaterialId:x.Assembly!=null?x.Assembly.TopBowl.MaterialId:x.Handpan!=null?x.Handpan.Assembly.TopBowl.MaterialId:null,
+            Material=x.Action is ProductionAction.Glue or ProductionAction.Design?"":x.Bowl!=null?x.Bowl.Material.Name:x.Assembly!=null?x.Assembly.TopBowl.Material.Name:x.Handpan!=null?x.Handpan.Assembly.TopBowl.Material.Name:"—",
+            BowlType=x.Action is ProductionAction.Glue or ProductionAction.Design||x.Bowl==null?(int?)null:(int)x.Bowl.BowlType,
+            DesignId=x.Action==ProductionAction.Design?ParseDesignTypeId(x.Description):null,
+            ScaleId=x.Action==ProductionAction.FineTune&&x.Handpan!=null?x.Handpan.ScaleId:(x.Action==ProductionAction.Dimple||x.Action==ProductionAction.Shape||x.Action==ProductionAction.Tune)&&x.Bowl!=null?x.Bowl.ScaleId:null,
+            Scale=x.Action==ProductionAction.FineTune&&x.Handpan?.Scale!=null?x.Handpan.Scale.Name:(x.Action==ProductionAction.Dimple||x.Action==ProductionAction.Shape||x.Action==ProductionAction.Tune)&&x.Bowl?.Scale!=null?x.Bowl.Scale.Name:""})
+            .Select(g=>{var rate=g.Key.Action==ProductionAction.Design&&g.Key.DesignId.HasValue&&designs.TryGetValue(g.Key.DesignId.Value,out var d)?(g.Key.IsExport?d.ExportRate:d.Rate):rates.Where(r=>r.Action==g.Key.Action&&r.IsExport==g.Key.IsExport&&r.IsCustom==g.Key.IsCustom&&(!r.MaterialId.HasValue||r.MaterialId==g.Key.MaterialId)&&(!r.BowlType.HasValue||(int)r.BowlType==g.Key.BowlType)&&(!r.ScaleId.HasValue||r.ScaleId==g.Key.ScaleId)).OrderByDescending(r=>r.MaterialId.HasValue).ThenByDescending(r=>r.BowlType.HasValue).ThenByDescending(r=>r.ScaleId.HasValue).FirstOrDefault()?.Amount??0;var count=g.Key.Action==ProductionAction.Glue?g.Where(x=>x.HandpanId.HasValue).Select(x=>x.HandpanId).Distinct().Count():g.Count();return new{Operation=OperationLabel(g.Key.Action,g.Key.BowlType.HasValue?(BowlType?)g.Key.BowlType.Value:null,g.Key.IsExport),Description=string.Join(" — ",new[]{g.Key.Material,g.Key.Scale,g.Key.IsCustom?"Custom":""}.Where(x=>!string.IsNullOrWhiteSpace(x))),Count=count,Rate=rate,Total=count*rate};}).OrderBy(x=>x.Operation).ToList();
+        return Ok(new{Enabled=true,From=start,To=end,Total=lines.Sum(x=>x.Total),Lines=lines});
+    }
+
+    private static Guid? ParseDesignTypeId(string? value){if(string.IsNullOrWhiteSpace(value)||!value.StartsWith("DESIGN:"))return null;var parts=value.Split(':');return parts.Length>1&&Guid.TryParse(parts[1],out var id)?id:null;}
     private static string OperationLabel(ProductionAction action,BowlType? bowlType,bool isExport)
     {
         var suffix=bowlType.HasValue?(bowlType==BowlType.Top?" کاسه رو":" کاسه زیر"):"";

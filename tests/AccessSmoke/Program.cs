@@ -60,7 +60,7 @@ Check(await authState.RefreshAsync(), "authentication retry succeeds when browse
 var soldHandpan = new Handpan(Guid.NewGuid(), "ROLLBACK-TEST");
 soldHandpan.ChangeStage(ProductionStage.FinishedWarehouse);
 soldHandpan.ChangeStatus(ProductionStatus.Completed);
-soldHandpan.Sell("Test buyer", 100, "Test destination", Guid.NewGuid());
+soldHandpan.Sell("Test buyer", "09120000000", 100, "Test destination", Guid.NewGuid());
 soldHandpan.ReturnToWarehouse();
 Check(soldHandpan.Stage == ProductionStage.FinishedWarehouse &&
       soldHandpan.Status == ProductionStatus.Completed &&

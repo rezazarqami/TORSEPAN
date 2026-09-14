@@ -228,7 +228,7 @@ public sealed class ProductionController : ControllerBase
         if (request.PartyId.HasValue && party is null) return BadRequest("شخص انتخاب‌شده معتبر نیست.");
         var handpan = await _db.Handpans.FirstOrDefaultAsync(x => x.Id == handpanId);
         if (handpan is null) return NotFound();
-        try { handpan.UpdateSaleDetails(party?.Name ?? request.BuyerName, request.Price, request.Destination); }
+        try { handpan.UpdateSaleDetails(party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination); }
         catch (InvalidOperationException) { return BadRequest("این ساز در وضعیت فروخته‌شده نیست."); }
         var document = await _db.AccountingDocuments.FirstOrDefaultAsync(x => x.HandpanId == handpanId && x.Type == AccountingDocumentType.Revenue);
         if (request.Price.HasValue)
@@ -255,7 +255,7 @@ public sealed class ProductionController : ControllerBase
         if (request.PartyId.HasValue && party is null) return "شخص انتخاب‌شده معتبر نیست.";
         var serial = await _db.Handpans.Where(x => x.Id == handpanId).Select(x => x.SerialNumber).FirstOrDefaultAsync();
         if (serial is null) return "یکی از سازهای انتخاب‌شده پیدا نشد.";
-        await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, request.Price, request.Destination));
+        await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination));
         if (request.Price.HasValue)
             _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {serial}", request.Price.Value, request.IsPaid ? request.Price.Value : 0, party?.Id, handpanId, request.IsPaid ? null : request.DueDate, SaleNotes(request.Destination), CurrentUserId()));
         await _db.SaveChangesAsync();
@@ -282,8 +282,12 @@ public sealed class ProductionController : ControllerBase
         var partyPhones = await _db.AccountingParties.AsNoTracking()
             .Where(x => partyIds.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, x => x.Phone ?? string.Empty);
-        foreach (var item in items.Where(x => !x.IsBowl && x.PartyId.HasValue))
-            item.BuyerPhoneNumber = partyPhones.GetValueOrDefault(item.PartyId!.Value, string.Empty);
+        var salePhones = await _db.Handpans.AsNoTracking().Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.BuyerPhoneNumber ?? string.Empty);
+        foreach (var item in items.Where(x => !x.IsBowl))
+            item.BuyerPhoneNumber = item.PartyId.HasValue
+                ? partyPhones.GetValueOrDefault(item.PartyId.Value, salePhones.GetValueOrDefault(item.HandpanId, string.Empty))
+                : salePhones.GetValueOrDefault(item.HandpanId, string.Empty);
         try
         {
             var statuses = await _guaranteeService.GetStatusesAsync(items.Where(x => !x.IsBowl).Select(x => x.SerialNumber));
@@ -306,18 +310,20 @@ public sealed class ProductionController : ControllerBase
     private static string? ValidateWarrantyRequest(SellHandpanRequest request)
     {
         if (!request.ActivateWarranty) return null;
-        if (string.IsNullOrWhiteSpace(request.WarrantyFullName)) return "برای فعال‌سازی گارانتی، نام مالک را وارد کنید.";
-        if (string.IsNullOrWhiteSpace(request.WarrantyPhoneNumber)) return "برای فعال‌سازی گارانتی، شماره موبایل مالک را وارد کنید.";
-        if (string.IsNullOrWhiteSpace(request.WarrantyCity)) return "برای فعال‌سازی گارانتی، شهر مالک را وارد کنید.";
+        if (string.IsNullOrWhiteSpace(request.BuyerName) && !request.PartyId.HasValue) return "برای فعال‌سازی گارانتی، نام خریدار را وارد کنید.";
+        if (string.IsNullOrWhiteSpace(request.BuyerPhoneNumber) && !request.PartyId.HasValue) return "برای فعال‌سازی گارانتی، شماره تلفن خریدار را وارد کنید.";
         return null;
     }
 
     private async Task<WarrantyActivationResult> ActivateWarrantyAsync(IEnumerable<string> serials, SellHandpanRequest request)
     {
         if (!request.ActivateWarranty) return new WarrantyActivationResult(false, null);
+        var party = request.PartyId.HasValue ? await _db.AccountingParties.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.PartyId) : null;
+        var name = party?.Name ?? request.BuyerName ?? string.Empty;
+        var phone = party?.Phone ?? request.BuyerPhoneNumber ?? string.Empty;
         foreach (var serial in serials)
         {
-            var result = await _guaranteeService.ActivateAsync(serial, request.WarrantyFullName!, request.WarrantyPhoneNumber!, request.WarrantyCity!);
+            var result = await _guaranteeService.ActivateAsync(serial, name, phone, string.Empty);
             if (!result.IsActive) return result;
         }
         return new WarrantyActivationResult(true, null);
@@ -333,7 +339,7 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Rollback(Guid handpanId, CancellationToken cancellationToken)
         => await _rollbackService.RollbackHandpanAsync(handpanId, cancellationToken) ? NoContent() : BadRequest();
 }
-public sealed record SellHandpanRequest(string? BuyerName, decimal? Price, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty, string? WarrantyFullName, string? WarrantyPhoneNumber, string? WarrantyCity);
+public sealed record SellHandpanRequest(string? BuyerName, string? BuyerPhoneNumber, decimal? Price, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty);
 public sealed record BulkSellHandpansRequest(IReadOnlyCollection<Guid> HandpanIds, SellHandpanRequest Sale);
 public sealed record SellHandpansResponse(bool SaleRegistered, bool WarrantyActivated, string? Warning);
 public sealed record WarehouseGalleryRequest(IReadOnlyCollection<Guid> HandpanIds);

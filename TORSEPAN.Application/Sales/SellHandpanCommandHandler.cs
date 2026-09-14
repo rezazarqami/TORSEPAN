@@ -9,7 +9,7 @@ public sealed class SellHandpanCommandHandler(IUnitOfWork unitOfWork, IUserConte
     public async Task Handle(SellHandpanCommand request, CancellationToken cancellationToken)
     {
         var item=await unitOfWork.Handpans.GetByIdAsync(request.HandpanId)??throw new KeyNotFoundException();
-        var userId=userContext.UserId??throw new UnauthorizedAccessException(); item.Sell(request.BuyerName,request.Price,request.Destination,userId);
+        var userId=userContext.UserId??throw new UnauthorizedAccessException(); item.Sell(request.BuyerName,request.BuyerPhoneNumber,request.Price,request.Destination,userId);
         unitOfWork.Handpans.Update(item);
         var details = new List<string>();
         if(!string.IsNullOrWhiteSpace(item.BuyerName)) details.Add($"خریدار: {item.BuyerName}");

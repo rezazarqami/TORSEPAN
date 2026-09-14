@@ -71,8 +71,8 @@ else
             {
                 <div class="mt-4">
                 <Card>
-                    <h4>دستمزد تولید کاستوم</h4>
-                    <div class="alert alert-light border">این بخش مربوط به سازهایی است که اسکیل آن‌ها در مرحله شیپ انتخاب شده است.</div>
+                    <h4>دستمزد تولید Custom</h4>
+                    <div class="alert alert-light border">این بخش مربوط به سازهایی است که Scale آن‌ها در مرحله شیپ انتخاب شده است.</div>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle">
                             <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
@@ -85,7 +85,7 @@ else
                                     <tr><td>@(first ? user.Name : "")</td><td>@LineDescription(line)</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td></tr>
                                     first = false;
                                 }
-                                <tr class="table-light"><td colspan="4"><strong>جمع کاستوم @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                                <tr class="table-light"><td colspan="4"><strong>جمع Custom @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
                             }
                             </tbody>
                         </table>
@@ -128,7 +128,7 @@ else
             <Card>
                 <h4>تعریف نرخ عملیات</h4>
                 <label class="form-label mt-2">مسیر تولید</label>
-                <select class="form-select" @bind="_ratePath" @bind:after="RateFilterChanged"><option value="0">عادی</option><option value="2">کاستوم</option><option value="1">صادراتی</option></select>
+                <select class="form-select" @bind="_ratePath" @bind:after="RateFilterChanged"><option value="0">عادی</option><option value="2">Custom</option><option value="1">صادراتی</option></select>
                 <label class="form-label mt-2">عملیات</label>
                 <select class="form-select" @bind="_rateAction" @bind:after="RateFilterChanged">@foreach (var a in Actions) { <option value="@a.Id">@a.Title</option> }</select>
                 @if (!IsSimpleRate)
@@ -140,8 +140,8 @@ else
                         <label class="form-label mt-2">نوع کاسه</label>
                         <select class="form-select" @bind="_rateBowlType" @bind:after="RateFilterChanged"><option value="">بدون تفکیک</option><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></select>
                     }
-                    <label class="form-label mt-2">@(IsHandpanRate ? "اسکیل ساز" : "اسکیل کاسه")</label>
-                    <select class="form-select" @bind="_rateScale"><option value="">همه اسکیل‌ها</option>@foreach (var scale in AvailableRateScales) { <option value="@scale.Id">@scale.Name</option> }</select>
+                    <label class="form-label mt-2">@(IsHandpanRate ? "Scale ساز" : "Scale کاسه")</label>
+                    <select class="form-select" @bind="_rateScale"><option value="">همه Scale‌ها</option>@foreach (var scale in AvailableRateScales) { <option value="@scale.Id">@scale.Name</option> }</select>
                 }
                 <label class="form-label mt-2">نرخ واحد</label><input type="number" min="0" class="form-control" @bind="_rateAmount" />
                 @if (!string.IsNullOrWhiteSpace(_rateMessage)) { <div class="alert alert-success py-2 mt-2 mb-0">@_rateMessage</div> }
@@ -149,7 +149,7 @@ else
                 @if (_editingRateId.HasValue) { <button class="btn btn-outline-secondary w-100 mt-2" @onclick="CancelRateEdit">انصراف از ویرایش</button> }
                 <hr /><h5>نرخ‌های ثبت‌شده</h5>
                 <div class="table-responsive payroll-rates-table"><table class="table table-sm align-middle mb-0">
-                    <thead><tr><th>مسیر</th><th>عملیات</th><th>متریال</th><th>نوع</th><th>اسکیل</th><th>نرخ</th><th>مدیریت</th></tr></thead>
+                    <thead><tr><th>مسیر</th><th>عملیات</th><th>متریال</th><th>نوع</th><th>Scale</th><th>نرخ</th><th>مدیریت</th></tr></thead>
                     <tbody>@foreach (var rate in SortedRates) { <tr class="@(_editingRateId == rate.Id ? "table-success" : "")"><td><span class="badge @(rate.IsExport ? "bg-warning text-dark" : rate.IsCustom ? "bg-primary" : "bg-secondary")">@RatePathTitle(rate)</span></td><td>@rate.ActionTitle</td><td>@rate.MaterialName</td><td>@RateTypeTitle(rate)</td><td>@(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)</td><td><strong>@rate.Amount.ToString("N0")</strong></td><td class="text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditRate(rate)">ویرایش</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRateAsync(rate)">حذف</button></td></tr> }</tbody>
                 </table></div>
             </Card>
@@ -159,7 +159,7 @@ else
 
 @if(!_loading && _analytics.Donuts.Count>0)
 {
-    <section class="payroll-analytics"><header><div><small>ترکیب تولید ماه جاری</small><h3>سهم مراحل، اعضا، متریال و اسکیل</h3></div><span>شش نمودار مدیریتی</span></header><ReportDonutGrid Charts="@_analytics.Donuts" /></section>
+    <section class="payroll-analytics"><header><div><small>ترکیب تولید ماه جاری</small><h3>سهم مراحل، اعضا، متریال و Scale</h3></div><span>شش نمودار مدیریتی</span></header><ReportDonutGrid Charts="@_analytics.Donuts" /></section>
 }
 
 @if (_confirmVisible)
@@ -268,7 +268,7 @@ else
     private static string BowlTypeTitle(int? bowlType) => bowlType == 1 ? "کاسه رو" : bowlType == 2 ? "کاسه زیر" : "همه";
     private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 5 => 3, 6 => 4, 7 => 5, _ => 99 };
     private static string RateTypeTitle(PayrollRateDto rate) => rate.Action == 7 ? "ساز" : BowlTypeTitle(rate.BowlType);
-    private static string RatePathTitle(PayrollRateDto rate) => rate.IsExport ? "صادراتی" : rate.IsCustom ? "کاستوم" : "عادی";
+    private static string RatePathTitle(PayrollRateDto rate) => rate.IsExport ? "صادراتی" : rate.IsCustom ? "Custom" : "عادی";
     private static string LineDescription(PayrollLineDto line)
     {
         var parts = new List<string> { line.ActionTitle, line.MaterialName };

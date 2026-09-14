@@ -14,4 +14,5 @@ public sealed class UserDto
     public List<string> Roles { get; set; } = new();
 
     public bool IsActive { get; set; }
+    public bool ShowMyPayroll { get; set; }
 }

@@ -45,7 +45,7 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
         });
     }
 
-    [HttpDelete("registrations/{eventId:guid}"), Authorize(Roles = "Administrator,ProductionManager")]
+    [HttpDelete("registrations/{eventId:guid}"), Authorize(Roles = "Administrator")]
     public async Task<IActionResult> DeleteRegistration(Guid eventId, CancellationToken ct)
     {
         var item = await db.ProductionEvents.FirstOrDefaultAsync(x => x.Id == eventId && x.Action == ProductionAction.Design, ct);
@@ -74,7 +74,7 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
     public async Task<IActionResult> UpdateType(Guid id, DesignTypeRequest request, CancellationToken ct)
     { var item=await db.DesignTypes.FirstOrDefaultAsync(x=>x.Id==id&&x.IsActive,ct);if(item is null)return NotFound();var name=request.Name?.Trim()??"";if(name.Length==0)return BadRequest("نام دیزاین الزامی است.");if(await db.DesignTypes.AnyAsync(x=>x.Id!=id&&x.IsActive&&x.Name.ToLower()==name.ToLower(),ct))return Conflict("این نام قبلاً ثبت شده است.");item.Rename(name);item.SetRate(request.Rate);item.SetExportRate(request.ExportRate);await db.SaveChangesAsync(ct);return NoContent(); }
 
-    [HttpDelete("types/{id:guid}"), Authorize(Roles = "Administrator,ProductionManager")]
+    [HttpDelete("types/{id:guid}"), Authorize(Roles = "Administrator")]
     public async Task<IActionResult> DeleteType(Guid id,CancellationToken ct){var item=await db.DesignTypes.FirstOrDefaultAsync(x=>x.Id==id,ct);if(item is null)return NotFound();item.Deactivate();await db.SaveChangesAsync(ct);return NoContent();}
 
     [HttpPost]

@@ -104,7 +104,7 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
             Donut("سهم تیونرها","از کل تیون",stageEvents.Where(x=>x.Action==ProductionAction.Tune).GroupBy(x=>UserName(x.User)).Select(x=>(x.Key,(double)x.Count()))),
             Donut("سهم فاین‌تیونرها","از کل فاین‌تیون",stageEvents.Where(x=>x.Action==ProductionAction.FineTune).GroupBy(x=>UserName(x.User)).Select(x=>(x.Key,(double)x.Count()))),
             Donut("سهم شیپ‌کارها","از کل شیپ",stageEvents.Where(x=>x.Action==ProductionAction.Shape).GroupBy(x=>UserName(x.User)).Select(x=>(x.Key,(double)x.Count()))),
-            Donut("توزیع اسکیل‌ها","بر اساس تعداد نت",selected.Where(x=>x.Scale!=null).GroupBy(x=>NoteCount(x.Scale!.Name)).Select(x=>($"{x.Key} نت",(double)x.Count())))
+            Donut("توزیع Scale‌ها","بر اساس تعداد نت",selected.Where(x=>x.Scale!=null).GroupBy(x=>NoteCount(x.Scale!.Name)).Select(x=>($"{x.Key} نت",(double)x.Count())))
         };
 
         var domesticBowlTrend=BuildUniqueTrend(completed.Where(x=>!x.IsExport).Select(x=>(x.Bowl.Id,x.CompletedAt)),end);
@@ -127,7 +127,7 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
         return new(start,end.AddTicks(-1),selected.Count(x=>x.BowlType==BowlType.Top),selected.Count(x=>x.BowlType==BowlType.Bottom&&x.HasNotes),selected.Count,
             selectedEntries.Count(x=>!x.IsExport),selectedEntries.Count(x=>x.IsExport),bowlCurrent,bowlAverage,bowlCurrent-bowlAverage,bowlTrend,domesticBowlTrend,exportBowlTrend,
             rangedHandpanCount,handpanCurrent,handpanAverage,handpanCurrent-handpanAverage,handpanTrend,donuts,
-            selectedEntries.GroupBy(x=>new{x.Bowl.Material.Name,Scale=x.Bowl.Scale?.Name??"بدون اسکیل",x.IsExport}).Select(x=>new ProductionSummaryRow(x.Key.Name,x.Key.Scale,x.Key.IsExport?"صادراتی":"داخلی",x.Count())).OrderByDescending(x=>x.Count).ToList());
+            selectedEntries.GroupBy(x=>new{x.Bowl.Material.Name,Scale=x.Bowl.Scale?.Name??"بدون Scale",x.IsExport}).Select(x=>new ProductionSummaryRow(x.Key.Name,x.Key.Scale,x.Key.IsExport?"صادراتی":"داخلی",x.Count())).OrderByDescending(x=>x.Count).ToList());
     }
     private async Task<InventoryReport> BuildInventoryAsync(ManagementReportRequest request,CancellationToken ct)
     {

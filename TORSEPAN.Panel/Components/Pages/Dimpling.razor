@@ -108,7 +108,7 @@
                 <div class="passport-header"><div><small>TORSEPAN · INSTRUMENT ID</small><h3>شناسنامه ساز</h3></div><div class="passport-logo"><img src="/images/brand/torsepan-logo.webp" alt="لوگوی TORSEPAN" /></div></div>
                 <div class="passport-primary-info">
                     <div><span>کد ساز</span><strong>@_bowl.HandpanCode</strong></div>
-                    <div><span>اسکیل</span><strong>@_bowl.ScaleName</strong></div>
+                    <div><span>Scale</span><strong>@_bowl.ScaleName</strong></div>
                     <div><span>وضعیت</span><strong>@StageText(_bowl.Stage)</strong></div>
                 </div>
             }
@@ -121,7 +121,7 @@
                         <span>وضعیت</span><strong>@StageText(_bowl.Stage)</strong>
                     </div>
                     <div class="production-highlight scale-highlight">
-                        <span>اسکیل کاسه</span><strong>@_bowl.ScaleName</strong>
+                        <span>Scale کاسه</span><strong>@_bowl.ScaleName</strong>
                     </div>
                 </div>
             }
@@ -176,7 +176,7 @@
             @if (_bowl.Stage == 2)
             {
                 <section class="stage-workspace">
-                    <header class="stage-workspace-header"><span class="stage-workspace-number">۱</span><div><small>مرحله جاری</small><h4>ثبت پایان دیمپل</h4><p>زمان انجام و اسکیل کاسه را بررسی کنید.</p></div></header>
+                    <header class="stage-workspace-header"><span class="stage-workspace-number">۱</span><div><small>مرحله جاری</small><h4>ثبت پایان دیمپل</h4><p>زمان انجام و Scale کاسه را بررسی کنید.</p></div></header>
                     <div class="stage-workspace-body"><div class="stage-fields">
                         <label class="stage-field"><span>مدت زمان انجام دیمپل</span>
                         <select class="form-select" @bind="_duration">
@@ -186,14 +186,14 @@
                             }
                         </select>
                         </label>
-                        <label class="stage-field"><span>اسکیل کاسه</span>
+                        <label class="stage-field"><span>Scale کاسه</span>
                         <select class="form-select" @bind="_scaleId">
                             <option value="@Guid.Empty">انتخاب کنید...</option>
                             @foreach (var scale in DimpleScales)
                             {
                                 <option value="@scale.Id">@scale.Name</option>
                             }
-                            <option value="@CustomScaleChoiceId">کاستوم</option>
+                            <option value="@CustomScaleChoiceId">Custom</option>
                         </select>
                         </label>
                     </div></div>
@@ -221,7 +221,7 @@
                         </label>
                         @if (_bowl.IsCustomScale)
                         {
-                            <label class="stage-field stage-field-wide"><span>اسکیل کاستوم</span>
+                            <label class="stage-field stage-field-wide"><span>Scale Custom</span>
                                 <select class="form-select" @bind="_scaleId">
                                     <option value="@Guid.Empty">انتخاب کنید...</option>
                                     @foreach (var scale in CustomBowlScales)
@@ -229,7 +229,7 @@
                                         <option value="@scale.Id">@scale.Name</option>
                                     }
                                 </select>
-                                <small class="text-muted">اسکیل نهایی این ساز در همین مرحله ثبت می‌شود.</small>
+                                <small class="text-muted">Scale نهایی این ساز در همین مرحله ثبت می‌شود.</small>
                             </label>
                         }
                         <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>توضیحات این مرحله</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="4" @bind="_stageNote" placeholder="نکته‌ای که باید در مرحله بعد دیده شود را بنویسید..."></textarea></label>
@@ -293,7 +293,7 @@
                            placeholder="کد کاسه مکمل را وارد کنید"
                            @bind="_pairedProductionCode"
                            @bind:event="oninput" />
-                    <label class="form-label mt-3">اسکیل ساز@(_bowl.IsCustomScale ? " کاستوم" : "")</label>
+                    <label class="form-label mt-3">Scale ساز@(_bowl.IsCustomScale ? " Custom" : "")</label>
                         <select class="form-select" @bind="_scaleId">
                             <option value="@Guid.Empty">انتخاب کنید...</option>
                             @foreach (var scale in GlueScales)
@@ -555,7 +555,7 @@
     private Task CompleteAsync()
     {
         ShowOperationConfirmation("دیمپل انجام شد",
-            [("کد کاسه", _productionCode), ("اسکیل کاسه", _scaleId == CustomScaleChoiceId ? "کاستوم — انتخاب در شیپ" : SelectedScaleName()), ("مدت زمان", DurationText())],
+            [("کد کاسه", _productionCode), ("Scale کاسه", _scaleId == CustomScaleChoiceId ? "Custom — انتخاب در شیپ" : SelectedScaleName()), ("مدت زمان", DurationText())],
             CompleteDimpleConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -574,7 +574,7 @@
     {
         _isShapeConfirmation = true;
         ShowOperationConfirmation("شیپ انجام شد",
-            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.IsCustomScale == true ? SelectedScaleName() : _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
+            [("کد کاسه", _productionCode), ("Scale کاسه", _bowl?.IsCustomScale == true ? SelectedScaleName() : _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
             CompleteShapeConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -603,7 +603,7 @@
     private Task CompleteTuneAsync()
     {
         ShowOperationConfirmation("تیون انجام شد",
-            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
+            [("کد کاسه", _productionCode), ("Scale کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
             CompleteTuneConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -621,7 +621,7 @@
     private Task CompleteTuneForExportAsync()
     {
         ShowOperationConfirmation("تیون و ارسال به بسته‌بندی صادراتی",
-            [("کد کاسه", _productionCode), ("اسکیل کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText()), ("مسیر", "بسته‌بندی صادراتی")],
+            [("کد کاسه", _productionCode), ("Scale کاسه", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText()), ("مسیر", "بسته‌بندی صادراتی")],
             CompleteTuneForExportConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -656,7 +656,7 @@
         var topCode = _bowl?.BowlType == 1 ? _productionCode : _pairedProductionCode;
         var bottomCode = _bowl?.BowlType == 1 ? _pairedProductionCode : _productionCode;
         ShowOperationConfirmation("چسب انجام شد",
-            [("کد کاسه بالا", topCode), ("کد کاسه پایین", bottomCode), ("اسکیل ساز", SelectedScaleName())],
+            [("کد کاسه بالا", topCode), ("کد کاسه پایین", bottomCode), ("Scale ساز", SelectedScaleName())],
             CompleteGlueConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -687,7 +687,7 @@
     private Task CompleteFinalTuneAsync()
     {
         ShowOperationConfirmation("فاین تیون انجام شد",
-            [("کد ساز", _productionCode), ("اسکیل ساز", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
+            [("کد ساز", _productionCode), ("Scale ساز", _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
             CompleteFinalTuneConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -876,7 +876,7 @@
 
     private void ReturnToDashboard() => Navigation.NavigateTo("/");
 
-    private void OpenPassportSale(){_passportBuyer="";_passportDestination="";_passportPrice=null;_passportSaleError=null;_showPassportSale=true;}
+    private void OpenPassportSale(){if(_bowl?.HandpanId is Guid id)Navigation.NavigateTo($"/warehouse/list?sell={id}");}
     private void ClosePassportSale(){if(!_passportSaleSaving)_showPassportSale=false;}
     private async Task SellFromPassportAsync(Guid handpanId)
     {
@@ -884,7 +884,7 @@
         _passportSaleSaving = true; _passportSaleError = null;
         try
         {
-            await ProductionService.SellAsync(handpanId, _passportBuyer.Trim(), _passportPrice, _passportDestination.Trim(), null, false, null);
+            await ProductionService.SellAsync(handpanId, _passportBuyer.Trim(), null, _passportPrice, _passportDestination.Trim(), null, false, null);
             _showPassportSale = false;
             await SearchAsync();
         }
@@ -913,7 +913,7 @@
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
         {
-            _error = "کاسه مکمل، اسکیل معتبر و وضعیت در انتظار چسب را بررسی کنید.";
+            _error = "کاسه مکمل، Scale معتبر و وضعیت در انتظار چسب را بررسی کنید.";
         }
         catch (HttpRequestException)
         {

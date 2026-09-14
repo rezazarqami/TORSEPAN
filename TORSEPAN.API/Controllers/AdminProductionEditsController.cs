@@ -40,14 +40,14 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
         var requestedScaleIds=bowlUpdates.Where(x=>x.ScaleId.HasValue).Select(x=>x.ScaleId!.Value).ToHashSet();
         if(request.HandpanScaleId.HasValue)requestedScaleIds.Add(request.HandpanScaleId.Value);
         var scales=await db.Scales.Where(x=>requestedScaleIds.Contains(x.Id)&&x.IsActive).ToDictionaryAsync(x=>x.Id,ct);
-        if(scales.Count!=requestedScaleIds.Count)return BadRequest("یکی از اسکیل‌های انتخاب‌شده معتبر یا فعال نیست.");
+        if(scales.Count!=requestedScaleIds.Count)return BadRequest("یکی از Scale‌های انتخاب‌شده معتبر یا فعال نیست.");
 
         foreach(var update in bowlUpdates)
         {
             var bowl=bowls.Single(x=>x.Id==update.BowlId);
             if(!update.ScaleId.HasValue){bowl.ClearScale();continue;}
             var usage=bowl.BowlType==BowlType.Top?ScaleUsage.TopBowl:ScaleUsage.BottomBowl;
-            if(!scales[update.ScaleId.Value].Usage.HasFlag(usage))return BadRequest($"اسکیل انتخاب‌شده برای {BowlTitle(bowl)} قابل استفاده نیست.");
+            if(!scales[update.ScaleId.Value].Usage.HasFlag(usage))return BadRequest($"Scale انتخاب‌شده برای {BowlTitle(bowl)} قابل استفاده نیست.");
             bowl.SetScale(update.ScaleId.Value);
         }
 
@@ -56,7 +56,7 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
             var handpan=await db.Handpans.SingleAsync(x=>x.Id==target.HandpanId.Value,ct);
             if(request.HandpanScaleId.HasValue)
             {
-                if(!scales[request.HandpanScaleId.Value].Usage.HasFlag(ScaleUsage.Handpan))return BadRequest("اسکیل انتخاب‌شده برای ساز قابل استفاده نیست.");
+                if(!scales[request.HandpanScaleId.Value].Usage.HasFlag(ScaleUsage.Handpan))return BadRequest("Scale انتخاب‌شده برای ساز قابل استفاده نیست.");
                 handpan.SetScale(request.HandpanScaleId.Value);
             }
             else handpan.ClearScale();

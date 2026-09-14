@@ -283,7 +283,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             .GroupBy(x => x.ScaleName).OrderBy(x => x.Key)
             .Select(x => new { x.Key, Count = x.Sum(y => y.Count) }).ToList();
         var appliedRates = c.Lines.GroupBy(x => new { Description = Desc(x), x.IsExport, x.IsCustom, x.Rate })
-            .Select(x => new { Title = (x.Key.IsExport ? "صادراتی — " : x.Key.IsCustom ? "کاستوم — " : "") + x.Key.Description, x.Key.Rate })
+            .Select(x => new { Title = (x.Key.IsExport ? "صادراتی — " : x.Key.IsCustom ? "Custom — " : "") + x.Key.Description, x.Key.Rate })
             .OrderBy(x => x.Title).ToList();
 
         return Document.Create(doc => doc.Page(page =>
@@ -348,7 +348,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                 }
 
                 AddSection("دستمزد تولید عادی", c.Lines.Where(x => !x.IsExport && !x.IsCustom));
-                AddSection("دستمزد تولید کاستوم", c.Lines.Where(x => x.IsCustom && !x.IsExport));
+                AddSection("دستمزد تولید Custom", c.Lines.Where(x => x.IsCustom && !x.IsExport));
                 AddSection("دستمزد تولید صادراتی", c.Lines.Where(x => x.IsExport));
 
                 if (scales.Count > 0)

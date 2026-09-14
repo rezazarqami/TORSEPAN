@@ -18,6 +18,13 @@ public sealed class PersonalWorkspaceService(ApiClient api)
         if(to.HasValue)query+="&to="+to.Value.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture);
         return await api.GetAsync<MyActivityDto>(query)??new();
     }
+    public async Task<MyPayrollDto> PayrollAsync(DateTime? from,DateTime? to)
+    {
+        var query="me/activity/payroll?x=1";
+        if(from.HasValue)query+="&from="+from.Value.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture);
+        if(to.HasValue)query+="&to="+to.Value.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture);
+        return await api.GetAsync<MyPayrollDto>(query)??new();
+    }
     public async Task<InboxDto> InboxAsync(int page=1)=>await api.GetAsync<InboxDto>($"notifications?page={page}")??new();
     public async Task ReadAsync(Guid id)
     { await api.PostAsync<object,object?>($"notifications/{id}/read",new{});await RefreshUnreadAsync(); }
@@ -25,4 +32,3 @@ public sealed class PersonalWorkspaceService(ApiClient api)
     public async Task SendAsync(Guid id,string title,string body,bool broadcast,Guid? recipient)
     { await api.PostAsync<object,object?>("notifications",new{Id=id,Title=title,Body=body,Broadcast=broadcast,RecipientId=recipient});await RefreshUnreadAsync(); }
 }
-

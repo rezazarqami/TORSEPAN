@@ -29,15 +29,15 @@
     </section>
 
     <section class="edit-section">
-        <header><div><small>تنظیمات فنی</small><h3>اسکیل ساز و کاسه‌ها</h3></div><span>@_record.Bowls.Count کاسه مرتبط</span></header>
+        <header><div><small>تنظیمات فنی</small><h3>Scale ساز و کاسه‌ها</h3></div><span>@_record.Bowls.Count کاسه مرتبط</span></header>
         <div class="scale-grid">
             @if(_record.HandpanId.HasValue)
             {
-                <article class="scale-card handpan-scale"><div class="card-icon">🎵</div><div class="scale-copy"><small>اسکیل نهایی ساز</small><strong>@_record.Code</strong><span>هماهنگ با شناسنامه ساز</span></div><label><span>انتخاب اسکیل</span><select @bind="_record.HandpanScaleId"><option value="">بدون اسکیل</option>@foreach(var scale in ScalesFor(4)){<option value="@scale.Id">@scale.Name</option>}</select></label></article>
+                <article class="scale-card handpan-scale"><div class="card-icon">🎵</div><div class="scale-copy"><small>Scale نهایی ساز</small><strong>@_record.Code</strong><span>هماهنگ با شناسنامه ساز</span></div><label><span>انتخاب Scale</span><select @bind="_record.HandpanScaleId"><option value="">بدون Scale</option>@foreach(var scale in ScalesFor(4)){<option value="@scale.Id">@scale.Name</option>}</select></label></article>
             }
             @foreach(var bowl in _record.Bowls)
             {
-                <article class="scale-card"><div class="card-icon">🥣</div><div class="scale-copy"><small>@bowl.BowlType</small><strong>@bowl.Code</strong><span>@bowl.Material • @bowl.StageTitle</span></div><label><span>اسکیل این کاسه</span><select @bind="bowl.ScaleId"><option value="">بدون اسکیل</option>@foreach(var scale in ScalesFor(bowl.BowlType.Contains("رو")?1:2)){<option value="@scale.Id">@scale.Name</option>}</select></label></article>
+                <article class="scale-card"><div class="card-icon">🥣</div><div class="scale-copy"><small>@bowl.BowlType</small><strong>@bowl.Code</strong><span>@bowl.Material • @bowl.StageTitle</span></div><label><span>Scale این کاسه</span><select @bind="bowl.ScaleId"><option value="">بدون Scale</option>@foreach(var scale in ScalesFor(bowl.BowlType.Contains("رو")?1:2)){<option value="@scale.Id">@scale.Name</option>}</select></label></article>
             }
         </div>
     </section>
@@ -69,7 +69,7 @@
 
 @if(_confirming&&_record is not null)
 {
-    <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>اسکیل‌ها و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
+    <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>Scale‌ها و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
 }
 
 @code{
@@ -106,7 +106,7 @@
             var request=new AdminProductionEditRequest(_record.HandpanScaleId,_record.Bowls.Select(x=>new AdminBowlScaleUpdate(x.Id,x.ScaleId)).ToList(),_record.Events.Select(x=>new AdminEventUserUpdate(x.Id,x.UserId)).ToList());
             _record=await EditService.UpdateAsync(_record.RequestedCode,request)??_record;_confirming=false;_message="تغییرات شناسنامه با موفقیت ذخیره شد.";_messageError=false;
         }
-        catch{_confirming=false;_message="ذخیره تغییرات انجام نشد. اسکیل و ثبت‌کننده‌های انتخاب‌شده را دوباره بررسی کنید.";_messageError=true;}
+        catch{_confirming=false;_message="ذخیره تغییرات انجام نشد. Scale و ثبت‌کننده‌های انتخاب‌شده را دوباره بررسی کنید.";_messageError=true;}
         finally{_saving=false;}
     }
 

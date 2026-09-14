@@ -16,7 +16,9 @@ public sealed class User : Entity
 
     public bool IsActive { get; private set; }
     public int DisplayOrder { get; private set; }
+    public bool ShowMyPayroll { get; private set; }
     public void SetDisplayOrder(int order) => DisplayOrder = Math.Max(0, order);
+    public void SetShowMyPayroll(bool value) => ShowMyPayroll = value;
 
     public ICollection<UserRole> UserRoles { get; private set; }
         = new List<UserRole>();

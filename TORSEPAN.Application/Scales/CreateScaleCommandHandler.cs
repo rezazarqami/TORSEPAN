@@ -16,7 +16,7 @@ public sealed class CreateScaleCommandHandler : IRequestHandler<CreateScaleComma
         var name = request.Name.Trim();
         var usage = (ScaleUsage)request.Usage;
         if (usage == ScaleUsage.None || (usage & ~ScaleUsage.All) != 0)
-            throw new InvalidOperationException("دسته‌بندی اسکیل معتبر نیست.");
+            throw new InvalidOperationException("دسته‌بندی Scale معتبر نیست.");
         var existing = (await _unitOfWork.Scales.FindAsync(x => x.Name == name)).FirstOrDefault();
         if (existing is not null)
         {

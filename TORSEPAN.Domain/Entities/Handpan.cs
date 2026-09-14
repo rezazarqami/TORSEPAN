@@ -44,27 +44,30 @@ public class Handpan : Entity
 
     public DateTime? UpdatedAt { get; private set; }
     public string? BuyerName { get; private set; }
+    public string? BuyerPhoneNumber { get; private set; }
     public DateTime? SoldAt { get; private set; }
     public Guid? SoldByUserId { get; private set; }
     public decimal? SalePrice { get; private set; }
     public string? SaleDestination { get; private set; }
 
-    public void Sell(string? buyerName, decimal? price, string? destination, Guid soldByUserId)
+    public void Sell(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination, Guid soldByUserId)
     {
         if (Stage != ProductionStage.FinishedWarehouse) throw new InvalidOperationException("Handpan is not in warehouse.");
         if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
         BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
+        BuyerPhoneNumber = string.IsNullOrWhiteSpace(buyerPhoneNumber) ? null : buyerPhoneNumber.Trim();
         SalePrice = price;
         SaleDestination = string.IsNullOrWhiteSpace(destination) ? null : destination.Trim();
         SoldByUserId = soldByUserId; SoldAt = DateTime.UtcNow;
         Stage = ProductionStage.Sold; UpdatedAt = SoldAt;
     }
 
-    public void UpdateSaleDetails(string? buyerName, decimal? price, string? destination)
+    public void UpdateSaleDetails(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination)
     {
         if (Stage != ProductionStage.Sold) throw new InvalidOperationException("Handpan is not sold.");
         if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
         BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
+        BuyerPhoneNumber = string.IsNullOrWhiteSpace(buyerPhoneNumber) ? null : buyerPhoneNumber.Trim();
         SalePrice = price;
         SaleDestination = string.IsNullOrWhiteSpace(destination) ? null : destination.Trim();
         UpdatedAt = DateTime.UtcNow;
@@ -76,6 +79,7 @@ public class Handpan : Entity
             throw new InvalidOperationException("Handpan is not sold.");
 
         BuyerName = null;
+        BuyerPhoneNumber = null;
         SalePrice = null;
         SaleDestination = null;
         SoldByUserId = null;

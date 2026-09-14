@@ -27,7 +27,7 @@
         else if(_tab=="production")
         {
             <MultiPicker Title="متریال" Items="@MaterialOptions" Selected="@_materials" OnToggle="ToggleMaterial" />
-            <MultiPicker Title="اسکیل" Items="@ScaleOptions" Selected="@_scales" OnToggle="ToggleScale" />
+            <MultiPicker Title="Scale" Items="@ScaleOptions" Selected="@_scales" OnToggle="ToggleScale" />
             <label><span>دستمزد</span><select class="form-select" @bind="_payroll"><option value="all">همه موارد</option><option value="calculated">محاسبه شده</option><option value="uncalculated">محاسبه نشده</option></select></label>
             <label><span>مقصد</span><select class="form-select" @bind="_destination"><option value="all">همه</option><option value="domestic">داخلی</option><option value="export">صادراتی</option></select></label>
         }
@@ -37,7 +37,7 @@
             @if(_inventoryKind=="instruments")
             {
                 <MultiPicker Title="متریال" Items="@MaterialOptions" Selected="@_materials" OnToggle="ToggleMaterial" />
-                <MultiPicker Title="اسکیل" Items="@ScaleOptions" Selected="@_scales" OnToggle="ToggleScale" />
+                <MultiPicker Title="Scale" Items="@ScaleOptions" Selected="@_scales" OnToggle="ToggleScale" />
                 <label><span>مقصد</span><select class="form-select" @bind="_destination"><option value="all">همه</option><option value="domestic">داخلی</option><option value="export">صادراتی</option></select></label>
             }
         }
@@ -118,14 +118,14 @@ else if(_tab=="production")
         <div class="handpan-trend"><ReportTrendChart Points="@_production.HandpanTrend" Title="روند ماهانه سازهای واردشده به انبار" Unit="ساز" /></div>
     </div>
     <section class="analytics-card"><header><div><small>نمای فشرده کارگاه</small><h3>شش نمودار کلیدی تولید</h3></div><span>بازه انتخاب‌شده</span></header><ReportDonutGrid Charts="@_production.Donuts" /></section>
-    <section class="result-card"><header><h3>خلاصه تولید</h3><span>@_production.Summary.Sum(x=>x.Count) کاسه</span></header><div class="table-responsive"><table class="table"><thead><tr><th>متریال</th><th>اسکیل</th><th>مقصد</th><th>تعداد</th></tr></thead><tbody>@foreach(var item in _production.Summary){<tr><td><strong>@item.Material</strong></td><td>@item.Scale</td><td><span class="destination-pill">@item.Destination</span></td><td>@item.Count</td></tr>}</tbody></table></div></section>
+    <section class="result-card"><header><h3>خلاصه تولید</h3><span>@_production.Summary.Sum(x=>x.Count) کاسه</span></header><div class="table-responsive"><table class="table"><thead><tr><th>متریال</th><th>Scale</th><th>مقصد</th><th>تعداد</th></tr></thead><tbody>@foreach(var item in _production.Summary){<tr><td><strong>@item.Material</strong></td><td>@item.Scale</td><td><span class="destination-pill">@item.Destination</span></td><td>@item.Count</td></tr>}</tbody></table></div></section>
 }
 else
 {
     @if(_inventoryKind=="instruments")
     {
         <div class="metric-row two"><article><small>موجودی داخلی</small><strong>@_inventory.DomesticCount</strong></article><article><small>موجودی صادراتی</small><strong>@_inventory.ExportCount</strong></article></div>
-        <section class="result-card"><header><h3>موجودی انبار سازها</h3><span>@_inventory.Instruments.Count مورد</span></header><div class="table-responsive"><table class="table"><thead><tr><th>کد</th><th>نوع</th><th>متریال</th><th>اسکیل</th><th>مقصد</th></tr></thead><tbody>@if(_inventory.Instruments.Count==0){<tr><td colspan="5" class="empty-cell">موردی با این فیلترها پیدا نشد.</td></tr>}@foreach(var item in _inventory.Instruments){<tr><td><strong>@item.Code</strong></td><td>@item.ItemType</td><td>@item.Material</td><td>@item.Scale</td><td><span class="destination-pill">@item.Destination</span></td></tr>}</tbody></table></div></section>
+        <section class="result-card"><header><h3>موجودی انبار سازها</h3><span>@_inventory.Instruments.Count مورد</span></header><div class="table-responsive"><table class="table"><thead><tr><th>کد</th><th>نوع</th><th>متریال</th><th>Scale</th><th>مقصد</th></tr></thead><tbody>@if(_inventory.Instruments.Count==0){<tr><td colspan="5" class="empty-cell">موردی با این فیلترها پیدا نشد.</td></tr>}@foreach(var item in _inventory.Instruments){<tr><td><strong>@item.Code</strong></td><td>@item.ItemType</td><td>@item.Material</td><td>@item.Scale</td><td><span class="destination-pill">@item.Destination</span></td></tr>}</tbody></table></div></section>
     }
     else
     {
@@ -147,7 +147,7 @@ else
     protected override async Task OnInitializedAsync(){var materials=MaterialService.GetAsync();var scales=ScaleService.GetAsync();var operations=ReportService.GetAsync();await Task.WhenAll(materials,scales,operations);_materialOptions=(await materials).ToList();_scaleOptions=(await scales).ToList();_operations=await operations;_loading=false;}
     private async Task SwitchTab(string tab){_tab=tab;_message=null;await LoadCurrentAsync();}
     private async Task LoadCurrentAsync(){_loading=true;_message=null;try{if(_tab=="operations"){Guid? user=Guid.TryParse(_user,out var u)?u:null;int? action=int.TryParse(_action,out var a)?a:null;_operations=await ReportService.GetAsync(_from,_to,user,action);}else if(_tab=="production")_production=await ReportService.GetProductionAsync(_from,_to,_materials,_scales,_payroll,_destination);else _inventory=await ReportService.GetInventoryAsync(_from,_to,_inventoryKind,_materials,_scales,_destination);}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_loading=false;}}
-    private Task ToggleMaterial(Guid id)=>ToggleLimited(_materials,id,"متریال");private Task ToggleScale(Guid id)=>ToggleLimited(_scales,id,"اسکیل");private Task ToggleLimited(HashSet<Guid> set,Guid id,string title){if(!set.Remove(id)){if(set.Count>=3){_filterNotice=$"حداکثر سه {title} را می‌توانید هم‌زمان انتخاب کنید.";return Task.CompletedTask;}set.Add(id);}_filterNotice=null;return Task.CompletedTask;}
+    private Task ToggleMaterial(Guid id)=>ToggleLimited(_materials,id,"متریال");private Task ToggleScale(Guid id)=>ToggleLimited(_scales,id,"Scale");private Task ToggleLimited(HashSet<Guid> set,Guid id,string title){if(!set.Remove(id)){if(set.Count>=3){_filterNotice=$"حداکثر سه {title} را می‌توانید هم‌زمان انتخاب کنید.";return Task.CompletedTask;}set.Add(id);}_filterNotice=null;return Task.CompletedTask;}
     private async Task ClearAsync(){_from=_to=null;_user=_action="";_payroll=_destination="all";_materials.Clear();_scales.Clear();_filterNotice=null;await LoadCurrentAsync();}
     private (Guid? User,int? Action) OperationFilters(){Guid? u=Guid.TryParse(_user,out var user)?user:null;int? a=int.TryParse(_action,out var action)?action:null;return(u,a);}
     private async Task DownloadPdfAsync(){_exporting=true;_message=null;try{var f=OperationFilters();var bytes=await ReportService.PdfAsync(_tab,_from,_to,_materials,_scales,_payroll,_destination,_inventoryKind,f.User,f.Action);await JS.InvokeVoidAsync("torsepanReports.download",$"torsepan-{_tab}-{DateTime.Now:yyyyMMdd-HHmm}.pdf",bytes);_message="فایل PDF آماده و دانلود شد.";_messageError=false;}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_exporting=false;}}

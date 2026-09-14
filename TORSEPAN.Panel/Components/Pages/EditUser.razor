@@ -39,6 +39,10 @@
                 </div>
 
                 <div class="col-12">
+                    <div class="form-check mb-3">
+                        <InputCheckbox class="form-check-input" @bind-Value="_model.ShowMyPayroll" />
+                        <label class="form-check-label">نمایش «دستمزد من» برای این کاربر</label>
+                    </div>
                     <label class="form-label">نقش‌ها</label>
                     <div class="row g-2">
                         @foreach (var role in _roles)
@@ -95,6 +99,7 @@
         _model.UserName = user.UserName;
         _model.FullName = user.FullName;
         _model.Title = user.Title;
+        _model.ShowMyPayroll = user.ShowMyPayroll;
 
         var selectedRoleIds = user.RoleIds.ToHashSet();
         _roles = (await rolesTask)
@@ -122,6 +127,7 @@
                 _model.UserName,
                 _model.FullName,
                 _model.Title,
+                _model.ShowMyPayroll,
                 _roles.Where(x => x.IsSelected).Select(x => x.Id).ToList()));
 
             Navigation.NavigateTo("/users/list");
@@ -143,6 +149,7 @@
         public string UserName { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
+        public bool ShowMyPayroll { get; set; }
     }
 
     private sealed class RoleOption

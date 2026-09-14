@@ -33,6 +33,7 @@ public class HandpanConfiguration : IEntityTypeConfiguration<Handpan>
         builder.Property(x => x.Stage)
             .IsRequired();
         builder.Property(x => x.BuyerName).HasMaxLength(200);
+        builder.Property(x => x.BuyerPhoneNumber).HasMaxLength(30);
         builder.Property(x => x.SalePrice).HasPrecision(18, 2);
         builder.Property(x => x.SaleDestination).HasMaxLength(200);
 
