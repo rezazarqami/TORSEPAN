@@ -32,4 +32,4 @@ EXPOSE 8080
 COPY --from=build /app/api ./api
 COPY --from=build /app/panel ./panel
 USER $APP_UID
-ENTRYPOINT ["sh", "-c", "if [ \"$TORSEPAN_SERVICE\" = \"api\" ]; then exec dotnet /app/api/TORSEPAN.API.dll; elif [ \"$TORSEPAN_SERVICE\" = \"panel\" ]; then exec dotnet /app/panel/TORSEPAN.Panel.dll; else echo 'TORSEPAN_SERVICE must be api or panel' >&2; exit 1; fi"]
+ENTRYPOINT ["sh", "-c", "if [ \"$TORSEPAN_SERVICE\" = \"api\" ]; then cd /app/api && exec dotnet TORSEPAN.API.dll; elif [ \"$TORSEPAN_SERVICE\" = \"panel\" ]; then cd /app/panel && exec dotnet TORSEPAN.Panel.dll; else echo 'TORSEPAN_SERVICE must be api or panel' >&2; exit 1; fi"]
