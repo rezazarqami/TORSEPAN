@@ -24,12 +24,13 @@ public sealed class PayrollExclusionsController(TORSEPANDbContext db) : Controll
         var bowlIds = handpan is null ? new[] { bowl!.Id } : new[] { handpan.Assembly.TopBowlId, handpan.Assembly.BottomBowlId };
         var assemblyId = handpan?.AssemblyId;
         var handpanId = handpan?.Id;
-        var events = await db.ProductionEvents.AsNoTracking().Include(x => x.User).Include(x => x.Bowl)
+        var rows = await db.ProductionEvents.AsNoTracking().Include(x => x.User).Include(x => x.Bowl)
             .Where(x => x.Result == EventResult.Completed && Allowed.Contains(x.Action) &&
                 ((x.BowlId.HasValue && bowlIds.Contains(x.BowlId.Value)) ||
                  (assemblyId.HasValue && x.AssemblyId == assemblyId) ||
                  (handpanId.HasValue && x.HandpanId == handpanId)))
-            .OrderBy(x => x.EventDate).Select(x => new { x.Id, Action = x.Action.ToString(), ActionTitle = Title(x.Action), BowlCode = x.Bowl != null ? x.Bowl.ProductionCode : null, Performer = x.User.FullName, x.EventDate, x.IsPayrollExcluded }).ToListAsync(ct);
+            .OrderBy(x => x.EventDate).Select(x => new { x.Id, x.Action, BowlCode = x.Bowl != null ? x.Bowl.ProductionCode : null, Performer = x.User.FullName, x.EventDate, x.IsPayrollExcluded }).ToListAsync(ct);
+        var events = rows.Select(x => new { x.Id, Action = x.Action.ToString(), ActionTitle = Title(x.Action), x.BowlCode, x.Performer, x.EventDate, x.IsPayrollExcluded });
         return Ok(new { Code = handpan?.SerialNumber ?? bowl!.ProductionCode, Events = events });
     }
 
