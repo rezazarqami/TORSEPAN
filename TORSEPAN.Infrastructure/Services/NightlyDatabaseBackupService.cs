@@ -64,12 +64,17 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             ? relay.Replace("telegram-inventory-alert", "telegram-database-backup", StringComparison.OrdinalIgnoreCase)
             : relay;
         var tehranNow = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3.5));
-        var file = Path.Combine(Path.GetTempPath(), $"TORSEPAN-{tehranNow:yyyy-MM-dd-HHmm}.dump");
+        var file = Path.Combine(Path.GetTempPath(), $"TORSEPAN-DATA-{tehranNow:yyyy-MM-dd-HHmm}.dump");
         try
         {
             var connection = BuildConnection(db);
             var info = new ProcessStartInfo("pg_dump") { RedirectStandardError=true, UseShellExecute=false };
             info.ArgumentList.Add("--format=custom");
+            // Instrument photos are already-compressed WebP binaries and make the
+            // nightly Telegram backup grow beyond its single-file upload limit.
+            // Keep the HandpanPhotos table and its relationships in the dump, but
+            // back up its binary rows separately on demand.
+            info.ArgumentList.Add("--exclude-table-data=public.\"HandpanPhotos\"");
             info.ArgumentList.Add($"--file={file}");
             info.ArgumentList.Add($"--host={connection.Host}");
             info.ArgumentList.Add($"--port={connection.Port}");
