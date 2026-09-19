@@ -36,6 +36,7 @@ public class HandpanConfiguration : IEntityTypeConfiguration<Handpan>
         builder.Property(x => x.BuyerPhoneNumber).HasMaxLength(30);
         builder.Property(x => x.SalePrice).HasPrecision(18, 2);
         builder.Property(x => x.SaleDestination).HasMaxLength(200);
+        builder.Property(x => x.IsExportSale);
         builder.Property(x => x.WarrantyActivatedAt);
 
         // -----------------------------

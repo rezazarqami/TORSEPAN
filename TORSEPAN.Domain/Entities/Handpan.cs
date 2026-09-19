@@ -49,6 +49,7 @@ public class Handpan : Entity
     public Guid? SoldByUserId { get; private set; }
     public decimal? SalePrice { get; private set; }
     public string? SaleDestination { get; private set; }
+    public bool? IsExportSale { get; private set; }
     public DateTime? WarrantyActivatedAt { get; private set; }
 
     public void ActivateWarranty()
@@ -57,26 +58,28 @@ public class Handpan : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Sell(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination, Guid soldByUserId)
+    public void Sell(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination, bool isExportSale, Guid soldByUserId)
     {
         if (Stage != ProductionStage.FinishedWarehouse) throw new InvalidOperationException("Handpan is not in warehouse.");
         if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
         BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
         BuyerPhoneNumber = string.IsNullOrWhiteSpace(buyerPhoneNumber) ? null : buyerPhoneNumber.Trim();
         SalePrice = price;
-        SaleDestination = string.IsNullOrWhiteSpace(destination) ? null : destination.Trim();
+        IsExportSale = isExportSale;
+        SaleDestination = isExportSale && !string.IsNullOrWhiteSpace(destination) ? destination.Trim() : null;
         SoldByUserId = soldByUserId; SoldAt = DateTime.UtcNow;
         Stage = ProductionStage.Sold; UpdatedAt = SoldAt;
     }
 
-    public void UpdateSaleDetails(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination)
+    public void UpdateSaleDetails(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination, bool? isExportSale = null)
     {
         if (Stage != ProductionStage.Sold) throw new InvalidOperationException("Handpan is not sold.");
         if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
         BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
         BuyerPhoneNumber = string.IsNullOrWhiteSpace(buyerPhoneNumber) ? null : buyerPhoneNumber.Trim();
         SalePrice = price;
-        SaleDestination = string.IsNullOrWhiteSpace(destination) ? null : destination.Trim();
+        if (isExportSale.HasValue) IsExportSale = isExportSale.Value;
+        SaleDestination = IsExportSale == true && !string.IsNullOrWhiteSpace(destination) ? destination.Trim() : null;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -89,6 +92,7 @@ public class Handpan : Entity
         BuyerPhoneNumber = null;
         SalePrice = null;
         SaleDestination = null;
+        IsExportSale = null;
         SoldByUserId = null;
         SoldAt = null;
         Stage = ProductionStage.FinishedWarehouse;

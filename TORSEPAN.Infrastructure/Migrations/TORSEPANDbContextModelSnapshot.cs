@@ -135,6 +135,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool?>("IsExportSale")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("SaleDestination")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");

@@ -72,7 +72,12 @@ else
                 <label><span>مبلغ کل</span><input type="number" min="0" class="form-control" @bind="_price" placeholder="اختیاری" /></label>
                 <label><span>مبلغ دریافتی</span><input type="number" min="0" class="form-control" @bind="_receivedAmount" placeholder="اختیاری" /></label>
                 <label><span>مبلغ مانده</span><input class="form-control" value="@RemainingAmountText" disabled /></label>
-                <label><span>مقصد</span><input class="form-control" @bind="_destination" placeholder="مثلاً کانادا (اختیاری)" /></label>
+                <fieldset class="wide sale-kind-field">
+                    <legend>نوع فروش <strong>*</strong></legend>
+                    <label><input type="radio" name="sale-kind" checked="@(_isExportSale==false)" @onchange="()=>SetSaleKind(false)" /><span>داخلی</span></label>
+                    <label><input type="radio" name="sale-kind" checked="@(_isExportSale==true)" @onchange="()=>SetSaleKind(true)" /><span>صادراتی</span></label>
+                </fieldset>
+                @if(_isExportSale==true){<label><span>مقصد</span><input class="form-control" @bind="_destination" placeholder="مثلاً کانادا (اختیاری)" /></label>}
                 <label class="paid-field wide"><input type="checkbox" @bind="_activateWarranty" /><span>فعال‌سازی گارانتی</span></label>
             </div>
             @if(!string.IsNullOrWhiteSpace(_saleError)){<div class="sale-error">@_saleError</div>}
@@ -88,7 +93,7 @@ else
     private bool _canSell;
     private bool _loading=true,_saving,_activateWarranty,_galleryLoading,_showGallery; private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_buyer="",_buyerPhone="",_destination="";
     private List<WarehouseGalleryPhotoDto> _galleryPhotos=[]; private string? _galleryPreviewUrl;
-    private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price,_receivedAmount; private Guid? _selectedPartyId;
+    private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price,_receivedAmount; private Guid? _selectedPartyId; private bool? _isExportSale;
     private string RemainingAmountText=>_price.HasValue?Math.Max(0,_price.Value-(_receivedAmount??0)).ToString("N0"):"—";
     private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(string.IsNullOrWhiteSpace(_search)||x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.TopBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BottomBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search,StringComparison.OrdinalIgnoreCase))&&(string.IsNullOrWhiteSpace(_appliedMaterialFilter)||x.MaterialName==_appliedMaterialFilter)&&(string.IsNullOrWhiteSpace(_appliedScaleFilter)||x.ScaleName==_appliedScaleFilter));
     private bool HasActiveFilter=>!string.IsNullOrWhiteSpace(_search)||!string.IsNullOrWhiteSpace(_appliedMaterialFilter)||!string.IsNullOrWhiteSpace(_appliedScaleFilter);
@@ -114,7 +119,8 @@ else
     private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
     private void BeginSale(WarehouseHandpanDto item){_selected.Clear();_selected.Add(item.HandpanId);OpenSale([item.HandpanId]);}
     private void BeginSelectedSale()=>OpenSale(_selected.ToList());
-    private void OpenSale(IEnumerable<Guid> ids){_saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_buyerPhone="";_destination="";_selectedPartyId=null;_activateWarranty=false;_price=null;_receivedAmount=null;_saleError=null;}
+    private void OpenSale(IEnumerable<Guid> ids){_saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_buyerPhone="";_destination="";_selectedPartyId=null;_activateWarranty=false;_isExportSale=null;_price=null;_receivedAmount=null;_saleError=null;}
+    private void SetSaleKind(bool isExport){_isExportSale=isExport;if(!isExport)_destination="";_saleError=null;}
     private void Cancel(){if(_saving)return;_saleIds.Clear();}
-    private async Task SellAsync(){if(_saleIds.Count==0)return;_saving=true;_saleError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);var buyer=party?.Name??_buyer.Trim();var phone=party?.Phone??_buyerPhone.Trim();await ProductionService.SellManyAsync(_saleIds,buyer,phone,_price,_receivedAmount,_destination.Trim(),party?.Id,_activateWarranty);_items.RemoveAll(x=>_saleIds.Contains(x.HandpanId));_selected.Clear();_saleIds.Clear();}catch(HttpRequestException ex){_saleError=string.IsNullOrWhiteSpace(ex.Message)?"ثبت فروش انجام نشد.":ex.Message;}finally{_saving=false;}}
+    private async Task SellAsync(){if(_saleIds.Count==0)return;if(!_isExportSale.HasValue){_saleError="نوع فروش (داخلی یا صادراتی) را انتخاب کنید.";return;}_saving=true;_saleError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);var buyer=party?.Name??_buyer.Trim();var phone=party?.Phone??_buyerPhone.Trim();await ProductionService.SellManyAsync(_saleIds,buyer,phone,_price,_receivedAmount,_isExportSale.Value,_destination.Trim(),party?.Id,_activateWarranty);_items.RemoveAll(x=>_saleIds.Contains(x.HandpanId));_selected.Clear();_saleIds.Clear();}catch(HttpRequestException ex){_saleError=string.IsNullOrWhiteSpace(ex.Message)?"ثبت فروش انجام نشد.":ex.Message;}finally{_saving=false;}}
 }

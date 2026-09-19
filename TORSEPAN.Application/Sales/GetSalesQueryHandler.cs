@@ -19,6 +19,7 @@ public sealed class GetSalesQueryHandler(IUnitOfWork unitOfWork)
             return new SaleItemResponse
             {
                 HandpanId = x.Id,
+                IsExportSale = x.IsExportSale == true,
                 ItemType = "ساز",
                 SerialNumber = x.SerialNumber,
                 BuyerName = x.BuyerName ?? "",

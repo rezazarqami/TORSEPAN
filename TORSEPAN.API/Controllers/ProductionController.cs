@@ -196,6 +196,7 @@ public sealed class ProductionController : ControllerBase
         var ids = request.HandpanIds.Distinct().ToList();
         if (ids.Count == 0) return BadRequest("حداقل یک ساز را انتخاب کنید.");
         if (ids.Count > 200) return BadRequest("در هر مرحله حداکثر ۲۰۰ ساز قابل ثبت است.");
+        if (!request.Sale.IsExportSale.HasValue) return BadRequest("نوع فروش (داخلی یا صادراتی) الزامی است.");
         var validationError = ValidateWarrantyRequest(request.Sale);
         if (validationError is not null) return BadRequest(validationError);
         var serials = await _db.Handpans.Where(x => ids.Contains(x.Id)).Select(x => x.SerialNumber).ToListAsync();
@@ -231,16 +232,17 @@ public sealed class ProductionController : ControllerBase
         if (request.PartyId.HasValue && party is null) return BadRequest("شخص انتخاب‌شده معتبر نیست.");
         var handpan = await _db.Handpans.FirstOrDefaultAsync(x => x.Id == handpanId);
         if (handpan is null) return NotFound();
-        try { handpan.UpdateSaleDetails(party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination); }
+        var destination = request.IsExportSale == true ? request.Destination : null;
+        try { handpan.UpdateSaleDetails(party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination, request.IsExportSale); }
         catch (InvalidOperationException) { return BadRequest("این ساز در وضعیت فروخته‌شده نیست."); }
         var document = await _db.AccountingDocuments.FirstOrDefaultAsync(x => x.HandpanId == handpanId && x.Type == AccountingDocumentType.Revenue);
         if (request.Price.HasValue)
         {
             var paid = Math.Min(request.Price.Value, request.ReceivedAmount ?? document?.PaidAmount ?? 0);
             if (document is null)
-                _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {handpan.SerialNumber}", request.Price.Value, paid, party?.Id, handpanId, null, SaleNotes(request.Destination), CurrentUserId()));
+                _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {handpan.SerialNumber}", request.Price.Value, paid, party?.Id, handpanId, null, SaleNotes(destination), CurrentUserId()));
             else
-                try { document.UpdateSale(request.Price.Value, paid, party?.Id, null, SaleNotes(request.Destination)); }
+                try { document.UpdateSale(request.Price.Value, paid, party?.Id, null, SaleNotes(destination)); }
                 catch (ArgumentOutOfRangeException) { return BadRequest("قیمت نمی‌تواند از مبلغی که قبلاً دریافت شده کمتر باشد."); }
         }
         else if (document is not null && document.PaidAmount == 0)
@@ -264,7 +266,8 @@ public sealed class ProductionController : ControllerBase
         var handpan = await _db.Handpans.FirstOrDefaultAsync(x => x.Id == handpanId);
         if (handpan is null) return "یکی از سازهای انتخاب‌شده پیدا نشد.";
         var serial = handpan.SerialNumber;
-        await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination));
+        if (!request.IsExportSale.HasValue) return "نوع فروش (داخلی یا صادراتی) الزامی است.";
+        await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination, request.IsExportSale.Value));
         if (request.ActivateWarranty) handpan.ActivateWarranty();
         if (request.Price.HasValue)
             _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {serial}", request.Price.Value, Math.Min(request.Price.Value, request.ReceivedAmount ?? 0), party?.Id, handpanId, null, SaleNotes(request.Destination), CurrentUserId()));
@@ -354,7 +357,7 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Rollback(Guid handpanId, CancellationToken cancellationToken)
         => await _rollbackService.RollbackHandpanAsync(handpanId, cancellationToken) ? NoContent() : BadRequest();
 }
-public sealed record SellHandpanRequest(string? BuyerName, string? BuyerPhoneNumber, decimal? Price, decimal? ReceivedAmount, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty);
+public sealed record SellHandpanRequest(string? BuyerName, string? BuyerPhoneNumber, decimal? Price, decimal? ReceivedAmount, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty, bool? IsExportSale);
 public sealed record BulkSellHandpansRequest(IReadOnlyCollection<Guid> HandpanIds, SellHandpanRequest Sale);
 public sealed record SellHandpansResponse(bool SaleRegistered, bool WarrantyActivated, string? Warning);
 public sealed record WarehouseGalleryRequest(IReadOnlyCollection<Guid> HandpanIds);
