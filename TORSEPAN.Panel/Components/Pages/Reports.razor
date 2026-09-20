@@ -4,14 +4,17 @@
 @inject ReportService ReportService
 @inject MaterialService MaterialService
 @inject ScaleService ScaleService
+@inject SalesAttributionService AttributionService
 @inject IJSRuntime JS
 
 <PageTitle>گزارش‌های مدیریتی</PageTitle>
+<style>.report-tabs{grid-template-columns:repeat(4,1fr)!important}.source-report-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:14px}.source-bars{display:grid;gap:12px;padding:18px}.source-bars article{display:grid;grid-template-columns:minmax(110px,1fr) 2fr 55px;align-items:center;gap:12px}.source-bars article>div:first-child{display:flex;justify-content:space-between;gap:8px}.source-bars span{color:#788995;font-size:.7rem}.source-bars b{color:#176a53;text-align:left}.source-track{overflow:hidden;height:11px;border-radius:999px;background:#e8eef1}.source-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#1b7963,#3bae86)}@@media(max-width:800px){.source-report-grid{grid-template-columns:1fr}.report-tabs{grid-template-columns:repeat(2,1fr)!important}.source-bars article{grid-template-columns:1fr}.source-bars b{text-align:right}}</style>
 <section class="report-hero"><small>مرکز تحلیل</small><h1>TORSEPAN</h1><p>نمای یکپارچه از عملیات، تولید و موجودی کارگاه</p></section>
 <nav class="report-tabs">
     <button class="@TabClass("operations")" @onclick='()=>SwitchTab("operations")'><i>01</i><span><b>گزارش عملیات</b><small>کارکرد اعضای کارگاه</small></span></button>
     <button class="@TabClass("production")" @onclick='()=>SwitchTab("production")'><i>02</i><span><b>گزارش تولید</b><small>تحلیل سازها و مراحل</small></span></button>
     <button class="@TabClass("inventory")" @onclick='()=>SwitchTab("inventory")'><i>03</i><span><b>گزارش انبار</b><small>سازها و مواد اولیه</small></span></button>
+    <button class="@TabClass("sales-sources")" @onclick='()=>SwitchTab("sales-sources")'><i>04</i><span><b>منابع فروش</b><small>روش آشنایی و معرف‌ها</small></span></button>
 </nav>
 
 <section class="report-filter-card">
@@ -31,7 +34,7 @@
             <label><span>دستمزد</span><select class="form-select" @bind="_payroll"><option value="all">همه موارد</option><option value="calculated">محاسبه شده</option><option value="uncalculated">محاسبه نشده</option></select></label>
             <label><span>مقصد</span><select class="form-select" @bind="_destination"><option value="all">همه</option><option value="domestic">داخلی</option><option value="export">صادراتی</option></select></label>
         }
-        else
+        else if(_tab=="inventory")
         {
             <label><span>نوع انبار</span><select class="form-select" @bind="_inventoryKind"><option value="instruments">انبار سازها</option><option value="materials">انبار مواد اولیه</option></select></label>
             @if(_inventoryKind=="instruments")
@@ -43,7 +46,7 @@
         }
     </div>
     @if(!string.IsNullOrWhiteSpace(_filterNotice)){<p class="filter-notice">@_filterNotice</p>}
-    <footer><button class="btn run-report" @onclick="LoadCurrentAsync" disabled="@_loading">@(_loading?"در حال تحلیل…":"نمایش گزارش")</button><button class="btn btn-light" @onclick="ClearAsync">پاک کردن فیلترها</button><div class="export-actions"><button class="btn pdf-button" disabled="@_exporting" @onclick="DownloadPdfAsync">↓ خروجی PDF</button><button class="btn telegram-button" disabled="@_exporting" @onclick="SendTelegramAsync">ارسال PDF به تلگرام</button></div></footer>
+    <footer><button class="btn run-report" @onclick="LoadCurrentAsync" disabled="@_loading">@(_loading?"در حال تحلیل…":"نمایش گزارش")</button><button class="btn btn-light" @onclick="ClearAsync">پاک کردن فیلترها</button>@if(_tab!="sales-sources"){<div class="export-actions"><button class="btn pdf-button" disabled="@_exporting" @onclick="DownloadPdfAsync">↓ خروجی PDF</button><button class="btn telegram-button" disabled="@_exporting" @onclick="SendTelegramAsync">ارسال PDF به تلگرام</button></div>}</footer>
     @if(!string.IsNullOrWhiteSpace(_message)){<div class="report-message @(_messageError?"error":"success")">@_message</div>}
 </section>
 
@@ -120,6 +123,11 @@ else if(_tab=="production")
     <section class="analytics-card"><header><div><small>نمای فشرده کارگاه</small><h3>شش نمودار کلیدی تولید</h3></div><span>بازه انتخاب‌شده</span></header><ReportDonutGrid Charts="@_production.Donuts" /></section>
     <section class="result-card"><header><h3>خلاصه تولید</h3><span>@_production.Summary.Sum(x=>x.Count) کاسه</span></header><div class="table-responsive"><table class="table"><thead><tr><th>متریال</th><th>Scale</th><th>مقصد</th><th>تعداد</th></tr></thead><tbody>@foreach(var item in _production.Summary){<tr><td><strong>@item.Material</strong></td><td>@item.Scale</td><td><span class="destination-pill">@item.Destination</span></td><td>@item.Count</td></tr>}</tbody></table></div></section>
 }
+else if(_tab=="sales-sources")
+{
+    <div class="metric-row two"><article><small>کل فروش در بازه</small><strong>@_salesSources.Total</strong></article><article><small>فروش دارای منبع مشخص</small><strong>@_salesSources.Sources.Where(x=>x.Name!="ثبت‌نشده").Sum(x=>x.Count)</strong></article></div>
+    <div class="source-report-grid"><section class="result-card"><header><h3>نحوه آشنایی مشتریان</h3><span>@_salesSources.Sources.Count روش</span></header><div class="source-bars">@foreach(var row in _salesSources.Sources){<article><div><strong>@row.Name</strong><span>@row.Count فروش</span></div><div class="source-track"><i style="width:@row.Percentage%"></i></div><b>@row.Percentage.ToString("0.#")٪</b></article>}</div></section><section class="result-card"><header><h3>رتبه‌بندی معرف‌ها</h3><span>@_salesSources.Referrers.Count معرف</span></header><div class="table-responsive"><table class="table"><thead><tr><th>رتبه</th><th>نام معرف</th><th>تعداد فروش</th></tr></thead><tbody>@for(var i=0;i<_salesSources.Referrers.Count;i++){var row=_salesSources.Referrers[i];<tr><td>@(i+1)</td><td><strong>@row.Name</strong></td><td>@row.Count</td></tr>}@if(_salesSources.Referrers.Count==0){<tr><td colspan="3" class="empty-cell">هنوز فروشی با معرف ثبت نشده است.</td></tr>}</tbody></table></div></section></div>
+}
 else
 {
     @if(_inventoryKind=="instruments")
@@ -138,15 +146,15 @@ else
 @code{
     private string _tab="operations",_user="",_action="",_payroll="all",_destination="all",_inventoryKind="instruments";
     private DateTime? _from,_to;private bool _loading=true,_exporting,_messageError;private string? _message,_filterNotice;
-    private ProductionReportDto _operations=new();private ProductionAnalyticsDto _production=new();private InventoryReportDto _inventory=new();
+    private ProductionReportDto _operations=new();private ProductionAnalyticsDto _production=new();private InventoryReportDto _inventory=new();private SalesAttributionReportDto _salesSources=new();
     private List<MaterialDto> _materialOptions=[];private List<ScaleDto> _scaleOptions=[];private readonly HashSet<Guid> _materials=[];private readonly HashSet<Guid> _scales=[];
     private IEnumerable<PickerItem> MaterialOptions=>_materialOptions.Where(x=>x.Category==4).Select(x=>new PickerItem(x.Id,x.Name));private IEnumerable<PickerItem> ScaleOptions=>_scaleOptions.Select(x=>new PickerItem(x.Id,x.Name));
     private static readonly (int Id,string Title)[] Actions=[(1,"ثبت اولیه"),(2,"دیمپل"),(3,"شیپ"),(4,"پخت"),(5,"چسب"),(6,"تیون"),(7,"فاین‌تیون"),(8,"کنترل کیفیت"),(9,"بسته‌بندی"),(10,"ورود به انبار"),(11,"برگشتی"),(12,"فروش")];
-    private string TabTitle=>_tab switch{"production"=>"گزارش تولید","inventory"=>"گزارش انبار",_=>"گزارش عملیات"};private string TabClass(string value)=>_tab==value?"report-tab active":"report-tab";
+    private string TabTitle=>_tab switch{"production"=>"گزارش تولید","inventory"=>"گزارش انبار","sales-sources"=>"گزارش منابع فروش",_=>"گزارش عملیات"};private string TabClass(string value)=>_tab==value?"report-tab active":"report-tab";
     private static string Signed(double value)=>value.ToString("+0.#;-0.#;0");private static string DeltaClass(double value)=>value>=0?"positive":"negative";
     protected override async Task OnInitializedAsync(){var materials=MaterialService.GetAsync();var scales=ScaleService.GetAsync();var operations=ReportService.GetAsync();await Task.WhenAll(materials,scales,operations);_materialOptions=(await materials).ToList();_scaleOptions=(await scales).ToList();_operations=await operations;_loading=false;}
     private async Task SwitchTab(string tab){_tab=tab;_message=null;await LoadCurrentAsync();}
-    private async Task LoadCurrentAsync(){_loading=true;_message=null;try{if(_tab=="operations"){Guid? user=Guid.TryParse(_user,out var u)?u:null;int? action=int.TryParse(_action,out var a)?a:null;_operations=await ReportService.GetAsync(_from,_to,user,action);}else if(_tab=="production")_production=await ReportService.GetProductionAsync(_from,_to,_materials,_scales,_payroll,_destination);else _inventory=await ReportService.GetInventoryAsync(_from,_to,_inventoryKind,_materials,_scales,_destination);}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_loading=false;}}
+    private async Task LoadCurrentAsync(){_loading=true;_message=null;try{if(_tab=="operations"){Guid? user=Guid.TryParse(_user,out var u)?u:null;int? action=int.TryParse(_action,out var a)?a:null;_operations=await ReportService.GetAsync(_from,_to,user,action);}else if(_tab=="production")_production=await ReportService.GetProductionAsync(_from,_to,_materials,_scales,_payroll,_destination);else if(_tab=="sales-sources")_salesSources=await AttributionService.ReportAsync(_from,_to);else _inventory=await ReportService.GetInventoryAsync(_from,_to,_inventoryKind,_materials,_scales,_destination);}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_loading=false;}}
     private Task ToggleMaterial(Guid id)=>ToggleLimited(_materials,id,"متریال");private Task ToggleScale(Guid id)=>ToggleLimited(_scales,id,"Scale");private Task ToggleLimited(HashSet<Guid> set,Guid id,string title){if(!set.Remove(id)){if(set.Count>=3){_filterNotice=$"حداکثر سه {title} را می‌توانید هم‌زمان انتخاب کنید.";return Task.CompletedTask;}set.Add(id);}_filterNotice=null;return Task.CompletedTask;}
     private async Task ClearAsync(){_from=_to=null;_user=_action="";_payroll=_destination="all";_materials.Clear();_scales.Clear();_filterNotice=null;await LoadCurrentAsync();}
     private (Guid? User,int? Action) OperationFilters(){Guid? u=Guid.TryParse(_user,out var user)?user:null;int? a=int.TryParse(_action,out var action)?action:null;return(u,a);}

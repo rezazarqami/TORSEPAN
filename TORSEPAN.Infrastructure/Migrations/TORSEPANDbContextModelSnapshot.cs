@@ -152,6 +152,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<Guid?>("SaleLeadSourceId").HasColumnType("uuid");
+                    b.Property<Guid?>("SalesReferrerId").HasColumnType("uuid");
+
                     b.Property<Guid?>("ScaleId")
                         .HasColumnType("uuid");
 
@@ -185,10 +188,30 @@ namespace TORSEPAN.Infrastructure.Migrations
 
                     b.HasIndex("ScaleId");
 
+                    b.HasIndex("SaleLeadSourceId");
+                    b.HasIndex("SalesReferrerId");
+
                     b.HasIndex("SerialNumber")
                         .IsUnique();
 
                     b.ToTable("Handpans", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.SaleLeadSource", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uuid");
+                    b.Property<bool>("IsActive").HasColumnType("boolean");
+                    b.Property<string>("Name").IsRequired().HasColumnType("text");
+                    b.Property<bool>("RequiresReferrer").HasColumnType("boolean");
+                    b.HasKey("Id"); b.ToTable("SaleLeadSources");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.SalesReferrer", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uuid");
+                    b.Property<bool>("IsActive").HasColumnType("boolean");
+                    b.Property<string>("Name").IsRequired().HasColumnType("text");
+                    b.HasKey("Id"); b.ToTable("SalesReferrers");
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.HandpanAssembly", b =>

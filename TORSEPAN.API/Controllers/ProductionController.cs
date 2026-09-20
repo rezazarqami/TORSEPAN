@@ -232,6 +232,8 @@ public sealed class ProductionController : ControllerBase
         if (request.PartyId.HasValue && party is null) return BadRequest("شخص انتخاب‌شده معتبر نیست.");
         var handpan = await _db.Handpans.FirstOrDefaultAsync(x => x.Id == handpanId);
         if (handpan is null) return NotFound();
+        var attributionError = await ValidateAttributionAsync(request);
+        if (attributionError is not null) return BadRequest(attributionError);
         var destination = request.IsExportSale == true ? request.Destination : null;
         try { handpan.UpdateSaleDetails(party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination, request.IsExportSale); }
         catch (InvalidOperationException) { return BadRequest("این ساز در وضعیت فروخته‌شده نیست."); }
@@ -249,6 +251,7 @@ public sealed class ProductionController : ControllerBase
             _db.AccountingDocuments.Remove(document);
         else if (document is not null)
             return BadRequest("به دلیل ثبت دریافت وجه، قیمت این فروش نمی‌تواند خالی شود.");
+        handpan.SetSaleAttribution(request.LeadSourceId, request.ReferrerId);
         await _db.SaveChangesAsync();
         if (request.ActivateWarranty)
         {
@@ -267,7 +270,10 @@ public sealed class ProductionController : ControllerBase
         if (handpan is null) return "یکی از سازهای انتخاب‌شده پیدا نشد.";
         var serial = handpan.SerialNumber;
         if (!request.IsExportSale.HasValue) return "نوع فروش (داخلی یا صادراتی) الزامی است.";
+        var attributionError = await ValidateAttributionAsync(request);
+        if (attributionError is not null) return attributionError;
         await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination, request.IsExportSale.Value));
+        handpan.SetSaleAttribution(request.LeadSourceId, request.ReferrerId);
         if (request.ActivateWarranty) handpan.ActivateWarranty();
         if (request.Price.HasValue)
             _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {serial}", request.Price.Value, Math.Min(request.Price.Value, request.ReceivedAmount ?? 0), party?.Id, handpanId, null, SaleNotes(request.Destination), CurrentUserId()));
@@ -276,6 +282,18 @@ public sealed class ProductionController : ControllerBase
     }
 
     private Guid CurrentUserId() => Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+    private async Task<string?> ValidateAttributionAsync(SellHandpanRequest request)
+    {
+        if (!request.LeadSourceId.HasValue)
+            return request.ReferrerId.HasValue ? "برای معرف، نحوه آشنایی را نیز انتخاب کنید." : null;
+        var source = await _db.SaleLeadSources.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.LeadSourceId && x.IsActive);
+        if (source is null) return "نحوه آشنایی انتخاب‌شده معتبر نیست.";
+        if (source.RequiresReferrer && !request.ReferrerId.HasValue) return "انتخاب نام معرف الزامی است.";
+        if (!source.RequiresReferrer && request.ReferrerId.HasValue) return "معرف فقط برای روش آشنایی «معرف» قابل انتخاب است.";
+        if (request.ReferrerId.HasValue && !await _db.SalesReferrers.AnyAsync(x => x.Id == request.ReferrerId && x.IsActive))
+            return "معرف انتخاب‌شده معتبر نیست.";
+        return null;
+    }
     private static string? SaleNotes(string? destination) => string.IsNullOrWhiteSpace(destination) ? null : $"مقصد: {destination.Trim()}";
 
     [HttpGet("sales")]
@@ -300,12 +318,16 @@ public sealed class ProductionController : ControllerBase
             .ToDictionaryAsync(x => x.Id, x => x.Phone ?? string.Empty);
         var salePhones = await _db.Handpans.AsNoTracking().Where(x => ids.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, x => x.BuyerPhoneNumber ?? string.Empty);
+        var attribution = await _db.Handpans.AsNoTracking().Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => new { x.SaleLeadSourceId, x.SalesReferrerId });
         foreach (var item in items.Where(x => !x.IsBowl))
         {
             item.BuyerPhoneNumber = item.PartyId.HasValue
                 ? partyPhones.GetValueOrDefault(item.PartyId.Value, salePhones.GetValueOrDefault(item.HandpanId, string.Empty))
                 : salePhones.GetValueOrDefault(item.HandpanId, string.Empty);
             item.IsWarrantyActive = locallyActiveWarrantyIds.Contains(item.HandpanId);
+            if (attribution.TryGetValue(item.HandpanId, out var source))
+            { item.LeadSourceId = source.SaleLeadSourceId; item.ReferrerId = source.SalesReferrerId; }
         }
         try
         {
@@ -357,7 +379,7 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Rollback(Guid handpanId, CancellationToken cancellationToken)
         => await _rollbackService.RollbackHandpanAsync(handpanId, cancellationToken) ? NoContent() : BadRequest();
 }
-public sealed record SellHandpanRequest(string? BuyerName, string? BuyerPhoneNumber, decimal? Price, decimal? ReceivedAmount, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty, bool? IsExportSale);
+public sealed record SellHandpanRequest(string? BuyerName, string? BuyerPhoneNumber, decimal? Price, decimal? ReceivedAmount, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty, bool? IsExportSale, Guid? LeadSourceId, Guid? ReferrerId);
 public sealed record BulkSellHandpansRequest(IReadOnlyCollection<Guid> HandpanIds, SellHandpanRequest Sale);
 public sealed record SellHandpansResponse(bool SaleRegistered, bool WarrantyActivated, string? Warning);
 public sealed record WarehouseGalleryRequest(IReadOnlyCollection<Guid> HandpanIds);

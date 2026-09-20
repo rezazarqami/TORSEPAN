@@ -51,6 +51,8 @@ public class Handpan : Entity
     public decimal? SalePrice { get; private set; }
     public string? SaleDestination { get; private set; }
     public bool? IsExportSale { get; private set; }
+    public Guid? SaleLeadSourceId { get; private set; }
+    public Guid? SalesReferrerId { get; private set; }
     public DateTime? WarrantyActivatedAt { get; private set; }
 
     public void ActivateWarranty()
@@ -84,6 +86,13 @@ public class Handpan : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void SetSaleAttribution(Guid? leadSourceId, Guid? referrerId)
+    {
+        SaleLeadSourceId = leadSourceId;
+        SalesReferrerId = referrerId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void ReturnToWarehouse()
     {
         if (Stage != ProductionStage.Sold)
@@ -94,6 +103,8 @@ public class Handpan : Entity
         SalePrice = null;
         SaleDestination = null;
         IsExportSale = null;
+        SaleLeadSourceId = null;
+        SalesReferrerId = null;
         SoldByUserId = null;
         SoldAt = null;
         Stage = ProductionStage.FinishedWarehouse;

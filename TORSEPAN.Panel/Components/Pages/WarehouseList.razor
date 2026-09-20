@@ -4,8 +4,10 @@
 @inject ProductionService ProductionService
 @inject TORSEPAN.Panel.Services.Api.AccountingService AccountingService
 @inject HandpanPhotoService PhotoService
+@inject SalesAttributionService AttributionService
 @inject IJSRuntime JS
 <PageTitle>انبار سازها</PageTitle>
+<style>.inline-add{display:grid;grid-template-columns:1fr auto;align-items:end;gap:7px}.inline-add .btn{min-height:44px;border-radius:11px;white-space:nowrap}</style>
 <PageHeader Title="انبار سازها" SubTitle="سازهای بسته‌بندی‌شده و آماده فروش" />
 
 <div class="warehouse-tools">
@@ -78,6 +80,9 @@ else
                     <label><input type="radio" name="sale-kind" checked="@(_isExportSale==true)" @onchange="()=>SetSaleKind(true)" /><span>صادراتی</span></label>
                 </fieldset>
                 @if(_isExportSale==true){<label><span>مقصد</span><input class="form-control" @bind="_destination" placeholder="مثلاً کانادا (اختیاری)" /></label>}
+                <label><span>نحوه آشنایی</span><select class="form-select" @bind="_leadSourceId" @bind:after="LeadSourceChanged"><option value="">انتخاب نشده</option>@foreach(var source in _attribution.Sources){<option value="@source.Id">@source.Name</option>}</select></label>
+                <div class="inline-add"><input class="form-control" @bind="_newSource" placeholder="روش جدید" /><button type="button" class="btn btn-outline-primary" @onclick="AddSourceAsync">افزودن</button></div>
+                @if(SelectedSourceRequiresReferrer){<label><span>نام معرف <strong>*</strong></span><select class="form-select" @bind="_referrerId"><option value="">انتخاب معرف</option>@foreach(var item in _attribution.Referrers){<option value="@item.Id">@item.Name</option>}</select></label><div class="inline-add"><input class="form-control" @bind="_newReferrer" placeholder="نام معرف جدید" /><button type="button" class="btn btn-outline-primary" @onclick="AddReferrerAsync">افزودن</button></div>}
                 <label class="paid-field wide"><input type="checkbox" @bind="_activateWarranty" /><span>فعال‌سازی گارانتی</span></label>
             </div>
             @if(!string.IsNullOrWhiteSpace(_saleError)){<div class="sale-error">@_saleError</div>}
@@ -93,13 +98,14 @@ else
     private bool _canSell;
     private bool _loading=true,_saving,_activateWarranty,_galleryLoading,_showGallery; private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_buyer="",_buyerPhone="",_destination="";
     private List<WarehouseGalleryPhotoDto> _galleryPhotos=[]; private string? _galleryPreviewUrl;
-    private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price,_receivedAmount; private Guid? _selectedPartyId; private bool? _isExportSale;
+    private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price,_receivedAmount; private Guid? _selectedPartyId,_leadSourceId,_referrerId; private bool? _isExportSale;private string _newSource="",_newReferrer="";private SalesAttributionOptionsDto _attribution=new();
+    private bool SelectedSourceRequiresReferrer=>_attribution.Sources.FirstOrDefault(x=>x.Id==_leadSourceId)?.RequiresReferrer==true;
     private string RemainingAmountText=>_price.HasValue?Math.Max(0,_price.Value-(_receivedAmount??0)).ToString("N0"):"—";
     private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(string.IsNullOrWhiteSpace(_search)||x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.TopBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BottomBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search,StringComparison.OrdinalIgnoreCase))&&(string.IsNullOrWhiteSpace(_appliedMaterialFilter)||x.MaterialName==_appliedMaterialFilter)&&(string.IsNullOrWhiteSpace(_appliedScaleFilter)||x.ScaleName==_appliedScaleFilter));
     private bool HasActiveFilter=>!string.IsNullOrWhiteSpace(_search)||!string.IsNullOrWhiteSpace(_appliedMaterialFilter)||!string.IsNullOrWhiteSpace(_appliedScaleFilter);
     private bool AllVisibleSelected=>Items.Any()&&Items.All(x=>_selected.Contains(x.HandpanId));
     private IEnumerable<string> SaleCodes=>_items.Where(x=>_saleIds.Contains(x.HandpanId)).Select(x=>x.SerialNumber);
-    protected override async Task OnInitializedAsync(){try{var user=(await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;_canSell=user.IsInRole("Administrator")||user.IsInRole("ProductionManager")||user.IsInRole("SalesAdmin");_items=(await ProductionService.GetWarehouseAsync()).ToList();if(_canSell)_parties=await AccountingService.PartiesAsync();if(_canSell&&SellHandpanId.HasValue){var item=_items.FirstOrDefault(x=>x.HandpanId==SellHandpanId.Value);if(item is not null)BeginSale(item);}}catch(Exception e){_error=e.Message;}finally{_loading=false;}}
+    protected override async Task OnInitializedAsync(){try{var user=(await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;_canSell=user.IsInRole("Administrator")||user.IsInRole("ProductionManager")||user.IsInRole("SalesAdmin");_items=(await ProductionService.GetWarehouseAsync()).ToList();if(_canSell){_parties=await AccountingService.PartiesAsync();_attribution=await AttributionService.OptionsAsync();}if(_canSell&&SellHandpanId.HasValue){var item=_items.FirstOrDefault(x=>x.HandpanId==SellHandpanId.Value);if(item is not null)BeginSale(item);}}catch(Exception e){_error=e.Message;}finally{_loading=false;}}
     private void ApplyFilters(){_appliedMaterialFilter=_materialFilter;_appliedScaleFilter=_scaleFilter;_expanded.Clear();}
     private async Task OpenGalleryAsync(){if(_galleryLoading)return;_galleryLoading=true;try{_galleryPhotos=await ProductionService.GetWarehouseGalleryAsync(Items.Select(x=>x.HandpanId).ToList());_showGallery=true;}finally{_galleryLoading=false;}}
     private void CloseGallery(){_showGallery=false;_galleryPreviewUrl=null;}
@@ -119,8 +125,11 @@ else
     private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
     private void BeginSale(WarehouseHandpanDto item){_selected.Clear();_selected.Add(item.HandpanId);OpenSale([item.HandpanId]);}
     private void BeginSelectedSale()=>OpenSale(_selected.ToList());
-    private void OpenSale(IEnumerable<Guid> ids){_saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_buyerPhone="";_destination="";_selectedPartyId=null;_activateWarranty=false;_isExportSale=null;_price=null;_receivedAmount=null;_saleError=null;}
+    private void OpenSale(IEnumerable<Guid> ids){_saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_buyerPhone="";_destination="";_selectedPartyId=null;_leadSourceId=null;_referrerId=null;_activateWarranty=false;_isExportSale=null;_price=null;_receivedAmount=null;_saleError=null;}
+    private void LeadSourceChanged(){if(!SelectedSourceRequiresReferrer)_referrerId=null;}
+    private async Task AddSourceAsync(){if(string.IsNullOrWhiteSpace(_newSource))return;try{var item=await AttributionService.AddSourceAsync(_newSource);if(item is not null){_attribution.Sources.Add(item);_leadSourceId=item.Id;_newSource="";}}catch(Exception ex){_saleError=ex.Message;}}
+    private async Task AddReferrerAsync(){if(string.IsNullOrWhiteSpace(_newReferrer))return;try{var item=await AttributionService.AddReferrerAsync(_newReferrer);if(item is not null){_attribution.Referrers.Add(item);_referrerId=item.Id;_newReferrer="";}}catch(Exception ex){_saleError=ex.Message;}}
     private void SetSaleKind(bool isExport){_isExportSale=isExport;if(!isExport)_destination="";_saleError=null;}
     private void Cancel(){if(_saving)return;_saleIds.Clear();}
-    private async Task SellAsync(){if(_saleIds.Count==0)return;if(!_isExportSale.HasValue){_saleError="نوع فروش (داخلی یا صادراتی) را انتخاب کنید.";return;}_saving=true;_saleError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);var buyer=party?.Name??_buyer.Trim();var phone=party?.Phone??_buyerPhone.Trim();await ProductionService.SellManyAsync(_saleIds,buyer,phone,_price,_receivedAmount,_isExportSale.Value,_destination.Trim(),party?.Id,_activateWarranty);_items.RemoveAll(x=>_saleIds.Contains(x.HandpanId));_selected.Clear();_saleIds.Clear();}catch(HttpRequestException ex){_saleError=string.IsNullOrWhiteSpace(ex.Message)?"ثبت فروش انجام نشد.":ex.Message;}finally{_saving=false;}}
+    private async Task SellAsync(){if(_saleIds.Count==0)return;if(!_isExportSale.HasValue){_saleError="نوع فروش (داخلی یا صادراتی) را انتخاب کنید.";return;}if(SelectedSourceRequiresReferrer&&!_referrerId.HasValue){_saleError="نام معرف را انتخاب کنید.";return;}_saving=true;_saleError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);var buyer=party?.Name??_buyer.Trim();var phone=party?.Phone??_buyerPhone.Trim();await ProductionService.SellManyAsync(_saleIds,buyer,phone,_price,_receivedAmount,_isExportSale.Value,_destination.Trim(),party?.Id,_activateWarranty,_leadSourceId,_referrerId);_items.RemoveAll(x=>_saleIds.Contains(x.HandpanId));_selected.Clear();_saleIds.Clear();}catch(HttpRequestException ex){_saleError=string.IsNullOrWhiteSpace(ex.Message)?"ثبت فروش انجام نشد.":ex.Message;}finally{_saving=false;}}
 }
