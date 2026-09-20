@@ -1,8 +1,34 @@
-const CACHE = "torsepan-shell-v1";
-const SHELL = ["/", "/manifest.webmanifest", "/icons/torsepan-192.png", "/icons/torsepan-512.png", "/icons/apple-touch-icon.png"];
-self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));
-self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
+const CACHE = "torsepan-static-v2";
+const STATIC_ASSETS = new Set([
+  "/manifest.webmanifest",
+  "/icons/torsepan-192.png",
+  "/icons/torsepan-512.png",
+  "/icons/apple-touch-icon.png"
+]);
+
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll([...STATIC_ASSETS]))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request).then(response => response || caches.match("/"))));
+
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin || !STATIC_ASSETS.has(url.pathname)) return;
+
+  event.respondWith(
+    caches.match(event.request).then(cached => cached || fetch(event.request))
+  );
 });

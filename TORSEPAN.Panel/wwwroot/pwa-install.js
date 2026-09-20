@@ -30,4 +30,9 @@ window.torsepanPwa = {
   }
 };
 
-if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js"));
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    const registration = await navigator.serviceWorker.register("/service-worker.js", { updateViaCache: "none" });
+    await registration.update();
+  });
+}
