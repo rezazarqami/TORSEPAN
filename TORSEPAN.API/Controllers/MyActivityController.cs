@@ -26,7 +26,8 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
         var userId=Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         // The client cannot choose a user ID. Filtering happens before paging or aggregation.
         var query=db.ProductionEvents.AsNoTracking().Where(x=>x.UserId==userId&&x.EventDate>=startUtc&&x.EventDate<endUtc
-            &&!x.Description.StartsWith("NOTE:")&&x.Description!="Released from glue room");
+            &&!x.Description.StartsWith("NOTE:")&&x.Description!="Released from glue room"
+            &&x.Action!=ProductionAction.Sale&&x.Action!=ProductionAction.Created);
         var total=await query.CountAsync(ct);
         var completed=await query.CountAsync(x=>x.Result==EventResult.Completed,ct);
         var summaryRows=await query.Where(x=>x.Result==EventResult.Completed).GroupBy(x=>new{

@@ -39,6 +39,7 @@ public class Handpan : Entity
     public ProductionStatus Status { get; private set; }
 
     public ProductionStage Stage { get; private set; }
+    public ExportWarehouseLocation? ExportWarehouseLocation { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
 
@@ -150,6 +151,22 @@ public class Handpan : Entity
     public void ChangeStatus(ProductionStatus status)
     {
         Status = status;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void MoveToExportWarehouse(ExportWarehouseLocation location)
+    {
+        if (!Enum.IsDefined(location)) throw new ArgumentOutOfRangeException(nameof(location));
+        Stage = ProductionStage.ExportWarehouse;
+        ExportWarehouseLocation = location;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ChangeExportWarehouseLocation(ExportWarehouseLocation location)
+    {
+        if (Stage != ProductionStage.ExportWarehouse) throw new InvalidOperationException("Handpan is not in export warehouse.");
+        if (!Enum.IsDefined(location)) throw new ArgumentOutOfRangeException(nameof(location));
+        ExportWarehouseLocation = location;
         UpdatedAt = DateTime.UtcNow;
     }
 

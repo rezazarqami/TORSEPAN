@@ -278,7 +278,8 @@
             else if (_bowl.Stage == 21)
             {
                 <div class="alert alert-info mt-3">این کاسه برای بسته‌بندی صادراتی آماده است.</div>
-                <button class="btn btn-success mt-3" disabled="@_loading" @onclick="CompleteExportPackagingAsync">
+                <div class="export-location-picker mt-3"><strong>انبار مقصد را انتخاب کنید</strong><div class="export-location-options">@foreach(var location in ExportLocations){<button type="button" class="@ExportLocationClass(location.Id)" @onclick="()=>_exportWarehouseLocation=location.Id"><span>@location.Icon</span><b>@location.Name</b></button>}</div></div>
+                <button class="btn btn-success mt-3" disabled="@(_loading || !_exportWarehouseLocation.HasValue)" @onclick="CompleteExportPackagingAsync">
                     بسته‌بندی صادراتی انجام شد
                 </button>
                 <button class="btn btn-outline-primary mt-3 me-2" disabled="@_loading" @onclick="AskReturnExportBowlToGlue">
@@ -405,8 +406,15 @@
                         }
                     </div></div>
                 </div>
+                <div class="export-warehouse-choice mt-3">
+                    <label class="form-check"><input class="form-check-input" type="checkbox" @bind="_sendToExportWarehouse" /><strong>ارسال به انبار صادراتی</strong></label>
+                    @if (_sendToExportWarehouse)
+                    {
+                        <p>یکی از انبارهای مقصد را انتخاب کنید.</p><div class="export-location-options">@foreach(var location in ExportLocations){<button type="button" class="@ExportLocationClass(location.Id)" @onclick="()=>_exportWarehouseLocation=location.Id"><span>@location.Icon</span><b>@location.Name</b></button>}</div>
+                    }
+                </div>
                 <button class="btn btn-success mt-3"
-                        disabled="@_loading"
+                        disabled="@(_loading || (_sendToExportWarehouse && !_exportWarehouseLocation.HasValue))"
                         @onclick="CompletePackagingAsync">
                     بسته‌بندی عادی انجام شد
                 </button>
@@ -472,6 +480,9 @@
     private IEnumerable<MaterialDto> CasePackagingMaterials => _packagingMaterials.Where(x => IsExclusiveCase(x.Name)).OrderBy(x => CaseOrder(x.Name)).ThenBy(x => x.Name);
     private IEnumerable<MaterialDto> OtherPackagingMaterials => _packagingMaterials.Where(x => !IsExclusiveCase(x.Name)).OrderBy(x => AccessoryOrder(x.Name)).ThenBy(x => x.Name);
     private readonly HashSet<Guid> _selectedPackagingMaterialIds = [];
+    private bool _sendToExportWarehouse;
+    private int? _exportWarehouseLocation;
+    private static readonly (int Id, string Name, string Icon)[] ExportLocations = [(1, "ترکیه", "TR"), (2, "لندن", "UK"), (3, "آلمان", "DE")];
     private string? _successMessage;
     private bool _showPassportSale, _passportSaleSaving;
     private string _passportBuyer = string.Empty, _passportDestination = string.Empty;
@@ -540,6 +551,8 @@
             _showQcRejection = false;
             _stageNote = string.Empty;
             _instrumentNote = string.Empty;
+            _sendToExportWarehouse = false;
+            _exportWarehouseLocation = null;
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
             if (_bowl?.Stage == 2)
                 _scaleId = DimpleScales.FirstOrDefault()?.Id ?? Guid.Empty;
@@ -638,8 +651,9 @@
 
     private Task CompleteExportPackagingAsync()
     {
+        if (!_exportWarehouseLocation.HasValue) { _error = "انبار مقصد را انتخاب کنید."; return Task.CompletedTask; }
         ShowOperationConfirmation("تأیید بسته‌بندی صادراتی",
-            [("کد کاسه", _productionCode), ("Scale کاسه", _bowl?.ScaleName ?? "نامشخص"), ("نتیجه", "انتقال به انبار صادراتی")],
+            [("کد کاسه", _productionCode), ("Scale کاسه", _bowl?.ScaleName ?? "نامشخص"), ("انبار مقصد", ExportLocationName(_exportWarehouseLocation.Value))],
             CompleteExportPackagingConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -648,7 +662,7 @@
     {
         await ExecuteAsync(async () =>
         {
-            var result = await BowlService.CompleteExportPackagingAsync(_productionCode);
+            var result = await BowlService.CompleteExportPackagingAsync(_productionCode, _exportWarehouseLocation!.Value);
             SetOperationResult(result, "بسته‌بندی انجام شد و کاسه وارد انبار صادراتی شد.", "ثبت بسته‌بندی صادراتی انجام نشد.");
         });
     }
@@ -738,13 +752,14 @@
 
     private Task CompletePackagingAsync()
     {
+        if (_sendToExportWarehouse && !_exportWarehouseLocation.HasValue) { _error = "برای ارسال صادراتی، انبار مقصد را انتخاب کنید."; return Task.CompletedTask; }
         var selectedItems = _packagingMaterials
             .Where(x => _selectedPackagingMaterialIds.Contains(x.Id))
             .Select(x => x.Name).ToList();
         ShowOperationConfirmation("تأیید بسته‌بندی ساز",
             [("کد ساز", _productionCode), ("Scale ساز", _bowl?.ScaleName ?? "نامشخص"),
              ("اقلام انتخاب‌شده", selectedItems.Count == 0 ? "بدون اقلام جانبی" : string.Join("، ", selectedItems)),
-             ("نتیجه", "ورود ساز به انبار")],
+             ("نتیجه", _sendToExportWarehouse ? $"ورود به انبار {ExportLocationName(_exportWarehouseLocation!.Value)}" : "ورود ساز به انبار داخلی")],
             CompletePackagingConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -754,10 +769,13 @@
         await SaveInstrumentNoteAsync();
         await ExecuteAsync(async () =>
         {
-            var result = await BowlService.CompletePackagingAsync(_productionCode, _selectedPackagingMaterialIds);
-            SetOperationResult(result, "بسته‌بندی عادی انجام شد و ساز وارد انبار شد.", "ثبت پایان بسته‌بندی عادی انجام نشد.");
+            var result = await BowlService.CompletePackagingAsync(_productionCode, _selectedPackagingMaterialIds, _sendToExportWarehouse ? _exportWarehouseLocation : null);
+            SetOperationResult(result, _sendToExportWarehouse ? "بسته‌بندی انجام شد و ساز وارد انبار صادراتی شد." : "بسته‌بندی عادی انجام شد و ساز وارد انبار شد.", "ثبت پایان بسته‌بندی انجام نشد.");
         });
     }
+
+    private string ExportLocationClass(int id) => _exportWarehouseLocation == id ? "export-location active" : "export-location";
+    private static string ExportLocationName(int id) => ExportLocations.First(x => x.Id == id).Name;
 
     private void TogglePackagingMaterial(Guid id, bool selected)
     {

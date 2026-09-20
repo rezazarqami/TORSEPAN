@@ -4,21 +4,28 @@
 @inject TORSEPAN.Panel.Services.Api.AccountingService AccountingService
 
 <PageTitle>انبار صادراتی</PageTitle>
-<PageHeader Title="انبار صادراتی" SubTitle="کاسه‌های تیون و بسته‌بندی‌شده برای ارسال خارجی" />
+<PageHeader Title="انبار صادراتی" SubTitle="مدیریت سازها و کاسه‌های آماده ارسال در سه انبار خارجی" />
+
+<div class="warehouse-dashboard">
+    @foreach(var warehouse in Warehouses)
+    {
+        <button class="warehouse-card @(_activeLocation==warehouse.Id?"active":"")" @onclick="()=>SelectWarehouse(warehouse.Id)"><span class="warehouse-flag">@warehouse.Code</span><div><small>انبار صادراتی</small><strong>@warehouse.Name</strong></div><b>@_items.Count(x=>x.Location==warehouse.Id)</b></button>
+    }
+</div>
 
 <div class="export-tools">
-    <input class="form-control" placeholder="جست‌وجوی کد کاسه یا متریال..." @bind="_search" @bind:event="oninput" />
+    <input class="form-control" placeholder="جست‌وجوی کد ساز، کاسه یا مشخصات..." @bind="_search" @bind:event="oninput" />
     <AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin">
         <button class="btn ship-selected" disabled="@(_selected.Count == 0)" @onclick="OpenSelectedShipment">ثبت ارسال <span>@_selected.Count</span></button>
     </AuthorizeView>
 </div>
 <Card>
     @if (_loading) { <div class="text-center p-5"><div class="spinner-border"></div></div> }
-    else if (!Items.Any()) { <EmptyState Title="انبار صادراتی خالی است" Description="پس از تکمیل بسته‌بندی صادراتی، کاسه‌ها در این قسمت قرار می‌گیرند." /> }
+    else if (!Items.Any()) { <EmptyState Title="این انبار خالی است" Description="پس از انتخاب این مقصد در بسته‌بندی، سازها و کاسه‌ها در این قسمت قرار می‌گیرند." /> }
     else
     {
-        <DataTable><thead><tr><th class="select-column"><input type="checkbox" checked="@AllVisibleSelected" @onchange="ToggleAll" aria-label="انتخاب همه" /></th><th>کد کاسه</th><th>نوع کاسه</th><th>متریال</th><th>وضعیت</th><th>ارسال</th><th>حذف</th></tr></thead>
-        <tbody>@foreach (var item in Items) { <tr class="@(_selected.Contains(item.Id)?"selected-row":null)"><td class="select-column"><input type="checkbox" checked="@_selected.Contains(item.Id)" @onchange="e=>Toggle(item.Id,(bool)(e.Value??false))" aria-label="انتخاب @item.ProductionCode" /></td><td><strong>@item.ProductionCode</strong></td><td>@(item.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</td><td>@item.MaterialName</td><td><span class="ready-badge">آماده ارسال</span></td><td><AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>OpenShipment(item)">ارسال</button></AuthorizeView></td><td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>RequestDelete(item)">حذف</button></AuthorizeView></td></tr> }</tbody></DataTable>
+        <DataTable><thead><tr><th class="select-column">انتخاب</th><th>کد</th><th>نوع موجودی</th><th>مشخصات</th><th>انبار</th><th>عملیات</th></tr></thead>
+        <tbody>@foreach (var item in Items) { <tr class="@(_selected.Contains(item.Id)?"selected-row":null)"><td class="select-column">@if(item.ItemType=="bowl"){<input type="checkbox" checked="@_selected.Contains(item.Id)" @onchange="e=>Toggle(item.Id,(bool)(e.Value??false))" aria-label="انتخاب @item.ProductionCode" />}</td><td><strong>@item.ProductionCode</strong></td><td><span class="item-kind @item.ItemType">@item.ItemKind</span></td><td>@item.Detail</td><td><span class="location-badge">@WarehouseName(item.Location)</span></td><td><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView>@if(item.ItemType=="bowl"){<AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>OpenShipment(item)">ارسال</button></AuthorizeView>}<AuthorizeView Roles="Administrator">@if(item.ItemType=="bowl"){<button class="btn btn-sm btn-outline-danger" @onclick="()=>RequestDelete(item)">حذف</button>}</AuthorizeView></div></td></tr> }</tbody></DataTable>
     }
 </Card>
 
@@ -40,6 +47,11 @@
     </section></div>
 }
 
+@if (_locationCandidate is not null)
+{
+    <div class="shipment-overlay" @onclick="CloseLocationEditor"><section class="location-dialog" @onclick:stopPropagation="true"><small>ویرایش جایگاه موجودی</small><h3>@_locationCandidate.ProductionCode</h3><p>این مورد به کدام انبار منتقل شود؟</p><div class="location-choices">@foreach(var warehouse in Warehouses){<button class="@(_newLocation==warehouse.Id?"active":"")" @onclick="()=>_newLocation=warehouse.Id"><span>@warehouse.Code</span><strong>@warehouse.Name</strong></button>}</div>@if(!string.IsNullOrWhiteSpace(_locationError)){<div class="shipment-error">@_locationError</div>}<footer><button class="btn btn-light" @onclick="CloseLocationEditor">انصراف</button><button class="btn btn-primary" disabled="@_savingLocation" @onclick="SaveLocationAsync">ثبت جابه‌جایی</button></footer></section></div>
+}
+
 <AppConfirmDialog IsOpen="@(_deleteCandidate is not null)" Title="حذف کاسه صادراتی" Message="@DeleteMessage" ConfirmText="حذف برای همیشه" Error="@_deleteError" Busy="@_deleting" OnConfirm="ConfirmDeleteAsync" OnCancel="CancelDelete" />
 
 @code {
@@ -47,20 +59,28 @@
     private List<TORSEPAN.Panel.Models.AccountingPartyDto> _parties = [];
     private readonly HashSet<Guid> _selected = [];
     private readonly List<Guid> _shipmentIds = [];
-    private bool _loading = true, _saving, _deleting;
+    private bool _loading = true, _saving, _deleting, _savingLocation;
     private string _search = "", _buyerName = "", _destination = "";
-    private string? _shippingMethod, _error, _deleteError;
+    private string? _shippingMethod, _error, _deleteError, _locationError;
     private bool? _isSettled;
     private Guid? _partyId;
     private ExportWarehouseItemDto? _deleteCandidate;
-    private IEnumerable<ExportWarehouseItemDto> Items => string.IsNullOrWhiteSpace(_search) ? _items : _items.Where(x => x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.MaterialName.Contains(_search, StringComparison.OrdinalIgnoreCase));
-    private bool AllVisibleSelected => Items.Any() && Items.All(x => _selected.Contains(x.Id));
+    private ExportWarehouseItemDto? _locationCandidate;
+    private int _activeLocation=1, _newLocation=1;
+    private static readonly (int Id,string Name,string Code)[] Warehouses=[(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE")];
+    private IEnumerable<ExportWarehouseItemDto> Items => _items.Where(x=>x.Location==_activeLocation && (string.IsNullOrWhiteSpace(_search) || x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase)));
+    private bool AllVisibleSelected => Items.Any(x=>x.ItemType=="bowl") && Items.Where(x=>x.ItemType=="bowl").All(x => _selected.Contains(x.Id));
     private string DeleteMessage => _deleteCandidate is null ? "" : $"کاسه صادراتی {_deleteCandidate.ProductionCode} برای همیشه حذف شود؟";
     protected override async Task OnInitializedAsync(){_loading=true;try{var bowls=BowlService.GetExportWarehouseAsync();var parties=AccountingService.PartiesAsync();await Task.WhenAll(bowls,parties);_items=(await bowls).ToList();_parties=await parties;}finally{_loading=false;}}
     private void Toggle(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
-    private void ToggleAll(ChangeEventArgs e){var selected=(bool)(e.Value??false);foreach(var item in Items){if(selected)_selected.Add(item.Id);else _selected.Remove(item.Id);}}
+    private void SelectWarehouse(int id){_activeLocation=id;_selected.Clear();}
+    private static string WarehouseName(int id)=>Warehouses.FirstOrDefault(x=>x.Id==id).Name??"نامشخص";
+    private void OpenLocationEditor(ExportWarehouseItemDto item){_locationCandidate=item;_newLocation=item.Location;_locationError=null;}
+    private void CloseLocationEditor(){if(!_savingLocation)_locationCandidate=null;}
+    private async Task SaveLocationAsync(){if(_locationCandidate is null)return;_savingLocation=true;_locationError=null;try{await BowlService.ChangeExportWarehouseLocationAsync(_locationCandidate.ItemType,_locationCandidate.Id,_newLocation);_locationCandidate.Location=_newLocation;_locationCandidate=null;}catch(Exception ex){_locationError=ex.Message;}finally{_savingLocation=false;}}
+    private void ToggleAll(ChangeEventArgs e){var selected=(bool)(e.Value??false);foreach(var item in Items.Where(x=>x.ItemType=="bowl")){if(selected)_selected.Add(item.Id);else _selected.Remove(item.Id);}}
     private void OpenShipment(ExportWarehouseItemDto item){_shipmentIds.Clear();_shipmentIds.Add(item.Id);ResetShipment();}
-    private void OpenSelectedShipment(){_shipmentIds.Clear();_shipmentIds.AddRange(_selected.Where(id=>_items.Any(x=>x.Id==id)));ResetShipment();}
+    private void OpenSelectedShipment(){_shipmentIds.Clear();_shipmentIds.AddRange(_selected.Where(id=>_items.Any(x=>x.Id==id&&x.ItemType=="bowl")));ResetShipment();}
     private void ResetShipment(){_partyId=null;_buyerName="";_destination="";_shippingMethod=null;_isSettled=null;_error=null;}
     private void CloseShipment(){if(_saving)return;_shipmentIds.Clear();}
     private static string ChoiceClass(string? current,string? value)=>current==value?"choice active":"choice";

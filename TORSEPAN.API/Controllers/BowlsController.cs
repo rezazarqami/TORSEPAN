@@ -12,6 +12,7 @@ using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Application;
 using TORSEPAN.Application.Bowls.Queries.GetExportWarehouse;
 using TORSEPAN.Application.Sales;
+using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -233,9 +234,9 @@ public sealed class BowlsController : ControllerBase
 
     [HttpPost("production/{productionCode}/export-packaging/complete")]
     [Authorize(Roles = "Workshop,Administrator")]
-    public async Task<ActionResult> CompleteExportPackaging(string productionCode, CancellationToken cancellationToken)
+    public async Task<ActionResult> CompleteExportPackaging(string productionCode, [FromBody] CompleteExportPackagingRequest request, CancellationToken cancellationToken)
         => this.ToActionResult(await _mediator.Send(
-            new CompleteExportPackagingCommand(productionCode), cancellationToken));
+            new CompleteExportPackagingCommand(productionCode, request.ExportWarehouseLocation), cancellationToken));
 
     [HttpPost("production/{productionCode}/export-packaging/send-to-glue")]
     [Authorize(Roles = "Workshop,Administrator")]
@@ -337,7 +338,7 @@ public sealed class BowlsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new CompleteHandpanPackagingCommand(productionCode, request.MaterialIds ?? []),
+            new CompleteHandpanPackagingCommand(productionCode, request.MaterialIds ?? [], request.ExportWarehouseLocation),
             cancellationToken);
 
         return this.ToActionResult(result);
@@ -348,3 +349,4 @@ public sealed record ProductionNoteRequest(string? Description, bool IsInstrumen
 public sealed record CompleteShapeRequest(TORSEPAN.Domain.Enums.OperationDuration Duration, Guid? ScaleId, Guid? StretchUserId, Guid? NoteAreaUserId, Guid? EditUserId);
 public sealed record ExportShipmentRequest(IReadOnlyCollection<Guid>? BowlIds, string? BuyerName,
     Guid? PartyId, string? Destination, string? ShippingMethod, bool? IsSettled);
+public sealed record CompleteExportPackagingRequest(ExportWarehouseLocation ExportWarehouseLocation);

@@ -48,6 +48,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<int>("BowlType")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ExportWarehouseLocation")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("HasNotes")
                         .HasColumnType("boolean");
 
@@ -134,6 +137,9 @@ namespace TORSEPAN.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ExportWarehouseLocation")
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("IsExportSale")
                         .HasColumnType("boolean");

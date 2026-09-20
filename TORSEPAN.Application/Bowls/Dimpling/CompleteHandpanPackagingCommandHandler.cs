@@ -72,12 +72,17 @@ public sealed class CompleteHandpanPackagingCommandHandler
                 MaterialStockMetadata.Encode(material.Id,material.Name,"general",-1,material.Quantity,"مصرف در بسته‌بندی")));
         }
 
-        handpan.ChangeStage(ProductionStage.FinishedWarehouse);
+        if (request.ExportWarehouseLocation.HasValue)
+            handpan.MoveToExportWarehouse(request.ExportWarehouseLocation.Value);
+        else
+            handpan.ChangeStage(ProductionStage.FinishedWarehouse);
         handpan.ChangeStatus(ProductionStatus.Completed);
         _unitOfWork.Handpans.Update(handpan);
 
         foreach (var item in bowls)
         {
+            // The assembled instrument is the export inventory item; its component bowls
+            // remain completed records and must not appear as separate warehouse stock.
             item.ChangeStage(ProductionStage.FinishedWarehouse);
             item.CompleteProduction();
             _unitOfWork.Bowls.Update(item);
