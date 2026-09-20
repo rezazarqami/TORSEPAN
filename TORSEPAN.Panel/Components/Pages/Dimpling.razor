@@ -636,7 +636,15 @@
         });
     }
 
-    private async Task CompleteExportPackagingAsync()
+    private Task CompleteExportPackagingAsync()
+    {
+        ShowOperationConfirmation("تأیید بسته‌بندی صادراتی",
+            [("کد کاسه", _productionCode), ("Scale کاسه", _bowl?.ScaleName ?? "نامشخص"), ("نتیجه", "انتقال به انبار صادراتی")],
+            CompleteExportPackagingConfirmedAsync);
+        return Task.CompletedTask;
+    }
+
+    private async Task CompleteExportPackagingConfirmedAsync()
     {
         await ExecuteAsync(async () =>
         {
@@ -728,7 +736,20 @@
         });
     }
 
-    private async Task CompletePackagingAsync()
+    private Task CompletePackagingAsync()
+    {
+        var selectedItems = _packagingMaterials
+            .Where(x => _selectedPackagingMaterialIds.Contains(x.Id))
+            .Select(x => x.Name).ToList();
+        ShowOperationConfirmation("تأیید بسته‌بندی ساز",
+            [("کد ساز", _productionCode), ("Scale ساز", _bowl?.ScaleName ?? "نامشخص"),
+             ("اقلام انتخاب‌شده", selectedItems.Count == 0 ? "بدون اقلام جانبی" : string.Join("، ", selectedItems)),
+             ("نتیجه", "ورود ساز به انبار")],
+            CompletePackagingConfirmedAsync);
+        return Task.CompletedTask;
+    }
+
+    private async Task CompletePackagingConfirmedAsync()
     {
         await SaveInstrumentNoteAsync();
         await ExecuteAsync(async () =>

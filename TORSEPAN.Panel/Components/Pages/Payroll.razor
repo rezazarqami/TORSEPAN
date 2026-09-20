@@ -45,7 +45,7 @@ else
         <div class="col-xl-8">
             <Card>
                 <h4>دستمزد تولید عادی</h4>
-                <div class="table-responsive">
+                <div class="table-responsive payroll-result-table">
                     <table class="table table-sm align-middle">
                         <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
                         <tbody>
@@ -61,7 +61,7 @@ else
                                 </tr>
                                 first = false;
                             }
-                            <tr class="table-light"><td colspan="4"><strong>جمع @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                            <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
                         }
                         </tbody>
                     </table>
@@ -73,7 +73,7 @@ else
                 <Card>
                     <h4>دستمزد تولید Custom</h4>
                     <div class="alert alert-light border">این بخش مربوط به سازهایی است که Scale آن‌ها در مرحله شیپ انتخاب شده است.</div>
-                    <div class="table-responsive">
+                    <div class="table-responsive payroll-result-table">
                         <table class="table table-sm align-middle">
                             <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
                             <tbody>
@@ -85,7 +85,7 @@ else
                                     <tr><td>@(first ? user.Name : "")</td><td>@LineDescription(line)</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td></tr>
                                     first = false;
                                 }
-                                <tr class="table-light"><td colspan="4"><strong>جمع Custom @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                                <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع Custom @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
                             }
                             </tbody>
                         </table>
@@ -99,7 +99,7 @@ else
                 <Card>
                     <h4>دستمزد تولید صادراتی</h4>
                     <div class="alert alert-light border">این بخش فقط مربوط به کاسه‌هایی است که واقعاً در مسیر صادراتی قرار دارند.</div>
-                    <div class="table-responsive">
+                    <div class="table-responsive payroll-result-table">
                         <table class="table table-sm align-middle">
                             <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
                             <tbody>
@@ -111,7 +111,7 @@ else
                                     <tr><td>@(first ? user.Name : "")</td><td>@LineDescription(line)</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td></tr>
                                     first = false;
                                 }
-                                <tr class="table-light"><td colspan="4"><strong>جمع صادراتی @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                                <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع صادراتی @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
                             }
                             </tbody>
                         </table>
@@ -125,34 +125,36 @@ else
             }
         </div>
         <div class="col-xl-4">
-            <Card>
-                <h4>تعریف نرخ عملیات</h4>
-                <label class="form-label mt-2">مسیر تولید</label>
-                <select class="form-select" @bind="_ratePath" @bind:after="RateFilterChanged"><option value="0">عادی</option><option value="2">Custom</option><option value="1">صادراتی</option></select>
-                <label class="form-label mt-2">عملیات</label>
-                <select class="form-select" @bind="_rateAction" @bind:after="RateFilterChanged">@foreach (var a in Actions) { <option value="@a.Id">@a.Title</option> }</select>
-                @if (!IsSimpleRate)
-                {
-                    <label class="form-label mt-2">متریال</label>
-                    <select class="form-select" @bind="_rateMaterial"><option value="">همه متریال‌ها</option>@foreach (var m in _materials) { <option value="@m.Id">@m.Name</option> }</select>
-                    @if (!IsHandpanRate)
+            <section class="rate-manager">
+                <header class="rate-manager-header"><div class="rate-manager-icon">﷼</div><div><small>تنظیمات دستمزد</small><h4>تعریف نرخ عملیات</h4><p>مسیر و مشخصات عملیات را انتخاب و نرخ واحد را ثبت کنید.</p></div></header>
+                <div class="rate-form-grid">
+                    <div class="rate-field"><label>مسیر تولید</label><select class="form-select" @bind="_ratePath" @bind:after="RateFilterChanged"><option value="0">عادی</option><option value="2">Custom</option><option value="1">صادراتی</option></select></div>
+                    <div class="rate-field"><label>عملیات</label><select class="form-select" @bind="_rateAction" @bind:after="RateFilterChanged">@foreach (var a in Actions) { <option value="@a.Id">@a.Title</option> }</select></div>
+                    @if (!IsSimpleRate)
                     {
-                        <label class="form-label mt-2">نوع کاسه</label>
-                        <select class="form-select" @bind="_rateBowlType" @bind:after="RateFilterChanged"><option value="">بدون تفکیک</option><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></select>
+                        <div class="rate-field"><label>متریال</label><select class="form-select" @bind="_rateMaterial"><option value="">همه متریال‌ها</option>@foreach (var m in _materials) { <option value="@m.Id">@m.Name</option> }</select></div>
+                        @if (!IsHandpanRate)
+                        {
+                            <div class="rate-field"><label>نوع کاسه</label><select class="form-select" @bind="_rateBowlType" @bind:after="RateFilterChanged"><option value="">بدون تفکیک</option><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></select></div>
+                        }
+                        <div class="rate-field rate-field-wide"><label>@(IsHandpanRate ? "Scale ساز" : "Scale کاسه")</label><select class="form-select" @bind="_rateScale"><option value="">همه Scale‌ها</option>@foreach (var scale in AvailableRateScales) { <option value="@scale.Id">@scale.Name</option> }</select></div>
                     }
-                    <label class="form-label mt-2">@(IsHandpanRate ? "Scale ساز" : "Scale کاسه")</label>
-                    <select class="form-select" @bind="_rateScale"><option value="">همه Scale‌ها</option>@foreach (var scale in AvailableRateScales) { <option value="@scale.Id">@scale.Name</option> }</select>
+                    <div class="rate-field rate-amount rate-field-wide"><label>نرخ واحد <span>ریال</span></label><input type="number" min="0" inputmode="numeric" class="form-control" @bind="_rateAmount" placeholder="مبلغ را وارد کنید" /></div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_rateMessage)) { <div class="rate-success">✓ @_rateMessage</div> }
+                <div class="rate-actions"><button class="btn btn-success" @onclick="SaveRateAsync">@(_editingRateId.HasValue ? "ذخیره تغییرات نرخ" : "ثبت نرخ جدید")</button>@if (_editingRateId.HasValue) { <button class="btn btn-outline-secondary" @onclick="CancelRateEdit">انصراف</button> }</div>
+                <button class="rates-toggle @(_showRegisteredRates ? "open" : "")" @onclick="ToggleRegisteredRates"><span><small>@_payroll.Rates.Count</small> نرخ ثبت‌شده</span><strong>@(_showRegisteredRates ? "بستن فهرست" : "مشاهده نرخ‌های قبلی") <i>@(_showRegisteredRates ? "⌃" : "⌄")</i></strong></button>
+                @if (_showRegisteredRates)
+                {
+                    <div class="registered-rates-panel">
+                        <div class="registered-rates-heading"><div><small>آرشیو نرخ‌ها</small><h5>نرخ‌های ثبت‌شده</h5></div><span>@_payroll.Rates.Count مورد</span></div>
+                        <div class="table-responsive payroll-rates-table"><table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>مسیر</th><th>عملیات</th><th>متریال</th><th>نوع</th><th>Scale</th><th>نرخ</th><th>مدیریت</th></tr></thead>
+                            <tbody>@foreach (var rate in SortedRates) { <tr class="@(_editingRateId == rate.Id ? "table-success" : "")"><td><span class="badge @(rate.IsExport ? "bg-warning text-dark" : rate.IsCustom ? "bg-primary" : "bg-secondary")">@RatePathTitle(rate)</span></td><td>@rate.ActionTitle</td><td>@rate.MaterialName</td><td>@RateTypeTitle(rate)</td><td>@(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)</td><td><strong>@rate.Amount.ToString("N0")</strong></td><td class="text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditRate(rate)">ویرایش</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRateAsync(rate)">حذف</button></td></tr> }</tbody>
+                        </table></div>
+                    </div>
                 }
-                <label class="form-label mt-2">نرخ واحد</label><input type="number" min="0" class="form-control" @bind="_rateAmount" />
-                @if (!string.IsNullOrWhiteSpace(_rateMessage)) { <div class="alert alert-success py-2 mt-2 mb-0">@_rateMessage</div> }
-                <button class="btn btn-success w-100 mt-3" @onclick="SaveRateAsync">@(_editingRateId.HasValue ? "ثبت تغییرات" : "ثبت نرخ")</button>
-                @if (_editingRateId.HasValue) { <button class="btn btn-outline-secondary w-100 mt-2" @onclick="CancelRateEdit">انصراف از ویرایش</button> }
-                <hr /><h5>نرخ‌های ثبت‌شده</h5>
-                <div class="table-responsive payroll-rates-table"><table class="table table-sm align-middle mb-0">
-                    <thead><tr><th>مسیر</th><th>عملیات</th><th>متریال</th><th>نوع</th><th>Scale</th><th>نرخ</th><th>مدیریت</th></tr></thead>
-                    <tbody>@foreach (var rate in SortedRates) { <tr class="@(_editingRateId == rate.Id ? "table-success" : "")"><td><span class="badge @(rate.IsExport ? "bg-warning text-dark" : rate.IsCustom ? "bg-primary" : "bg-secondary")">@RatePathTitle(rate)</span></td><td>@rate.ActionTitle</td><td>@rate.MaterialName</td><td>@RateTypeTitle(rate)</td><td>@(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)</td><td><strong>@rate.Amount.ToString("N0")</strong></td><td class="text-nowrap"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditRate(rate)">ویرایش</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRateAsync(rate)">حذف</button></td></tr> }</tbody>
-                </table></div>
-            </Card>
+            </section>
         </div>
     </div>
 }
@@ -188,7 +190,7 @@ else
     private ProductionAnalyticsDto _analytics = new();
     private List<MaterialDto> _materials = [];
     private List<ScaleDto> _scales = [];
-    private bool _loading = true, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse, _savingPayment;
+    private bool _loading = true, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse, _savingPayment, _showRegisteredRates;
     private DateTime? _from, _to;
     private int _rateAction = 2;
     private int _ratePath;
@@ -221,7 +223,7 @@ else
         _ => _scales.Where(x => (x.Usage & 3) != 0)
     };
     private async Task LoadAsync() { _loading = true; try { var payroll=PayrollService.GetAsync(_from, _to, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse);var analytics=ReportService.GetProductionAsync(null,null,[],[],"all","all");await Task.WhenAll(payroll,analytics);_payroll=await payroll??new();_analytics=await analytics;if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
-    private async Task SaveRateAsync()
+    private Task SaveRateAsync()
     {
         Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null;
         int? bowl = int.TryParse(_rateBowlType, out var b) ? b : null;
@@ -229,14 +231,19 @@ else
         if (IsSimpleRate) { material = null; bowl = null; scale = null; }
         var isExport = _ratePath == 1;
         var isCustom = _ratePath == 2;
+        var summary = RateConfirmationSummary(material, bowl, scale, isExport, isCustom);
         var existing = _payroll.Rates.FirstOrDefault(x => x.Id != _editingRateId && x.Action == _rateAction && x.MaterialId == material && x.BowlType == bowl && x.ScaleId == scale && x.IsExport == isExport && x.IsCustom == isCustom);
         if (existing is not null)
         {
-            ShowConfirmation("جایگزینی نرخ", $"برای این حالت قبلاً نرخ {existing.Amount:N0} ثبت شده است. نرخ قبلی با مبلغ جدید جایگزین شود؟", "جایگزین شود", false,
+            ShowConfirmation("تأیید جایگزینی نرخ", $"{summary} — نرخ قبلی {existing.Amount:N0} ریال است و با نرخ جدید جایگزین می‌شود. آیا مطمئن هستید؟", "تأیید و جایگزینی", false,
                 () => PersistRateAsync(material, bowl, scale, isExport, isCustom, true));
-            return;
+            return Task.CompletedTask;
         }
-        await PersistRateAsync(material, bowl, scale, isExport, isCustom, false);
+        ShowConfirmation(_editingRateId.HasValue ? "تأیید ویرایش نرخ" : "تأیید ثبت نرخ",
+            $"{summary} — آیا از ثبت این نرخ مطمئن هستید؟",
+            _editingRateId.HasValue ? "تأیید و ذخیره تغییرات" : "تأیید و ثبت نرخ", false,
+            () => PersistRateAsync(material, bowl, scale, isExport, isCustom, false));
+        return Task.CompletedTask;
     }
     private async Task PersistRateAsync(Guid? material, int? bowl, Guid? scale, bool isExport, bool isCustom, bool replacing)
     {
@@ -247,11 +254,13 @@ else
     }
     private void EditRate(PayrollRateDto rate)
     {
+        _showRegisteredRates = true;
         _editingRateId = rate.Id; _ratePath = rate.IsExport ? 1 : rate.IsCustom ? 2 : 0; _rateAction = rate.Action; _rateMaterial = rate.MaterialId?.ToString() ?? "";
         _rateBowlType = rate.BowlType?.ToString() ?? ""; _rateScale = rate.ScaleId?.ToString() ?? ""; _rateAmount = rate.Amount;
         _rateMessage = ""; RateFilterChanged();
     }
     private void CancelRateEdit() { _editingRateId = null; _rateAmount = 0; _rateMessage = ""; }
+    private void ToggleRegisteredRates() => _showRegisteredRates = !_showRegisteredRates;
     private Task DeleteRateAsync(PayrollRateDto rate)
     {
         ShowConfirmation("حذف نرخ", $"نرخ {RatePathTitle(rate)} «{rate.ActionTitle} — {rate.MaterialName} — {RateTypeTitle(rate)} — {(string.IsNullOrWhiteSpace(rate.ScaleName) ? "همه" : rate.ScaleName)}» حذف شود؟", "حذف نرخ", true, () => DeleteRateConfirmedAsync(rate));
@@ -269,6 +278,15 @@ else
     private static int ActionOrder(int action) => action switch { 2 => 1, 3 => 2, 5 => 3, 6 => 4, 7 => 5, _ => 99 };
     private static string RateTypeTitle(PayrollRateDto rate) => rate.Action == 7 ? "ساز" : BowlTypeTitle(rate.BowlType);
     private static string RatePathTitle(PayrollRateDto rate) => rate.IsExport ? "صادراتی" : rate.IsCustom ? "Custom" : "عادی";
+    private string RateConfirmationSummary(Guid? material, int? bowl, Guid? scale, bool isExport, bool isCustom)
+    {
+        var path = isExport ? "صادراتی" : isCustom ? "Custom" : "عادی";
+        var action = Actions.FirstOrDefault(x => x.Id == _rateAction).Title ?? "عملیات";
+        var materialName = material.HasValue ? _materials.FirstOrDefault(x => x.Id == material.Value)?.Name ?? "متریال انتخاب‌شده" : "همه متریال‌ها";
+        var type = IsHandpanRate ? "ساز" : bowl.HasValue ? BowlTypeTitle(bowl) : "همه نوع‌ها";
+        var scaleName = scale.HasValue ? _scales.FirstOrDefault(x => x.Id == scale.Value)?.Name ?? "Scale انتخاب‌شده" : "همه Scale‌ها";
+        return $"مسیر {path}، {action}، {materialName}، {type}، {scaleName}، نرخ {_rateAmount:N0} ریال";
+    }
     private static string LineDescription(PayrollLineDto line)
     {
         var parts = new List<string> { line.ActionTitle, line.MaterialName };
