@@ -1,0 +1,76 @@
+.payroll-operation-parts {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    direction: rtl;
+}
+
+.payroll-operation-parts > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.payroll-operation-parts > span:not(:last-child)::after {
+    content: "•";
+    margin-right: 3px;
+    color: #a4b3ba;
+}
+
+.payroll-operation-parts small {
+    color: #71848e;
+    font-size: .62rem;
+    font-weight: 800;
+}
+
+.payroll-operation-parts bdi {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    unicode-bidi: isolate;
+}
+
+.payroll-operation-action {
+    color: #244d62;
+    font-weight: 900;
+}
+
+@media (max-width: 700px) {
+    .payroll-operation-parts {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 6px 8px;
+        padding: 8px;
+        border-radius: 10px;
+        background: #f4f8f7;
+        line-height: 1.65;
+    }
+
+    .payroll-operation-parts > span {
+        white-space: normal;
+    }
+
+    .payroll-operation-parts > span:not(:last-child)::after {
+        display: none;
+    }
+
+    .payroll-operation-parts > span:not(.payroll-operation-action) {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 2px 5px;
+        padding: 3px 7px;
+        border: 1px solid #dde7e3;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .payroll-operation-parts small {
+        grid-column: 1 / -1;
+    }
+
+    .payroll-operation-parts bdi {
+        overflow: visible;
+        text-overflow: clip;
+    }
+}

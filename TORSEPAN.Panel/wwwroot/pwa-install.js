@@ -24,7 +24,7 @@ window.torsepanPwa = {
     const overlay = document.createElement("div");
     overlay.id = "torsepan-pwa-help";
     overlay.className = "pwa-help-overlay";
-    overlay.innerHTML = `<section class="pwa-help-dialog" dir="rtl"><img src="/icons/torsepan-192.png" alt="TORSEPAN"><h3>${title}</h3><p>${message}</p><button type="button">متوجه شدم</button></section>`;
+    overlay.innerHTML = `<section class="pwa-help-dialog" dir="rtl"><img src="/icons/torsepan-app-v2-192.png" alt="TORSEPAN"><h3>${title}</h3><p>${message}</p><button type="button">متوجه شدم</button></section>`;
     overlay.addEventListener("click", event => { if (event.target === overlay || event.target.tagName === "BUTTON") overlay.remove(); });
     document.body.appendChild(overlay);
   }

@@ -1,9 +1,9 @@
-const CACHE = "torsepan-static-v2";
+const CACHE = "torsepan-static-v3";
 const STATIC_ASSETS = new Set([
   "/manifest.webmanifest",
-  "/icons/torsepan-192.png",
-  "/icons/torsepan-512.png",
-  "/icons/apple-touch-icon.png"
+  "/icons/torsepan-app-v2-192.png",
+  "/icons/torsepan-app-v2-512.png",
+  "/icons/apple-touch-icon-v2.png"
 ]);
 
 self.addEventListener("install", event => {

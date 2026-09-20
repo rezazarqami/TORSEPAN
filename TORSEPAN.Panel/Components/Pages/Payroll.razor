@@ -63,13 +63,15 @@ else
                             @foreach (var line in user.Lines)
                             {
                                 <tr>
-                                    <td>@(first ? user.Name : "")</td>
-                                    <td>@LineDescription(line)</td>
-                                    <td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td>
+                                    <td class="payroll-member">@(first ? user.Name : "")</td>
+                                    <td class="payroll-operation"><PayrollLineDescription Line="line" /></td>
+                                    <td class="payroll-number" data-label="تعداد"><strong>@line.Count.ToString("N0")</strong></td>
+                                    <td class="payroll-number" data-label="نرخ واحد"><strong>@line.Rate.ToString("N0")</strong><small> ریال</small></td>
+                                    <td class="payroll-number payroll-line-total" data-label="مبلغ"><strong>@line.Total.ToString("N0")</strong><small> ریال</small></td>
                                 </tr>
                                 first = false;
                             }
-                            <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                            <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong><small> ریال</small></td></tr>
                         }
                         </tbody>
                     </table>
@@ -90,10 +92,10 @@ else
                                 var first = true;
                                 @foreach (var line in user.Lines)
                                 {
-                                    <tr><td>@(first ? user.Name : "")</td><td>@LineDescription(line)</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td></tr>
+                                    <tr><td class="payroll-member">@(first ? user.Name : "")</td><td class="payroll-operation"><PayrollLineDescription Line="line" /></td><td class="payroll-number" data-label="تعداد"><strong>@line.Count.ToString("N0")</strong></td><td class="payroll-number" data-label="نرخ واحد"><strong>@line.Rate.ToString("N0")</strong><small> ریال</small></td><td class="payroll-number payroll-line-total" data-label="مبلغ"><strong>@line.Total.ToString("N0")</strong><small> ریال</small></td></tr>
                                     first = false;
                                 }
-                                <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع Custom @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                                <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع Custom @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong><small> ریال</small></td></tr>
                             }
                             </tbody>
                         </table>
@@ -116,10 +118,10 @@ else
                                 var first = true;
                                 @foreach (var line in user.Lines)
                                 {
-                                    <tr><td>@(first ? user.Name : "")</td><td>@LineDescription(line)</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td><strong>@line.Total.ToString("N0")</strong></td></tr>
+                                    <tr><td class="payroll-member">@(first ? user.Name : "")</td><td class="payroll-operation"><PayrollLineDescription Line="line" /></td><td class="payroll-number" data-label="تعداد"><strong>@line.Count.ToString("N0")</strong></td><td class="payroll-number" data-label="نرخ واحد"><strong>@line.Rate.ToString("N0")</strong><small> ریال</small></td><td class="payroll-number payroll-line-total" data-label="مبلغ"><strong>@line.Total.ToString("N0")</strong><small> ریال</small></td></tr>
                                     first = false;
                                 }
-                                <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع صادراتی @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong></td></tr>
+                                <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع صادراتی @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong><small> ریال</small></td></tr>
                             }
                             </tbody>
                         </table>
@@ -299,17 +301,6 @@ else
         var type = IsHandpanRate ? "ساز" : bowl.HasValue ? BowlTypeTitle(bowl) : "همه نوع‌ها";
         var scaleName = scale.HasValue ? _scales.FirstOrDefault(x => x.Id == scale.Value)?.Name ?? "Scale انتخاب‌شده" : "همه Scale‌ها";
         return $"مسیر {path}، {action}، {materialName}، {type}، {scaleName}، نرخ {_rateAmount:N0} ریال";
-    }
-    private static string LineDescription(PayrollLineDto line)
-    {
-        var parts = new List<string> { line.ActionTitle, line.MaterialName };
-        if (line.Action == 6 && !string.IsNullOrWhiteSpace(line.ScaleName)) parts.Add(line.ScaleName);
-        else
-        {
-            if (line.BowlType.HasValue) parts.Add(BowlTypeTitle(line.BowlType));
-            if (!string.IsNullOrWhiteSpace(line.ScaleName)) parts.Add(line.ScaleName);
-        }
-        return string.Join(" — ", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
     }
     private void OpenTable(){if(!_from.HasValue||!_to.HasValue)return;Navigation.NavigateTo($"/reports/payroll/table?from={_from:yyyy-MM-dd}&to={_to:yyyy-MM-dd}&qc={_readyForQc}&pack={_readyForPackaging}&warehouse={_enteredWarehouse}&exportPack={_readyForExportPackaging}&exportWarehouse={_exportWarehouse}");}
     private Task MarkPaidAsync(){if(!_from.HasValue||!_to.HasValue)return Task.CompletedTask;ShowConfirmation("تأیید پرداخت",$"دستمزد {_payroll.HandpanCodes.Count} ساز با مبلغ کل {_payroll.Lines.Sum(x=>x.Total):N0} به‌عنوان پرداخت‌شده ثبت شود؟","ثبت پرداخت",false,CompletePaymentAsync);return Task.CompletedTask;}

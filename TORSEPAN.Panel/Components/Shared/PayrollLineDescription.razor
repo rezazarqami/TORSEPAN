@@ -1,0 +1,20 @@
+<div class="payroll-operation-parts">
+    <span class="payroll-operation-action">@Line.ActionTitle</span>
+    @if (!string.IsNullOrWhiteSpace(Line.MaterialName))
+    {
+        <span><small>متریال</small><bdi dir="auto">@Line.MaterialName</bdi></span>
+    }
+    @if (Line.BowlType.HasValue)
+    {
+        <span><small>نوع</small>@BowlTitle</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(Line.ScaleName))
+    {
+        <span><small>اسکیل</small><bdi dir="auto">@Line.ScaleName</bdi></span>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PayrollLineDto Line { get; set; } = default!;
+    private string BowlTitle => Line.BowlType == 1 ? "کاسه رو" : Line.BowlType == 2 ? "کاسه زیر" : "ساز";
+}
