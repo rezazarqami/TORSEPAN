@@ -2,12 +2,15 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     DOTNET_NOLOGO=1 \
-    NUGET_XMLDOC_MODE=skip
+    NUGET_XMLDOC_MODE=skip \
+    NuGetAudit=false
 
 COPY ["TORSEPAN.Panel/TORSEPAN.Panel.csproj", "TORSEPAN.Panel/"]
 COPY ["TORSEPAN.Application/TORSEPAN.Application.csproj", "TORSEPAN.Application/"]
 COPY ["TORSEPAN.Domain/TORSEPAN.Domain.csproj", "TORSEPAN.Domain/"]
-RUN dotnet restore "TORSEPAN.Panel/TORSEPAN.Panel.csproj"
+RUN dotnet restore "TORSEPAN.Panel/TORSEPAN.Panel.csproj" \
+      --source "https://package-mirror.liara.ir/repository/nuget/index.json" \
+      --disable-parallel
 
 COPY TORSEPAN.Panel/ TORSEPAN.Panel/
 COPY TORSEPAN.Application/ TORSEPAN.Application/
