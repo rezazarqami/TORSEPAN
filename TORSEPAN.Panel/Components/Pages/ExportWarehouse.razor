@@ -4,7 +4,7 @@
 @inject TORSEPAN.Panel.Services.Api.AccountingService AccountingService
 
 <PageTitle>انبار صادراتی</PageTitle>
-<PageHeader Title="انبار صادراتی" SubTitle="مدیریت سازها و کاسه‌های آماده ارسال در سه انبار خارجی" />
+<PageHeader Title="انبار صادراتی" SubTitle="مدیریت سازها و کاسه‌های آماده ارسال در ایران و انبارهای خارجی" />
 
 <div class="warehouse-dashboard">
     @foreach(var warehouse in Warehouses)
@@ -66,8 +66,8 @@
     private Guid? _partyId;
     private ExportWarehouseItemDto? _deleteCandidate;
     private ExportWarehouseItemDto? _locationCandidate;
-    private int _activeLocation=1, _newLocation=1;
-    private static readonly (int Id,string Name,string Code)[] Warehouses=[(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE")];
+    private int _activeLocation=4, _newLocation=4;
+    private static readonly (int Id,string Name,string Code)[] Warehouses=[(4,"ایران","IR"),(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE")];
     private IEnumerable<ExportWarehouseItemDto> Items => _items.Where(x=>x.Location==_activeLocation && (string.IsNullOrWhiteSpace(_search) || x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase)));
     private bool AllVisibleSelected => Items.Any(x=>x.ItemType=="bowl") && Items.Where(x=>x.ItemType=="bowl").All(x => _selected.Contains(x.Id));
     private string DeleteMessage => _deleteCandidate is null ? "" : $"کاسه صادراتی {_deleteCandidate.ProductionCode} برای همیشه حذف شود؟";
