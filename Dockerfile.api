@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
@@ -5,22 +6,25 @@ COPY ["TORSEPAN.API/TORSEPAN.API.csproj", "TORSEPAN.API/"]
 COPY ["TORSEPAN.Application/TORSEPAN.Application.csproj", "TORSEPAN.Application/"]
 COPY ["TORSEPAN.Domain/TORSEPAN.Domain.csproj", "TORSEPAN.Domain/"]
 COPY ["TORSEPAN.Infrastructure/TORSEPAN.Infrastructure.csproj", "TORSEPAN.Infrastructure/"]
-RUN dotnet restore "TORSEPAN.API/TORSEPAN.API.csproj"
+RUN --mount=type=cache,id=torsepan-nuget,target=/root/.nuget/packages \
+    dotnet restore "TORSEPAN.API/TORSEPAN.API.csproj"
 
-COPY . .
-RUN dotnet publish "TORSEPAN.API/TORSEPAN.API.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
+COPY TORSEPAN.API/ TORSEPAN.API/
+COPY TORSEPAN.Application/ TORSEPAN.Application/
+COPY TORSEPAN.Domain/ TORSEPAN.Domain/
+COPY TORSEPAN.Infrastructure/ TORSEPAN.Infrastructure/
+RUN --mount=type=cache,id=torsepan-nuget,target=/root/.nuget/packages \
+    dotnet publish "TORSEPAN.API/TORSEPAN.API.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 USER root
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl fonts-dejavu-core \
-    && install -d /usr/share/postgresql-common/pgdg \
-    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-       -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+ADD https://www.postgresql.org/media/keys/ACCC4CF8.asc /tmp/pgdg.asc
+RUN install -d /usr/share/postgresql-common/pgdg \
+    && mv /tmp/pgdg.asc /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
     && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
        > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-client-17 \
+    && apt-get install -y --no-install-recommends fonts-dejavu-core postgresql-client-17 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080 \
