@@ -1,18 +1,15 @@
-# syntax=docker/dockerfile:1.7
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY ["TORSEPAN.Panel/TORSEPAN.Panel.csproj", "TORSEPAN.Panel/"]
 COPY ["TORSEPAN.Application/TORSEPAN.Application.csproj", "TORSEPAN.Application/"]
 COPY ["TORSEPAN.Domain/TORSEPAN.Domain.csproj", "TORSEPAN.Domain/"]
-RUN --mount=type=cache,id=torsepan-nuget,target=/root/.nuget/packages \
-    dotnet restore "TORSEPAN.Panel/TORSEPAN.Panel.csproj"
+RUN dotnet restore "TORSEPAN.Panel/TORSEPAN.Panel.csproj"
 
 COPY TORSEPAN.Panel/ TORSEPAN.Panel/
 COPY TORSEPAN.Application/ TORSEPAN.Application/
 COPY TORSEPAN.Domain/ TORSEPAN.Domain/
-RUN --mount=type=cache,id=torsepan-nuget,target=/root/.nuget/packages \
-    dotnet publish "TORSEPAN.Panel/TORSEPAN.Panel.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
+RUN dotnet publish "TORSEPAN.Panel/TORSEPAN.Panel.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
