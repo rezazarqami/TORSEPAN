@@ -22,14 +22,13 @@ RUN dotnet publish "TORSEPAN.API/TORSEPAN.API.csproj" \
       /p:UseAppHost=false \
       /p:RunAnalyzers=false \
       /p:DebugType=None \
-      /p:DebugSymbols=false \
-    && dotnet publish "TORSEPAN.Panel/TORSEPAN.Panel.csproj" \
+      /p:DebugSymbols=false
+RUN dotnet publish "TORSEPAN.Panel/TORSEPAN.Panel.csproj" \
       -c Release -o /app/panel --no-restore \
       /p:UseAppHost=false \
       /p:RunAnalyzers=false \
       /p:DebugType=None \
-      /p:DebugSymbols=false \
-    && find /src -type d \( -name bin -o -name obj \) -prune -exec rm -rf '{}' +
+      /p:DebugSymbols=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 USER root
