@@ -1,8 +1,8 @@
-const CACHE = "torsepan-static-v4";
+const CACHE = "torsepan-static-v5";
 const STATIC_ASSETS = new Set([
-  "/icons/torsepan-app-v2-192.png",
-  "/icons/torsepan-app-v2-512.png",
-  "/icons/apple-touch-icon-v2.png"
+  "/icons/torsepan-logo-v3-192.png",
+  "/icons/torsepan-logo-v3-512.png",
+  "/icons/apple-touch-icon-v3.png"
 ]);
 
 self.addEventListener("install", event => {
