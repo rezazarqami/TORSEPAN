@@ -19,15 +19,46 @@
         <button class="btn ship-selected" disabled="@(_selected.Count == 0)" @onclick="OpenSelectedShipment">ثبت ارسال <span>@_selected.Count</span></button>
     </AuthorizeView>
 </div>
-<Card>
-    @if (_loading) { <div class="text-center p-5"><div class="spinner-border"></div></div> }
-    else if (!Items.Any()) { <EmptyState Title="این انبار خالی است" Description="پس از انتخاب این مقصد در بسته‌بندی، سازها و کاسه‌ها در این قسمت قرار می‌گیرند." /> }
-    else
-    {
-        <DataTable><thead><tr><th class="select-column">انتخاب</th><th>کد</th><th>نوع موجودی</th><th>مشخصات</th><th>انبار</th><th>عملیات</th></tr></thead>
-        <tbody>@foreach (var item in Items) { <tr class="@(_selected.Contains(item.Id)?"selected-row":null)"><td class="select-column">@if(item.ItemType=="bowl"){<input type="checkbox" checked="@_selected.Contains(item.Id)" @onchange="e=>Toggle(item.Id,(bool)(e.Value??false))" aria-label="انتخاب @item.ProductionCode" />}</td><td><strong>@item.ProductionCode</strong></td><td><span class="item-kind @item.ItemType">@item.ItemKind</span></td><td>@item.Detail</td><td><span class="location-badge">@WarehouseName(item.Location)</span></td><td><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView>@if(item.ItemType=="bowl"){<AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>OpenShipment(item)">ارسال</button></AuthorizeView>}<AuthorizeView Roles="Administrator">@if(item.ItemType=="bowl"){<button class="btn btn-sm btn-outline-danger" @onclick="()=>RequestDelete(item)">حذف</button>}</AuthorizeView></div></td></tr> }</tbody></DataTable>
-    }
-</Card>
+@if (_loading)
+{
+    <Card><div class="text-center p-5"><div class="spinner-border"></div></div></Card>
+}
+else if (!WarehouseItems.Any())
+{
+    <Card><EmptyState Title="این انبار خالی است" Description="پس از انتخاب این مقصد در بسته‌بندی، سازها و کاسه‌ها در این قسمت قرار می‌گیرند." /></Card>
+}
+else
+{
+    <section class="inventory-section">
+        <header class="inventory-section-header"><div><small>موجودی انتخاب‌شده</small><h3>کاسه‌ها</h3></div><span>@WarehouseBowls.Count()</span></header>
+        <Card>
+            @if (!WarehouseBowls.Any())
+            {
+                <EmptyState Title="کاسه‌ای در این انبار نیست" Description="کاسه‌های بسته‌بندی‌شده برای این مقصد اینجا نمایش داده می‌شوند." />
+            }
+            else
+            {
+                <DataTable><thead><tr><th class="select-column">انتخاب</th><th>کد کاسه</th><th>نوع کاسه</th><th>مشخصات</th><th>انبار</th><th>عملیات</th></tr></thead>
+                <tbody>@foreach (var item in WarehouseBowls) { <tr class="@(_selected.Contains(item.Id)?"selected-row":null)"><td class="select-column"><input type="checkbox" checked="@_selected.Contains(item.Id)" @onchange="e=>Toggle(item.Id,(bool)(e.Value??false))" aria-label="انتخاب @item.ProductionCode" /></td><td><strong>@item.ProductionCode</strong></td><td><span class="item-kind bowl">@item.ItemKind</span></td><td>@item.Detail</td><td><span class="location-badge">@WarehouseName(item.Location)</span></td><td><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView><AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>OpenShipment(item)">ارسال</button></AuthorizeView><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>RequestDelete(item)">حذف</button></AuthorizeView></div></td></tr> }</tbody></DataTable>
+            }
+        </Card>
+    </section>
+
+    <section class="inventory-section">
+        <header class="inventory-section-header"><div><small>موجودی انتخاب‌شده</small><h3>سازها</h3></div><span>@WarehouseHandpans.Count()</span></header>
+        <Card>
+            @if (!WarehouseHandpans.Any())
+            {
+                <EmptyState Title="سازی در این انبار نیست" Description="سازهای کامل ارسال‌شده به این مقصد اینجا نمایش داده می‌شوند." />
+            }
+            else
+            {
+                <DataTable><thead><tr><th>کد ساز</th><th>نوع موجودی</th><th>مشخصات</th><th>انبار</th><th>عملیات</th></tr></thead>
+                <tbody>@foreach (var item in WarehouseHandpans) { <tr><td><strong>@item.ProductionCode</strong></td><td><span class="item-kind handpan">@item.ItemKind</span></td><td>@item.Detail</td><td><span class="location-badge">@WarehouseName(item.Location)</span></td><td><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView></div></td></tr> }</tbody></DataTable>
+            }
+        </Card>
+    </section>
+}
 
 @if (_shipmentIds.Count > 0)
 {
@@ -68,8 +99,10 @@
     private ExportWarehouseItemDto? _locationCandidate;
     private int _activeLocation=4, _newLocation=4;
     private static readonly (int Id,string Name,string Code)[] Warehouses=[(4,"ایران","IR"),(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE")];
-    private IEnumerable<ExportWarehouseItemDto> Items => _items.Where(x=>x.Location==_activeLocation && (string.IsNullOrWhiteSpace(_search) || x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase)));
-    private bool AllVisibleSelected => Items.Any(x=>x.ItemType=="bowl") && Items.Where(x=>x.ItemType=="bowl").All(x => _selected.Contains(x.Id));
+    private IEnumerable<ExportWarehouseItemDto> WarehouseItems => _items.Where(x=>x.Location==_activeLocation && (string.IsNullOrWhiteSpace(_search) || x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase)));
+    private IEnumerable<ExportWarehouseItemDto> WarehouseBowls => WarehouseItems.Where(x=>x.ItemType=="bowl");
+    private IEnumerable<ExportWarehouseItemDto> WarehouseHandpans => WarehouseItems.Where(x=>x.ItemType=="handpan");
+    private bool AllVisibleSelected => WarehouseBowls.Any() && WarehouseBowls.All(x => _selected.Contains(x.Id));
     private string DeleteMessage => _deleteCandidate is null ? "" : $"کاسه صادراتی {_deleteCandidate.ProductionCode} برای همیشه حذف شود؟";
     protected override async Task OnInitializedAsync(){_loading=true;try{var bowls=BowlService.GetExportWarehouseAsync();var parties=AccountingService.PartiesAsync();await Task.WhenAll(bowls,parties);_items=(await bowls).ToList();_parties=await parties;}finally{_loading=false;}}
     private void Toggle(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
@@ -78,7 +111,7 @@
     private void OpenLocationEditor(ExportWarehouseItemDto item){_locationCandidate=item;_newLocation=item.Location;_locationError=null;}
     private void CloseLocationEditor(){if(!_savingLocation)_locationCandidate=null;}
     private async Task SaveLocationAsync(){if(_locationCandidate is null)return;_savingLocation=true;_locationError=null;try{await BowlService.ChangeExportWarehouseLocationAsync(_locationCandidate.ItemType,_locationCandidate.Id,_newLocation);_locationCandidate.Location=_newLocation;_locationCandidate=null;}catch(Exception ex){_locationError=ex.Message;}finally{_savingLocation=false;}}
-    private void ToggleAll(ChangeEventArgs e){var selected=(bool)(e.Value??false);foreach(var item in Items.Where(x=>x.ItemType=="bowl")){if(selected)_selected.Add(item.Id);else _selected.Remove(item.Id);}}
+    private void ToggleAll(ChangeEventArgs e){var selected=(bool)(e.Value??false);foreach(var item in WarehouseBowls){if(selected)_selected.Add(item.Id);else _selected.Remove(item.Id);}}
     private void OpenShipment(ExportWarehouseItemDto item){_shipmentIds.Clear();_shipmentIds.Add(item.Id);ResetShipment();}
     private void OpenSelectedShipment(){_shipmentIds.Clear();_shipmentIds.AddRange(_selected.Where(id=>_items.Any(x=>x.Id==id&&x.ItemType=="bowl")));ResetShipment();}
     private void ResetShipment(){_partyId=null;_buyerName="";_destination="";_shippingMethod=null;_isSettled=null;_error=null;}

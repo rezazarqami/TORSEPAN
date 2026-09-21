@@ -2,3 +2,38 @@
 .shipment-overlay{position:fixed;inset:0;z-index:5200;display:grid;place-items:center;padding:16px;background:rgba(8,25,42,.66);backdrop-filter:blur(6px)}.shipment-dialog{direction:rtl;width:min(720px,100%);max-height:calc(100dvh - 32px);overflow:auto;border-radius:24px;background:#fff;box-shadow:0 30px 90px rgba(0,0,0,.35)}.shipment-dialog header{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;gap:15px;padding:21px 24px 14px;border-bottom:1px solid #e5edf2;background:rgba(255,255,255,.97)}.shipment-dialog header small{color:#19805f;font-weight:900}.shipment-dialog h3{margin:3px 0;color:#153f63;font-size:1.3rem;font-weight:950}.shipment-dialog header p{margin:0;color:#788896;font-size:.76rem}.shipment-dialog header button{display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:11px;background:#edf2f5;color:#34536d;font-size:1.55rem}.shipment-codes{display:flex;flex-wrap:wrap;gap:6px;padding:14px 24px 0}.shipment-codes span{padding:5px 9px;border-radius:8px;background:#edf6f2;color:#14684e;font-size:.73rem;font-weight:850}.shipment-fields{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:18px 24px 10px}.shipment-fields label{display:flex;flex-direction:column;gap:6px;color:#385269;font-size:.78rem;font-weight:850}.shipment-fields .form-control,.shipment-fields .form-select{min-height:45px;border-radius:11px}.shipment-fields fieldset{margin:0;padding:0;border:0}.shipment-fields .wide{grid-column:1/-1}.shipment-fields legend{margin-bottom:7px;color:#385269;font-size:.78rem;font-weight:850}.choice-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.choice{min-height:41px;border:1px solid #d8e3e9;border-radius:11px;background:#f8fafb;color:#53697a;font-weight:800}.choice.active{border-color:#18805f;background:#e5f5ef;color:#12684e;box-shadow:0 0 0 2px rgba(24,128,95,.08)}.shipment-hint{margin:3px 24px 12px;padding:10px 12px;border-radius:10px;background:#f3f7fa;color:#617485;font-size:.76rem}.shipment-error{margin:0 24px 12px;padding:10px;border-radius:10px;background:#fff0f1;color:#b42334}.shipment-dialog footer{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:9px;padding:14px 24px 20px;border-top:1px solid #e7edf1;background:#fff}.shipment-dialog footer .btn{min-height:43px;border-radius:11px;padding-inline:18px}
 @media(max-width:600px){.export-tools{align-items:stretch;flex-direction:column}.ship-selected{justify-content:center;width:100%}.shipment-overlay{padding:7px}.shipment-dialog{max-height:calc(100dvh - 14px);border-radius:18px}.shipment-dialog header{padding:16px}.shipment-dialog h3{font-size:1.08rem}.shipment-codes{padding:12px 16px 0}.shipment-fields{grid-template-columns:1fr;gap:11px;padding:15px 16px 8px}.shipment-fields .wide{grid-column:auto}.choice-row{grid-template-columns:repeat(2,1fr)}.shipment-hint{margin:4px 16px 10px}.shipment-dialog footer{padding:12px 16px 16px}.shipment-dialog footer .btn{flex:1;padding-inline:7px}}
 .warehouse-dashboard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}.warehouse-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;min-height:94px;padding:16px;border:1px solid #dce5eb;border-radius:20px;background:linear-gradient(145deg,#fff,#f4f7f9);color:#183e5e;text-align:right;box-shadow:0 8px 24px rgba(22,58,86,.07)}.warehouse-card.active{border-color:#258269;background:linear-gradient(145deg,#f5fffb,#e4f4ee);box-shadow:0 12px 30px rgba(27,119,89,.14)}.warehouse-flag{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:#173f62;color:#fff;font-size:.75rem;font-weight:950}.warehouse-card small{display:block;color:#78909f;font-size:.7rem}.warehouse-card strong{display:block;margin-top:3px;font-size:1.05rem}.warehouse-card>b{display:grid;place-items:center;min-width:36px;height:36px;border-radius:12px;background:#e8eef2;font-size:1.05rem}.warehouse-card.active>b{background:#1e8162;color:#fff}.item-kind,.location-badge{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:.74rem;font-weight:900}.item-kind{background:#edf3f7;color:#31536d}.item-kind.handpan{background:#e7f5ef;color:#176a51}.location-badge{background:#fff5d9;color:#806012}.row-actions{display:flex;flex-wrap:wrap;gap:6px}.location-dialog{direction:rtl;width:min(520px,100%);padding:25px;border-radius:24px;background:#fff;box-shadow:0 30px 90px rgba(0,0,0,.35)}.location-dialog>small{color:#1c8061;font-weight:900}.location-dialog h3{margin:4px 0;color:#173f61}.location-dialog p{color:#71818d}.location-choices{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:20px 0}.location-choices button{display:flex;flex-direction:column;align-items:center;gap:7px;padding:15px 8px;border:1px solid #dbe4e8;border-radius:14px;background:#f8fafb;color:#38536a}.location-choices button span{display:grid;place-items:center;width:36px;height:30px;border-radius:9px;background:#e8eef2;font-size:.7rem;font-weight:950}.location-choices button.active{border-color:#1e8162;background:#eaf7f2;color:#14634b;box-shadow:0 0 0 3px rgba(30,129,98,.09)}.location-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.location-dialog footer .btn{min-height:43px;border-radius:11px}@media(max-width:600px){.warehouse-dashboard{grid-template-columns:1fr;gap:8px}.warehouse-card{min-height:72px;padding:11px 13px;border-radius:15px}.warehouse-flag{width:40px;height:40px}.location-choices{grid-template-columns:1fr}}
+
+
+.inventory-section {
+    margin-top: 1.25rem;
+}
+
+.inventory-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0 0 .65rem;
+}
+
+.inventory-section-header small {
+    display: block;
+    color: #718096;
+    margin-bottom: .15rem;
+}
+
+.inventory-section-header h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.inventory-section-header > span {
+    min-width: 2.35rem;
+    padding: .35rem .65rem;
+    border-radius: 999px;
+    background: #e8eefc;
+    color: #23408e;
+    font-weight: 800;
+    text-align: center;
+}
