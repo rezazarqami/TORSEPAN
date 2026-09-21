@@ -18,7 +18,9 @@ public sealed class CompleteExportPackagingCommandHandler(IUnitOfWork unitOfWork
             return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidStage);
         if (userContext.UserId is not Guid userId) throw new UnauthorizedAccessException();
 
-        bowl.ChangeStage(ProductionStage.ExportWarehouse);
+        if (!Enum.IsDefined(request.ExportWarehouseLocation))
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
+        bowl.MoveToExportWarehouse(request.ExportWarehouseLocation);
         bowl.CompleteProduction();
         unitOfWork.Bowls.Update(bowl);
         await unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(null, null, bowl.Id, userId,

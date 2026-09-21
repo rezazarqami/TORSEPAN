@@ -1,0 +1,19 @@
+@page "/payroll/exclusions"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles="Administrator,ProductionManager")]
+@inject TORSEPAN.Panel.Services.Api.PayrollExclusionService Service
+<PageTitle>دستمزدهای قبلاً محاسبه‌شده</PageTitle>
+<PageHeader Title="دستمزدهای قبلاً محاسبه‌شده" SubTitle="عملیات پرداخت‌شده را از محاسبات بعدی خارج کنید" />
+<Card>
+<div class="d-flex gap-2 mb-4"><input class="form-control" @bind="_code" placeholder="کد ساز یا کاسه" @onkeydown="OnKey" /><button class="btn btn-primary" disabled="@_loading" @onclick="Search">جست‌وجو</button></div>
+@if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
+@if(_result is not null){<h5 class="mb-3">عملیات ثبت‌شده برای @_result.Code</h5>
+@if(_result.Events.Count==0){<div class="alert alert-info">عملیات قابل محاسبه‌ای برای این کد ثبت نشده است.</div>}
+else{<div class="table-responsive"><table class="table"><thead><tr><th>حساب شده</th><th>عملیات</th><th>کاسه</th><th>انجام‌دهنده</th><th>تاریخ</th></tr></thead><tbody>@foreach(var item in _result.Events){<tr><td><input type="checkbox" checked="@item.IsPayrollExcluded" @onchange="e=>Change(item,(bool?)e.Value==true)" /></td><td>@item.ActionTitle</td><td>@(item.BowlCode??"—")</td><td>@item.Performer</td><td>@PersianDateTime.FormatDateTime(item.EventDate)</td></tr>}</tbody></table></div>}
+}
+</Card>
+@code{
+private string _code="";private bool _loading;private string?_error;private TORSEPAN.Panel.Models.PayrollExclusionLookupDto?_result;
+private async Task Search(){if(string.IsNullOrWhiteSpace(_code))return;_loading=true;_error=null;try{_result=await Service.LookupAsync(_code.Trim());}catch(Exception ex){_error=ex.Message;}finally{_loading=false;}}
+private async Task Change(TORSEPAN.Panel.Models.PayrollExclusionEventDto item,bool value){var old=item.IsPayrollExcluded;item.IsPayrollExcluded=value;try{await Service.SaveAsync([item.Id],value);}catch(Exception ex){item.IsPayrollExcluded=old;_error=ex.Message;}}
+private async Task OnKey(KeyboardEventArgs e){if(e.Key=="Enter")await Search();}
+}

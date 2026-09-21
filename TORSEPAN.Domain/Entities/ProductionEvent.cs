@@ -80,6 +80,16 @@ public class ProductionEvent : Entity
     public string Description { get; private set; } = string.Empty;
 
     public DateTime EventDate { get; private set; }
+    public bool IsPayrollExcluded { get; private set; }
+    public Guid? PayrollExcludedByUserId { get; private set; }
+    public DateTime? PayrollExcludedAtUtc { get; private set; }
+
+    public void SetPayrollExcluded(bool excluded, Guid changedBy)
+    {
+        IsPayrollExcluded = excluded;
+        PayrollExcludedByUserId = excluded ? changedBy : null;
+        PayrollExcludedAtUtc = excluded ? DateTime.UtcNow : null;
+    }
 
     public bool ConvertExportTuneToNormalRoute()
     {

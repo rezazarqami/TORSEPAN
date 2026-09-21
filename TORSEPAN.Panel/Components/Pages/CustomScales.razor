@@ -4,27 +4,27 @@
 @inject ScaleService ScaleService
 @inject IJSRuntime JS
 
-<PageTitle>اسکیل کاستوم</PageTitle>
-<PageHeader Title="اسکیل کاستوم" SubTitle="ثبت جداگانه اسکیل کاسه رو، کاسه زیر و ساز" />
+<PageTitle>Scale Custom</PageTitle>
+<PageHeader Title="Scale Custom" SubTitle="ثبت جداگانه Scale کاسه رو، کاسه زیر و ساز" />
 
 @foreach (var category in Categories)
 {
     <div class="card p-4 mb-4">
         <h5 class="mb-3">@category.Title</h5>
         <div class="input-group mb-3">
-            <input class="form-control" placeholder="نام اسکیل را وارد کنید" @bind="category.Name" @bind:event="oninput" />
+            <input class="form-control" placeholder="نام Scale را وارد کنید" @bind="category.Name" @bind:event="oninput" />
             <button class="btn btn-primary" disabled="@(_loading || string.IsNullOrWhiteSpace(category.Name))" @onclick="() => CreateAsync(category)">
-                @(_loading ? "در حال ثبت..." : "ثبت اسکیل")
+                @(_loading ? "در حال ثبت..." : "ثبت Scale")
             </button>
         </div>
         @if (Items(category.Usage).Count == 0)
         {
-            <div class="alert alert-light border mb-0">هنوز اسکیلی در این بخش ثبت نشده است.</div>
+            <div class="alert alert-light border mb-0">هنوز Scaleی در این بخش ثبت نشده است.</div>
         }
         else
         {
             <div class="table-responsive"><table class="table table-striped align-middle mb-0">
-                <thead><tr><th>نام اسکیل</th><th style="width:190px">عملیات</th></tr></thead>
+                <thead><tr><th>نام Scale</th><th style="width:190px">عملیات</th></tr></thead>
                 <tbody>@foreach (var scale in Items(category.Usage)) { <tr><td>@if(_editingId==scale.Id&&_editingUsage==category.Usage){<input class="form-control" @bind="_editingName" @bind:event="oninput" />}else{@scale.Name}</td><td>@if(_editingId==scale.Id&&_editingUsage==category.Usage){<div class="d-flex gap-2"><button class="btn btn-sm btn-success" disabled="@(_loading||string.IsNullOrWhiteSpace(_editingName))" @onclick="SaveEditAsync">ذخیره</button><button class="btn btn-sm btn-light" disabled="@_loading" @onclick="CancelEdit">انصراف</button></div>}else{<div class="d-flex gap-2"><button class="btn btn-sm btn-outline-primary" disabled="@_loading" @onclick="()=>BeginEdit(scale,category.Usage)">ویرایش</button><button class="btn btn-sm btn-outline-danger" disabled="@_loading" @onclick="()=>DeleteAsync(scale,category)">حذف</button></div>}</td></tr> }</tbody>
             </table></div>
         }
@@ -45,9 +45,9 @@
     private string _editingName = string.Empty;
     private readonly List<CustomScaleCategory> Categories =
     [
-        new(8, "اسکیل کاستوم کاسه رو"),
-        new(16, "اسکیل کاستوم کاسه زیر"),
-        new(32, "اسکیل کاستوم ساز")
+        new(8, "Scale Custom کاسه رو"),
+        new(16, "Scale Custom کاسه زیر"),
+        new(32, "Scale Custom ساز")
     ];
     private List<ScaleDto> Items(int usage) => _scales.Where(x => (x.Usage & usage) != 0).OrderBy(x => x.Name).ToList();
 
@@ -63,7 +63,7 @@
             category.Name = string.Empty;
             await ReloadAsync();
             _success = true;
-            _message = "اسکیل کاستوم در بخش مربوطه ثبت شد.";
+            _message = "Scale Custom در بخش مربوطه ثبت شد.";
         }
         catch (Exception ex)
         {
@@ -102,7 +102,7 @@
             await ScaleService.RenameAsync(_editingId.Value, _editingName);
             CancelEdit();
             await ReloadAsync();
-            _success = true; _message = "نام اسکیل با موفقیت ویرایش شد.";
+            _success = true; _message = "نام Scale با موفقیت ویرایش شد.";
         }
         catch (Exception ex) { _success = false; _message = ex.Message; }
         finally { _loading = false; }
@@ -110,14 +110,14 @@
 
     private async Task DeleteAsync(ScaleDto scale, CustomScaleCategory category)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"اسکیل «{scale.Name}» از بخش «{category.Title}» حذف شود؟")) return;
+        if (!await JS.InvokeAsync<bool>("confirm", $"Scale «{scale.Name}» از بخش «{category.Title}» حذف شود؟")) return;
         _loading = true; _message = null;
         try
         {
             await ScaleService.DeleteAsync(scale.Id, category.Usage);
             if (_editingId == scale.Id && _editingUsage == category.Usage) CancelEdit();
             await ReloadAsync();
-            _success = true; _message = "اسکیل کاستوم حذف شد.";
+            _success = true; _message = "Scale Custom حذف شد.";
         }
         catch (Exception ex) { _success = false; _message = ex.Message; }
         finally { _loading = false; }

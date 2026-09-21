@@ -255,7 +255,7 @@ public static class ManagementReportPdfBuilder
         [2f,2f,1f,1f]);
 
     private static void ProductionTable(IContainer container, IReadOnlyList<ProductionSummaryRow> rows) => SimpleTable(container,
-        ["متریال","اسکیل","مقصد","تعداد"],rows.Select(x=>new[]{x.Material,x.Scale,x.Destination,x.Count.ToString("N0")}).ToList(),[2f,2f,1f,1f],3.5f);
+        ["متریال","Scale","مقصد","تعداد"],rows.Select(x=>new[]{x.Material,x.Scale,x.Destination,x.Count.ToString("N0")}).ToList(),[2f,2f,1f,1f],3.5f);
 
     private static void PerformanceTable(IContainer container, IReadOnlyList<UserPerformanceItem> users)
     {
@@ -273,7 +273,7 @@ public static class ManagementReportPdfBuilder
         ["تاریخ","کاربر","عملیات","کد","مدت","توضیحات"],rows.Select(x=>new[]{PersianDateTime(x.EventDate),string.IsNullOrWhiteSpace(x.FullName)?x.UserName:x.FullName,x.ActionTitle,string.IsNullOrWhiteSpace(x.ProductionCode)?"-":x.ProductionCode,x.DurationTitle,string.IsNullOrWhiteSpace(x.Description)?"-":x.Description}).ToList(),[1.2f,1.1f,.8f,.75f,.85f,2.6f]);
 
     private static void InstrumentTable(IContainer container, IReadOnlyList<InstrumentInventoryRow> rows) => SimpleTable(container,
-        ["کد","نوع","متریال","اسکیل","مقصد","زمان ورود"],rows.Select(x=>new[]{x.Code,x.ItemType,x.Material,x.Scale,x.Destination,x.EnteredAt==DateTime.MinValue?"-":PersianDateTime(x.EnteredAt)}).ToList(),[1f,1f,1.4f,1.4f,1f,1.2f]);
+        ["کد","نوع","متریال","Scale","مقصد","زمان ورود"],rows.Select(x=>new[]{x.Code,x.ItemType,x.Material,x.Scale,x.Destination,x.EnteredAt==DateTime.MinValue?"-":PersianDateTime(x.EnteredAt)}).ToList(),[1f,1f,1.4f,1.4f,1f,1.2f]);
 
     private static void MaterialStockTable(IContainer container, IReadOnlyList<MaterialStockRow> rows) => SimpleTable(container,
         ["متریال","دسته","موجودی عمومی","کاسه رو","کاسه زیر"],rows.Select(x=>new[]{x.Name,x.Category,x.Quantity.ToString("N0"),x.TopQuantity.ToString("N0"),x.BottomQuantity.ToString("N0")}).ToList(),[2f,1.4f,1f,1f,1f]);

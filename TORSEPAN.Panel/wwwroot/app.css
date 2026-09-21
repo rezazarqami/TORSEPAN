@@ -948,3 +948,5 @@ body { color:#17263b; background:#edf1f5; }
         overflow-x: hidden;
     }
 }
+/* PWA installation help */
+.pwa-help-overlay{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:18px;background:rgba(7,23,39,.7);backdrop-filter:blur(6px)}.pwa-help-dialog{width:min(410px,100%);padding:26px;text-align:center;border-radius:24px;background:#fff;box-shadow:0 30px 90px rgba(0,0,0,.38)}.pwa-help-dialog img{width:86px;height:86px;border-radius:22px;box-shadow:0 10px 28px rgba(18,61,98,.2)}.pwa-help-dialog h3{margin:16px 0 8px;color:#153f62;font-size:1.18rem;font-weight:950}.pwa-help-dialog p{margin:0;color:#617686;line-height:2}.pwa-help-dialog button{min-height:44px;margin-top:18px;padding:0 24px;border:0;border-radius:12px;background:#176b68;color:#fff;font-family:inherit;font-weight:900}

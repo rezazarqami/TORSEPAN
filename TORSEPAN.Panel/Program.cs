@@ -82,6 +82,7 @@ builder.Services.AddScoped<ApiClient>(serviceProvider =>
 });
 
 builder.Services.AddScoped<IAuthService, AuthenticationService>();
+builder.Services.AddScoped<AuthenticationService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<UserApiClient>();
@@ -91,11 +92,13 @@ builder.Services.AddScoped<HandpanService>();
 builder.Services.AddScoped<BowlService>();
 builder.Services.AddScoped<MaterialService>();
 builder.Services.AddScoped<PayrollService>();
+builder.Services.AddScoped<PayrollExclusionService>();
 builder.Services.AddScoped<DesignService>();
 builder.Services.AddScoped<HandpanPhotoService>();
 builder.Services.AddScoped<AccountingService>();
 builder.Services.AddScoped<ScaleService>();
 builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<SalesAttributionService>();
 builder.Services.AddScoped<AdminProductionEditService>();
 builder.Services.AddScoped<PersonalWorkspaceService>();
 builder.Services.AddScoped<MarketingService>();

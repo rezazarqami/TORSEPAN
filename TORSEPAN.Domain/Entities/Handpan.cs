@@ -39,34 +39,57 @@ public class Handpan : Entity
     public ProductionStatus Status { get; private set; }
 
     public ProductionStage Stage { get; private set; }
+    public ExportWarehouseLocation? ExportWarehouseLocation { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
 
     public DateTime? UpdatedAt { get; private set; }
     public string? BuyerName { get; private set; }
+    public string? BuyerPhoneNumber { get; private set; }
     public DateTime? SoldAt { get; private set; }
     public Guid? SoldByUserId { get; private set; }
     public decimal? SalePrice { get; private set; }
     public string? SaleDestination { get; private set; }
+    public bool? IsExportSale { get; private set; }
+    public Guid? SaleLeadSourceId { get; private set; }
+    public Guid? SalesReferrerId { get; private set; }
+    public DateTime? WarrantyActivatedAt { get; private set; }
 
-    public void Sell(string? buyerName, decimal? price, string? destination, Guid soldByUserId)
+    public void ActivateWarranty()
+    {
+        WarrantyActivatedAt ??= DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Sell(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination, bool isExportSale, Guid soldByUserId)
     {
         if (Stage != ProductionStage.FinishedWarehouse) throw new InvalidOperationException("Handpan is not in warehouse.");
         if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
         BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
+        BuyerPhoneNumber = string.IsNullOrWhiteSpace(buyerPhoneNumber) ? null : buyerPhoneNumber.Trim();
         SalePrice = price;
-        SaleDestination = string.IsNullOrWhiteSpace(destination) ? null : destination.Trim();
+        IsExportSale = isExportSale;
+        SaleDestination = isExportSale && !string.IsNullOrWhiteSpace(destination) ? destination.Trim() : null;
         SoldByUserId = soldByUserId; SoldAt = DateTime.UtcNow;
         Stage = ProductionStage.Sold; UpdatedAt = SoldAt;
     }
 
-    public void UpdateSaleDetails(string? buyerName, decimal? price, string? destination)
+    public void UpdateSaleDetails(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination, bool? isExportSale = null)
     {
         if (Stage != ProductionStage.Sold) throw new InvalidOperationException("Handpan is not sold.");
         if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
         BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
+        BuyerPhoneNumber = string.IsNullOrWhiteSpace(buyerPhoneNumber) ? null : buyerPhoneNumber.Trim();
         SalePrice = price;
-        SaleDestination = string.IsNullOrWhiteSpace(destination) ? null : destination.Trim();
+        if (isExportSale.HasValue) IsExportSale = isExportSale.Value;
+        SaleDestination = IsExportSale == true && !string.IsNullOrWhiteSpace(destination) ? destination.Trim() : null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetSaleAttribution(Guid? leadSourceId, Guid? referrerId)
+    {
+        SaleLeadSourceId = leadSourceId;
+        SalesReferrerId = referrerId;
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -76,8 +99,12 @@ public class Handpan : Entity
             throw new InvalidOperationException("Handpan is not sold.");
 
         BuyerName = null;
+        BuyerPhoneNumber = null;
         SalePrice = null;
         SaleDestination = null;
+        IsExportSale = null;
+        SaleLeadSourceId = null;
+        SalesReferrerId = null;
         SoldByUserId = null;
         SoldAt = null;
         Stage = ProductionStage.FinishedWarehouse;
@@ -135,6 +162,22 @@ public class Handpan : Entity
     public void ChangeStatus(ProductionStatus status)
     {
         Status = status;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void MoveToExportWarehouse(ExportWarehouseLocation location)
+    {
+        if (!Enum.IsDefined(location)) throw new ArgumentOutOfRangeException(nameof(location));
+        Stage = ProductionStage.ExportWarehouse;
+        ExportWarehouseLocation = location;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ChangeExportWarehouseLocation(ExportWarehouseLocation location)
+    {
+        if (Stage != ProductionStage.ExportWarehouse) throw new InvalidOperationException("Handpan is not in export warehouse.");
+        if (!Enum.IsDefined(location)) throw new ArgumentOutOfRangeException(nameof(location));
+        ExportWarehouseLocation = location;
         UpdatedAt = DateTime.UtcNow;
     }
 

@@ -19,6 +19,7 @@ else if(_data is not null){
         @if(_data.Summary.Count==0){<div class="personal-empty compact">خلاصه‌ای برای این بازه وجود ندارد.</div>}
         else{<div class="operation-total-grid">@foreach(var item in _data.Summary){<div><span>@item.Operation</span><strong>@item.Count</strong></div>}</div>}
     </section>
+    @if(_payroll?.Enabled==true){<section class="personal-card activity-table"><div class="operation-totals-heading"><div><span class="eyebrow">بر اساس آخرین نرخ‌ها</span><h3>دستمزد من</h3></div><strong>@_payroll.Total.ToString("N0") <small>تومان</small></strong></div>@if(_payroll.Lines.Count==0){<div class="personal-empty compact">در این بازه دستمزدی ثبت نشده است.</div>}else{<div class="table-responsive"><table class="table align-middle"><thead><tr><th>عملیات</th><th>شرح</th><th>تعداد</th><th>نرخ</th><th>جمع</th></tr></thead><tbody>@foreach(var line in _payroll.Lines){<tr><td><strong>@line.Operation</strong></td><td>@line.Description</td><td>@line.Count</td><td>@line.Rate.ToString("N0")</td><td>@line.Total.ToString("N0")</td></tr>}</tbody></table></div>}</section>}
     <section class="personal-card activity-table">
         @if(_data.Items.Count==0){<div class="personal-empty">در این بازه فعالیتی برای شما ثبت نشده است.</div>}
         else{
@@ -38,6 +39,7 @@ else if(_data is not null){
     private DateTime? _from,_to;
     private DateTime? _appliedFrom,_appliedTo;
     private MyActivityDto? _data;
+    private MyPayrollDto? _payroll;
     private bool _loading;
     private string? _error;
     protected override async Task OnInitializedAsync()=>await CurrentMonth();
@@ -48,7 +50,7 @@ else if(_data is not null){
     }
     private async Task Load(int page){
         if(_loading)return;_loading=true;_error=null;
-        try{_data=await Workspace.ActivityAsync(_appliedFrom,_appliedTo,page);}
+        try{var activity=Workspace.ActivityAsync(_appliedFrom,_appliedTo,page);var payroll=Workspace.PayrollAsync(_appliedFrom,_appliedTo);await Task.WhenAll(activity,payroll);_data=await activity;_payroll=await payroll;}
         catch{_error="دریافت گزارش انجام نشد؛ اتصال و ورود به حساب را بررسی کنید.";}
         finally{_loading=false;}
     }

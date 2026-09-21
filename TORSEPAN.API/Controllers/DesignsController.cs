@@ -18,6 +18,49 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
     public async Task<IActionResult> Users(CancellationToken ct) => Ok(await db.Users.AsNoTracking().Where(x => x.IsActive)
         .OrderBy(x => x.DisplayOrder).ThenBy(x => x.FullName).Select(x => new { x.Id, Name = x.FullName == "" ? x.UserName : x.FullName }).ToListAsync(ct));
 
+    [HttpGet("bowls/{code}")]
+    public async Task<IActionResult> BowlDesigns(string code, CancellationToken ct)
+    {
+        var normalized = ProductionCodeNormalizer.Normalize(code);
+        var bowl = await db.Bowls.AsNoTracking().Include(x => x.Material)
+            .FirstOrDefaultAsync(x => x.ProductionCode == normalized, ct);
+        if (bowl is null) return NotFound("کاسه پیدا نشد.");
+        var events = await db.ProductionEvents.AsNoTracking().Include(x => x.User)
+            .Where(x => x.BowlId == bowl.Id && x.Action == ProductionAction.Design)
+            .OrderBy(x => x.EventDate).ToListAsync(ct);
+        return Ok(new
+        {
+            bowl.Id,
+            bowl.ProductionCode,
+            BowlType = bowl.BowlType == BowlType.Top ? "کاسه رو" : "کاسه زیر",
+            MaterialName = bowl.Material.Name,
+            Designs = events.Select(x => new
+            {
+                EventId = x.Id,
+                DesignTypeId = ParseDesignTypeId(x.Description) ?? Guid.Empty,
+                Name = ParseDesignName(x.Description),
+                PerformedBy = string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName,
+                RegisteredAt = x.EventDate
+            })
+        });
+    }
+
+    [HttpDelete("registrations/{eventId:guid}"), Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> DeleteRegistration(Guid eventId, CancellationToken ct)
+    {
+        var item = await db.ProductionEvents.FirstOrDefaultAsync(x => x.Id == eventId && x.Action == ProductionAction.Design, ct);
+        if (item is null) return NotFound();
+        var bowl = item.BowlId.HasValue ? await db.Bowls.FirstOrDefaultAsync(x => x.Id == item.BowlId.Value, ct) : null;
+        if (bowl is null) return NotFound();
+        var assembly = await db.HandpanAssemblies.AsNoTracking().FirstOrDefaultAsync(x => x.TopBowlId == bowl.Id || x.BottomBowlId == bowl.Id, ct);
+        var handpan = assembly is null ? null : await db.Handpans.AsNoTracking().FirstOrDefaultAsync(x => x.AssemblyId == assembly.Id, ct);
+        if (bowl.Stage is ProductionStage.FinishedWarehouse or ProductionStage.Sold || handpan?.Stage is ProductionStage.FinishedWarehouse or ProductionStage.Sold)
+            return Conflict("این ساز وارد انبار شده و عملیات آن قفل است.");
+        db.ProductionEvents.Remove(item);
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
     [HttpPost("types"), Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> AddType(DesignTypeRequest request, CancellationToken ct)
     {
@@ -31,7 +74,7 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
     public async Task<IActionResult> UpdateType(Guid id, DesignTypeRequest request, CancellationToken ct)
     { var item=await db.DesignTypes.FirstOrDefaultAsync(x=>x.Id==id&&x.IsActive,ct);if(item is null)return NotFound();var name=request.Name?.Trim()??"";if(name.Length==0)return BadRequest("نام دیزاین الزامی است.");if(await db.DesignTypes.AnyAsync(x=>x.Id!=id&&x.IsActive&&x.Name.ToLower()==name.ToLower(),ct))return Conflict("این نام قبلاً ثبت شده است.");item.Rename(name);item.SetRate(request.Rate);item.SetExportRate(request.ExportRate);await db.SaveChangesAsync(ct);return NoContent(); }
 
-    [HttpDelete("types/{id:guid}"), Authorize(Roles = "Administrator,ProductionManager")]
+    [HttpDelete("types/{id:guid}"), Authorize(Roles = "Administrator")]
     public async Task<IActionResult> DeleteType(Guid id,CancellationToken ct){var item=await db.DesignTypes.FirstOrDefaultAsync(x=>x.Id==id,ct);if(item is null)return NotFound();item.Deactivate();await db.SaveChangesAsync(ct);return NoContent();}
 
     [HttpPost]
@@ -61,6 +104,8 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
 
     private static Guid? ParseDesignTypeId(string? value)
     { if(string.IsNullOrWhiteSpace(value)||!value.StartsWith("DESIGN:"))return null;var parts=value.Split(':');return parts.Length>1&&Guid.TryParse(parts[1],out var id)?id:null; }
+    private static string ParseDesignName(string? value)
+    { if(string.IsNullOrWhiteSpace(value))return "دیزاین";var parts=value.Split(':',3);return parts.Length==3?parts[2]:"دیزاین"; }
 }
 public sealed record DesignTypeRequest(string? Name, decimal Rate = 0, decimal ExportRate = 0);
 public sealed record RegisterDesignItem(Guid DesignTypeId, Guid? UserId);

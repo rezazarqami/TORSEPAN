@@ -7,26 +7,26 @@
 @inject ScaleService ScaleService
 @inject IJSRuntime JS
 
-<PageTitle>اسکیل‌ها</PageTitle>
+<PageTitle>Scale‌ها</PageTitle>
 
-<h3 class="mb-4">مدیریت اسکیل‌ها</h3>
+<h3 class="mb-4">مدیریت Scale‌ها</h3>
 
 <div class="card p-4 mb-4">
-    <label class="form-label">نام اسکیل جدید</label>
+    <label class="form-label">نام Scale جدید</label>
     <div class="row g-2">
         <div class="col-md-7">
         <input class="form-control" placeholder="مثلاً ۹ نت، ۱۰ نت یا ۱۲ نت" @bind="_name" />
         </div>
         <div class="col-md-3">
             <select class="form-select" @bind="_usage">
-                <option value="1">اسکیل کاسه رو</option>
-                <option value="2">اسکیل کاسه زیر</option>
-                <option value="4">اسکیل ساز</option>
+                <option value="1">Scale کاسه رو</option>
+                <option value="2">Scale کاسه زیر</option>
+                <option value="4">Scale ساز</option>
             </select>
         </div>
         <div class="col-md-2">
         <button class="btn btn-primary" disabled="@(_loading || string.IsNullOrWhiteSpace(_name))" @onclick="CreateAsync">
-            ثبت اسکیل
+            ثبت Scale
         </button>
         </div>
     </div>
@@ -41,7 +41,7 @@
 <div class="card p-3 mb-3">
     <h5 class="mb-3">@category.Title</h5>
     <table class="table table-striped mb-0">
-        <thead><tr><th>اسکیل‌های فعال و قابل انتخاب</th><th style="width:190px">مدیریت</th></tr></thead>
+        <thead><tr><th>Scale‌های فعال و قابل انتخاب</th><th style="width:190px">مدیریت</th></tr></thead>
         <tbody>
         @foreach (var scale in _scales.Where(x => (x.Usage & category.Usage) != 0))
         {
@@ -90,15 +90,15 @@
         _scales.AddRange(await ScaleService.GetAsync());
     }
     private static readonly (int Usage, string Title)[] Categories =
-        [(1, "اسکیل‌های کاسه رو"), (2, "اسکیل‌های کاسه زیر"), (4, "اسکیل‌های ساز")];
+        [(1, "Scale‌های کاسه رو"), (2, "Scale‌های کاسه زیر"), (4, "Scale‌های ساز")];
     private async Task DeleteAsync(ScaleDto scale, int usage, string categoryTitle)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"اسکیل «{scale.Name}» فقط از «{categoryTitle}» حذف شود؟ سایر دسته‌ها و اطلاعات قبلی حفظ می‌شوند.")) return;
+        if (!await JS.InvokeAsync<bool>("confirm", $"Scale «{scale.Name}» فقط از «{categoryTitle}» حذف شود؟ سایر دسته‌ها و اطلاعات قبلی حفظ می‌شوند.")) return;
         await ScaleService.DeleteAsync(scale.Id, usage); await ReloadAsync();
     }
     private async Task RenameAsync(ScaleDto scale)
     {
-        var name = await JS.InvokeAsync<string?>("prompt", "نام جدید اسکیل را وارد کنید:", scale.Name);
+        var name = await JS.InvokeAsync<string?>("prompt", "نام جدید Scale را وارد کنید:", scale.Name);
         if (string.IsNullOrWhiteSpace(name) || name.Trim() == scale.Name) return;
         try { await ScaleService.RenameAsync(scale.Id, name); await ReloadAsync(); }
         catch (Exception ex) { _error = ex.Message; }

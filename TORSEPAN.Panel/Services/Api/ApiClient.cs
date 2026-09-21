@@ -33,6 +33,12 @@ public class ApiClient
             new AuthenticationHeaderValue("Bearer", token);
     }
 
+    public async Task<bool> RenewSessionAsync()
+    {
+        var current = await _tokenStorage.GetAccessTokenAsync();
+        return await TryRefreshAsync(current, force: true);
+    }
+
     public async Task<T?> GetAsync<T>(string url)
     {
         var response = await SendWithRefreshAsync(() => _http.GetAsync(url));
@@ -106,7 +112,7 @@ public class ApiClient
         return await send();
     }
 
-    private async Task<bool> TryRefreshAsync(string? failedAccessToken)
+    private async Task<bool> TryRefreshAsync(string? failedAccessToken, bool force = false)
     {
         await _refreshLock.WaitAsync();
 
@@ -114,7 +120,7 @@ public class ApiClient
         {
             // Another concurrent request may already have refreshed the token.
             var currentAccessToken = await _tokenStorage.GetAccessTokenAsync();
-            if (!string.IsNullOrWhiteSpace(currentAccessToken) &&
+            if (!force && !string.IsNullOrWhiteSpace(currentAccessToken) &&
                 currentAccessToken != failedAccessToken)
             {
                 SetBearerToken(currentAccessToken);

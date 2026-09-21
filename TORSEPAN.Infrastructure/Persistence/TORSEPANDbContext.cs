@@ -31,11 +31,15 @@ public class TORSEPANDbContext : DbContext
     public DbSet<HandpanPhoto> HandpanPhotos => Set<HandpanPhoto>();
     public DbSet<AccountingParty> AccountingParties => Set<AccountingParty>();
     public DbSet<AccountingDocument> AccountingDocuments => Set<AccountingDocument>();
+    public DbSet<SaleLeadSource> SaleLeadSources => Set<SaleLeadSource>();
+    public DbSet<SalesReferrer> SalesReferrers => Set<SalesReferrer>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TORSEPANDbContext).Assembly);
+        modelBuilder.Entity<Handpan>().HasIndex(x => x.SaleLeadSourceId);
+        modelBuilder.Entity<Handpan>().HasIndex(x => x.SalesReferrerId);
     }
 }

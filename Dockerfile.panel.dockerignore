@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+.git/
+.vs/
+TORSEPAN.API/
+TORSEPAN.Infrastructure/
+TORSEPAN.Web/
+tests/
+ops/
+zip/
+TORSEPAN.zip
+build.txt
+tmp/
+output/

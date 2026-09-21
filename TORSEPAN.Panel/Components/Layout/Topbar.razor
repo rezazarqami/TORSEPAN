@@ -1,6 +1,7 @@
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
 @implements IDisposable
 
 <div class="topbar-left">
@@ -13,6 +14,10 @@
 </div>
 
 <div class="topbar-right">
+    <button type="button" class="install-app-button" title="افزودن برنامه به صفحه اصلی" aria-label="افزودن برنامه به صفحه اصلی" @onclick="InstallAppAsync">
+        <span class="install-app-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M9.5 5h5M12 8v7m0 0-2.7-2.7M12 15l2.7-2.7M10 18.5h4"/></svg></span>
+        <b>نصب روی گوشی</b>
+    </button>
     <NotificationBell />
     <button type="button" class="logout-button" title="خروج از حساب کاربری" aria-label="خروج از حساب کاربری" disabled="@isLoggingOut" @onclick="LogoutAsync">
         <svg class="logout-power-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -64,4 +69,5 @@
     }
 
     private async Task LogoutAsync() { if (isLoggingOut) return; isLoggingOut = true; await AuthenticationService.LogoutAsync(); Navigation.NavigateTo("/login", forceLoad: true); }
+    private Task InstallAppAsync() => JS.InvokeVoidAsync("torsepanPwa.install").AsTask();
 }

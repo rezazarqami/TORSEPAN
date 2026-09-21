@@ -8,11 +8,11 @@ public sealed class RenameScaleCommandHandler(IUnitOfWork unitOfWork) : IRequest
     public async Task Handle(RenameScaleCommand request, CancellationToken cancellationToken)
     {
         var scale = await unitOfWork.Scales.GetByIdAsync(request.Id)
-            ?? throw new InvalidOperationException("اسکیل پیدا نشد.");
+            ?? throw new InvalidOperationException("Scale پیدا نشد.");
         var name = request.Name.Trim();
-        if (string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("نام اسکیل الزامی است.");
+        if (string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("نام Scale الزامی است.");
         if ((await unitOfWork.Scales.FindAsync(x => x.Name == name && x.Id != request.Id)).Any())
-            throw new InvalidOperationException("اسکیلی با این نام از قبل وجود دارد.");
+            throw new InvalidOperationException("Scaleی با این نام از قبل وجود دارد.");
         scale.Rename(name);
         unitOfWork.Scales.Update(scale);
         await unitOfWork.SaveChangesAsync(cancellationToken);

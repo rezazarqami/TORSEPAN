@@ -133,15 +133,20 @@ public sealed class BowlService
     }
 
     public Task<DimpleBowlDto?> CompleteExportPackagingAsync(string productionCode)
+        => CompleteExportPackagingAsync(productionCode, 1);
+    public Task<DimpleBowlDto?> CompleteExportPackagingAsync(string productionCode, int exportWarehouseLocation)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
-        return _api.PostAsync<object, DimpleBowlDto>($"bowls/production/{code}/export-packaging/complete", new { });
+        return _api.PostAsync<object, DimpleBowlDto>($"bowls/production/{code}/export-packaging/complete", new { ExportWarehouseLocation = exportWarehouseLocation });
     }
     public Task<DimpleBowlDto?> ReturnExportBowlToGlueAsync(string productionCode)
     { var code=Uri.EscapeDataString(productionCode.Trim()); return _api.PostAsync<object,DimpleBowlDto>($"bowls/production/{code}/export-packaging/send-to-glue",new{}); }
 
     public async Task<IReadOnlyList<ExportWarehouseItemDto>> GetExportWarehouseAsync()
-        => await _api.GetAsync<List<ExportWarehouseItemDto>>("bowls/export-warehouse") ?? [];
+        => await _api.GetAsync<List<ExportWarehouseItemDto>>("export-warehouse") ?? [];
+
+    public Task ChangeExportWarehouseLocationAsync(string itemType, Guid id, int location)
+        => _api.PutAsync<object, object?>($"export-warehouse/{itemType}/{id}/location", new { Location = location });
 
     public Task ShipExportBowlAsync(Guid id)
         => _api.PostAsync<object, object?>($"bowls/export-warehouse/{id}/ship", new { });
@@ -193,12 +198,12 @@ public sealed class BowlService
             new { Approved = approved, RejectionReason = rejectionReason, Details = details });
     }
 
-    public Task<DimpleBowlDto?> CompletePackagingAsync(string productionCode, IReadOnlyCollection<Guid> materialIds)
+    public Task<DimpleBowlDto?> CompletePackagingAsync(string productionCode, IReadOnlyCollection<Guid> materialIds, int? exportWarehouseLocation = null)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/packaging/complete",
-            new { MaterialIds = materialIds });
+            new { MaterialIds = materialIds, ExportWarehouseLocation = exportWarehouseLocation });
     }
 }
 

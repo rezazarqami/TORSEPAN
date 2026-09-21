@@ -48,6 +48,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<int>("BowlType")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ExportWarehouseLocation")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("HasNotes")
                         .HasColumnType("boolean");
 
@@ -128,8 +131,18 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("BuyerPhoneNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ExportWarehouseLocation")
+                        .HasColumnType("integer");
+
+                    b.Property<bool?>("IsExportSale")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("SaleDestination")
                         .HasMaxLength(200)
@@ -138,6 +151,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<decimal?>("SalePrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("SaleLeadSourceId").HasColumnType("uuid");
+                    b.Property<Guid?>("SalesReferrerId").HasColumnType("uuid");
 
                     b.Property<Guid?>("ScaleId")
                         .HasColumnType("uuid");
@@ -162,6 +178,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("WarrantyActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssemblyId")
@@ -169,10 +188,30 @@ namespace TORSEPAN.Infrastructure.Migrations
 
                     b.HasIndex("ScaleId");
 
+                    b.HasIndex("SaleLeadSourceId");
+                    b.HasIndex("SalesReferrerId");
+
                     b.HasIndex("SerialNumber")
                         .IsUnique();
 
                     b.ToTable("Handpans", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.SaleLeadSource", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uuid");
+                    b.Property<bool>("IsActive").HasColumnType("boolean");
+                    b.Property<string>("Name").IsRequired().HasColumnType("text");
+                    b.Property<bool>("RequiresReferrer").HasColumnType("boolean");
+                    b.HasKey("Id"); b.ToTable("SaleLeadSources");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.SalesReferrer", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uuid");
+                    b.Property<bool>("IsActive").HasColumnType("boolean");
+                    b.Property<string>("Name").IsRequired().HasColumnType("text");
+                    b.HasKey("Id"); b.ToTable("SalesReferrers");
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.HandpanAssembly", b =>
@@ -498,6 +537,15 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid?>("HandpanId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsPayrollExcluded")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PayrollExcludedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PayrollExcludedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Result")
                         .HasColumnType("integer");
 
@@ -608,6 +656,11 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
+
+                    b.Property<bool>("ShowMyPayroll")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("FullName")
                         .IsRequired()
