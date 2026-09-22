@@ -13,12 +13,12 @@
 </div>
 
 <div class="topbar-right">
-    <a class="dashboard-button" href="/" title="بازگشت به داشبورد"><span aria-hidden="true">⌂</span><b>داشبورد</b></a>
+    <a class="dashboard-button" href="/" title="بازگشت به داشبورد" aria-label="داشبورد"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 11.2 12 3l9 8.2v9.3a.5.5 0 0 1-.5.5h-5.8v-6.4H9.3V21H3.5a.5.5 0 0 1-.5-.5z"/></svg></span><b>داشبورد</b></a>
     <button type="button" class="install-app-button" title="افزودن برنامه به صفحه اصلی" aria-label="افزودن برنامه به صفحه اصلی" @onclick="InstallAppAsync">
         <span class="install-app-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M9.5 5h5M12 8v7m0 0-2.7-2.7M12 15l2.7-2.7M10 18.5h4"/></svg></span>
         <b>نصب روی گوشی</b>
     </button>
-    <NotificationBell />
+    <div class="header-notification"><NotificationBell /></div>
     <div class="user-box user-box-clean">
         <div><div class="user-name">@DisplayName</div><div class="user-role">@UserTitle</div></div>
     </div>
