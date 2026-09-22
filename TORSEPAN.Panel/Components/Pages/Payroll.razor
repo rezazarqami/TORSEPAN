@@ -177,26 +177,14 @@ else
     <section class="payroll-analytics"><header><div><small>ترکیب تولید ماه جاری</small><h3>سهم مراحل، اعضا، متریال و Scale</h3></div><span>شش نمودار مدیریتی</span></header><ReportDonutGrid Charts="@_analytics.Donuts" /></section>
 }
 
-@if (_confirmVisible)
-{
-    <div class="modal d-block" style="background:rgba(0,0,0,.45)" role="dialog" aria-modal="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" dir="rtl">
-                <div class="modal-header">
-                    <h5 class="modal-title">@_confirmTitle</h5>
-                    <button type="button" class="btn-close ms-0" disabled="@_confirmBusy" @onclick="CloseConfirmation"></button>
-                </div>
-                <div class="modal-body"><p class="mb-0">@_confirmMessage</p></div>
-                <div class="modal-footer justify-content-start">
-                    <button class="btn btn-outline-secondary" disabled="@_confirmBusy" @onclick="CloseConfirmation">انصراف</button>
-                    <button class="btn @(_confirmDanger ? "btn-danger" : "btn-success")" disabled="@_confirmBusy" @onclick="ConfirmAsync">
-                        @(_confirmBusy ? "در حال انجام..." : _confirmButton)
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<AppConfirmDialog IsOpen="@_confirmVisible"
+                  Title="@_confirmTitle"
+                  Message="@_confirmMessage"
+                  ConfirmText="@_confirmButton"
+                  Danger="@_confirmDanger"
+                  Busy="@_confirmBusy"
+                  OnConfirm="ConfirmAsync"
+                  OnCancel="CloseConfirmation" />
 
 @code {
     private PayrollDto _payroll = new();
