@@ -2,14 +2,21 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject BowlService BowlService
 @inject TORSEPAN.Panel.Services.Api.AccountingService AccountingService
+@inject IJSRuntime JS
 
 <PageTitle>انبار صادراتی</PageTitle>
-<PageHeader Title="انبار صادراتی" SubTitle="مدیریت سازها و کاسه‌های آماده ارسال در ایران و انبارهای خارجی" />
+<section class="warehouse-hero export-hero">
+    <span class="hero-kicker">EXPORT INVENTORY</span>
+    <div class="hero-icon" aria-hidden="true">✈</div>
+    <h1>انبار صادراتی</h1>
+    <p>مدیریت یکپارچه سازها و کاسه‌های آماده ارسال در ایران و انبارهای خارجی</p>
+    <div class="hero-stats"><span><strong>@_items.Count</strong> موجودی کل</span><i></i><span><strong>@Warehouses.Length</strong> مقصد فعال</span></div>
+</section>
 
 <div class="warehouse-dashboard">
     @foreach(var warehouse in Warehouses)
     {
-        <button class="warehouse-card @(_activeLocation==warehouse.Id?"active":"")" @onclick="()=>SelectWarehouse(warehouse.Id)"><span class="warehouse-flag">@warehouse.Code</span><div><small>انبار صادراتی</small><strong>@warehouse.Name</strong></div><b>@_items.Count(x=>x.Location==warehouse.Id)</b></button>
+        <button class="warehouse-card @(_activeLocation==warehouse.Id?"active":"")" @onclick="()=>SelectWarehouseAsync(warehouse.Id)"><span class="warehouse-flag">@warehouse.Code</span><div><small>انبار صادراتی</small><strong>@warehouse.Name</strong></div><b>@_items.Count(x=>x.Location==warehouse.Id)</b>@if(_activeLocation==warehouse.Id){<em>در حال نمایش</em>}</button>
     }
 </div>
 
@@ -19,6 +26,7 @@
         <button class="btn ship-selected" disabled="@(_selected.Count == 0)" @onclick="OpenSelectedShipment">ثبت ارسال <span>@_selected.Count</span></button>
     </AuthorizeView>
 </div>
+<div class="active-warehouse-banner" @ref="_inventorySection"><span class="warehouse-flag">@Warehouses.First(x=>x.Id==_activeLocation).Code</span><div><small>اکنون در حال مشاهده</small><strong>انبار @WarehouseName(_activeLocation)</strong></div><b>@WarehouseItems.Count() مورد</b></div>
 @if (_loading)
 {
     <Card><div class="text-center p-5"><div class="spinner-border"></div></div></Card>
@@ -29,34 +37,38 @@ else if (!WarehouseItems.Any())
 }
 else
 {
-    <section class="inventory-section">
-        <header class="inventory-section-header"><div><small>موجودی انتخاب‌شده</small><h3>کاسه‌ها</h3></div><span>@WarehouseBowls.Count()</span></header>
-        <Card>
+    <section class="selected-inventory">
+        <header class="selected-inventory-heading"><div><small>موجودی انتخاب‌شده</small><h2>انبار @WarehouseName(_activeLocation)</h2><p>فهرست زیر مربوط به مقصد انتخاب‌شده است.</p></div><span>@WarehouseItems.Count() مورد</span></header>
+        <nav class="inventory-tabs" aria-label="نوع موجودی">
+            <button class="@(_activeInventoryTab=="bowls"?"active":null)" @onclick='()=>_activeInventoryTab="bowls"'><span>◉</span><strong>کاسه‌ها</strong><b>@WarehouseBowls.Count()</b></button>
+            <button class="@(_activeInventoryTab=="handpans"?"active":null)" @onclick='()=>_activeInventoryTab="handpans"'><span>♫</span><strong>سازها</strong><b>@WarehouseHandpans.Count()</b></button>
+        </nav>
+    @if (_activeInventoryTab == "bowls")
+    {
+        <div class="inventory-pane">
             @if (!WarehouseBowls.Any())
             {
                 <EmptyState Title="کاسه‌ای در این انبار نیست" Description="کاسه‌های بسته‌بندی‌شده برای این مقصد اینجا نمایش داده می‌شوند." />
             }
             else
             {
-                <DataTable><thead><tr><th class="select-column">انتخاب</th><th>کد کاسه</th><th>نوع کاسه</th><th>مشخصات</th><th>انبار</th><th>عملیات</th></tr></thead>
-                <tbody>@foreach (var item in WarehouseBowls) { <tr class="@(_selected.Contains(item.Id)?"selected-row":null)"><td class="select-column"><input type="checkbox" checked="@_selected.Contains(item.Id)" @onchange="e=>Toggle(item.Id,(bool)(e.Value??false))" aria-label="انتخاب @item.ProductionCode" /></td><td><strong>@item.ProductionCode</strong></td><td><span class="item-kind bowl">@item.ItemKind</span></td><td>@item.Detail</td><td><span class="location-badge">@WarehouseName(item.Location)</span></td><td><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView><AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>OpenShipment(item)">ارسال</button></AuthorizeView><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>RequestDelete(item)">حذف</button></AuthorizeView></div></td></tr> }</tbody></DataTable>
+                <div class="inventory-cards">@foreach (var item in WarehouseBowls) { <article class="inventory-item @(_selected.Contains(item.Id)?"selected":null)"><label class="item-select"><input type="checkbox" checked="@_selected.Contains(item.Id)" @onchange="e=>Toggle(item.Id,(bool)(e.Value??false))" /><span></span></label><div class="item-main"><small>@item.ItemKind</small><strong dir="ltr">@item.ProductionCode</strong><p>@item.Detail</p></div><span class="location-badge">@WarehouseName(item.Location)</span><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView><AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>OpenShipment(item)">ثبت ارسال</button></AuthorizeView><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>RequestDelete(item)">حذف</button></AuthorizeView></div></article> }</div>
             }
-        </Card>
-    </section>
-
-    <section class="inventory-section">
-        <header class="inventory-section-header"><div><small>موجودی انتخاب‌شده</small><h3>سازها</h3></div><span>@WarehouseHandpans.Count()</span></header>
-        <Card>
+        </div>
+    }
+    else
+    {
+        <div class="inventory-pane">
             @if (!WarehouseHandpans.Any())
             {
                 <EmptyState Title="سازی در این انبار نیست" Description="سازهای کامل ارسال‌شده به این مقصد اینجا نمایش داده می‌شوند." />
             }
             else
             {
-                <DataTable><thead><tr><th>کد ساز</th><th>نوع موجودی</th><th>مشخصات</th><th>انبار</th><th>عملیات</th></tr></thead>
-                <tbody>@foreach (var item in WarehouseHandpans) { <tr><td><strong>@item.ProductionCode</strong></td><td><span class="item-kind handpan">@item.ItemKind</span></td><td>@item.Detail</td><td><span class="location-badge">@WarehouseName(item.Location)</span></td><td><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView></div></td></tr> }</tbody></DataTable>
+                <div class="inventory-cards">@foreach (var item in WarehouseHandpans) { <article class="inventory-item handpan-card"><div class="item-symbol">♫</div><div class="item-main"><small>@item.ItemKind</small><strong dir="ltr">@item.ProductionCode</strong><p>@item.Detail</p></div><span class="location-badge">@WarehouseName(item.Location)</span><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView></div></article> }</div>
             }
-        </Card>
+        </div>
+    }
     </section>
 }
 
@@ -98,6 +110,8 @@ else
     private ExportWarehouseItemDto? _deleteCandidate;
     private ExportWarehouseItemDto? _locationCandidate;
     private int _activeLocation=4, _newLocation=4;
+    private string _activeInventoryTab="bowls";
+    private ElementReference _inventorySection;
     private static readonly (int Id,string Name,string Code)[] Warehouses=[(4,"ایران","IR"),(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE")];
     private IEnumerable<ExportWarehouseItemDto> WarehouseItems => _items.Where(x=>x.Location==_activeLocation && (string.IsNullOrWhiteSpace(_search) || x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase)));
     private IEnumerable<ExportWarehouseItemDto> WarehouseBowls => WarehouseItems.Where(x=>x.ItemType=="bowl");
@@ -106,7 +120,7 @@ else
     private string DeleteMessage => _deleteCandidate is null ? "" : $"کاسه صادراتی {_deleteCandidate.ProductionCode} برای همیشه حذف شود؟";
     protected override async Task OnInitializedAsync(){_loading=true;try{var bowls=BowlService.GetExportWarehouseAsync();var parties=AccountingService.PartiesAsync();await Task.WhenAll(bowls,parties);_items=(await bowls).ToList();_parties=await parties;}finally{_loading=false;}}
     private void Toggle(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
-    private void SelectWarehouse(int id){_activeLocation=id;_selected.Clear();}
+    private async Task SelectWarehouseAsync(int id){_activeLocation=id;_selected.Clear();_activeInventoryTab="bowls";await InvokeAsync(StateHasChanged);await JS.InvokeVoidAsync("torsepanUi.scrollIntoView",_inventorySection);}
     private static string WarehouseName(int id)=>Warehouses.FirstOrDefault(x=>x.Id==id).Name??"نامشخص";
     private void OpenLocationEditor(ExportWarehouseItemDto item){_locationCandidate=item;_newLocation=item.Location;_locationError=null;}
     private void CloseLocationEditor(){if(!_savingLocation)_locationCandidate=null;}
