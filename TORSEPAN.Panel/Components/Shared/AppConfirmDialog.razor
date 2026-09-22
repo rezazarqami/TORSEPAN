@@ -2,7 +2,7 @@
 {
     <div class="app-confirm-overlay" @onclick="CancelAsync">
         <section class="app-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="@_titleId" aria-describedby="@_messageId" @onclick:stopPropagation="true">
-            <div class="app-confirm-mark" aria-hidden="true">↩</div>
+            <div class="app-confirm-mark @(Danger ? "danger" : null)" aria-hidden="true">@(Danger ? "!" : "✓")</div>
             <div class="app-confirm-heading">
                 <small>تأیید عملیات</small>
                 <h3 id="@_titleId">@Title</h3>
@@ -14,7 +14,7 @@
             }
             <footer>
                 <button type="button" class="btn app-confirm-cancel" disabled="@Busy" @onclick="CancelAsync">انصراف</button>
-                <button type="button" class="btn app-confirm-submit" disabled="@Busy" @onclick="ConfirmAsync">
+                <button type="button" class="btn app-confirm-submit @(Danger ? "danger" : null)" disabled="@Busy" @onclick="ConfirmAsync">
                     @if (Busy)
                     {
                         <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
@@ -40,6 +40,7 @@
     [Parameter] public string ConfirmText { get; set; } = "تأیید";
     [Parameter] public string? Error { get; set; }
     [Parameter] public bool Busy { get; set; }
+    [Parameter] public bool Danger { get; set; }
     [Parameter] public EventCallback OnConfirm { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 

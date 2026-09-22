@@ -91,7 +91,9 @@ public sealed class CompleteHandpanPackagingCommandHandler
         await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(
             handpan.Id, assembly.Id, null, userId, ProductionAction.Packaging,
             EventResult.Completed, null,
-            $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}"));
+            request.ExportWarehouseLocation.HasValue
+                ? $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}|EXPORT_WAREHOUSE:{(int)request.ExportWarehouseLocation.Value}"
+                : $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}"));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         foreach (var material in selectedMaterials.Where(x => x.LowStockThreshold > 0 && x.Quantity < x.LowStockThreshold))

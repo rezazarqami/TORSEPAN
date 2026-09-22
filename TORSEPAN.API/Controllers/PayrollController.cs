@@ -172,6 +172,9 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var assemblyIds = new List<Guid>();
         var bowlIds = new List<Guid>();
         var exportBowlIds = new List<Guid>();
+        var exportHandpanIds = new HashSet<Guid>();
+        var exportAssemblyIds = new HashSet<Guid>();
+        var exportHandpanBowlIds = new HashSet<Guid>();
         var alreadyPaid = (await db.PayrollPayments.AsNoTracking().Select(x => x.HandpanIdsJson).ToListAsync(ct))
             .SelectMany(Deserialize<Guid>).ToHashSet();
         var paidHandpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly)
@@ -187,6 +190,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             if (readyForQc) selectedActions.Add(ProductionAction.FineTune);
             if (readyForPackaging) selectedActions.Add(ProductionAction.QualityCheck);
             if (enteredWarehouse || currentWarehousePeriod) selectedActions.Add(ProductionAction.Packaging);
+            if (exportWarehouse) selectedActions.Add(ProductionAction.Packaging);
             var enteredIds = await db.ProductionEvents.AsNoTracking()
                 .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed &&
                             x.HandpanId.HasValue && selectedActions.Contains(x.Action))
@@ -194,16 +198,32 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             handpanIds = enteredIds.Where(x => !alreadyPaid.Contains(x)).ToList();
             var handpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly)
                 .Where(x => handpanIds.Contains(x.Id)).ToListAsync(ct);
+            var explicitlyExportedHandpanIds = (await db.ProductionEvents.AsNoTracking()
+                .Where(x => x.HandpanId.HasValue && handpanIds.Contains(x.HandpanId.Value) &&
+                            x.Action == ProductionAction.Packaging && x.Description.Contains("EXPORT_WAREHOUSE:"))
+                .Select(x => x.HandpanId!.Value).Distinct().ToListAsync(ct)).ToHashSet();
+            exportHandpanIds = handpans
+                .Where(x => x.ExportWarehouseLocation.HasValue || explicitlyExportedHandpanIds.Contains(x.Id))
+                .Select(x => x.Id).ToHashSet();
+            if (exportWarehouse && !enteredWarehouse && !currentWarehousePeriod)
+            {
+                handpans = handpans.Where(x => exportHandpanIds.Contains(x.Id)).ToList();
+                handpanIds = handpans.Select(x => x.Id).ToList();
+            }
+            exportAssemblyIds = handpans.Where(x => exportHandpanIds.Contains(x.Id)).Select(x => x.AssemblyId).ToHashSet();
+            exportHandpanBowlIds = handpans.Where(x => exportHandpanIds.Contains(x.Id))
+                .SelectMany(x => new[] { x.Assembly.TopBowlId, x.Assembly.BottomBowlId }).ToHashSet();
             handpanCodes = handpans.Select(x => x.SerialNumber).OrderBy(x => x).ToList();
             assemblyIds = handpans.Select(x => x.AssemblyId).ToList();
             bowlIds = handpans.SelectMany(x => new[] { x.Assembly.TopBowlId, x.Assembly.BottomBowlId }).ToList();
-            if (readyForExportPackaging || exportWarehouse)
+            if (readyForExportPackaging || exportWarehouse || enteredWarehouse || currentWarehousePeriod)
             {
                 exportBowlIds = await db.ProductionEvents.AsNoTracking()
                     .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed &&
                                 x.BowlId.HasValue && !x.HandpanId.HasValue && x.Bowl != null &&
                                 ((readyForExportPackaging && x.Action == ProductionAction.Tune && x.Bowl.Stage == ProductionStage.WaitingForExportPackaging) ||
-                                 (exportWarehouse && x.Action == ProductionAction.Packaging && x.Bowl.Stage == ProductionStage.ExportWarehouse)))
+                                 ((exportWarehouse || enteredWarehouse || currentWarehousePeriod) && x.Action == ProductionAction.Packaging &&
+                                  (x.Bowl.Stage == ProductionStage.ExportWarehouse || x.Description.Contains("Export packaging")))))
                     .Select(x => x.BowlId!.Value).Distinct().ToListAsync(ct);
                 exportBowlIds = exportBowlIds.Where(x => !alreadyPaid.Contains(x)).ToList();
                 bowlIds.AddRange(exportBowlIds);
@@ -238,8 +258,12 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var lines = events.GroupBy(x => new
         {
             x.UserId, x.User.FullName, x.User.UserName, x.User.DisplayOrder, x.Action,
-            IsExport = x.BowlId.HasValue && exportBowlIds.Contains(x.BowlId.Value),
-            IsCustom = !(x.BowlId.HasValue && exportBowlIds.Contains(x.BowlId.Value)) &&
+            IsExport = (x.HandpanId.HasValue && exportHandpanIds.Contains(x.HandpanId.Value)) ||
+                (x.AssemblyId.HasValue && exportAssemblyIds.Contains(x.AssemblyId.Value)) ||
+                (x.BowlId.HasValue && (exportBowlIds.Contains(x.BowlId.Value) || exportHandpanBowlIds.Contains(x.BowlId.Value))),
+            IsCustom = !((x.HandpanId.HasValue && exportHandpanIds.Contains(x.HandpanId.Value)) ||
+                (x.AssemblyId.HasValue && exportAssemblyIds.Contains(x.AssemblyId.Value)) ||
+                (x.BowlId.HasValue && (exportBowlIds.Contains(x.BowlId.Value) || exportHandpanBowlIds.Contains(x.BowlId.Value)))) &&
                 (x.Handpan != null ? x.Handpan.Assembly.TopBowl.IsCustomScale :
                  x.Assembly != null ? x.Assembly.TopBowl.IsCustomScale :
                  x.Bowl != null && x.Bowl.IsCustomScale),
