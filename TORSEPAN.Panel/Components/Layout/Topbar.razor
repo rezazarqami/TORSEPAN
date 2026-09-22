@@ -5,8 +5,7 @@
 @implements IDisposable
 
 <div class="topbar-left">
-    <img class="topbar-brandmark" src="/images/brand/torsepan-logo.webp" alt="TORSEPAN" />
-    <img class="topbar-handpan" src="/images/brand/handpan-light.webp" alt="هنگدرام TORSEPAN" />
+    <img class="topbar-brandmark" src="/images/brand/torsepan-mark-new.webp" alt="TORSEPAN" />
     <div class="topbar-title-block">
         <div class="page-title"><span class="page-title-main">سامانه مدیریت تولید</span><span class="page-title-brand">TORSEPAN</span></div>
         <div class="page-subtitle">مدیریت هوشمند کارگاه ساخت هنگدرام</div>
@@ -14,26 +13,18 @@
 </div>
 
 <div class="topbar-right">
+    <a class="dashboard-button" href="/" title="بازگشت به داشبورد"><span aria-hidden="true">⌂</span><b>داشبورد</b></a>
     <button type="button" class="install-app-button" title="افزودن برنامه به صفحه اصلی" aria-label="افزودن برنامه به صفحه اصلی" @onclick="InstallAppAsync">
         <span class="install-app-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M9.5 5h5M12 8v7m0 0-2.7-2.7M12 15l2.7-2.7M10 18.5h4"/></svg></span>
         <b>نصب روی گوشی</b>
     </button>
     <NotificationBell />
-    <button type="button" class="logout-button" title="خروج از حساب کاربری" aria-label="خروج از حساب کاربری" disabled="@isLoggingOut" @onclick="LogoutAsync">
-        <svg class="logout-power-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 2v10M6.34 5.34a8 8 0 1 0 11.32 0" />
-        </svg>
-        <span class="logout-label">@(isLoggingOut ? "در حال خروج..." : "خروج")</span>
-    </button>
     <div class="user-box user-box-clean">
         <div><div class="user-name">@DisplayName</div><div class="user-role">@UserTitle</div></div>
     </div>
 </div>
 
 @code {
-    [Inject] private IAuthService AuthenticationService { get; set; } = default!;
-    [Inject] private NavigationManager Navigation { get; set; } = default!;
-    private bool isLoggingOut;
     private string DisplayName { get; set; } = "کاربر";
     private string UserTitle { get; set; } = "همکار TORSEPAN";
 
@@ -68,6 +59,5 @@
         return roles.Select(role => titles.GetValueOrDefault(role, role)).FirstOrDefault() ?? "همکار TORSEPAN";
     }
 
-    private async Task LogoutAsync() { if (isLoggingOut) return; isLoggingOut = true; await AuthenticationService.LogoutAsync(); Navigation.NavigateTo("/login", forceLoad: true); }
     private Task InstallAppAsync() => JS.InvokeVoidAsync("torsepanPwa.install").AsTask();
 }

@@ -1,6 +1,5 @@
-<div class="sidebar-header">
-    <div class="logo brand-logo"><img src="/images/brand/torsepan-logo.webp" alt="Torsepan" /></div>
-</div>
+@inject IAuthService AuthenticationService
+@inject NavigationManager Navigation
 
 <nav class="sidebar-menu">
 
@@ -81,8 +80,15 @@
     <NavLink href="/payroll/exclusions"><span>✅</span><span>دستمزدهای قبلاً محاسبه‌شده</span></NavLink>
     </AuthorizeView>
 
+    <button type="button" class="sidebar-logout" disabled="@_loggingOut" @onclick="LogoutAsync"><span>↪</span><span>@(_loggingOut ? "در حال خروج…" : "خروج از سامانه")</span></button>
+
 </nav>
 
 <div class="sidebar-footer">
     TORSEPAN 1.0
 </div>
+
+@code {
+    private bool _loggingOut;
+    private async Task LogoutAsync(){if(_loggingOut)return;_loggingOut=true;await AuthenticationService.LogoutAsync();Navigation.NavigateTo("/login",true);}
+}
