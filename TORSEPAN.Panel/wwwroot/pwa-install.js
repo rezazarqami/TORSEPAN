@@ -1,4 +1,7 @@
 let deferredInstallPrompt = null;
+window.torsepanUi = window.torsepanUi || {
+  scrollIntoView(element) { element?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+};
 window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); deferredInstallPrompt = event; });
 window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; });
 

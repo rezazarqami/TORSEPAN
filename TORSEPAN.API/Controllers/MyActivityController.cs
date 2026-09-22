@@ -33,7 +33,9 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
         var summaryRows=await query.Where(x=>x.Result==EventResult.Completed).GroupBy(x=>new{
                 x.Action,
                 BowlType=x.Bowl!=null?(BowlType?)x.Bowl.BowlType:null,
-                IsExport=EF.Functions.ILike(x.Description,"%export%")
+                IsExport=EF.Functions.ILike(x.Description,"%export%")||
+                    (x.Handpan!=null&&x.Handpan.ExportWarehouseLocation.HasValue)||
+                    (x.Bowl!=null&&x.Bowl.ExportWarehouseLocation.HasValue)
             }).Select(x=>new{x.Key.Action,x.Key.BowlType,x.Key.IsExport,Count=x.Count()})
             .OrderByDescending(x=>x.Count).ToListAsync(ct);
         var rows=await query.OrderByDescending(x=>x.EventDate).ThenBy(x=>x.Id)
@@ -42,7 +44,9 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
                 Code=x.Bowl!=null?x.Bowl.ProductionCode:x.Handpan!=null?x.Handpan.SerialNumber:
                     x.Assembly!=null?x.Assembly.TopBowl.ProductionCode+" / "+x.Assembly.BottomBowl.ProductionCode:"",
                 BowlType=x.Bowl!=null?(BowlType?)x.Bowl.BowlType:null,
-                IsExport=EF.Functions.ILike(x.Description,"%export%")
+                IsExport=EF.Functions.ILike(x.Description,"%export%")||
+                    (x.Handpan!=null&&x.Handpan.ExportWarehouseLocation.HasValue)||
+                    (x.Bowl!=null&&x.Bowl.ExportWarehouseLocation.HasValue)
             }).ToListAsync(ct);
         return Ok(new{From=start,To=end,Total=total,Completed=completed,Page=page,PageSize=50,
             Summary=summaryRows.Select(x=>new{Operation=OperationLabel(x.Action,x.BowlType,x.IsExport),x.Count}),
@@ -66,12 +70,21 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
         if(start.Year<1900||start>end||end-start>TimeSpan.FromDays(366))return BadRequest("بازه معتبر تا حداکثر یک سال انتخاب کنید.");
         var startUtc=DateTime.SpecifyKind(start.AddHours(-3.5),DateTimeKind.Utc);var endUtc=DateTime.SpecifyKind(end.AddDays(1).AddHours(-3.5),DateTimeKind.Utc);
         var paidIds=(await db.PayrollPayments.AsNoTracking().Select(x=>x.HandpanIdsJson).ToListAsync(ct)).SelectMany(ParsePaidIds).ToHashSet();
-        var eligibleHandpanIds=(await db.ProductionEvents.AsNoTracking()
+        var eligibleHandpanEvents=await db.ProductionEvents.AsNoTracking()
             .Where(x=>x.HandpanId.HasValue&&x.Action==ProductionAction.Packaging&&x.Result==EventResult.Completed&&x.EventDate>=startUtc&&x.EventDate<endUtc)
-            .Select(x=>x.HandpanId!.Value).Distinct().ToListAsync(ct)).Where(x=>!paidIds.Contains(x)).ToHashSet();
+            .Select(x=>new{HandpanId=x.HandpanId!.Value,x.Description}).ToListAsync(ct);
+        var eligibleHandpanIds=eligibleHandpanEvents.Select(x=>x.HandpanId).Distinct().Where(x=>!paidIds.Contains(x)).ToHashSet();
         var eligibleHandpans=await db.Handpans.AsNoTracking().Include(x=>x.Assembly).Where(x=>eligibleHandpanIds.Contains(x.Id)).ToListAsync(ct);
+        var explicitlyExportedHandpanIds=eligibleHandpanEvents.Where(x=>x.Description.Contains("EXPORT_WAREHOUSE:",StringComparison.OrdinalIgnoreCase)).Select(x=>x.HandpanId).ToHashSet();
+        var exportHandpanIds=eligibleHandpans.Where(x=>x.ExportWarehouseLocation.HasValue||explicitlyExportedHandpanIds.Contains(x.Id)).Select(x=>x.Id).ToHashSet();
         var eligibleAssemblyIds=eligibleHandpans.Select(x=>x.AssemblyId).ToHashSet();
-        var eligibleBowlIds=eligibleHandpans.SelectMany(x=>new[]{x.Assembly.TopBowlId,x.Assembly.BottomBowlId}).ToHashSet();
+        var exportAssemblyIds=eligibleHandpans.Where(x=>exportHandpanIds.Contains(x.Id)).Select(x=>x.AssemblyId).ToHashSet();
+        var exportHandpanBowlIds=eligibleHandpans.Where(x=>exportHandpanIds.Contains(x.Id)).SelectMany(x=>new[]{x.Assembly.TopBowlId,x.Assembly.BottomBowlId}).ToHashSet();
+        var exportBowlIds=(await db.ProductionEvents.AsNoTracking()
+            .Where(x=>x.BowlId.HasValue&&!x.HandpanId.HasValue&&x.Action==ProductionAction.Packaging&&x.Result==EventResult.Completed&&
+                x.EventDate>=startUtc&&x.EventDate<endUtc&&EF.Functions.ILike(x.Description,"%export%"))
+            .Select(x=>x.BowlId!.Value).Distinct().ToListAsync(ct)).Where(x=>!paidIds.Contains(x)).ToHashSet();
+        var eligibleBowlIds=eligibleHandpans.SelectMany(x=>new[]{x.Assembly.TopBowlId,x.Assembly.BottomBowlId}).Concat(exportBowlIds).ToHashSet();
         var events=await db.ProductionEvents.AsNoTracking().Include(x=>x.Bowl)!.ThenInclude(x=>x.Material).Include(x=>x.Bowl)!.ThenInclude(x=>x.Scale)
             .Include(x=>x.Assembly)!.ThenInclude(x=>x.TopBowl).ThenInclude(x=>x.Material).Include(x=>x.Handpan)!.ThenInclude(x=>x.Scale)
             .Include(x=>x.Handpan)!.ThenInclude(x=>x.Assembly).ThenInclude(x=>x.TopBowl).ThenInclude(x=>x.Material)
@@ -79,8 +92,13 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
                 ((x.HandpanId.HasValue&&eligibleHandpanIds.Contains(x.HandpanId.Value))||(x.AssemblyId.HasValue&&eligibleAssemblyIds.Contains(x.AssemblyId.Value))||(x.BowlId.HasValue&&eligibleBowlIds.Contains(x.BowlId.Value)))&&
                 (x.Action==ProductionAction.Dimple||x.Action==ProductionAction.Shape||x.Action==ProductionAction.Glue||x.Action==ProductionAction.Tune||x.Action==ProductionAction.FineTune||x.Action==ProductionAction.Design)).ToListAsync(ct);
         var rates=await db.PayrollRates.AsNoTracking().ToListAsync(ct);var designs=await db.DesignTypes.AsNoTracking().ToDictionaryAsync(x=>x.Id,ct);
-        var lines=events.GroupBy(x=>new{x.Action,IsExport=x.Description.Contains("export",StringComparison.OrdinalIgnoreCase),
-            IsCustom=x.Handpan!=null?x.Handpan.Assembly.TopBowl.IsCustomScale:x.Assembly!=null?x.Assembly.TopBowl.IsCustomScale:x.Bowl!=null&&x.Bowl.IsCustomScale,
+        var lines=events.GroupBy(x=>new{x.Action,IsExport=(x.HandpanId.HasValue&&exportHandpanIds.Contains(x.HandpanId.Value))||
+                (x.AssemblyId.HasValue&&exportAssemblyIds.Contains(x.AssemblyId.Value))||
+                (x.BowlId.HasValue&&(exportBowlIds.Contains(x.BowlId.Value)||exportHandpanBowlIds.Contains(x.BowlId.Value))),
+            IsCustom=!((x.HandpanId.HasValue&&exportHandpanIds.Contains(x.HandpanId.Value))||
+                (x.AssemblyId.HasValue&&exportAssemblyIds.Contains(x.AssemblyId.Value))||
+                (x.BowlId.HasValue&&(exportBowlIds.Contains(x.BowlId.Value)||exportHandpanBowlIds.Contains(x.BowlId.Value))))&&
+                (x.Handpan!=null?x.Handpan.Assembly.TopBowl.IsCustomScale:x.Assembly!=null?x.Assembly.TopBowl.IsCustomScale:x.Bowl!=null&&x.Bowl.IsCustomScale),
             MaterialId=x.Action is ProductionAction.Glue or ProductionAction.Design?(Guid?)null:x.Bowl!=null?x.Bowl.MaterialId:x.Assembly!=null?x.Assembly.TopBowl.MaterialId:x.Handpan!=null?x.Handpan.Assembly.TopBowl.MaterialId:null,
             Material=x.Action is ProductionAction.Glue or ProductionAction.Design?"":x.Bowl!=null?x.Bowl.Material.Name:x.Assembly!=null?x.Assembly.TopBowl.Material.Name:x.Handpan!=null?x.Handpan.Assembly.TopBowl.Material.Name:"—",
             BowlType=x.Action is ProductionAction.Glue or ProductionAction.Design||x.Bowl==null?(int?)null:(int)x.Bowl.BowlType,
@@ -111,12 +129,25 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
     private static string Details(string text)
     {
         if(text.StartsWith("DESIGN:")){var parts=text.Split(':',3);return parts.Length==3?"دیزاین: "+parts[2]:"دیزاین ثبت شد";}
-        if(text.StartsWith("PACKAGING_ITEMS:"))return "اقلام بسته‌بندی: "+text[16..].Replace("|","، ");
+        if(text.StartsWith("PACKAGING_ITEMS:"))return PackagingDetails(text[16..]);
         if(text.StartsWith("Glued with bowl "))return "جفت‌شده با کاسه "+text["Glued with bowl ".Length..];
         if(text.StartsWith("Shape completed"))return "شیپ تکمیل شد";
         return text switch{
             "Dimple completed"=>"دیمپل تکمیل شد","Tune completed"=>"تیون تکمیل شد",
             "Bake completed"=>"پخت تکمیل شد","Final tune completed"=>"فاین‌تیون تکمیل شد",
             "Export packaging completed"=>"بسته‌بندی صادراتی تکمیل شد",_=>text};
+    }
+    private static string PackagingDetails(string value)
+    {
+        var parts=value.Split('|',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
+        var items=parts.Where(x=>!x.StartsWith("EXPORT_WAREHOUSE:",StringComparison.OrdinalIgnoreCase)).ToArray();
+        var export=parts.FirstOrDefault(x=>x.StartsWith("EXPORT_WAREHOUSE:",StringComparison.OrdinalIgnoreCase));
+        var detail=items.Length==0?"بسته‌بندی بدون اقلام مصرفی":"اقلام بسته‌بندی: "+string.Join("، ",items);
+        if(export is null)return detail;
+        var raw=export["EXPORT_WAREHOUSE:".Length..];
+        var location=int.TryParse(raw,out var number)&&Enum.IsDefined(typeof(ExportWarehouseLocation),number)
+            ? ((ExportWarehouseLocation)number) switch{ExportWarehouseLocation.Iran=>"ایران",ExportWarehouseLocation.Turkey=>"ترکیه",ExportWarehouseLocation.Germany=>"آلمان",ExportWarehouseLocation.London=>"لندن",_=>"صادراتی"}
+            : "صادراتی";
+        return $"{detail} — مقصد: {location}";
     }
 }
