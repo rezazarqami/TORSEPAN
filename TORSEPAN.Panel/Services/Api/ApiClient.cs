@@ -48,11 +48,29 @@ public class ApiClient
     public async Task<TResult?> PostAsync<TRequest, TResult>(
         string url,
         TRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool reportErrorDetail = false)
     {
         var response = await SendWithRefreshAsync(
             () => _http.PostAsJsonAsync(url, request, cancellationToken),
             allowRefresh: url != ApiEndpoints.Login && url != ApiEndpoints.Refresh);
+        if (reportErrorDetail && !response.IsSuccessStatusCode)
+        {
+            var detail = $"API با کد {(int)response.StatusCode} پاسخ داد.";
+            try
+            {
+                using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+                if (json.RootElement.TryGetProperty("detail", out var value) && value.ValueKind == JsonValueKind.String)
+                {
+                    var message = value.GetString();
+                    if (!string.IsNullOrWhiteSpace(message)) detail = message[..Math.Min(message.Length, 240)];
+                }
+            }
+            catch (JsonException) { }
+            var status = response.StatusCode;
+            response.Dispose();
+            throw new HttpRequestException(detail, null, status);
+        }
         return await ReadResponseAsync<TResult>(response);
     }
 

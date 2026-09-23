@@ -47,6 +47,11 @@ private async Task SendToTelegramAsync(Guid id)
         _sendSucceeded = false;
         _message = "پاسخ ارسال به‌موقع نرسید. پیش از تلاش دوباره، تلگرام را بررسی کنید.";
     }
+    catch (HttpRequestException ex)
+    {
+        _sendSucceeded = false;
+        _message = $"ارسال PDF انجام نشد: {ex.Message}";
+    }
     catch (Exception)
     {
         _sendSucceeded = false;

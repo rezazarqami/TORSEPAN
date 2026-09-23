@@ -197,7 +197,21 @@ app.MapPost("/api/internal/telegram-payroll-report", async (HttpRequest request,
 {
     var expectedSecret=configuration["TelegramRelay:Secret"];if(string.IsNullOrWhiteSpace(expectedSecret)||request.Headers["X-Relay-Secret"]!=expectedSecret)return Results.Unauthorized();
     var token=configuration["TelegramRelay:BotToken"];var chatId=configuration["TelegramRelay:ChatId"];if(string.IsNullOrWhiteSpace(token)||string.IsNullOrWhiteSpace(chatId))return Results.Problem("Telegram relay is not configured.");
-    var form=await request.ReadFormAsync(cancellationToken);var file=form.Files.GetFile("report");if(file is null)return Results.BadRequest();using var content=new MultipartFormDataContent();content.Add(new StringContent(chatId),"chat_id");content.Add(new StringContent("گزارش عملکرد تولید TORSEPAN"),"caption");await using var stream=file.OpenReadStream();content.Add(new StreamContent(stream),"document",file.FileName);using var response=await httpClientFactory.CreateClient().PostAsync($"https://api.telegram.org/bot{token}/sendDocument",content,cancellationToken);return response.IsSuccessStatusCode?Results.Ok():Results.StatusCode((int)response.StatusCode);
+    var form=await request.ReadFormAsync(cancellationToken);var file=form.Files.GetFile("report");if(file is null)return Results.BadRequest();using var content=new MultipartFormDataContent();content.Add(new StringContent(chatId),"chat_id");content.Add(new StringContent("گزارش عملکرد تولید TORSEPAN"),"caption");await using var stream=file.OpenReadStream();content.Add(new StreamContent(stream),"document",file.FileName);
+    using var response=await httpClientFactory.CreateClient().PostAsync($"https://api.telegram.org/bot{token}/sendDocument",content,cancellationToken);
+    if(response.IsSuccessStatusCode)return Results.Ok();
+    var detail=$"تلگرام با کد {(int)response.StatusCode} ارسال PDF را رد کرد.";
+    try
+    {
+        using var error=JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        if(error.RootElement.TryGetProperty("description",out var description)&&description.ValueKind==JsonValueKind.String)
+        {
+            var text=description.GetString();
+            if(!string.IsNullOrWhiteSpace(text))detail=$"تلگرام: {text[..Math.Min(text.Length,200)]}";
+        }
+    }
+    catch(JsonException){}
+    return Results.Problem(detail,statusCode:(int)response.StatusCode);
 }).DisableAntiforgery();
 
 app.MapPost("/api/internal/telegram-database-backup", async (HttpRequest request,
