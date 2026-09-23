@@ -47,12 +47,40 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
     public async Task<IActionResult> Telegram(string kind,ManagementReportRequest request,CancellationToken ct)
     {
         var bytes=await BuildReportPdfAsync(kind,request,ct);var fileName=$"torsepan-{kind}-{DateTime.UtcNow:yyyyMMdd-HHmm}.pdf";
-        var relay=configuration["Telegram:BackupRelayUrl"]??configuration["Telegram:RelayUrl"];
-        if(string.IsNullOrWhiteSpace(relay))return Problem("Telegram relay is not configured.");
+        var relay=configuration["Telegram:BackupRelayUrl"];
+        if(string.IsNullOrWhiteSpace(relay))relay=configuration["Telegram:RelayUrl"];
+        if(string.IsNullOrWhiteSpace(relay) || string.IsNullOrWhiteSpace(configuration["Telegram:RelaySecret"]))
+            return Problem("Telegram relay address or secret is not configured in the API.",statusCode:503);
         relay=relay.Replace("telegram-database-backup","telegram-payroll-report").Replace("telegram-inventory-alert","telegram-payroll-report").Replace("/database-backup","/payroll-report").Replace("/inventory-alert","/payroll-report");
         using var form=new MultipartFormDataContent();form.Add(new ByteArrayContent(bytes),"report",fileName);
         using var message=new HttpRequestMessage(HttpMethod.Post,relay){Content=form};message.Headers.Add("X-Relay-Secret",configuration["Telegram:RelaySecret"]);
-        var response=await httpFactory.CreateClient().SendAsync(message,ct);return response.IsSuccessStatusCode?Ok():StatusCode((int)response.StatusCode);
+        using var deadline=CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(TimeSpan.FromSeconds(70));
+        try
+        {
+            using var response=await httpFactory.CreateClient().SendAsync(message,deadline.Token);
+            if(response.IsSuccessStatusCode)return Ok();
+            var detail=$"Telegram relay returned HTTP {(int)response.StatusCode}.";
+            try
+            {
+                using var error=JsonDocument.Parse(await response.Content.ReadAsStringAsync(deadline.Token));
+                if(error.RootElement.TryGetProperty("detail",out var reason)&&reason.ValueKind==JsonValueKind.String)
+                {
+                    var value=reason.GetString();
+                    if(!string.IsNullOrWhiteSpace(value))detail=value[..Math.Min(value.Length,180)];
+                }
+            }
+            catch(JsonException){}
+            return Problem(detail,statusCode:(int)response.StatusCode);
+        }
+        catch(OperationCanceledException) when(!ct.IsCancellationRequested)
+        {
+            return Problem("Telegram relay did not respond within 70 seconds.",statusCode:504);
+        }
+        catch(HttpRequestException)
+        {
+            return Problem("The API cannot reach its Telegram relay.",statusCode:502);
+        }
     }
 
     internal Task<ProductionAnalytics> BuildProductionForPayrollAsync(DateTime from,DateTime to,CancellationToken ct)

@@ -114,9 +114,17 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/health", (DatabaseBackupStatus backup) => Results.Ok(new
+app.MapGet("/health", (DatabaseBackupStatus backup, TelegramAlertStatus alerts, IConfiguration configuration) => Results.Ok(new
 {
     status = "healthy",
+    telegram = new
+    {
+        relayConfigured = !string.IsNullOrWhiteSpace(configuration["Telegram:RelayUrl"]),
+        backupRelayConfigured = !string.IsNullOrWhiteSpace(configuration["Telegram:BackupRelayUrl"]) ||
+            !string.IsNullOrWhiteSpace(configuration["Telegram:RelayUrl"]),
+        relaySecretConfigured = !string.IsNullOrWhiteSpace(configuration["Telegram:RelaySecret"]),
+        inventoryAlert = alerts.Snapshot()
+    },
     databaseBackup = new
     {
         backup.State,

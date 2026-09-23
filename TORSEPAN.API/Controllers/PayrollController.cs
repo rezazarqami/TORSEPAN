@@ -70,7 +70,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
 
     private async Task<IActionResult> SendPdfToTelegramAsync(byte[] bytes, string fileName, CancellationToken ct)
     {
-        var relay=configuration["Telegram:BackupRelayUrl"]??configuration["Telegram:RelayUrl"];
+        var relay=configuration["Telegram:BackupRelayUrl"];
+        if(string.IsNullOrWhiteSpace(relay))relay=configuration["Telegram:RelayUrl"];
         if(string.IsNullOrWhiteSpace(relay))return Problem("نشانی رلهٔ تلگرام در API تنظیم نشده است.", statusCode: 503);
         if(string.IsNullOrWhiteSpace(configuration["Telegram:RelaySecret"]))
             return Problem("کلید ارتباط با رلهٔ تلگرام در API تنظیم نشده است.", statusCode: 503);
