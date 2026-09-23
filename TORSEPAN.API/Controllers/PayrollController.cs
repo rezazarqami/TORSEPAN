@@ -14,7 +14,8 @@ using QuestPDF.Infrastructure;
 namespace TORSEPAN.API.Controllers;
 
 [ApiController, Route("api/payroll"), Authorize(Roles = "Administrator,ProductionManager")]
-public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory httpFactory, IConfiguration configuration) : ControllerBase
+public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory httpFactory, IConfiguration configuration,
+    ILogger<PayrollController> logger) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] DateTime? from, [FromQuery] DateTime? to,
@@ -67,9 +68,13 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     private async Task<IActionResult> SendPdfToTelegramAsync(byte[] bytes, string fileName, CancellationToken ct)
     {
         var relay=configuration["Telegram:BackupRelayUrl"]??configuration["Telegram:RelayUrl"];
-        if(string.IsNullOrWhiteSpace(relay))return Problem("Telegram relay is not configured.");
+        if(string.IsNullOrWhiteSpace(relay))return Problem("نشانی رلهٔ تلگرام در API تنظیم نشده است.", statusCode: 503);
+        if(string.IsNullOrWhiteSpace(configuration["Telegram:RelaySecret"]))
+            return Problem("کلید ارتباط با رلهٔ تلگرام در API تنظیم نشده است.", statusCode: 503);
         relay=relay.Replace("telegram-database-backup","telegram-payroll-report").Replace("telegram-inventory-alert","telegram-payroll-report")
             .Replace("/database-backup","/payroll-report").Replace("/inventory-alert","/payroll-report");
+        if (!Uri.TryCreate(relay, UriKind.Absolute, out var relayUri) || relayUri.Scheme != Uri.UriSchemeHttps)
+            return Problem("نشانی رلهٔ تلگرام برای گزارش دستمزد معتبر نیست.", statusCode: 503);
         using var form=new MultipartFormDataContent();form.Add(new ByteArrayContent(bytes),"report",fileName);
         using var request=new HttpRequestMessage(HttpMethod.Post,relay){Content=form};request.Headers.Add("X-Relay-Secret",configuration["Telegram:RelaySecret"]);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -77,12 +82,41 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         try
         {
             using var response = await httpFactory.CreateClient().SendAsync(request, timeout.Token);
-            return response.IsSuccessStatusCode ? Ok() : StatusCode((int)response.StatusCode);
+            if (response.IsSuccessStatusCode) return Ok();
+            var detail = response.StatusCode switch
+            {
+                System.Net.HttpStatusCode.Unauthorized => "کلید ارتباط API با رلهٔ تلگرام پذیرفته نشد.",
+                System.Net.HttpStatusCode.NotFound => "مسیر ارسال گزارش دستمزد در رلهٔ تلگرام پیدا نشد.",
+                _ => await RelayErrorAsync(response, timeout.Token)
+            };
+            logger.LogWarning("Payroll Telegram relay rejected report with HTTP {StatusCode}: {Detail}", (int)response.StatusCode, detail);
+            return Problem(detail, statusCode: (int)response.StatusCode);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            return StatusCode(StatusCodes.Status504GatewayTimeout, "پاسخ سرویس تلگرام به‌موقع دریافت نشد.");
+            logger.LogWarning("Payroll Telegram relay timed out after 70 seconds.");
+            return Problem("پاسخ رلهٔ تلگرام تا ۷۰ ثانیه دریافت نشد.", statusCode: 504);
         }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(ex, "Payroll Telegram relay is unreachable.");
+            return Problem("ارتباط API با رلهٔ تلگرام برقرار نشد.", statusCode: 502);
+        }
+    }
+
+    private static async Task<string> RelayErrorAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+            if (json.RootElement.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String)
+            {
+                var message = detail.GetString();
+                if (!string.IsNullOrWhiteSpace(message)) return message[..Math.Min(message.Length, 240)];
+            }
+        }
+        catch (JsonException) { }
+        return $"رلهٔ تلگرام با کد {(int)response.StatusCode} پاسخ داد.";
     }
 
     [HttpGet("payments")]
