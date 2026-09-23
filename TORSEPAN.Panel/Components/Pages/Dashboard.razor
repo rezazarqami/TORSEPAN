@@ -40,7 +40,7 @@ else
     <nav class="dashboard-tabs" aria-label="بخش‌های داشبورد">
         <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Queues ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Queues ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Queues"><span aria-hidden="true">◇</span><strong>صف‌های تولید</strong></button>
         <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Calendar ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Calendar ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Calendar"><span aria-hidden="true">▦</span><strong>تقویم</strong></button>
-        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Performance ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Performance ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Performance"><span aria-hidden="true">◫</span><strong>عملکرد کاربران</strong></button>
+        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Performance ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Performance ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Performance"><span aria-hidden="true">◫</span><strong>خلاصه عملکرد کاربران</strong></button>
     </nav>
     <div class="dashboard-sections">
     @if (_activeTab == DashboardTab.Queues)
