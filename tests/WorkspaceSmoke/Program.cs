@@ -14,6 +14,17 @@ using TORSEPAN.Application.Materials;
 using TORSEPAN.Application.Common.Reporting;
 
 static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
+if(args.Contains("--pdf-preview-only"))
+{
+    var previews=ReportPdfPreviewFixtures.Build();
+    var directory=Environment.GetEnvironmentVariable("TORSEPAN_PDF_PREVIEW_DIR")
+        ?? throw new InvalidOperationException("TORSEPAN_PDF_PREVIEW_DIR is required.");
+    Directory.CreateDirectory(directory);
+    foreach(var preview in previews)
+        await File.WriteAllBytesAsync(Path.Combine(directory,preview.Key),preview.Value);
+    Check(previews.ContainsKey("payroll-charts-preview.pdf"),"payroll charts PDF renders");
+    return;
+}
 var options=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused;Password=unused").Options;
 await using var db=new TORSEPANDbContext(options);
 Check(typeof(NotificationsController).GetCustomAttribute<AuthorizeAttribute>() is not null,"inbox requires authentication");

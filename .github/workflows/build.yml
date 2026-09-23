@@ -16,7 +16,7 @@ jobs:
       - name: Render report PDF previews
         env:
           TORSEPAN_PDF_PREVIEW_DIR: ${{ runner.temp }}/pdf-previews
-        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release
+        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --pdf-preview-only
       - uses: actions/upload-artifact@v4
         with:
           name: report-pdf-previews
