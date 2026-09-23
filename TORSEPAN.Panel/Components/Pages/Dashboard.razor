@@ -5,11 +5,10 @@
 @using System.Net
 @using System.Globalization
 
-<PageTitle>داشبورد تولید</PageTitle>
+<PageTitle>TORSEPAN · WORKSHOP</PageTitle>
 <section class="dashboard-hero" aria-labelledby="dashboard-title">
-    <span class="dashboard-kicker">TORSEPAN · WORKSHOP</span>
-    <div class="dashboard-hero-icon" aria-hidden="true">◇</div>
-    <h1 id="dashboard-title">پیشخوان تولید</h1>
+    <h1 id="dashboard-title" class="dashboard-kicker">TORSEPAN · WORKSHOP</h1>
+    <img class="dashboard-hero-logo" src="/images/brand/torsepan-mark-new.webp" alt="" aria-hidden="true" />
     <p>نمای یکپارچهٔ ورود به عملیات، صف‌های آماده و عملکرد کارگاه</p>
     <div class="dashboard-hero-stats">
         <span><strong>@(_loading ? "—" : _dashboard.Queues.Count(x=>x.Codes.Count>0).ToString())</strong> صف فعال</span>
