@@ -215,8 +215,10 @@ app.MapPost("/api/internal/telegram-database-backup", async (HttpRequest request
     using var content=new MultipartFormDataContent(); content.Add(new StringContent(chatId),"chat_id");
     content.Add(new StringContent("پشتیبان شبانه دیتابیس TORSEPAN"),"caption");
     await using var stream=file.OpenReadStream(); content.Add(new StreamContent(stream),"document",file.FileName);
+    using var telegramClient=httpClientFactory.CreateClient();
+    telegramClient.Timeout=TimeSpan.FromMinutes(6);
     return await TelegramRelayResult.ForwardAsync(
-        ct => httpClientFactory.CreateClient().PostAsync($"https://api.telegram.org/bot{token}/sendDocument",content,ct),
+        ct => telegramClient.PostAsync($"https://api.telegram.org/bot{token}/sendDocument",content,ct),
         TimeSpan.FromMinutes(5), cancellationToken);
 }).DisableAntiforgery();
 
