@@ -4,13 +4,17 @@
 @implements IDisposable
 
 <div class="layout">
+    <button type="button" class="mobile-nav-rail @(_mobileMenuOpen ? "is-open" : null)" aria-label="@(_mobileMenuOpen ? "بستن منوی اصلی" : "باز کردن منوی اصلی")" aria-expanded="@_mobileMenuOpen" @onclick="ToggleMobileMenu">
+        <span class="mobile-nav-grip" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="mobile-nav-label">منو</span>
+    </button>
     @if (_mobileMenuOpen)
     {
         <button type="button" class="mobile-menu-backdrop" aria-label="بستن منوی اصلی" @onclick="CloseMobileMenu"></button>
     }
     <aside class="sidebar @(_mobileMenuOpen ? "mobile-open" : null)"><Sidebar /></aside>
     <div class="main">
-        <header class="topbar"><Topbar /><button type="button" class="mobile-menu-toggle" aria-label="@(_mobileMenuOpen ? "بستن منوی اصلی" : "باز کردن منوی اصلی")" aria-expanded="@_mobileMenuOpen" @onclick="ToggleMobileMenu"><span aria-hidden="true">☰</span><span>منو</span></button></header>
+        <header class="topbar"><Topbar /></header>
         <main class="content"><GlobalProductionSearch />@Body</main>
     </div>
 </div>
