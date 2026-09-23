@@ -17,13 +17,12 @@ public sealed class DatabaseBackupStatus
 public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpClientFactory clients,
     DatabaseBackupStatus status, ILogger<NightlyDatabaseBackupService> logger) : BackgroundService
 {
+    // Both the relay (49 MiB) and Telegram (50 MB) must accept each multipart request.
+    private const int PartSize = 45 * 1024 * 1024;
+
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        // Run once when a fresh container starts. Besides providing an immediate
-        // safety copy, this makes deployment/configuration failures visible now
-        // instead of waiting until the next night.
         await TryBackupAsync("Initial", ct);
-
         while (!ct.IsCancellationRequested)
         {
             var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3.5));
@@ -56,58 +55,114 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
     {
         var db = config["DATABASE_URL"] ?? config.GetConnectionString("DefaultConnection");
         var relay = config["Telegram:BackupRelayUrl"] ?? config["Telegram:RelayUrl"];
+        var secret = config["Telegram:RelaySecret"];
         if (string.IsNullOrWhiteSpace(db))
             throw new InvalidOperationException("Database backup connection is not configured.");
-        if (string.IsNullOrWhiteSpace(relay))
-            throw new InvalidOperationException("Telegram backup relay is not configured.");
-        var url = relay.Contains("telegram-inventory-alert", StringComparison.OrdinalIgnoreCase)
-            ? relay.Replace("telegram-inventory-alert", "telegram-database-backup", StringComparison.OrdinalIgnoreCase)
-            : relay;
-        var tehranNow = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3.5));
-        var file = Path.Combine(Path.GetTempPath(), $"TORSEPAN-{tehranNow:yyyy-MM-dd-HHmm}.dump");
+        if (string.IsNullOrWhiteSpace(relay) || string.IsNullOrWhiteSpace(secret))
+            throw new InvalidOperationException("Telegram backup relay or secret is not configured.");
+
+        // A shared inventory relay URL may point to either the panel endpoint or the standalone relay.
+        var url = relay.Replace("telegram-inventory-alert", "telegram-database-backup", StringComparison.OrdinalIgnoreCase)
+            .Replace("/inventory-alert", "/database-backup", StringComparison.OrdinalIgnoreCase);
+        var connection = BuildConnection(db);
+        var stamp = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3.5)).ToString("yyyy-MM-dd-HHmm");
+        var directory = Path.Combine(Path.GetTempPath(), $"torsepan-backup-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
         try
         {
-            var connection = BuildConnection(db);
-            var info = new ProcessStartInfo("pg_dump") { RedirectStandardError=true, UseShellExecute=false };
-            info.ArgumentList.Add("--format=custom");
-            info.ArgumentList.Add($"--file={file}");
-            info.ArgumentList.Add($"--host={connection.Host}");
-            info.ArgumentList.Add($"--port={connection.Port}");
-            info.ArgumentList.Add($"--username={connection.Username}");
-            info.ArgumentList.Add($"--dbname={connection.Database}");
-            info.Environment["PGPASSWORD"] = connection.Password;
-            info.Environment["PGSSLMODE"] = connection.SslMode == SslMode.Disable ? "disable" : "require";
-            var process = Process.Start(info) ?? throw new InvalidOperationException("pg_dump failed to start.");
-            await process.WaitForExitAsync(ct);
-            if(process.ExitCode!=0) throw new InvalidOperationException(await process.StandardError.ReadToEndAsync(ct));
-            using var form=new MultipartFormDataContent(); await using var stream=File.OpenRead(file);
-            form.Add(new StreamContent(stream),"backup",Path.GetFileName(file));
-            using var request=new HttpRequestMessage(HttpMethod.Post,url){Content=form}; request.Headers.Add("X-Relay-Secret",config["Telegram:RelaySecret"]);
-            var client = clients.CreateClient();
+            var data = Path.Combine(directory, $"TORSEPAN-DATA-{stamp}.dump");
+            var photos = Path.Combine(directory, $"TORSEPAN-PHOTOS-{stamp}.dump");
+            // The first archive contains the schema (including HandpanPhotos) and all other data.
+            await DumpAsync(connection, data, "--exclude-table-data=public.\"HandpanPhotos\"", ct);
+            // Restore this second, after the data archive. Keep all binary photo rows.
+            await DumpAsync(connection, photos, "--data-only", "--table=public.\"HandpanPhotos\"", ct);
+            using var client = clients.CreateClient();
             client.Timeout = TimeSpan.FromMinutes(10);
-            using var response=await client.SendAsync(request,ct); response.EnsureSuccessStatusCode();
-            logger.LogInformation("Database backup sent successfully at {BackupTime} Tehran time.", tehranNow);
+            await SendArchiveAsync(client, url, secret, data, ct);
+            await SendArchiveAsync(client, url, secret, photos, ct);
+            logger.LogInformation("Database data and photos sent to Telegram at {BackupTime} Tehran time.", stamp);
         }
-        finally { if(File.Exists(file)) File.Delete(file); }
+        finally { Directory.Delete(directory, recursive: true); }
+    }
+
+    private static Task DumpAsync(NpgsqlConnectionStringBuilder connection, string file, string option, CancellationToken ct) =>
+        DumpAsync(connection, file, [option], ct);
+
+    private static Task DumpAsync(NpgsqlConnectionStringBuilder connection, string file, string option1, string option2, CancellationToken ct) =>
+        DumpAsync(connection, file, [option1, option2], ct);
+
+    private static async Task DumpAsync(NpgsqlConnectionStringBuilder connection, string file, string[] options, CancellationToken ct)
+    {
+        var info = new ProcessStartInfo("pg_dump") { RedirectStandardError = true, UseShellExecute = false };
+        info.ArgumentList.Add("--format=custom");
+        foreach (var option in options) info.ArgumentList.Add(option);
+        info.ArgumentList.Add($"--file={file}");
+        info.ArgumentList.Add($"--host={connection.Host}");
+        info.ArgumentList.Add($"--port={connection.Port}");
+        info.ArgumentList.Add($"--username={connection.Username}");
+        info.ArgumentList.Add($"--dbname={connection.Database}");
+        info.Environment["PGPASSWORD"] = connection.Password;
+        info.Environment["PGSSLMODE"] = connection.SslMode == SslMode.Disable ? "disable" : "require";
+        using var process = Process.Start(info) ?? throw new InvalidOperationException("pg_dump failed to start.");
+        var errorTask = process.StandardError.ReadToEndAsync(ct);
+        try { await process.WaitForExitAsync(ct); }
+        catch (OperationCanceledException)
+        {
+            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            throw;
+        }
+        var error = await errorTask;
+        if (process.ExitCode != 0) throw new InvalidOperationException($"pg_dump failed (exit {process.ExitCode}): {error}");
+        if (new FileInfo(file).Length == 0) throw new InvalidOperationException("pg_dump produced an empty archive.");
+    }
+
+    private static async Task SendArchiveAsync(HttpClient client, string url, string secret, string archive, CancellationToken ct)
+    {
+        await using var source = File.OpenRead(archive);
+        var total = Math.Max(1, (int)((source.Length + PartSize - 1) / PartSize));
+        var buffer = new byte[64 * 1024];
+        for (var index = 1; index <= total; index++)
+        {
+            var part = Path.Combine(Path.GetDirectoryName(archive)!, $"part-{index:D4}");
+            var remaining = Math.Min(PartSize, source.Length - source.Position);
+            await using (var output = File.Create(part))
+            {
+                while (remaining > 0)
+                {
+                    var read = await source.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)), ct);
+                    if (read == 0) throw new EndOfStreamException("Backup archive ended during splitting.");
+                    await output.WriteAsync(buffer.AsMemory(0, read), ct);
+                    remaining -= read;
+                }
+            }
+            try
+            {
+                var name = total == 1 ? Path.GetFileName(archive) : $"{Path.GetFileName(archive)}.part{index:D4}-of-{total:D4}";
+                using var form = new MultipartFormDataContent();
+                await using var stream = File.OpenRead(part);
+                form.Add(new StreamContent(stream), "backup", name);
+                using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = form };
+                request.Headers.Add("X-Relay-Secret", secret);
+                using var response = await client.SendAsync(request, ct);
+                if (!response.IsSuccessStatusCode)
+                    throw new HttpRequestException($"Telegram backup {name} failed at relay (HTTP {(int)response.StatusCode}).");
+            }
+            finally { File.Delete(part); }
+        }
     }
 
     private static NpgsqlConnectionStringBuilder BuildConnection(string configured)
     {
         if (!Uri.TryCreate(configured, UriKind.Absolute, out var uri))
             return new NpgsqlConnectionStringBuilder(configured);
-
         var credentials = Uri.UnescapeDataString(uri.UserInfo).Split(':', 2);
         if (credentials.Length != 2)
             throw new InvalidOperationException("Backup database credentials are incomplete.");
-
         return new NpgsqlConnectionStringBuilder
         {
-            Host = uri.Host,
-            Port = uri.IsDefaultPort ? 5432 : uri.Port,
-            Database = uri.AbsolutePath.TrimStart('/'),
-            Username = credentials[0],
-            Password = credentials[1],
-            SslMode = SslMode.Require
+            Host = uri.Host, Port = uri.IsDefaultPort ? 5432 : uri.Port,
+            Database = uri.AbsolutePath.TrimStart('/'), Username = credentials[0],
+            Password = credentials[1], SslMode = SslMode.Require
         };
     }
 }
