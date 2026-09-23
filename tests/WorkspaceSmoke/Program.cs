@@ -111,7 +111,7 @@ var productionEditPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Compon
 Check(sidebar.Contains("AuthorizeView Roles=\"Administrator\"")&&sidebar.Contains("href=\"/admin/production-edit\""),"production correction navigation is visible only to administrators");
 Check(productionEditPage.Contains("@attribute [Authorize(Roles=\"Administrator\")]")&&productionEditPage.Contains("AdminProductionEditService"),"production correction page enforces administrator authorization");
 var pdfPreviews=ReportPdfPreviewFixtures.Build();
-Check(pdfPreviews.Count==3&&pdfPreviews.All(x=>x.Value.Length>5000),"all management report PDFs render with complete visual layouts");
+Check(pdfPreviews.Count==4&&pdfPreviews.All(x=>x.Value.Length>5000),"all report PDFs, including the compact payroll charts page, render");
 var previewDirectory=Environment.GetEnvironmentVariable("TORSEPAN_PDF_PREVIEW_DIR");
 if(!string.IsNullOrWhiteSpace(previewDirectory)){Directory.CreateDirectory(previewDirectory);foreach(var preview in pdfPreviews)await File.WriteAllBytesAsync(Path.Combine(previewDirectory,preview.Key),preview.Value);}
 Console.WriteLine("Database-backed send/read isolation still requires integration testing against a test PostgreSQL database.");
