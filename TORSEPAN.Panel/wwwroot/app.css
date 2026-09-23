@@ -959,3 +959,58 @@ body { color:#17263b; background:#edf1f5; }
 /* Final navigation cascade: header stays visible and drawer starts beneath it. */
 body .layout>.main>.topbar{position:sticky;top:0;z-index:1050;flex:0 0 70px;height:70px;padding:0 22px;background:linear-gradient(105deg,#07182e,#123a63 62%,#176a68);border-bottom:1px solid rgba(255,255,255,.12);box-shadow:0 10px 30px rgba(4,20,40,.2)}
 @media(max-width:768px){body .layout>.main>.topbar{position:sticky;top:0;z-index:1050;height:64px;flex-basis:64px;padding:0 10px}.mobile-nav-rail{inset:64px 0 0 auto;height:calc(100dvh - 64px)}.mobile-menu-backdrop{inset:64px 0 0}.sidebar.mobile-open,body .layout>.sidebar.mobile-open{inset:64px 0 0 auto!important;height:calc(100dvh - 64px)!important;border-radius:0 0 0 18px!important}body .layout>.sidebar .sidebar-header{display:none}.content{padding-top:20px}}
+
+/* Mobile header and navigation: full-width navy header, drawer below it. */
+@media (max-width: 768px) {
+    body .layout > .main {
+        width: 100%;
+        max-width: 100%;
+        margin-right: 0;
+    }
+    body .layout > .main > .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1050;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: 48px 42px;
+        column-gap: 8px;
+        row-gap: 3px;
+        box-sizing: border-box;
+        width: 100%;
+        height: 106px;
+        min-height: 106px;
+        padding: 6px 12px;
+        background: #0b2443;
+        border-bottom-color: rgba(255,255,255,.14);
+        border-radius: 0;
+    }
+    body .layout > .main > .topbar .topbar-left {
+        grid-column: 1;
+        grid-row: 1;
+        width: auto;
+        flex-basis: auto;
+    }
+    body .layout > .main > .topbar .topbar-right {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: auto;
+        flex-basis: auto;
+        justify-content: flex-start;
+    }
+    body .layout > .main > .topbar .mobile-menu-toggle {
+        grid-column: 2;
+        grid-row: 1;
+    }
+    body .layout > .sidebar,
+    body .layout > .sidebar.mobile-open {
+        top: 106px !important;
+        bottom: 0;
+        height: calc(100dvh - 106px) !important;
+        width: min(82vw, 310px);
+        border-radius: 0 0 0 16px !important;
+        background: #0b2443;
+    }
+    body .layout .mobile-menu-backdrop { top: 106px; }
+    body .layout > .main > .content { padding-top: 16px; }
+}
