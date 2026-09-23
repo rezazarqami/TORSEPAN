@@ -2,6 +2,7 @@ using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Reflection;
 using TORSEPAN.API.Controllers;
 using TORSEPAN.API.Reporting;
 using TORSEPAN.Application.ProductionEvents.Queries.GetProductionReport;
@@ -59,16 +60,32 @@ internal static class ReportPdfPreviewFixtures
 
         var payrollCharts=Document.Create(document=>document.Page(page=>
         {
-            page.Size(PageSizes.A4.Landscape());
-            page.Margin(18);
-            page.DefaultTextStyle(x=>x.FontFamily("Vazirmatn").FontSize(10));
-            page.Header().AlignCenter().Text("TORSEPAN - گزارش عملکرد و دستمزد تولید").FontSize(18).Bold();
-            page.Content().PaddingTop(10).ShowEntire().Element(c=>ManagementReportPdfBuilder.PayrollChartsPage(c,production));
+            page.Size(PageSizes.A4);
+            page.Margin(16);
+            page.DefaultTextStyle(x=>x.FontFamily("Vazirmatn").FontSize(9));
+            page.Header().AlignCenter().Text("TORSEPAN - گزارش عملکرد و دستمزد تولید").FontSize(15).Bold();
+            page.Content().PaddingTop(6).ShowEntire().Element(c=>ManagementReportPdfBuilder.PayrollChartsPage(c,production));
             page.Footer().AlignCenter().Text("صفحه ۱ از ۱");
         })).GeneratePdf();
 
+        var payrollUsers=Enumerable.Range(1,8).Select(i=>new PayrollUser(Guid.NewGuid(),$"همکار نمونه {i}",i)).ToList();
+        var payrollLines=payrollUsers.SelectMany((user,index)=>Enumerable.Range(1,9).Select(i=>
+        {
+            var export=i>=8;
+            var action=i%3==0?7:i%2==0?3:2;
+            var rate=export?275000m:175000m;
+            return new PayrollLine(user.Id,user.FullName,user.DisplayOrder,action,action==7?"فاین تیون":action==3?"شیپ":"دیمپل",
+                null,"استیل",i%2==0?1:2,null,action==7?$"Scale {index%3+1}":"",i+2,rate,(i+2)*rate,export);
+        })).ToList();
+        var payroll=new PayrollCalculation(new DateTime(2026,3,21),new DateTime(2026,9,11),payrollLines,payrollUsers,[],[],
+            Enumerable.Range(1,32).Select(i=>$"TS-{700+i}").ToList(),true,true,true,true,true);
+        var buildPayroll=typeof(PayrollController).GetMethod("BuildPdf",BindingFlags.Static|BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Payroll PDF builder was not found.");
+        var fullPayrollPdf=(byte[])buildPayroll.Invoke(null,[payroll,production])!;
+
         return new Dictionary<string,byte[]>
         {
+            ["payroll-portrait-preview.pdf"]=fullPayrollPdf,
             ["payroll-charts-preview.pdf"]=payrollCharts,
             ["production-report-preview.pdf"]=ManagementReportPdfBuilder.Production(production),
             ["operations-report-preview.pdf"]=ManagementReportPdfBuilder.Operations(operations,new DateTime(2026,8,23),new DateTime(2026,9,11)),

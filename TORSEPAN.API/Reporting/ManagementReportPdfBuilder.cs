@@ -40,20 +40,20 @@ public static class ManagementReportPdfBuilder
 
     public static void PayrollChartsPage(IContainer container, ProductionAnalytics report) => container.Column(column =>
     {
-        column.Spacing(4);
-        column.Item().AlignCenter().Text("نمودارهای تولید در بازه دستمزد").FontSize(14).Bold().FontColor(Navy);
+        column.Spacing(3);
+        column.Item().AlignCenter().Text("نمودارهای تولید در بازه دستمزد").FontSize(12).Bold().FontColor(Navy);
         column.Item().AlignCenter().Text(PersianRange(report.From,report.To)).FontSize(8).FontColor("#647D8D");
         column.Item().Element(c => PayrollTrend(c,"کاسه‌های داخلی رسیده به انبار",report.DomesticBowlTrend,Average(report.DomesticBowlTrend)));
         column.Item().Element(c => PayrollTrend(c,"کاسه‌های صادراتی آماده بسته‌بندی یا ارسال",report.ExportBowlTrend,Average(report.ExportBowlTrend)));
         column.Item().Element(c => PayrollTrend(c,"سازهای واردشده به انبار",report.HandpanTrend,report.HandpanMonthlyAverage));
-        foreach(var charts in report.Donuts.Chunk(3))
+        foreach(var charts in report.Donuts.Chunk(2))
             column.Item().ContentFromRightToLeft().Row(row =>
             {
                 foreach(var chart in charts)
-                    row.RelativeItem().PaddingHorizontal(2).Border(1).BorderColor(Border).Padding(5).Column(card =>
+                    row.RelativeItem().PaddingHorizontal(2).Border(1).BorderColor(Border).Padding(4).Column(card =>
                     {
                         card.Item().AlignCenter().Text(chart.Title).FontSize(8).Bold().FontColor(Navy);
-                        card.Item().Height(54).Svg(DonutSvg(chart));
+                        card.Item().Height(43).Svg(DonutSvg(chart));
                         if(chart.Segments.Count==0)
                             card.Item().AlignCenter().Text("بدون داده").FontSize(6).FontColor("#647D8D");
                         foreach(var segment in chart.Segments.Take(3))
@@ -63,7 +63,7 @@ public static class ManagementReportPdfBuilder
                                 detail.AutoItem().AlignLeft().Text($"{segment.Percentage:N0}%").FontFamily("Arial").FontSize(6).FontColor(Teal);
                             });
                     });
-                for(var i=charts.Length;i<3;i++)row.RelativeItem();
+                for(var i=charts.Length;i<2;i++)row.RelativeItem();
             });
     });
 
@@ -75,7 +75,7 @@ public static class ManagementReportPdfBuilder
                 row.RelativeItem().AlignRight().Text(title).FontSize(8.5f).Bold().FontColor(Navy);
                 row.RelativeItem().AlignLeft().Text($"میانگین شش‌ماهه {average:N1}").FontSize(7).FontColor(Teal);
             });
-            column.Item().Height(57).Svg(PayrollTrendSvg(points,average));
+            column.Item().Height(48).Svg(PayrollTrendSvg(points,average));
         });
 
     private static string PayrollTrendSvg(IReadOnlyList<TrendPoint> points,double average)
