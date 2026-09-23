@@ -26,7 +26,9 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
         while (!ct.IsCancellationRequested)
         {
             var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3.5));
-            await Task.Delay(now.Date.AddDays(1).AddHours(2) - now, ct);
+            var next = new DateTimeOffset(now.Year, now.Month, now.Day, 2, 0, 0, now.Offset);
+            if (next <= now) next = next.AddDays(1);
+            await Task.Delay(next - now, ct);
             await TryBackupAsync("Nightly", ct);
         }
     }
