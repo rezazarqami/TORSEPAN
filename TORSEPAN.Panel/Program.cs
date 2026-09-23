@@ -187,17 +187,20 @@ app.MapPost("/api/internal/telegram-inventory-alert", async (
 
     var text = $"⚠️ هشدار موجودی انبار مواد اولیه\n{alert.ItemName} - {alert.StockType}\nموجودی فعلی: {alert.Quantity}\nحد هشدار: {alert.Threshold}";
     var json = JsonSerializer.Serialize(new { chat_id = chatId, text });
-    var response = await httpClientFactory.CreateClient().PostAsync(
-        $"https://api.telegram.org/bot{token}/sendMessage",
-        new StringContent(json, Encoding.UTF8, "application/json"), CancellationToken.None);
-    return response.IsSuccessStatusCode ? Results.Ok() : Results.StatusCode((int)response.StatusCode);
+    using var content = new StringContent(json, Encoding.UTF8, "application/json");
+    return await TelegramRelayResult.ForwardAsync(
+        ct => httpClientFactory.CreateClient().PostAsync($"https://api.telegram.org/bot{token}/sendMessage", content, ct),
+        TimeSpan.FromSeconds(20), cancellationToken);
 }).DisableAntiforgery();
 
 app.MapPost("/api/internal/telegram-payroll-report", async (HttpRequest request,IConfiguration configuration,IHttpClientFactory httpClientFactory,CancellationToken cancellationToken)=>
 {
     var expectedSecret=configuration["TelegramRelay:Secret"];if(string.IsNullOrWhiteSpace(expectedSecret)||request.Headers["X-Relay-Secret"]!=expectedSecret)return Results.Unauthorized();
     var token=configuration["TelegramRelay:BotToken"];var chatId=configuration["TelegramRelay:ChatId"];if(string.IsNullOrWhiteSpace(token)||string.IsNullOrWhiteSpace(chatId))return Results.Problem("Telegram relay is not configured.");
-    var form=await request.ReadFormAsync(cancellationToken);var file=form.Files.GetFile("report");if(file is null)return Results.BadRequest();using var content=new MultipartFormDataContent();content.Add(new StringContent(chatId),"chat_id");content.Add(new StringContent("گزارش عملکرد تولید TORSEPAN"),"caption");await using var stream=file.OpenReadStream();content.Add(new StreamContent(stream),"document",file.FileName);var response=await httpClientFactory.CreateClient().PostAsync($"https://api.telegram.org/bot{token}/sendDocument",content,CancellationToken.None);return response.IsSuccessStatusCode?Results.Ok():Results.StatusCode((int)response.StatusCode);
+    var form=await request.ReadFormAsync(cancellationToken);var file=form.Files.GetFile("report");if(file is null)return Results.BadRequest();using var content=new MultipartFormDataContent();content.Add(new StringContent(chatId),"chat_id");content.Add(new StringContent("گزارش عملکرد تولید TORSEPAN"),"caption");await using var stream=file.OpenReadStream();content.Add(new StreamContent(stream),"document",file.FileName);
+    return await TelegramRelayResult.ForwardAsync(
+        ct => httpClientFactory.CreateClient().PostAsync($"https://api.telegram.org/bot{token}/sendDocument",content,ct),
+        TimeSpan.FromSeconds(65), cancellationToken);
 }).DisableAntiforgery();
 
 app.MapPost("/api/internal/telegram-database-backup", async (HttpRequest request,
@@ -212,11 +215,48 @@ app.MapPost("/api/internal/telegram-database-backup", async (HttpRequest request
     using var content=new MultipartFormDataContent(); content.Add(new StringContent(chatId),"chat_id");
     content.Add(new StringContent("پشتیبان شبانه دیتابیس TORSEPAN"),"caption");
     await using var stream=file.OpenReadStream(); content.Add(new StreamContent(stream),"document",file.FileName);
-    var response=await httpClientFactory.CreateClient().PostAsync($"https://api.telegram.org/bot{token}/sendDocument",content,CancellationToken.None);
-    return response.IsSuccessStatusCode?Results.Ok():Results.StatusCode((int)response.StatusCode);
+    return await TelegramRelayResult.ForwardAsync(
+        ct => httpClientFactory.CreateClient().PostAsync($"https://api.telegram.org/bot{token}/sendDocument",content,ct),
+        TimeSpan.FromMinutes(5), cancellationToken);
 }).DisableAntiforgery();
 
 app.Run();
 
 public sealed record TelegramRelayRequest(string ItemName, string StockType, int Quantity, int Threshold);
 public sealed record DesignTypeRelayRequest(string Name, decimal Rate, decimal ExportRate);
+
+internal static class TelegramRelayResult
+{
+    public static async Task<IResult> ForwardAsync(Func<CancellationToken, Task<HttpResponseMessage>> send,
+        TimeSpan timeout, CancellationToken requestCancellation)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(requestCancellation);
+        deadline.CancelAfter(timeout);
+        try
+        {
+            using var response = await send(deadline.Token);
+            if (response.IsSuccessStatusCode) return Results.Ok();
+            var detail = $"Telegram returned HTTP {(int)response.StatusCode}.";
+            try
+            {
+                using var error = JsonDocument.Parse(await response.Content.ReadAsStringAsync(deadline.Token));
+                if (error.RootElement.TryGetProperty("description", out var description) && description.ValueKind == JsonValueKind.String)
+                {
+                    var text = description.GetString();
+                    if (!string.IsNullOrWhiteSpace(text)) detail = $"Telegram: {text[..Math.Min(text.Length, 180)]}";
+                }
+            }
+            catch (JsonException) { }
+            return Results.Problem(detail, statusCode: (int)response.StatusCode);
+        }
+        catch (OperationCanceledException) when (!requestCancellation.IsCancellationRequested)
+        {
+            return Results.Problem("Telegram did not respond before the relay timeout.", statusCode: 504);
+        }
+        catch (HttpRequestException)
+        {
+            // Do not expose exception URLs: a direct Telegram URL contains the bot token.
+            return Results.Problem("The relay cannot reach Telegram.", statusCode: 502);
+        }
+    }
+}

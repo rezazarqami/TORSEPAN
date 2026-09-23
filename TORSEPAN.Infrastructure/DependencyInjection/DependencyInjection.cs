@@ -77,6 +77,7 @@ public static class DependencyInjection
         services.AddScoped<IProductionRollbackService, ProductionRollbackService>();
 
         services.AddScoped<IBowlQueryService, BowlQueryService>();
+        services.AddSingleton<TelegramAlertStatus>();
         services.AddHttpClient<IInventoryAlertService, TelegramInventoryAlertService>(client =>
             client.Timeout = TimeSpan.FromMinutes(4));
         services.AddHttpClient();

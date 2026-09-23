@@ -14,6 +14,11 @@ using TORSEPAN.Application.Materials;
 using TORSEPAN.Application.Common.Reporting;
 
 static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
+if(args.Contains("--telegram-alert-only"))
+{
+    await TelegramDeliverySmoke.RunAsync();
+    return;
+}
 if(args.Contains("--pdf-preview-only"))
 {
     var previews=ReportPdfPreviewFixtures.Build();

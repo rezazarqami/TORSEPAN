@@ -1,47 +1,92 @@
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TORSEPAN.Application.Interfaces;
 namespace TORSEPAN.Infrastructure.Services;
-public sealed class TelegramInventoryAlertService(HttpClient http, IConfiguration configuration, ILogger<TelegramInventoryAlertService> logger) : IInventoryAlertService
+public sealed record TelegramAlertSnapshot(DateTimeOffset? LastAttemptUtc, DateTimeOffset? LastSuccessUtc, string State, string? Error);
+
+public sealed class TelegramAlertStatus
 {
-    public Task SendLowStockAsync(string itemName, string stockType, int quantity, int threshold, CancellationToken cancellationToken)
+    private readonly object gate = new();
+    private DateTimeOffset? lastAttemptUtc, lastSuccessUtc;
+    private string state = "not-started";
+    private string? error;
+
+    public TelegramAlertSnapshot Snapshot()
     {
-        _ = SendInBackgroundAsync(itemName, stockType, quantity, threshold);
-        return Task.CompletedTask;
+        lock (gate) return new(lastAttemptUtc, lastSuccessUtc, state, error);
     }
 
-    private async Task SendInBackgroundAsync(string itemName, string stockType, int quantity, int threshold)
+    public void Attempt() { lock (gate) { lastAttemptUtc = DateTimeOffset.UtcNow; state = "sending"; error = null; } }
+    public void Success() { lock (gate) { lastSuccessUtc = DateTimeOffset.UtcNow; state = "succeeded"; error = null; } }
+    public void Failure(string reason) { lock (gate) { state = "failed"; error = reason; } }
+}
+
+public sealed class TelegramInventoryAlertService(HttpClient http, IConfiguration configuration,
+    TelegramAlertStatus status, ILogger<TelegramInventoryAlertService> logger) : IInventoryAlertService
+{
+    public async Task SendLowStockAsync(string itemName, string stockType, int quantity, int threshold, CancellationToken cancellationToken)
     {
+        status.Attempt();
         var token = configuration["Telegram:BotToken"]; var chatId = configuration["Telegram:ChatId"];
         var text = $"⚠️ هشدار موجودی انبار مواد اولیه\n{itemName} - {stockType}\nموجودی فعلی: {quantity}\nحد هشدار: {threshold}";
         try
         {
             var relayUrl = configuration["Telegram:RelayUrl"];
-            HttpResponseMessage response;
-            if (!string.IsNullOrWhiteSpace(relayUrl))
+            if (string.IsNullOrWhiteSpace(relayUrl))
+                relayUrl = configuration["Telegram:BackupRelayUrl"]?
+                    .Replace("telegram-database-backup", "telegram-inventory-alert", StringComparison.OrdinalIgnoreCase)
+                    .Replace("telegram-payroll-report", "telegram-inventory-alert", StringComparison.OrdinalIgnoreCase)
+                    .Replace("/database-backup", "/inventory-alert", StringComparison.OrdinalIgnoreCase)
+                    .Replace("/payroll-report", "/inventory-alert", StringComparison.OrdinalIgnoreCase);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(25));
+            using HttpResponseMessage response = await SendAsync(relayUrl, token, chatId, itemName, stockType,
+                quantity, threshold, text, deadline.Token);
+            if (!response.IsSuccessStatusCode)
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, relayUrl)
-                {
-                    Content = Utf8Json(new { itemName, stockType, quantity, threshold })
-                };
-                request.Headers.Add("X-Relay-Secret", configuration["Telegram:RelaySecret"]);
-                response = await http.SendAsync(request, CancellationToken.None);
+                var reason = $"Telegram alert relay returned HTTP {(int)response.StatusCode}.";
+                status.Failure(reason);
+                logger.LogWarning("Low stock Telegram alert for {ItemName} failed: {Reason}", itemName, reason);
+                return;
             }
-            else
-            {
-                if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chatId)) return;
-                response = await http.PostAsync($"https://api.telegram.org/bot{token}/sendMessage", Utf8Json(new { chat_id = chatId, text }), CancellationToken.None);
-            }
-            response.EnsureSuccessStatusCode();
+            status.Success();
             logger.LogInformation("Low stock Telegram alert sent for {ItemName}.", itemName);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            status.Failure("Inventory alert request was cancelled.");
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Sending low stock Telegram alert failed for {ItemName}.", itemName);
+            // HttpRequestException can contain the direct Telegram URL, including its bot token.
+            var reason = exception is OperationCanceledException ? "Telegram alert timed out."
+                : $"Telegram alert failed: {exception.GetType().Name}.";
+            status.Failure(reason);
+            logger.LogWarning("Low stock Telegram alert for {ItemName} failed: {Reason}", itemName, reason);
         }
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(string? relayUrl, string? token, string? chatId,
+        string itemName, string stockType, int quantity, int threshold, string text, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(relayUrl))
+        {
+            var secret = configuration["Telegram:RelaySecret"];
+            if (string.IsNullOrWhiteSpace(secret))
+                throw new InvalidOperationException("Telegram relay secret is not configured.");
+            using var request = new HttpRequestMessage(HttpMethod.Post, relayUrl)
+            {
+                Content = Utf8Json(new { itemName, stockType, quantity, threshold })
+            };
+            request.Headers.Add("X-Relay-Secret", secret);
+            return await http.SendAsync(request, ct);
+        }
+        if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chatId))
+            throw new InvalidOperationException("Telegram bot or chat is not configured.");
+        using var content = Utf8Json(new { chat_id = chatId, text });
+        return await http.PostAsync($"https://api.telegram.org/bot{token}/sendMessage", content, ct);
     }
 
     private static StringContent Utf8Json<T>(T value) =>

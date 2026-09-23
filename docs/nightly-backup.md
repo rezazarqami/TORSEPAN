@@ -2,6 +2,14 @@
 
 The API container sends a backup immediately after startup and then each night at 02:00 Tehran time. Check `databaseBackup` in the API `/health` response for the last attempt, last success and error. The API needs `DATABASE_URL` (or `ConnectionStrings__DefaultConnection`), `Telegram__BackupRelayUrl` (or `Telegram__RelayUrl`) and `Telegram__RelaySecret`. The target relay needs its bot token, chat ID and the matching secret.
 
+## When no Telegram messages arrive
+
+The API `/health` response exposes `databaseBackup` and `telegram` without publishing bot tokens, chat IDs or relay secrets. Check the timestamps and `state`/`error`: `status: healthy` only means the API is running. `telegram.relayConfigured` is needed for inventory alerts; `telegram.backupRelayConfigured` and `telegram.relaySecretConfigured` are needed for PDF and backup delivery. After a low-stock event, `telegram.inventoryAlert` shows its last attempt and result. A low-stock alert is triggered only when stock crosses from at or above its threshold to below it.
+
+The API and panel are separate Liara apps. API environment variables use `Telegram__RelayUrl`, `Telegram__BackupRelayUrl`, and `Telegram__RelaySecret`; the panel relay uses `TelegramRelay__Secret`, `TelegramRelay__BotToken`, and `TelegramRelay__ChatId`. The secrets must match. The configured API relay endpoint must point to an actual running relay; `/api/internal/telegram-*` belongs to the panel, while `/database-backup`, `/payroll-report`, and `/inventory-alert` belong to the standalone relay. Check the live source branch and Liara deployment for **both** apps before attributing an outage to new code.
+
+The API retries a failed backup after 30 minutes, recording the last failure in `/health`. For PDFs, the HTTP response reports missing configuration, rejected relay credentials, Telegram errors, or timeouts. Never paste the bot token or relay secret into a support message; share the redacted `/health` JSON and the PDF request's HTTP status and error instead. A `401` means the relay secret differs, `404` indicates a wrong relay route, `502` indicates the relay cannot reach Telegram, and `504` indicates a timeout. A Telegram `400`/`403` often means the bot or target chat permissions need checking.
+
 Each run sends two PostgreSQL custom-format archives with the same timestamp:
 
 - `TORSEPAN-DATA-<timestamp>.dump`: schema and all data except the binary rows of `HandpanPhotos`.

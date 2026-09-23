@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,18 +23,20 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        await TryBackupAsync("Initial", ct);
+        var succeeded = await TryBackupAsync("Initial", ct);
         while (!ct.IsCancellationRequested)
         {
             var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3.5));
             var next = new DateTimeOffset(now.Year, now.Month, now.Day, 2, 0, 0, now.Offset);
             if (next <= now) next = next.AddDays(1);
-            await Task.Delay(next - now, ct);
-            await TryBackupAsync("Nightly", ct);
+            // A missed backup must retry; otherwise an outage can silently skip a full day.
+            var delay = succeeded ? next - now : TimeSpan.FromMinutes(30);
+            await Task.Delay(delay, ct);
+            succeeded = await TryBackupAsync(succeeded ? "Nightly" : "Retry", ct);
         }
     }
 
-    private async Task TryBackupAsync(string runType, CancellationToken ct)
+    private async Task<bool> TryBackupAsync(string runType, CancellationToken ct)
     {
         status.LastAttemptUtc = DateTimeOffset.UtcNow;
         status.State = "running";
@@ -43,6 +46,7 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             await BackupAsync(ct);
             status.LastSuccessUtc = DateTimeOffset.UtcNow;
             status.State = "succeeded";
+            return true;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex)
@@ -50,13 +54,15 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             status.State = "failed";
             status.Error = $"{ex.GetType().Name}: {ex.Message}";
             logger.LogError(ex, "{RunType} database backup failed.", runType);
+            return false;
         }
     }
 
     private async Task BackupAsync(CancellationToken ct)
     {
         var db = config["DATABASE_URL"] ?? config.GetConnectionString("DefaultConnection");
-        var relay = config["Telegram:BackupRelayUrl"] ?? config["Telegram:RelayUrl"];
+        var relay = config["Telegram:BackupRelayUrl"];
+        if (string.IsNullOrWhiteSpace(relay)) relay = config["Telegram:RelayUrl"];
         var secret = config["Telegram:RelaySecret"];
         if (string.IsNullOrWhiteSpace(db))
             throw new InvalidOperationException("Database backup connection is not configured.");
@@ -147,10 +153,33 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
                 request.Headers.Add("X-Relay-Secret", secret);
                 using var response = await client.SendAsync(request, ct);
                 if (!response.IsSuccessStatusCode)
-                    throw new HttpRequestException($"Telegram backup {name} failed at relay (HTTP {(int)response.StatusCode}).");
+                {
+                    var reason = response.StatusCode switch
+                    {
+                        System.Net.HttpStatusCode.Unauthorized => "Relay secret was rejected (401).",
+                        System.Net.HttpStatusCode.NotFound => "Backup relay route was not found (404).",
+                        _ => await RelayFailureAsync(response, ct)
+                    };
+                    throw new HttpRequestException($"Telegram backup {name} failed: {reason}");
+                }
             }
             finally { File.Delete(part); }
         }
+    }
+
+    private static async Task<string> RelayFailureAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+            if (json.RootElement.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String)
+            {
+                var message = detail.GetString();
+                if (!string.IsNullOrWhiteSpace(message)) return message[..Math.Min(message.Length, 180)];
+            }
+        }
+        catch (JsonException) { }
+        return $"relay returned HTTP {(int)response.StatusCode}.";
     }
 
     private static NpgsqlConnectionStringBuilder BuildConnection(string configured)
