@@ -5,11 +5,10 @@
 @using System.Net
 @using System.Globalization
 
-<PageTitle>داشبورد تولید</PageTitle>
+<PageTitle>TORSEPAN · WORKSHOP</PageTitle>
 <section class="dashboard-hero" aria-labelledby="dashboard-title">
-    <span class="dashboard-kicker">TORSEPAN · WORKSHOP</span>
-    <div class="dashboard-hero-icon" aria-hidden="true">◇</div>
-    <h1 id="dashboard-title">پیشخوان تولید</h1>
+    <h1 id="dashboard-title" class="dashboard-kicker">TORSEPAN · WORKSHOP</h1>
+    <img class="dashboard-hero-logo" src="/images/brand/torsepan-mark-new.webp" alt="" aria-hidden="true" />
     <p>نمای یکپارچهٔ ورود به عملیات، صف‌های آماده و عملکرد کارگاه</p>
     <div class="dashboard-hero-stats">
         <span><strong>@(_loading ? "—" : _dashboard.Queues.Count(x=>x.Codes.Count>0).ToString())</strong> صف فعال</span>
@@ -17,11 +16,6 @@
         <span><strong>@(_loading ? "—" : _dashboard.Queues.Sum(x=>x.Codes.Count).ToString())</strong> کد منتظر</span>
     </div>
 </section>
-<div class="dashboard-shortcuts">
-    <a href="/my-activity"><span class="shortcut-icon">▦</span><span><strong>عملکرد من</strong><small>جزئیات کارها</small></span></a>
-    <a href="/notifications"><span class="shortcut-icon" aria-hidden="true">✉</span><span><strong>پیام‌های من</strong><small>اطلاعیه‌های کارگاه</small></span></a>
-</div>
-
 @if (_loading)
 {
     <div class="text-center mt-5"><div class="spinner-border text-primary"></div></div>
@@ -32,9 +26,9 @@ else
     {
         <div class="alert alert-danger">@_error <button class="btn btn-sm btn-outline-danger me-2" @onclick="ReloadAsync">تلاش دوباره</button></div>
     }
-    <div class="card shadow-sm mb-4 production-entry-card">
-        <div class="card-body p-4">
-            <div class="dashboard-section-intro"><span class="dashboard-eyebrow">شروع کار</span><h4 class="fw-bold mb-2">ورود به عملیات تولید</h4><p>برای بازکردن پرونده، کد کاسه یا ساز را وارد کنید.</p></div>
+    <div class="card shadow-sm mb-3 production-entry-card">
+        <div class="card-body">
+            <div class="dashboard-section-intro"><span class="dashboard-eyebrow">شروع کار</span><h4 class="fw-bold mb-2">ورود به عملیات تولید</h4></div>
             <div class="input-group input-group-lg">
                 <input class="form-control" placeholder="کد کاسه یا ساز را وارد کنید"
                        @bind="_productionCode" @bind:event="oninput" @onkeydown="OpenProductionOnEnter" />
@@ -43,8 +37,15 @@ else
         </div>
     </div>
 
-    <div class="row g-3 align-items-start dashboard-sections">
-    <div class="col-12 queue-column">
+    <nav class="dashboard-tabs" aria-label="بخش‌های داشبورد">
+        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Queues ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Queues ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Queues"><span aria-hidden="true">◇</span><strong>صف‌های تولید</strong></button>
+        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Calendar ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Calendar ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Calendar"><span aria-hidden="true">▦</span><strong>تقویم</strong></button>
+        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Performance ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Performance ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Performance"><span aria-hidden="true">◫</span><strong>عملکرد کاربران</strong></button>
+    </nav>
+    <div class="dashboard-sections">
+    @if (_activeTab == DashboardTab.Queues)
+    {
+    <div class="queue-column">
     <Card>
         <div class="queue-heading">
             <span class="dashboard-eyebrow">جریان کارگاه</span>
@@ -106,7 +107,10 @@ else
         </DataTable></div>
     </Card>
     </div>
-    <div class="col-lg-6">
+    }
+    @if (_activeTab == DashboardTab.Calendar)
+    {
+    <div>
         <Card>
             <div class="dashboard-panel-heading mb-3"><span class="dashboard-eyebrow">نمای روزانه</span><h4 class="mb-1">تقویم @_dashboard.CurrentPersianMonthTitle</h4><p>برای دیدن عملکرد، یک روز را انتخاب کنید.</p></div>
             <div class="dashboard-calendar" dir="rtl">
@@ -132,9 +136,12 @@ else
                     }
                 }
             </div>
-        </Card>
+    </Card>
     </div>
-    <div class="col-lg-6">
+    }
+    @if (_activeTab == DashboardTab.Performance)
+    {
+    <div>
         <Card>
             <div class="dashboard-panel-heading mb-3"><span class="dashboard-eyebrow">نمای ماهانه</span><h4 class="mb-1">خلاصه عملکرد کاربران</h4><p>از ابتدای @_dashboard.CurrentPersianMonthTitle تا امروز</p></div>
             @if (_dashboard.MonthlyUserOperations.Count == 0)
@@ -145,12 +152,15 @@ else
                 @foreach(var user in MonthlyUsers){<tr><td class="small fw-semibold">@user.UserName</td><td><div class="operation-list">@foreach(var op in user.Operations){<span class="operation-chip"><span>@op.Operation</span><b>@op.Count</b></span>}</div></td><td class="text-center"><strong>@user.Operations.Sum(x=>x.Count)</strong></td></tr>}
                 </tbody></table></div>
             }
-        </Card>
+    </Card>
     </div>
+    }
     </div>
 }
 
 @code {
+    private enum DashboardTab { Queues, Calendar, Performance }
+    private DashboardTab _activeTab = DashboardTab.Queues;
     private bool _loading = true;
     private ProductionDashboardDto _dashboard = new();
     private string _productionCode = string.Empty;
