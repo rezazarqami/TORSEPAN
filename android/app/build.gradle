@@ -1,0 +1,14 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'ir.torsepan.mobile'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'ir.torsepan.mobile'
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+}
