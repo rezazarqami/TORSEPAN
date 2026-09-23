@@ -27,6 +27,29 @@ else
 @code{
 private bool _loading=true;private List<PayrollPaymentDto> _payments=[];private Guid? _sendingId,_accountingId;private string? _message;private bool _sendSucceeded;
 protected override async Task OnInitializedAsync(){try{_payments=(await PayrollService.GetPaymentsAsync()).ToList();}finally{_loading=false;}}
-private async Task SendToTelegramAsync(Guid id){_sendingId=id;_message=null;try{await PayrollService.SendPaymentReportToTelegramAsync(id);_sendSucceeded=true;_message="PDF این پرداخت با موفقیت به تلگرام ارسال شد.";}catch{_sendSucceeded=false;_message="ارسال PDF به تلگرام انجام نشد. دوباره تلاش کنید.";}finally{_sendingId=null;}}
+private async Task SendToTelegramAsync(Guid id)
+{
+    if (_sendingId.HasValue) return;
+    _sendingId = id;
+    _message = null;
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+    try
+    {
+        await PayrollService.SendPaymentReportToTelegramAsync(id, timeout.Token);
+        _sendSucceeded = true;
+        _message = "PDF این پرداخت با موفقیت به تلگرام ارسال شد.";
+    }
+    catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+    {
+        _sendSucceeded = false;
+        _message = "پاسخ ارسال به‌موقع نرسید. پیش از تلاش دوباره، تلگرام را بررسی کنید.";
+    }
+    catch (Exception)
+    {
+        _sendSucceeded = false;
+        _message = "ارسال PDF به تلگرام انجام نشد. وضعیت اتصال و تنظیمات تلگرام را بررسی کنید.";
+    }
+    finally { _sendingId = null; }
+}
 private async Task SendToAccountingAsync(PayrollPaymentDto payment){_accountingId=payment.Id;_message=null;try{await PayrollService.SendPaymentToAccountingAsync(payment.Id);payment.SentToAccounting=true;_sendSucceeded=true;_message="دستمزد تولید به‌عنوان سند هزینه پرداخت‌شده در حسابداری ثبت شد.";}catch{_sendSucceeded=false;_message="ارسال این پرداخت به حسابداری انجام نشد.";}finally{_accountingId=null;}}
 }

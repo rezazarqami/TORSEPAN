@@ -47,10 +47,11 @@ public class ApiClient
 
     public async Task<TResult?> PostAsync<TRequest, TResult>(
         string url,
-        TRequest request)
+        TRequest request,
+        CancellationToken cancellationToken = default)
     {
         var response = await SendWithRefreshAsync(
-            () => _http.PostAsJsonAsync(url, request),
+            () => _http.PostAsJsonAsync(url, request, cancellationToken),
             allowRefresh: url != ApiEndpoints.Login && url != ApiEndpoints.Refresh);
         return await ReadResponseAsync<TResult>(response);
     }

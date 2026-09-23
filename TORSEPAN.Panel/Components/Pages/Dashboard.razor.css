@@ -125,8 +125,8 @@
 .production-entry-card ::deep .card-body{padding:17px 20px}.production-entry-card .input-group{margin-top:12px}.production-entry-card .form-control{min-height:46px}
 @media(max-width:700px){.dashboard-tabs{gap:6px;margin-bottom:12px}.dashboard-tab{flex-direction:column;gap:4px;min-height:75px;padding:7px 3px;border-radius:13px;text-align:center}.dashboard-tab span{width:27px;height:27px;flex-basis:27px;font-size:.9rem}.dashboard-tab strong{font-size:.68rem;line-height:1.3}.production-entry-card ::deep .card-body{padding:12px!important}.production-entry-card .input-group{margin-top:10px}.production-entry-card .form-control{min-height:42px}}
 
-/* The cream logo background becomes black and vanishes with screen blending;
-   its navy mark becomes white without altering the shared header asset. */
+/* Keep the mark's dark internal grooves visible while the cream background
+   fades into the hero with screen blending. */
 .dashboard-hero .dashboard-kicker{display:table;margin:0 auto;padding:8px 16px;color:#fff;font:900 clamp(.95rem,2.4vw,1.18rem) Arial,sans-serif;letter-spacing:2px;line-height:1.4}
-.dashboard-hero-logo{display:block;width:88px;height:88px;margin:12px auto 4px;object-fit:contain;filter:grayscale(1) invert(1) contrast(5);mix-blend-mode:screen}
+.dashboard-hero-logo{display:block;width:88px;height:88px;margin:12px auto 4px;object-fit:contain;filter:grayscale(1) invert(1) contrast(1.35);mix-blend-mode:screen}
 @media(max-width:700px){.dashboard-hero{padding-block:18px}.dashboard-hero .dashboard-kicker{font-size:1rem;letter-spacing:1.6px}.dashboard-hero-logo{width:68px;height:68px;margin:9px auto 3px}.queue-table ::deep tr{position:relative;grid-template-columns:minmax(0,1fr);padding-inline:4px}.queue-table ::deep td:first-child{grid-column:1/-1;padding-inline:38px;text-align:center}.queue-table ::deep td:nth-child(2){position:absolute;left:4px;top:17px;grid-column:auto;grid-row:auto}.queue-table ::deep td:nth-child(3){grid-column:1/-1}.queue-performer{text-align:center;width:100%}}
