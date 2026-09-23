@@ -367,58 +367,61 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             });
             page.Content().PaddingTop(10).Column(col =>
             {
-                void AddSection(string title, IEnumerable<PayrollLine> source)
+                var groups = c.Lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder })
+                    .OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName);
+                foreach (var group in groups)
                 {
-                    var groups = source.GroupBy(x => new { x.UserName, x.DisplayOrder })
-                        .OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).ToList();
-                    if (groups.Count == 0) return;
-                    col.Item().PaddingTop(8).PaddingBottom(5).AlignRight().ContentFromRightToLeft().Text(title).FontSize(14).Bold().FontColor(Colors.Green.Darken3);
-                    foreach (var group in groups)
+                    var sections = new[]
                     {
-                        var lines = group.OrderBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)
-                            .ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ToList();
-                        col.Item().PaddingBottom(9).Border(1).BorderColor(Colors.Green.Lighten2)
-                            .Background(Colors.White).Column(card =>
+                        (Title: "عملیات عادی", Lines: group.Where(x => !x.IsExport && !x.IsCustom)),
+                        (Title: "عملیات Custom", Lines: group.Where(x => x.IsCustom && !x.IsExport)),
+                        (Title: "عملیات صادراتی", Lines: group.Where(x => x.IsExport))
+                    };
+                    col.Item().PaddingBottom(9).Border(1).BorderColor(Colors.Green.Lighten2)
+                        .Background(Colors.White).Column(card =>
                         {
                             card.Item().Background(Colors.Green.Darken3).PaddingVertical(7).PaddingHorizontal(10)
                                 .ContentFromRightToLeft().Row(header =>
                             {
                                 header.RelativeItem().AlignRight().Text(group.Key.UserName)
                                     .FontColor(Colors.White).FontSize(12).Bold();
-                                header.RelativeItem().AlignLeft().Text($"جمع دستمزد: {lines.Sum(x => x.Total):N0}")
+                                header.RelativeItem().AlignLeft().Text($"جمع دستمزد: {group.Sum(x => x.Total):N0}")
                                     .FontColor(Colors.White).FontSize(11).Bold();
                             });
-                            foreach (var chunk in lines.Chunk(3))
+                            foreach (var section in sections)
                             {
-                                card.Item().PaddingHorizontal(5).PaddingTop(5).ContentFromRightToLeft().Row(row =>
+                                var lines = section.Lines.OrderBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)
+                                    .ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ToList();
+                                if (lines.Count == 0) continue;
+                                card.Item().PaddingTop(7).PaddingHorizontal(10).AlignRight().ContentFromRightToLeft()
+                                    .Text(section.Title).FontSize(10).Bold().FontColor(Colors.Green.Darken3);
+                                foreach (var chunk in lines.Chunk(3))
                                 {
-                                    foreach (var line in chunk)
+                                    card.Item().PaddingHorizontal(5).PaddingTop(5).ContentFromRightToLeft().Row(row =>
                                     {
-                                        row.RelativeItem().PaddingHorizontal(3).Border(1).BorderColor(Colors.Grey.Lighten2)
-                                            .Background(Colors.Grey.Lighten5).Padding(7).Column(detail =>
+                                        foreach (var line in chunk)
                                         {
-                                            detail.Item().AlignRight().ContentFromRightToLeft().Text(Desc(line))
-                                                .FontSize(10).Bold().FontColor(Colors.Grey.Darken3);
-                                            detail.Item().PaddingTop(4).ContentFromRightToLeft().Row(values =>
+                                            row.RelativeItem().PaddingHorizontal(3).Border(1).BorderColor(Colors.Grey.Lighten2)
+                                                .Background(Colors.Grey.Lighten5).Padding(7).Column(detail =>
                                             {
-                                                values.RelativeItem().AlignRight().Text($"تعداد: {line.Count:N0}").FontSize(9.5f);
-                                                values.RelativeItem().AlignLeft().Text($"مبلغ: {line.Total:N0}")
-                                                    .FontSize(9.5f).FontColor(Colors.Green.Darken3).Bold();
+                                                detail.Item().AlignRight().ContentFromRightToLeft().Text(Desc(line))
+                                                    .FontSize(10).Bold().FontColor(Colors.Grey.Darken3);
+                                                detail.Item().PaddingTop(4).ContentFromRightToLeft().Row(values =>
+                                                {
+                                                    values.RelativeItem().AlignRight().Text($"تعداد: {line.Count:N0}").FontSize(9.5f);
+                                                    values.RelativeItem().AlignLeft().Text($"مبلغ: {line.Total:N0}")
+                                                        .FontSize(9.5f).FontColor(Colors.Green.Darken3).Bold();
+                                                });
                                             });
-                                        });
-                                    }
-                                    for (var i = chunk.Length; i < 3; i++)
-                                        row.RelativeItem();
-                                });
+                                        }
+                                        for (var i = chunk.Length; i < 3; i++)
+                                            row.RelativeItem();
+                                    });
+                                }
                             }
                             card.Item().Height(5);
                         });
-                    }
                 }
-
-                AddSection("دستمزد تولید عادی", c.Lines.Where(x => !x.IsExport && !x.IsCustom));
-                AddSection("دستمزد تولید Custom", c.Lines.Where(x => x.IsCustom && !x.IsExport));
-                AddSection("دستمزد تولید صادراتی", c.Lines.Where(x => x.IsExport));
 
                 if (scales.Count > 0)
                 {
