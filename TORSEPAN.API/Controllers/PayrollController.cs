@@ -50,7 +50,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     public async Task<IActionResult> SendPdf(PayrollPaymentRequest r,CancellationToken ct)
     {
         var c=await CalculateAsync(r.From,r.To,r.ReadyForQc,r.ReadyForPackaging,r.EnteredWarehouse,r.ReadyForExportPackaging,r.ExportWarehouse,ct);
-        return await SendPdfToTelegramAsync(BuildPdf(c), $"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf");
+        return await SendPdfToTelegramAsync(BuildPdf(c), $"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf", ct);
     }
 
     [HttpPost("payments/{id:guid}/telegram")]
@@ -61,10 +61,10 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var calculation = new PayrollCalculation(payment.From, payment.To,
             Deserialize<PayrollLine>(payment.LinesJson), [], [], Deserialize<Guid>(payment.HandpanIdsJson),
             Deserialize<string>(payment.HandpanCodesJson), false, false, false, false, false);
-        return await SendPdfToTelegramAsync(BuildPdf(calculation), $"torsepan-payment-{payment.PaidAt:yyyyMMdd-HHmm}.pdf");
+        return await SendPdfToTelegramAsync(BuildPdf(calculation), $"torsepan-payment-{payment.PaidAt:yyyyMMdd-HHmm}.pdf", ct);
     }
 
-    private async Task<IActionResult> SendPdfToTelegramAsync(byte[] bytes, string fileName)
+    private async Task<IActionResult> SendPdfToTelegramAsync(byte[] bytes, string fileName, CancellationToken ct)
     {
         var relay=configuration["Telegram:BackupRelayUrl"]??configuration["Telegram:RelayUrl"];
         if(string.IsNullOrWhiteSpace(relay))return Problem("Telegram relay is not configured.");
@@ -72,7 +72,17 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             .Replace("/database-backup","/payroll-report").Replace("/inventory-alert","/payroll-report");
         using var form=new MultipartFormDataContent();form.Add(new ByteArrayContent(bytes),"report",fileName);
         using var request=new HttpRequestMessage(HttpMethod.Post,relay){Content=form};request.Headers.Add("X-Relay-Secret",configuration["Telegram:RelaySecret"]);
-        var response=await httpFactory.CreateClient().SendAsync(request,CancellationToken.None);return response.IsSuccessStatusCode?Ok():StatusCode((int)response.StatusCode);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(70));
+        try
+        {
+            using var response = await httpFactory.CreateClient().SendAsync(request, timeout.Token);
+            return response.IsSuccessStatusCode ? Ok() : StatusCode((int)response.StatusCode);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return StatusCode(StatusCodes.Status504GatewayTimeout, "پاسخ سرویس تلگرام به‌موقع دریافت نشد.");
+        }
     }
 
     [HttpGet("payments")]
