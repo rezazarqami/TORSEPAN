@@ -38,6 +38,68 @@ public static class ManagementReportPdfBuilder
         });
     })).GeneratePdf();
 
+    public static void PayrollChartsPage(IContainer container, ProductionAnalytics report) => container.Column(column =>
+    {
+        column.Spacing(4);
+        column.Item().AlignCenter().Text("نمودارهای تولید در بازه دستمزد").FontSize(14).Bold().FontColor(Navy);
+        column.Item().AlignCenter().Text(PersianRange(report.From,report.To)).FontSize(8).FontColor("#647D8D");
+        column.Item().Element(c => PayrollTrend(c,"کاسه‌های داخلی رسیده به انبار",report.DomesticBowlTrend,Average(report.DomesticBowlTrend)));
+        column.Item().Element(c => PayrollTrend(c,"کاسه‌های صادراتی آماده بسته‌بندی یا ارسال",report.ExportBowlTrend,Average(report.ExportBowlTrend)));
+        column.Item().Element(c => PayrollTrend(c,"سازهای واردشده به انبار",report.HandpanTrend,report.HandpanMonthlyAverage));
+        foreach(var charts in report.Donuts.Chunk(3))
+            column.Item().ContentFromRightToLeft().Row(row =>
+            {
+                foreach(var chart in charts)
+                    row.RelativeItem().PaddingHorizontal(2).Border(1).BorderColor(Border).Padding(5).Column(card =>
+                    {
+                        card.Item().AlignCenter().Text(chart.Title).FontSize(8).Bold().FontColor(Navy);
+                        card.Item().Height(54).Svg(DonutSvg(chart));
+                        if(chart.Segments.Count==0)
+                            card.Item().AlignCenter().Text("بدون داده").FontSize(6).FontColor("#647D8D");
+                        foreach(var segment in chart.Segments.Take(3))
+                            card.Item().ContentFromRightToLeft().Row(detail =>
+                            {
+                                detail.RelativeItem().AlignRight().Text(segment.Label).FontSize(6).FontColor("#526B7C");
+                                detail.AutoItem().AlignLeft().Text($"{segment.Percentage:N0}%").FontFamily("Arial").FontSize(6).FontColor(Teal);
+                            });
+                    });
+                for(var i=charts.Length;i<3;i++)row.RelativeItem();
+            });
+    });
+
+    private static void PayrollTrend(IContainer container,string title,IReadOnlyList<TrendPoint> points,double average) =>
+        container.Border(1).BorderColor(Border).Background("#FBFDFE").Padding(4).Column(column =>
+        {
+            column.Item().ContentFromRightToLeft().Row(row =>
+            {
+                row.RelativeItem().AlignRight().Text(title).FontSize(8.5f).Bold().FontColor(Navy);
+                row.RelativeItem().AlignLeft().Text($"میانگین شش‌ماهه {average:N1}").FontSize(7).FontColor(Teal);
+            });
+            column.Item().Height(57).Svg(PayrollTrendSvg(points,average));
+        });
+
+    private static string PayrollTrendSvg(IReadOnlyList<TrendPoint> points,double average)
+    {
+        const double left=40,right=720,top=12,bottom=54;
+        var max=Math.Max(1,points.Select(x=>Math.Max(x.Count,average)).DefaultIfEmpty(1).Max());
+        double X(int i)=>points.Count<=1?(left+right)/2:right-i*((right-left)/(points.Count-1));
+        double Y(double value)=>bottom-value/max*(bottom-top);
+        var culture=CultureInfo.InvariantCulture;
+        var path=string.Join(" ",points.Select((x,i)=>$"{X(i).ToString("0.##",culture)},{Y(x.Count).ToString("0.##",culture)}"));
+        var svg=new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 760 88'>");
+        foreach(var y in new[]{20,37,54})svg.Append($"<line x1='{left}' y1='{y}' x2='{right}' y2='{y}' stroke='#DDE8ED' stroke-width='1' stroke-dasharray='4 5'/>");
+        svg.Append($"<line x1='{left}' y1='{Y(average).ToString("0.##",culture)}' x2='{right}' y2='{Y(average).ToString("0.##",culture)}' stroke='{Gold}' stroke-width='2' stroke-dasharray='8 6'/>");
+        if(points.Count>0)svg.Append($"<polyline points='{path}' fill='none' stroke='#19788F' stroke-width='3' stroke-linejoin='round'/>");
+        for(var i=0;i<points.Count;i++)
+        {
+            var x=X(i);var y=Y(points[i].Count);var label=WebUtility.HtmlEncode(points[i].Label);
+            svg.Append($"<circle cx='{x.ToString("0.##",culture)}' cy='{y.ToString("0.##",culture)}' r='3' fill='white' stroke='#19788F' stroke-width='2'/>");
+            svg.Append($"<text x='{x.ToString("0.##",culture)}' y='{(y-5).ToString("0.##",culture)}' text-anchor='middle' font-family='Arial' font-size='9' fill='#173F63'>{points[i].Count}</text>");
+            svg.Append($"<text x='{x.ToString("0.##",culture)}' y='78' text-anchor='middle' font-family='Arial' font-size='9' fill='#647D8D'>{label}</text>");
+        }
+        return svg.Append("</svg>").ToString();
+    }
+
     private static double Average(IReadOnlyCollection<TrendPoint> points)=>points.Count==0?0:Math.Round(points.Average(x=>x.Count),1);
 
     public static byte[] Operations(GetProductionReportResponse report, DateTime? from, DateTime? to) => Document.Create(document => document.Page(page =>

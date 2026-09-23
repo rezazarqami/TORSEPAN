@@ -10,12 +10,13 @@ using TORSEPAN.Infrastructure.Persistence;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using TORSEPAN.API.Reporting;
 
 namespace TORSEPAN.API.Controllers;
 
 [ApiController, Route("api/payroll"), Authorize(Roles = "Administrator,ProductionManager")]
 public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory httpFactory, IConfiguration configuration,
-    ILogger<PayrollController> logger) : ControllerBase
+    ILogger<PayrollController> logger, ManagementReportsController reports) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] DateTime? from, [FromQuery] DateTime? to,
@@ -45,13 +46,14 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
 
     [HttpGet("report.pdf")]
     public async Task<IActionResult> Pdf([FromQuery] DateTime? from,[FromQuery] DateTime? to,[FromQuery] bool readyForQc=false,[FromQuery] bool readyForPackaging=false,[FromQuery] bool enteredWarehouse=false,[FromQuery] bool readyForExportPackaging=false,[FromQuery] bool exportWarehouse=false,CancellationToken ct=default)
-    { var c=await CalculateAsync(from,to,readyForQc,readyForPackaging,enteredWarehouse,readyForExportPackaging,exportWarehouse,ct);return File(BuildPdf(c),"application/pdf",$"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf"); }
+    { var c=await CalculateAsync(from,to,readyForQc,readyForPackaging,enteredWarehouse,readyForExportPackaging,exportWarehouse,ct);var charts=await reports.BuildProductionForPayrollAsync(c.From,c.To,ct);return File(BuildPdf(c,charts),"application/pdf",$"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf"); }
 
     [HttpPost("report/telegram")]
     public async Task<IActionResult> SendPdf(PayrollPaymentRequest r,CancellationToken ct)
     {
         var c=await CalculateAsync(r.From,r.To,r.ReadyForQc,r.ReadyForPackaging,r.EnteredWarehouse,r.ReadyForExportPackaging,r.ExportWarehouse,ct);
-        return await SendPdfToTelegramAsync(BuildPdf(c), $"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf", ct);
+        var charts = await reports.BuildProductionForPayrollAsync(c.From,c.To,ct);
+        return await SendPdfToTelegramAsync(BuildPdf(c,charts), $"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf", ct);
     }
 
     [HttpPost("payments/{id:guid}/telegram")]
@@ -62,7 +64,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var calculation = new PayrollCalculation(payment.From, payment.To,
             Deserialize<PayrollLine>(payment.LinesJson), [], [], Deserialize<Guid>(payment.HandpanIdsJson),
             Deserialize<string>(payment.HandpanCodesJson), false, false, false, false, false);
-        return await SendPdfToTelegramAsync(BuildPdf(calculation), $"torsepan-payment-{payment.PaidAt:yyyyMMdd-HHmm}.pdf", ct);
+        var charts = await reports.BuildProductionForPayrollAsync(payment.From.Date,payment.To.Date,ct);
+        return await SendPdfToTelegramAsync(BuildPdf(calculation,charts), $"torsepan-payment-{payment.PaidAt:yyyyMMdd-HHmm}.pdf", ct);
     }
 
     private async Task<IActionResult> SendPdfToTelegramAsync(byte[] bytes, string fileName, CancellationToken ct)
@@ -343,7 +346,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     private static List<T> Deserialize<T>(string json) { try { return JsonSerializer.Deserialize<List<T>>(json) ?? []; } catch { return []; } }
     private static Guid? ParseDesignTypeId(string? value)
     { if(string.IsNullOrWhiteSpace(value)||!value.StartsWith("DESIGN:"))return null;var parts=value.Split(':');return parts.Length>1&&Guid.TryParse(parts[1],out var id)?id:null; }
-    private static byte[] BuildPdf(PayrollCalculation c)
+    private static byte[] BuildPdf(PayrollCalculation c, ProductionAnalytics charts)
     {
         string Bowl(int? type) => type == 1 ? "کاسه رو" : type == 2 ? "کاسه زیر" : "";
         string Desc(PayrollLine x) => string.Join(" - ", new[] { x.ActionTitle, x.MaterialName, Bowl(x.BowlType), PdfScaleTitle(x.ScaleName) }
@@ -471,6 +474,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                             });
                         });
                 }
+                col.Item().PageBreak();
+                col.Item().ShowEntire().Element(container => ManagementReportPdfBuilder.PayrollChartsPage(container,charts));
             });
             page.Footer().AlignCenter().Text(text =>
             {
