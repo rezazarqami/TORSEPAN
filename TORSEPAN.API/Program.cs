@@ -20,6 +20,7 @@ await using (var vazirmatn = Assembly.GetExecutingAssembly()
 }
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<TORSEPAN.API.Controllers.ManagementReportsController>();
 builder.Services.AddHttpClient<GuaranteeServiceClient>((services, client) =>
 {
     var configuration = services.GetRequiredService<IConfiguration>();

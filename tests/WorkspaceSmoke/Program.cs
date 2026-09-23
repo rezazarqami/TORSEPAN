@@ -14,6 +14,17 @@ using TORSEPAN.Application.Materials;
 using TORSEPAN.Application.Common.Reporting;
 
 static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
+if(args.Contains("--pdf-preview-only"))
+{
+    var previews=ReportPdfPreviewFixtures.Build();
+    var directory=Environment.GetEnvironmentVariable("TORSEPAN_PDF_PREVIEW_DIR")
+        ?? throw new InvalidOperationException("TORSEPAN_PDF_PREVIEW_DIR is required.");
+    Directory.CreateDirectory(directory);
+    foreach(var preview in previews)
+        await File.WriteAllBytesAsync(Path.Combine(directory,preview.Key),preview.Value);
+    Check(previews.ContainsKey("payroll-charts-preview.pdf")&&previews.ContainsKey("payroll-portrait-preview.pdf"),"portrait payroll PDF and charts render");
+    return;
+}
 var options=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused;Password=unused").Options;
 await using var db=new TORSEPANDbContext(options);
 Check(typeof(NotificationsController).GetCustomAttribute<AuthorizeAttribute>() is not null,"inbox requires authentication");
@@ -111,7 +122,7 @@ var productionEditPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Compon
 Check(sidebar.Contains("AuthorizeView Roles=\"Administrator\"")&&sidebar.Contains("href=\"/admin/production-edit\""),"production correction navigation is visible only to administrators");
 Check(productionEditPage.Contains("@attribute [Authorize(Roles=\"Administrator\")]")&&productionEditPage.Contains("AdminProductionEditService"),"production correction page enforces administrator authorization");
 var pdfPreviews=ReportPdfPreviewFixtures.Build();
-Check(pdfPreviews.Count==3&&pdfPreviews.All(x=>x.Value.Length>5000),"all management report PDFs render with complete visual layouts");
+Check(pdfPreviews.Count==5&&pdfPreviews.All(x=>x.Value.Length>5000),"all report PDFs, including the portrait payroll and charts page, render");
 var previewDirectory=Environment.GetEnvironmentVariable("TORSEPAN_PDF_PREVIEW_DIR");
 if(!string.IsNullOrWhiteSpace(previewDirectory)){Directory.CreateDirectory(previewDirectory);foreach(var preview in pdfPreviews)await File.WriteAllBytesAsync(Path.Combine(previewDirectory,preview.Key),preview.Value);}
 Console.WriteLine("Database-backed send/read isolation still requires integration testing against a test PostgreSQL database.");

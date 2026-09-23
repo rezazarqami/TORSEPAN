@@ -10,12 +10,13 @@ using TORSEPAN.Infrastructure.Persistence;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using TORSEPAN.API.Reporting;
 
 namespace TORSEPAN.API.Controllers;
 
 [ApiController, Route("api/payroll"), Authorize(Roles = "Administrator,ProductionManager")]
 public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory httpFactory, IConfiguration configuration,
-    ILogger<PayrollController> logger) : ControllerBase
+    ILogger<PayrollController> logger, ManagementReportsController reports) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] DateTime? from, [FromQuery] DateTime? to,
@@ -45,13 +46,14 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
 
     [HttpGet("report.pdf")]
     public async Task<IActionResult> Pdf([FromQuery] DateTime? from,[FromQuery] DateTime? to,[FromQuery] bool readyForQc=false,[FromQuery] bool readyForPackaging=false,[FromQuery] bool enteredWarehouse=false,[FromQuery] bool readyForExportPackaging=false,[FromQuery] bool exportWarehouse=false,CancellationToken ct=default)
-    { var c=await CalculateAsync(from,to,readyForQc,readyForPackaging,enteredWarehouse,readyForExportPackaging,exportWarehouse,ct);return File(BuildPdf(c),"application/pdf",$"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf"); }
+    { var c=await CalculateAsync(from,to,readyForQc,readyForPackaging,enteredWarehouse,readyForExportPackaging,exportWarehouse,ct);var charts=await reports.BuildProductionForPayrollAsync(c.From,c.To,ct);return File(BuildPdf(c,charts),"application/pdf",$"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf"); }
 
     [HttpPost("report/telegram")]
     public async Task<IActionResult> SendPdf(PayrollPaymentRequest r,CancellationToken ct)
     {
         var c=await CalculateAsync(r.From,r.To,r.ReadyForQc,r.ReadyForPackaging,r.EnteredWarehouse,r.ReadyForExportPackaging,r.ExportWarehouse,ct);
-        return await SendPdfToTelegramAsync(BuildPdf(c), $"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf", ct);
+        var charts = await reports.BuildProductionForPayrollAsync(c.From,c.To,ct);
+        return await SendPdfToTelegramAsync(BuildPdf(c,charts), $"torsepan-payroll-{c.From:yyyyMMdd}-{c.To:yyyyMMdd}.pdf", ct);
     }
 
     [HttpPost("payments/{id:guid}/telegram")]
@@ -62,7 +64,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var calculation = new PayrollCalculation(payment.From, payment.To,
             Deserialize<PayrollLine>(payment.LinesJson), [], [], Deserialize<Guid>(payment.HandpanIdsJson),
             Deserialize<string>(payment.HandpanCodesJson), false, false, false, false, false);
-        return await SendPdfToTelegramAsync(BuildPdf(calculation), $"torsepan-payment-{payment.PaidAt:yyyyMMdd-HHmm}.pdf", ct);
+        var charts = await reports.BuildProductionForPayrollAsync(payment.From.Date,payment.To.Date,ct);
+        return await SendPdfToTelegramAsync(BuildPdf(calculation,charts), $"torsepan-payment-{payment.PaidAt:yyyyMMdd-HHmm}.pdf", ct);
     }
 
     private async Task<IActionResult> SendPdfToTelegramAsync(byte[] bytes, string fileName, CancellationToken ct)
@@ -343,7 +346,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
     private static List<T> Deserialize<T>(string json) { try { return JsonSerializer.Deserialize<List<T>>(json) ?? []; } catch { return []; } }
     private static Guid? ParseDesignTypeId(string? value)
     { if(string.IsNullOrWhiteSpace(value)||!value.StartsWith("DESIGN:"))return null;var parts=value.Split(':');return parts.Length>1&&Guid.TryParse(parts[1],out var id)?id:null; }
-    private static byte[] BuildPdf(PayrollCalculation c)
+    private static byte[] BuildPdf(PayrollCalculation c, ProductionAnalytics charts)
     {
         string Bowl(int? type) => type == 1 ? "کاسه رو" : type == 2 ? "کاسه زیر" : "";
         string Desc(PayrollLine x) => string.Join(" - ", new[] { x.ActionTitle, x.MaterialName, Bowl(x.BowlType), PdfScaleTitle(x.ScaleName) }
@@ -357,15 +360,15 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
 
         return Document.Create(doc => doc.Page(page =>
         {
-            page.Size(PageSizes.A4.Landscape());
-            page.Margin(18);
-            page.DefaultTextStyle(x => x.FontFamily("Vazirmatn").FontSize(10));
+            page.Size(PageSizes.A4);
+            page.Margin(16);
+            page.DefaultTextStyle(x => x.FontFamily("Vazirmatn").FontSize(9));
             page.Header().Column(header =>
             {
-                header.Item().AlignCenter().ContentFromRightToLeft().Text("TORSEPAN - گزارش عملکرد و دستمزد تولید").FontSize(18).Bold().FontColor(Colors.Green.Darken3);
-                header.Item().AlignCenter().ContentFromRightToLeft().Text($"از {c.From:yyyy/MM/dd} تا {c.To:yyyy/MM/dd}").FontSize(11).FontColor(Colors.Grey.Darken1);
+                header.Item().AlignCenter().ContentFromRightToLeft().Text("TORSEPAN - گزارش عملکرد و دستمزد تولید").FontSize(15).Bold().FontColor(Colors.Green.Darken3);
+                header.Item().AlignCenter().ContentFromRightToLeft().Text($"از {c.From:yyyy/MM/dd} تا {c.To:yyyy/MM/dd}").FontSize(9).FontColor(Colors.Grey.Darken1);
             });
-            page.Content().PaddingTop(10).Column(col =>
+            page.Content().PaddingTop(6).Column(col =>
             {
                 var groups = c.Lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder })
                     .OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName);
@@ -377,100 +380,102 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                         (Title: "عملیات Custom", Lines: group.Where(x => x.IsCustom && !x.IsExport)),
                         (Title: "عملیات صادراتی", Lines: group.Where(x => x.IsExport))
                     };
-                    col.Item().PaddingBottom(9).Border(1).BorderColor(Colors.Green.Lighten2)
+                    col.Item().PaddingBottom(5).Border(1).BorderColor(Colors.Green.Lighten2)
                         .Background(Colors.White).Column(card =>
                         {
-                            card.Item().Background(Colors.Green.Darken3).PaddingVertical(7).PaddingHorizontal(10)
+                            card.Item().Background(Colors.Green.Darken3).PaddingVertical(5).PaddingHorizontal(8)
                                 .ContentFromRightToLeft().Row(header =>
                             {
                                 header.RelativeItem().AlignRight().Text(group.Key.UserName)
-                                    .FontColor(Colors.White).FontSize(12).Bold();
+                                    .FontColor(Colors.White).FontSize(10).Bold();
                                 header.RelativeItem().AlignLeft().Text($"جمع دستمزد: {group.Sum(x => x.Total):N0}")
-                                    .FontColor(Colors.White).FontSize(11).Bold();
+                                    .FontColor(Colors.White).FontSize(9).Bold();
                             });
                             foreach (var section in sections)
                             {
                                 var lines = section.Lines.OrderBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)
                                     .ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ToList();
                                 if (lines.Count == 0) continue;
-                                card.Item().PaddingTop(7).PaddingHorizontal(10).AlignRight().ContentFromRightToLeft()
-                                    .Text(section.Title).FontSize(10).Bold().FontColor(Colors.Green.Darken3);
-                                foreach (var chunk in lines.Chunk(3))
+                                card.Item().PaddingTop(4).PaddingHorizontal(8).AlignRight().ContentFromRightToLeft()
+                                    .Text(section.Title).FontSize(9).Bold().FontColor(Colors.Green.Darken3);
+                                foreach (var chunk in lines.Chunk(2))
                                 {
-                                    card.Item().PaddingHorizontal(5).PaddingTop(5).ContentFromRightToLeft().Row(row =>
+                                    card.Item().PaddingHorizontal(4).PaddingTop(3).ContentFromRightToLeft().Row(row =>
                                     {
                                         foreach (var line in chunk)
                                         {
-                                            row.RelativeItem().PaddingHorizontal(3).Border(1).BorderColor(Colors.Grey.Lighten2)
-                                                .Background(Colors.Grey.Lighten5).Padding(7).Column(detail =>
+                                            row.RelativeItem().PaddingHorizontal(2).Border(1).BorderColor(Colors.Grey.Lighten2)
+                                                .Background(Colors.Grey.Lighten5).Padding(5).Column(detail =>
                                             {
                                                 detail.Item().AlignRight().ContentFromRightToLeft().Text(Desc(line))
-                                                    .FontSize(10).Bold().FontColor(Colors.Grey.Darken3);
-                                                detail.Item().PaddingTop(4).ContentFromRightToLeft().Row(values =>
+                                                    .FontSize(9).Bold().FontColor(Colors.Grey.Darken3);
+                                                detail.Item().PaddingTop(2).ContentFromRightToLeft().Row(values =>
                                                 {
-                                                    values.RelativeItem().AlignRight().Text($"تعداد: {line.Count:N0}").FontSize(9.5f);
+                                                    values.RelativeItem().AlignRight().Text($"تعداد: {line.Count:N0}").FontSize(8);
                                                     values.RelativeItem().AlignLeft().Text($"مبلغ: {line.Total:N0}")
-                                                        .FontSize(9.5f).FontColor(Colors.Green.Darken3).Bold();
+                                                        .FontSize(8).FontColor(Colors.Green.Darken3).Bold();
                                                 });
                                             });
                                         }
-                                        for (var i = chunk.Length; i < 3; i++)
+                                        for (var i = chunk.Length; i < 2; i++)
                                             row.RelativeItem();
                                     });
                                 }
                             }
-                            card.Item().Height(5);
+                            card.Item().Height(2);
                         });
                 }
 
                 if (scales.Count > 0)
                 {
-                    col.Item().PaddingTop(10).Background(Colors.Green.Lighten4).Border(1.5f).BorderColor(Colors.Green.Darken2).Padding(9).Column(summary =>
+                    col.Item().PaddingTop(6).Background(Colors.Green.Lighten4).Border(1.5f).BorderColor(Colors.Green.Darken2).Padding(6).Column(summary =>
                     {
-                        summary.Item().AlignRight().ContentFromRightToLeft().Text("خلاصه سازهای تکمیل‌شده").FontSize(15).Bold().FontColor(Colors.Green.Darken3);
-                        summary.Item().PaddingTop(6).Table(table =>
+                        summary.Item().AlignRight().ContentFromRightToLeft().Text("خلاصه سازهای تکمیل‌شده").FontSize(12).Bold().FontColor(Colors.Green.Darken3);
+                        summary.Item().PaddingTop(4).Table(table =>
                         {
-                            table.ColumnsDefinition(columns => { for (var i = 0; i < 4; i++) columns.RelativeColumn(); });
+                            table.ColumnsDefinition(columns => { for (var i = 0; i < 3; i++) columns.RelativeColumn(); });
                             foreach (var scale in scales)
-                                table.Cell().Border(1).BorderColor(Colors.Green.Lighten2).Background(Colors.White).Padding(7).AlignCenter().ContentFromRightToLeft()
-                                    .Text($"{PdfScaleTitle(scale.Key)}\n{scale.Count:N0} عدد").FontSize(12).Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Green.Lighten2).Background(Colors.White).Padding(5).AlignCenter().ContentFromRightToLeft()
+                                    .Text($"{PdfScaleTitle(scale.Key)}\n{scale.Count:N0} عدد").FontSize(9).Bold();
                         });
-                        summary.Item().PaddingTop(7).AlignCenter().ContentFromRightToLeft().Text($"جمع کل ساخت: {scales.Sum(x => x.Count):N0} عدد").FontSize(13).Bold();
+                        summary.Item().PaddingTop(4).AlignCenter().ContentFromRightToLeft().Text($"جمع کل ساخت: {scales.Sum(x => x.Count):N0} عدد").FontSize(10).Bold();
                     });
                 }
 
                 if (c.HandpanCodes.Count > 0)
                 {
-                    col.Item().PaddingTop(10).BorderTop(1).BorderColor(Colors.Green.Lighten2).PaddingTop(8)
+                    col.Item().PaddingTop(6).BorderTop(1).BorderColor(Colors.Green.Lighten2).PaddingTop(5)
                         .ContentFromRightToLeft().Column(codes =>
                         {
-                            codes.Item().AlignRight().Text("کد سازهای تسویه‌شده").FontSize(13).Bold().FontColor(Colors.Green.Darken3);
-                            codes.Item().PaddingTop(5).AlignRight().Text(string.Join("، ", c.HandpanCodes))
-                                .FontSize(10).LineHeight(1.55f).FontColor(Colors.Grey.Darken3);
+                            codes.Item().AlignRight().Text("کد سازهای تسویه‌شده").FontSize(11).Bold().FontColor(Colors.Green.Darken3);
+                            codes.Item().PaddingTop(3).AlignRight().Text(string.Join("، ", c.HandpanCodes))
+                                .FontSize(9).LineHeight(1.3f).FontColor(Colors.Grey.Darken3);
                         });
                 }
 
                 if (appliedRates.Count > 0)
                 {
-                    col.Item().PaddingTop(10).Background(Colors.Grey.Lighten4).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(9)
+                    col.Item().PaddingTop(6).Background(Colors.Grey.Lighten4).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(6)
                         .ContentFromRightToLeft().Column(rateSection =>
                         {
-                            rateSection.Item().AlignRight().Text("نرخ‌های اعمال‌شده در این محاسبه").FontSize(13).Bold().FontColor(Colors.Green.Darken3);
-                            rateSection.Item().PaddingTop(6).Table(table =>
+                            rateSection.Item().AlignRight().Text("نرخ‌های اعمال‌شده در این محاسبه").FontSize(11).Bold().FontColor(Colors.Green.Darken3);
+                            rateSection.Item().PaddingTop(4).Table(table =>
                             {
-                                table.ColumnsDefinition(columns => { for (var i = 0; i < 3; i++) columns.RelativeColumn(); });
+                                table.ColumnsDefinition(columns => { for (var i = 0; i < 2; i++) columns.RelativeColumn(); });
                                 foreach (var rate in appliedRates)
                                 {
-                                    table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Background(Colors.White).Padding(6)
+                                    table.Cell().Border(1).BorderColor(Colors.Grey.Lighten2).Background(Colors.White).Padding(4)
                                         .ContentFromRightToLeft().Column(cell =>
                                         {
-                                            cell.Item().AlignRight().Text(rate.Title).FontSize(9).Bold();
-                                            cell.Item().PaddingTop(3).AlignRight().Text($"نرخ واحد: {rate.Rate:N0}").FontSize(9.5f).FontColor(Colors.Green.Darken3);
+                                            cell.Item().AlignRight().Text(rate.Title).FontSize(8).Bold();
+                                            cell.Item().PaddingTop(2).AlignRight().Text($"نرخ واحد: {rate.Rate:N0}").FontSize(8).FontColor(Colors.Green.Darken3);
                                         });
                                 }
                             });
                         });
                 }
+                col.Item().PageBreak();
+                col.Item().ShowEntire().Element(container => ManagementReportPdfBuilder.PayrollChartsPage(container,charts));
             });
             page.Footer().AlignCenter().Text(text =>
             {

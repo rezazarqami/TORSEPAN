@@ -18,21 +18,33 @@
 
 @if (_activeSection == 0)
 {
-<div class="card p-3 mb-4">
+<div class="payroll-calculation-card">
+    <header class="payroll-calculation-heading">
+        <small>بازه و وضعیت تولید</small>
+        <h2>تنظیم محاسبه دستمزد</h2>
+        <p>بازهٔ زمانی و وضعیت سازها را انتخاب کنید.</p>
+    </header>
     <div class="payroll-date-row">
-        <div><label class="form-label">از تاریخ</label><PersianDatePicker @bind-Value="_from" /></div>
-        <div><label class="form-label">تا تاریخ</label><PersianDatePicker @bind-Value="_to" /></div>
-        <button class="btn btn-primary payroll-calculate" @onclick="LoadAsync">محاسبه</button>
+        <div class="payroll-date-field"><label>از تاریخ</label><PersianDatePicker @bind-Value="_from" /></div>
+        <div class="payroll-date-field"><label>تا تاریخ</label><PersianDatePicker @bind-Value="_to" /></div>
     </div>
-    <div class="payroll-stage-filters">
-        <label class="stage-filter"><input type="checkbox" @bind="_readyForQc" /><span>سازهای آماده QC</span></label>
-        <label class="stage-filter"><input type="checkbox" @bind="_readyForPackaging" /><span>سازهای آماده بسته‌بندی</span></label>
-        <label class="stage-filter"><input type="checkbox" @bind="_enteredWarehouse" /><span>سازهای واردشده به انبار</span></label>
-        <label class="stage-filter"><input type="checkbox" @bind="_readyForExportPackaging" /><span>آماده بسته‌بندی صادراتی</span></label>
-        <label class="stage-filter"><input type="checkbox" @bind="_exportWarehouse" /><span>انبار صادراتی</span></label>
+    <fieldset class="payroll-stage-group">
+        <legend>وضعیت سازها</legend>
+        <div class="payroll-stage-filters">
+            <label class="stage-filter"><input type="checkbox" @bind="_readyForQc" /><span>سازهای آماده QC</span></label>
+            <label class="stage-filter"><input type="checkbox" @bind="_readyForPackaging" /><span>سازهای آماده بسته‌بندی</span></label>
+            <label class="stage-filter"><input type="checkbox" @bind="_enteredWarehouse" /><span>سازهای واردشده به انبار</span></label>
+            <label class="stage-filter"><input type="checkbox" @bind="_readyForExportPackaging" /><span>آماده بسته‌بندی صادراتی</span></label>
+            <label class="stage-filter"><input type="checkbox" @bind="_exportWarehouse" /><span>انبار صادراتی</span></label>
+        </div>
+    </fieldset>
+    <div class="payroll-calculation-actions">
+        <button class="btn payroll-calculate" disabled="@_loading" @onclick="LoadAsync">محاسبه دستمزد</button>
+        <div class="payroll-secondary-actions">
+            <button class="btn payroll-history" @onclick='() => Navigation.NavigateTo("/reports/payroll/payments")'>مشاهده سوابق پرداخت‌ها</button>
+            <button class="btn payroll-performance" disabled="@(_loading || _payroll.Lines.Count == 0)" @onclick="OpenTable">مشاهده جدول عملکرد</button>
+        </div>
     </div>
-    <div class="mt-3"><button class="btn btn-outline-secondary" @onclick='() => Navigation.NavigateTo("/reports/payroll/payments")'>مشاهده سوابق پرداخت‌ها</button></div>
-    <div class="mt-2"><button class="btn btn-primary" disabled="@(_payroll.Lines.Count == 0)" @onclick="OpenTable">مشاهده جدول عملکرد</button></div>
 </div>
 
 @if (_loading)

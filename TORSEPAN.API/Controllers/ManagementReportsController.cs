@@ -55,6 +55,9 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
         var response=await httpFactory.CreateClient().SendAsync(message,ct);return response.IsSuccessStatusCode?Ok():StatusCode((int)response.StatusCode);
     }
 
+    internal Task<ProductionAnalytics> BuildProductionForPayrollAsync(DateTime from,DateTime to,CancellationToken ct)
+        => BuildProductionAsync(new(from,to,[],[],"all","all","production"),ct);
+
     private async Task<ProductionAnalytics> BuildProductionAsync(ManagementReportRequest request,CancellationToken ct)
     {
         var (start,end)=Range(request.From,request.To);
