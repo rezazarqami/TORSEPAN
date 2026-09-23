@@ -5,11 +5,12 @@
 @inject IJSRuntime JS
 
 <PageTitle>جدول عملکرد تولید</PageTitle>
-<PageHeader Title="جدول عملکرد تولید" SubTitle="تعداد عملیات انجام‌شده بدون نمایش مبالغ" />
+<PageHeader Title="جدول عملکرد تولید" SubTitle="نمای تعداد عملیات؛ خروجی PDF با جزئیات کامل دستمزد" />
 
 <div class="d-flex gap-2 mb-3 no-print">
-    <button class="btn btn-primary" @onclick='() => JS.InvokeVoidAsync("print")'>خروجی PDF / چاپ</button>
+    <button class="btn btn-primary" disabled="@(_loading || _exporting)" @onclick="DownloadPdfAsync">@(_exporting ? "در حال آماده‌سازی PDF..." : "دانلود PDF کامل دستمزد")</button>
     <button class="btn btn-success" disabled="@_sending" @onclick="SendTelegram">@(_sending?"در حال ارسال...":"ارسال PDF به تلگرام")</button>
+    @if(!string.IsNullOrWhiteSpace(_exportMessage)){<span role="status" class="alert @(_exportError ? "alert-danger" : "alert-success") py-2 mb-0">@_exportMessage</span>}
     @if(!string.IsNullOrWhiteSpace(_message)){<span class="alert alert-success py-2 mb-0">@_message</span>}
 </div>
 
@@ -40,13 +41,32 @@ else
     [SupplyParameterFromQuery(Name="warehouse")] public bool Warehouse { get; set; }
     [SupplyParameterFromQuery(Name="exportPack")] public bool ExportPack { get; set; }
     [SupplyParameterFromQuery(Name="exportWarehouse")] public bool ExportWarehouse { get; set; }
-    private PayrollDto _data=new(); private bool _loading=true,_sending;private string? _message;
+    private PayrollDto _data=new(); private bool _loading=true,_sending,_exporting,_exportError;private string? _message,_exportMessage;
     private List<string> Users=>_data.Lines.GroupBy(x=>new{x.UserName,x.DisplayOrder}).OrderBy(x=>x.Key.DisplayOrder).ThenBy(x=>x.Key.UserName).Select(x=>x.Key.UserName).ToList();
     private List<string> Operations=>_data.Lines.OrderBy(x=>ActionOrder(x.Action)).ThenBy(x=>x.MaterialName).ThenBy(x=>x.BowlType).ThenBy(x=>x.ScaleName).Select(Description).Distinct().ToList();
     private IEnumerable<KeyValuePair<string,int>> InstrumentScales=>_data.Lines.Where(x=>x.Action==7&&!string.IsNullOrWhiteSpace(x.ScaleName)).GroupBy(x=>x.ScaleName).Select(x=>new KeyValuePair<string,int>(x.Key,x.Sum(y=>y.Count))).OrderBy(x=>x.Key);
     protected override async Task OnInitializedAsync(){_data=await PayrollService.GetAsync(From,To,Qc,Pack,Warehouse,ExportPack,ExportWarehouse)??new();_loading=false;}
     private int Count(string user,string op)=>_data.Lines.Where(x=>x.UserName==user&&Description(x)==op).Sum(x=>x.Count);
     private int Total(string op)=>_data.Lines.Where(x=>Description(x)==op).Sum(x=>x.Count);
+    private async Task DownloadPdfAsync()
+    {
+        if (_loading || _exporting) return;
+        _exporting = true;
+        _exportMessage = null;
+        try
+        {
+            var bytes = await PayrollService.DownloadReportPdfAsync(From,To,Qc,Pack,Warehouse,ExportPack,ExportWarehouse);
+            await JS.InvokeVoidAsync("torsepanReports.download",$"torsepan-payroll-{From:yyyyMMdd}-{To:yyyyMMdd}.pdf",bytes);
+            _exportError = false;
+            _exportMessage = "PDF کامل دستمزد دانلود شد.";
+        }
+        catch
+        {
+            _exportError = true;
+            _exportMessage = "دریافت PDF انجام نشد. دوباره تلاش کنید.";
+        }
+        finally { _exporting = false; }
+    }
     private async Task SendTelegram(){_sending=true;_message=null;try{await PayrollService.SendReportToTelegramAsync(From,To,Qc,Pack,Warehouse,ExportPack,ExportWarehouse);_message="فایل PDF به تلگرام ارسال شد.";}finally{_sending=false;}}
     private static string Description(PayrollLineDto x)=>string.Join(" — ",new[]{x.ActionTitle,x.MaterialName,x.ScaleName}.Where(v=>!string.IsNullOrWhiteSpace(v)));
     private static int ActionOrder(int action)=>action switch{2=>1,3=>2,5=>3,6=>4,7=>5,_=>99};
