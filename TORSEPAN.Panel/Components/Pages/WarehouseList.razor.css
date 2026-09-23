@@ -39,3 +39,5 @@
 .warranty-switch{display:flex;align-items:center;gap:11px;color:#17375f;cursor:pointer}.warranty-switch input{width:20px;height:20px;accent-color:#24517e}.warranty-switch span{display:grid;gap:2px}.warranty-switch strong{font-size:.86rem}.warranty-switch small{color:#718397;font-size:.72rem;font-weight:600}
 .warranty-fields{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:13px;padding-top:13px;border-top:1px solid #d9e2ea}.warranty-fields label{display:grid;gap:5px;color:#38516d;font-size:.74rem;font-weight:800}.warranty-fields .form-control{min-height:42px;border-radius:10px}
 @media(max-width:620px){.warranty-option{margin-inline:16px}.warranty-fields{grid-template-columns:1fr}}
+.warehouse-search-form{display:flex;flex:1;min-width:0;gap:8px}.warehouse-search-form .warehouse-search{min-width:0}.warehouse-search-button{flex:0 0 auto;min-height:44px;white-space:nowrap}
+@media(max-width:600px){.warehouse-search-form{width:100%}.warehouse-search-button{padding-inline:13px}}

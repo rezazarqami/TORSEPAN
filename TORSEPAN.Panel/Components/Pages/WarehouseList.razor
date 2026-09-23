@@ -17,7 +17,10 @@
 </section>
 
 <div class="warehouse-tools">
-    <input class="form-control warehouse-search" placeholder="جست‌وجوی کد ساز، کاسه، متریال یا Scale..." @bind="_search" @bind:event="oninput" />
+    <form class="warehouse-search-form" @onsubmit="ApplySearch" @onsubmit:preventDefault="true">
+        <input class="form-control warehouse-search" type="search" aria-label="جست‌وجوی موجودی انبار سازها" placeholder="کد ساز، کاسه، متریال یا Scale..." @bind="_searchInput" @bind:event="oninput" />
+        <button type="submit" class="btn btn-primary warehouse-search-button">جستجو</button>
+    </form>
     @if(_canSell){<button class="btn btn-success bulk-sale-button" disabled="@(_selected.Count == 0)" @onclick="BeginSelectedSale">فروش انتخاب‌شده‌ها <span>@_selected.Count</span></button>}
 </div>
 <div class="warehouse-overview"><div class="warehouse-count"><span>@(HasActiveFilter?"نتیجه فیلتر":"موجودی فعلی انبار")</span><strong>@Items.Count()</strong><small>ساز</small></div><button class="btn gallery-open" disabled="@(!Items.Any() || _galleryLoading)" @onclick="OpenGalleryAsync">@if(_galleryLoading){<span class="spinner-border spinner-border-sm"></span>}else{<span>▦</span>} گالری عکس‌های همین فهرست</button></div>
@@ -33,7 +36,7 @@ else if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_er
 else
 {
     <DataTable><thead><tr><th class="select-column">@if(_canSell){<input type="checkbox" aria-label="انتخاب همه سازهای نمایش‌داده‌شده" checked="@AllVisibleSelected" @onchange="ToggleAllVisible" />}</th><th></th><th>کد ساز</th><th>کاسه رو</th><th>کاسه زیر</th><th>متریال</th><th>Scale</th><th>تاریخ ورود</th><th>فروش</th><th class="warehouse-admin-cell">مدیریت</th></tr></thead><tbody>
-    @if(!Items.Any()){<tr><td colspan="10"><EmptyState Title="انبار خالی است" Description="ساز آماده فروشی در انبار وجود ندارد." /></td></tr>}
+    @if(!Items.Any()){<tr><td colspan="10"><EmptyState Title="@(HasActiveFilter?"موردی پیدا نشد":"انبار خالی است")" Description="@(HasActiveFilter?"عبارت جستجو یا فیلترها را تغییر دهید.":"ساز آماده فروشی در انبار وجود ندارد.")" /></td></tr>}
     @foreach(var item in Items)
     {
         <tr class="@(_selected.Contains(item.HandpanId)?"selected-row":null)">
@@ -102,7 +105,7 @@ else
     private List<WarehouseHandpanDto> _items=[]; private List<TORSEPAN.Panel.Models.AccountingPartyDto> _parties=[];
     private readonly HashSet<Guid> _expanded=[]; private readonly HashSet<Guid> _selected=[]; private readonly HashSet<Guid> _detailsLoaded=[]; private readonly HashSet<Guid> _detailsLoading=[]; private readonly HashSet<Guid> _detailErrors=[]; private readonly HashSet<Guid> _rollingBack=[]; private readonly List<Guid> _saleIds=[];
     private bool _canSell;
-    private bool _loading=true,_saving,_activateWarranty,_galleryLoading,_showGallery; private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_buyer="",_buyerPhone="",_destination="";
+    private bool _loading=true,_saving,_activateWarranty,_galleryLoading,_showGallery; private string _search="",_searchInput="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_buyer="",_buyerPhone="",_destination="";
     private List<WarehouseGalleryPhotoDto> _galleryPhotos=[]; private string? _galleryPreviewUrl;
     private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price,_receivedAmount; private Guid? _selectedPartyId,_leadSourceId,_referrerId; private bool? _isExportSale;private string _newSource="",_newReferrer="";private SalesAttributionOptionsDto _attribution=new();
     private bool SelectedSourceRequiresReferrer=>_attribution.Sources.FirstOrDefault(x=>x.Id==_leadSourceId)?.RequiresReferrer==true;
@@ -112,6 +115,7 @@ else
     private bool AllVisibleSelected=>Items.Any()&&Items.All(x=>_selected.Contains(x.HandpanId));
     private IEnumerable<string> SaleCodes=>_items.Where(x=>_saleIds.Contains(x.HandpanId)).Select(x=>x.SerialNumber);
     protected override async Task OnInitializedAsync(){try{var user=(await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;_canSell=user.IsInRole("Administrator")||user.IsInRole("ProductionManager")||user.IsInRole("SalesAdmin");_items=(await ProductionService.GetWarehouseAsync()).ToList();if(_canSell){_parties=await AccountingService.PartiesAsync();_attribution=await AttributionService.OptionsAsync();}if(_canSell&&SellHandpanId.HasValue){var item=_items.FirstOrDefault(x=>x.HandpanId==SellHandpanId.Value);if(item is not null)BeginSale(item);}}catch(Exception e){_error=e.Message;}finally{_loading=false;}}
+    private void ApplySearch(){_search=_searchInput.Trim();_expanded.Clear();_selected.Clear();}
     private void ApplyFilters(){_appliedMaterialFilter=_materialFilter;_appliedScaleFilter=_scaleFilter;_expanded.Clear();}
     private async Task OpenGalleryAsync(){if(_galleryLoading)return;_galleryLoading=true;try{_galleryPhotos=await ProductionService.GetWarehouseGalleryAsync(Items.Select(x=>x.HandpanId).ToList());_showGallery=true;}finally{_galleryLoading=false;}}
     private void CloseGallery(){_showGallery=false;_galleryPreviewUrl=null;}

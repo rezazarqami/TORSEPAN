@@ -1034,3 +1034,53 @@ body .layout>.main>.topbar{position:sticky;top:0;z-index:1050;flex:0 0 70px;heig
         min-height: 38px;
     }
 }
+
+/* The side handle stays reachable while scrolling; the drawer starts under the fixed header. */
+@media (max-width: 768px) {
+    body .layout > .main {
+        box-sizing: border-box;
+        width: calc(100% - 25px);
+        max-width: calc(100% - 25px);
+        margin-right: 25px;
+        padding-top: 106px;
+    }
+    body .layout > .main > .topbar {
+        position: fixed;
+        inset: 0 0 auto 0;
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: 48px 42px;
+    }
+    body .layout > .main > .topbar .topbar-left,
+    body .layout > .main > .topbar .topbar-right {
+        grid-column: 1;
+    }
+    body .layout > .main > .topbar .topbar-right { grid-row: 2; }
+    body .layout > .mobile-nav-rail {
+        position: fixed;
+        inset: 106px 0 0 auto;
+        z-index: 1044;
+        width: 25px;
+        height: calc(100dvh - 106px);
+        border-radius: 0;
+        background: #0b2443;
+    }
+    body .layout > .sidebar,
+    body .layout > .sidebar.mobile-open {
+        position: fixed;
+        inset: 106px 25px 0 auto !important;
+        z-index: 1041;
+        box-sizing: border-box;
+        width: min(62vw, 230px);
+        min-width: 0;
+        max-width: calc(100vw - 25px);
+        height: calc(100dvh - 106px) !important;
+        margin: 0;
+        border-radius: 0 0 0 14px !important;
+        background: #0b2443;
+    }
+    body .layout .mobile-menu-backdrop {
+        inset: 106px 25px 0 0;
+        z-index: 1038;
+    }
+}

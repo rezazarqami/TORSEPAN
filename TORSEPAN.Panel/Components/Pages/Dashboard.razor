@@ -6,6 +6,17 @@
 @using System.Globalization
 
 <PageTitle>داشبورد تولید</PageTitle>
+<section class="dashboard-hero" aria-labelledby="dashboard-title">
+    <span class="dashboard-kicker">TORSEPAN · WORKSHOP</span>
+    <div class="dashboard-hero-icon" aria-hidden="true">◇</div>
+    <h1 id="dashboard-title">پیشخوان تولید</h1>
+    <p>نمای یکپارچهٔ ورود به عملیات، صف‌های آماده و عملکرد کارگاه</p>
+    <div class="dashboard-hero-stats">
+        <span><strong>@(_loading ? "—" : _dashboard.Queues.Count(x=>x.Codes.Count>0).ToString())</strong> صف فعال</span>
+        <i aria-hidden="true"></i>
+        <span><strong>@(_loading ? "—" : _dashboard.Queues.Sum(x=>x.Codes.Count).ToString())</strong> کد منتظر</span>
+    </div>
+</section>
 <div class="dashboard-shortcuts">
     <a href="/my-activity"><span class="shortcut-icon">▦</span><span><strong>عملکرد من</strong><small>جزئیات کارها</small></span></a>
     <a href="/notifications"><span class="shortcut-icon" aria-hidden="true">✉</span><span><strong>پیام‌های من</strong><small>اطلاعیه‌های کارگاه</small></span></a>
@@ -23,7 +34,7 @@ else
     }
     <div class="card shadow-sm mb-4 production-entry-card">
         <div class="card-body p-4">
-            <h4 class="fw-bold mb-3">ورود به عملیات تولید</h4>
+            <div class="dashboard-section-intro"><span class="dashboard-eyebrow">شروع کار</span><h4 class="fw-bold mb-2">ورود به عملیات تولید</h4><p>برای بازکردن پرونده، کد کاسه یا ساز را وارد کنید.</p></div>
             <div class="input-group input-group-lg">
                 <input class="form-control" placeholder="کد کاسه یا ساز را وارد کنید"
                        @bind="_productionCode" @bind:event="oninput" @onkeydown="OpenProductionOnEnter" />
@@ -32,15 +43,14 @@ else
         </div>
     </div>
 
-    <div class="row g-4 align-items-start dashboard-sections">
-    <div class="col-xl-6 order-1 queue-column">
+    <div class="row g-3 align-items-start dashboard-sections">
+    <div class="col-12 queue-column">
     <Card>
         <div class="queue-heading">
-            <div>
-                <h4 class="mb-1">صف‌های آماده تولید</h4>
-                <div class="text-muted">کد کاسه‌ها و سازهایی که منتظر مرحله بعد هستند</div>
-            </div>
-            <button class="btn btn-outline-primary" @onclick="ReloadAsync">به‌روزرسانی</button>
+            <span class="dashboard-eyebrow">جریان کارگاه</span>
+            <h4 class="mb-1">صف‌های آماده تولید</h4>
+            <p>کد کاسه‌ها و سازهایی که منتظر مرحلهٔ بعد هستند</p>
+            <button class="btn btn-outline-primary" @onclick="ReloadAsync">به‌روزرسانی صف‌ها</button>
         </div>
 
         <div class="queue-table"><DataTable>
@@ -96,9 +106,9 @@ else
         </DataTable></div>
     </Card>
     </div>
-    <div class="col-xl-3 order-2">
+    <div class="col-lg-6">
         <Card>
-            <div class="mb-3"><h4 class="mb-1">تقویم @_dashboard.CurrentPersianMonthTitle</h4><div class="text-muted small">برای دیدن عملکرد هر روز، آن را انتخاب کنید</div></div>
+            <div class="dashboard-panel-heading mb-3"><span class="dashboard-eyebrow">نمای روزانه</span><h4 class="mb-1">تقویم @_dashboard.CurrentPersianMonthTitle</h4><p>برای دیدن عملکرد، یک روز را انتخاب کنید.</p></div>
             <div class="dashboard-calendar" dir="rtl">
                 @foreach(var title in WeekTitles){<div class="calendar-weekday">@title</div>}
                 @for(var i=0;i<_dashboard.FirstDayOffset;i++){<div></div>}
@@ -124,9 +134,9 @@ else
             </div>
         </Card>
     </div>
-    <div class="col-xl-3 order-3">
+    <div class="col-lg-6">
         <Card>
-            <div class="mb-3"><h4 class="mb-1">خلاصه عملکرد کاربران</h4><div class="text-muted small">از ابتدای @_dashboard.CurrentPersianMonthTitle تا امروز</div></div>
+            <div class="dashboard-panel-heading mb-3"><span class="dashboard-eyebrow">نمای ماهانه</span><h4 class="mb-1">خلاصه عملکرد کاربران</h4><p>از ابتدای @_dashboard.CurrentPersianMonthTitle تا امروز</p></div>
             @if (_dashboard.MonthlyUserOperations.Count == 0)
             { <div class="text-center text-muted py-4">هنوز عملیاتی در این ماه ثبت نشده است.</div> }
             else

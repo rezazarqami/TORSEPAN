@@ -21,24 +21,27 @@
 </div>
 
 <div class="export-tools">
-    <input class="form-control" placeholder="جست‌وجوی کد ساز، کاسه یا مشخصات..." @bind="_search" @bind:event="oninput" />
+    <form class="export-search-form" @onsubmit="ApplySearchAsync" @onsubmit:preventDefault="true">
+        <input class="form-control" type="search" aria-label="جست‌وجوی موجودی انبار صادراتی" placeholder="کد ساز، کاسه یا مشخصات..." @bind="_searchInput" @bind:event="oninput" />
+        <button type="submit" class="btn btn-primary export-search-button">جستجو</button>
+    </form>
     <AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin">
         <button class="btn ship-selected" disabled="@(_selected.Count == 0)" @onclick="OpenSelectedShipment">ثبت ارسال <span>@_selected.Count</span></button>
     </AuthorizeView>
 </div>
-<div class="active-warehouse-banner" @ref="_inventorySection"><span class="warehouse-flag">@Warehouses.First(x=>x.Id==_activeLocation).Code</span><div><small>اکنون در حال مشاهده</small><strong>انبار @WarehouseName(_activeLocation)</strong></div><b>@WarehouseItems.Count() مورد</b></div>
+<div class="active-warehouse-banner" @ref="_inventorySection"><span class="warehouse-flag">@(string.IsNullOrWhiteSpace(_search)?Warehouses.First(x=>x.Id==_activeLocation).Code:"⌕")</span><div><small>@(string.IsNullOrWhiteSpace(_search)?"اکنون در حال مشاهده":"جستجو در همه مقصدها")</small><strong>@(string.IsNullOrWhiteSpace(_search)?$"انبار {WarehouseName(_activeLocation)}":"نتایج جستجو")</strong></div><b>@WarehouseItems.Count() مورد</b></div>
 @if (_loading)
 {
     <Card><div class="text-center p-5"><div class="spinner-border"></div></div></Card>
 }
 else if (!WarehouseItems.Any())
 {
-    <Card><EmptyState Title="این انبار خالی است" Description="پس از انتخاب این مقصد در بسته‌بندی، سازها و کاسه‌ها در این قسمت قرار می‌گیرند." /></Card>
+    <Card><EmptyState Title="@(string.IsNullOrWhiteSpace(_search)?"این انبار خالی است":"موردی پیدا نشد")" Description="@(string.IsNullOrWhiteSpace(_search)?"پس از انتخاب این مقصد در بسته‌بندی، سازها و کاسه‌ها در این قسمت قرار می‌گیرند.":"عبارت جستجو را تغییر دهید یا آن را پاک کنید و دوباره جستجو بزنید.")" /></Card>
 }
 else
 {
     <section class="selected-inventory">
-        <header class="selected-inventory-heading"><div><small>موجودی انتخاب‌شده</small><h2>انبار @WarehouseName(_activeLocation)</h2><p>فهرست زیر مربوط به مقصد انتخاب‌شده است.</p></div><span>@WarehouseItems.Count() مورد</span></header>
+        <header class="selected-inventory-heading"><div><small>موجودی انتخاب‌شده</small><h2>@(string.IsNullOrWhiteSpace(_search)?$"انبار {WarehouseName(_activeLocation)}":"نتایج جستجو")</h2><p>@(string.IsNullOrWhiteSpace(_search)?"فهرست زیر مربوط به مقصد انتخاب‌شده است.":"فهرست زیر در همه انبارهای صادراتی جستجو شده است.")</p></div><span>@WarehouseItems.Count() مورد</span></header>
         <nav class="inventory-tabs" aria-label="نوع موجودی">
             <button class="@(_activeInventoryTab=="bowls"?"active":null)" @onclick='()=>_activeInventoryTab="bowls"'><span>◉</span><strong>کاسه‌ها</strong><b>@WarehouseBowls.Count()</b></button>
             <button class="@(_activeInventoryTab=="handpans"?"active":null)" @onclick='()=>_activeInventoryTab="handpans"'><span>♫</span><strong>سازها</strong><b>@WarehouseHandpans.Count()</b></button>
@@ -103,7 +106,7 @@ else
     private readonly HashSet<Guid> _selected = [];
     private readonly List<Guid> _shipmentIds = [];
     private bool _loading = true, _saving, _deleting, _savingLocation;
-    private string _search = "", _buyerName = "", _destination = "";
+    private string _search = "", _searchInput = "", _buyerName = "", _destination = "";
     private string? _shippingMethod, _error, _deleteError, _locationError;
     private bool? _isSettled;
     private Guid? _partyId;
@@ -113,14 +116,15 @@ else
     private string _activeInventoryTab="bowls";
     private ElementReference _inventorySection;
     private static readonly (int Id,string Name,string Code)[] Warehouses=[(4,"ایران","IR"),(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE")];
-    private IEnumerable<ExportWarehouseItemDto> WarehouseItems => _items.Where(x=>x.Location==_activeLocation && (string.IsNullOrWhiteSpace(_search) || x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase)));
+    private IEnumerable<ExportWarehouseItemDto> WarehouseItems => _items.Where(x=>string.IsNullOrWhiteSpace(_search) ? x.Location==_activeLocation : x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<ExportWarehouseItemDto> WarehouseBowls => WarehouseItems.Where(x=>x.ItemType=="bowl");
     private IEnumerable<ExportWarehouseItemDto> WarehouseHandpans => WarehouseItems.Where(x=>x.ItemType=="handpan");
     private bool AllVisibleSelected => WarehouseBowls.Any() && WarehouseBowls.All(x => _selected.Contains(x.Id));
     private string DeleteMessage => _deleteCandidate is null ? "" : $"کاسه صادراتی {_deleteCandidate.ProductionCode} برای همیشه حذف شود؟";
     protected override async Task OnInitializedAsync(){_loading=true;try{var bowls=BowlService.GetExportWarehouseAsync();var parties=AccountingService.PartiesAsync();await Task.WhenAll(bowls,parties);_items=(await bowls).ToList();_parties=await parties;}finally{_loading=false;}}
+    private async Task ApplySearchAsync(){_search=_searchInput.Trim();_selected.Clear();if(!WarehouseBowls.Any()&&WarehouseHandpans.Any())_activeInventoryTab="handpans";else _activeInventoryTab="bowls";await InvokeAsync(StateHasChanged);await JS.InvokeVoidAsync("torsepanUi.scrollIntoView",_inventorySection);}
     private void Toggle(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
-    private async Task SelectWarehouseAsync(int id){_activeLocation=id;_selected.Clear();_activeInventoryTab="bowls";await InvokeAsync(StateHasChanged);await JS.InvokeVoidAsync("torsepanUi.scrollIntoView",_inventorySection);}
+    private async Task SelectWarehouseAsync(int id){_activeLocation=id;_search=_searchInput="";_selected.Clear();_activeInventoryTab="bowls";await InvokeAsync(StateHasChanged);await JS.InvokeVoidAsync("torsepanUi.scrollIntoView",_inventorySection);}
     private static string WarehouseName(int id)=>Warehouses.FirstOrDefault(x=>x.Id==id).Name??"نامشخص";
     private void OpenLocationEditor(ExportWarehouseItemDto item){_locationCandidate=item;_newLocation=item.Location;_locationError=null;}
     private void CloseLocationEditor(){if(!_savingLocation)_locationCandidate=null;}
