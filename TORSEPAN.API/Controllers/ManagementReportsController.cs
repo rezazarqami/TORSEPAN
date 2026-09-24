@@ -9,6 +9,7 @@ using TORSEPAN.Application.Common.Reporting;
 using TORSEPAN.Application.Materials;
 using TORSEPAN.Application.ProductionEvents.Queries.GetProductionReport;
 using TORSEPAN.API.Reporting;
+using TORSEPAN.API.Services;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
 using TORSEPAN.Infrastructure.Persistence;
@@ -29,16 +30,16 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
     [HttpGet("inventory")]
     public async Task<ActionResult<InventoryReport>> Inventory([FromQuery] DateTime? from,[FromQuery] DateTime? to,
         [FromQuery] string kind="instruments",[FromQuery] string? materialIds=null,[FromQuery] string? scaleIds=null,
-        [FromQuery] string destination="all",CancellationToken ct=default)
-        => Ok(await BuildInventoryAsync(new(from,to,ParseIds(materialIds),ParseIds(scaleIds),"all",destination,kind),ct));
+        [FromQuery] string destination="all",[FromQuery] string notes="all",CancellationToken ct=default)
+        => Ok(await BuildInventoryAsync(new(from,to,ParseIds(materialIds),ParseIds(scaleIds),"all",destination,kind,NotesFilter:notes),ct));
 
     [HttpGet("{kind}/pdf")]
     public async Task<IActionResult> Pdf(string kind,[FromQuery] DateTime? from,[FromQuery] DateTime? to,
         [FromQuery] string? materialIds,[FromQuery] string? scaleIds,[FromQuery] string payroll="all",
         [FromQuery] string destination="all",[FromQuery] string inventoryKind="instruments",[FromQuery] Guid? userId=null,
-        [FromQuery] int? action=null,CancellationToken ct=default)
+        [FromQuery] int? action=null,[FromQuery] string notes="all",CancellationToken ct=default)
     {
-        var request=new ManagementReportRequest(from,to,ParseIds(materialIds),ParseIds(scaleIds),payroll,destination,inventoryKind,userId,action);
+        var request=new ManagementReportRequest(from,to,ParseIds(materialIds),ParseIds(scaleIds),payroll,destination,inventoryKind,userId,action,notes);
         var bytes=await BuildReportPdfAsync(kind,request,ct);
         return File(bytes,"application/pdf",$"torsepan-{kind}-{DateTime.UtcNow:yyyyMMdd-HHmm}.pdf");
     }
@@ -172,9 +173,15 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
         if(request.InventoryKind!="materials")
         {
             var handpans=await db.Handpans.AsNoTracking().Include(x=>x.Scale).Include(x=>x.Assembly).ThenInclude(x=>x.TopBowl).ThenInclude(x=>x.Material).Where(x=>x.Stage==ProductionStage.FinishedWarehouse).ToListAsync(ct);
-            inventory.AddRange(handpans.Where(x=>(request.MaterialIds.Count==0||request.MaterialIds.Contains(x.Assembly.TopBowl.MaterialId))&&(request.ScaleIds.Count==0||(x.ScaleId.HasValue&&request.ScaleIds.Contains(x.ScaleId.Value)))&&request.Destination!="export").Select(x=>new InstrumentInventoryRow(x.Id,x.SerialNumber,"ساز","داخلی",x.Assembly.TopBowl.Material.Name,x.Scale?.Name??"—",x.UpdatedAt??x.CreatedAt)));
             var export=await db.Bowls.AsNoTracking().Include(x=>x.Material).Include(x=>x.Scale).Where(x=>x.Stage==ProductionStage.ExportWarehouse).ToListAsync(ct);
-            inventory.AddRange(export.Where(x=>(request.MaterialIds.Count==0||request.MaterialIds.Contains(x.MaterialId))&&(request.ScaleIds.Count==0||(x.ScaleId.HasValue&&request.ScaleIds.Contains(x.ScaleId.Value)))&&request.Destination!="domestic").Select(x=>new InstrumentInventoryRow(x.Id,x.ProductionCode,x.BowlType==BowlType.Top?"کاسه رو":"کاسه زیر","صادراتی",x.Material.Name,x.Scale?.Name??"—",DateTime.MinValue)));
+            var notes=await InstrumentNotes.ForBowlsAsync(db,
+                handpans.SelectMany(x=>new[]{x.Assembly.TopBowlId,x.Assembly.BottomBowlId}).Concat(export.Select(x=>x.Id)),ct);
+            var domestic=handpans.Where(x=>(request.MaterialIds.Count==0||request.MaterialIds.Contains(x.Assembly.TopBowl.MaterialId))&&(request.ScaleIds.Count==0||(x.ScaleId.HasValue&&request.ScaleIds.Contains(x.ScaleId.Value)))&&request.Destination!="export")
+                .Select(x=>new InstrumentInventoryRow(x.Id,x.SerialNumber,"ساز","داخلی",x.Assembly.TopBowl.Material.Name,x.Scale?.Name??"—",x.UpdatedAt??x.CreatedAt,
+                    InstrumentNotes.Combine(notes,x.Assembly.TopBowlId,x.Assembly.BottomBowlId)));
+            var exported=export.Where(x=>(request.MaterialIds.Count==0||request.MaterialIds.Contains(x.MaterialId))&&(request.ScaleIds.Count==0||(x.ScaleId.HasValue&&request.ScaleIds.Contains(x.ScaleId.Value)))&&request.Destination!="domestic")
+                .Select(x=>new InstrumentInventoryRow(x.Id,x.ProductionCode,x.BowlType==BowlType.Top?"کاسه رو":"کاسه زیر","صادراتی",x.Material.Name,x.Scale?.Name??"—",DateTime.MinValue,InstrumentNotes.Combine(notes,x.Id)));
+            inventory.AddRange(domestic.Concat(exported).Where(x=>request.NotesFilter switch {"with"=>x.Notes.Count>0,"without"=>x.Notes.Count==0,_=>true}));
         }
         return new(request.InventoryKind,start,end.AddTicks(-1),inventory.Count(x=>x.Destination=="داخلی"),inventory.Count(x=>x.Destination=="صادراتی"),inventory,stock,movements,outflow);
     }
@@ -221,7 +228,7 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
     private static string StockKind(string x)=>x switch{"top"=>"کاسه رو","bottom"=>"کاسه زیر",_=>"موجودی عمومی"};
 }
 
-public sealed record ManagementReportRequest(DateTime? From,DateTime? To,List<Guid> MaterialIds,List<Guid> ScaleIds,string Payroll="all",string Destination="all",string InventoryKind="instruments",Guid? UserId=null,int? Action=null);
+public sealed record ManagementReportRequest(DateTime? From,DateTime? To,List<Guid> MaterialIds,List<Guid> ScaleIds,string Payroll="all",string Destination="all",string InventoryKind="instruments",Guid? UserId=null,int? Action=null,string NotesFilter="all");
 public sealed record ProductionAnalytics(DateTime From,DateTime To,int TopBowlCount,int BottomNoteBowlCount,int TotalBowlCount,
     int DomesticBowlCount,int ExportBowlCount,int CurrentMonthCount,double MonthlyAverage,double DifferenceFromAverage,List<TrendPoint> Trend,
     List<TrendPoint> DomesticBowlTrend,List<TrendPoint> ExportBowlTrend,
@@ -233,7 +240,7 @@ public sealed record DonutChart(string Title,string Subtitle,double Total,List<D
 public sealed record DonutSegment(string Label,double Value,double Percentage,string Color);
 public sealed record ProductionSummaryRow(string Material,string Scale,string Destination,int Count);
 public sealed record InventoryReport(string Kind,DateTime From,DateTime To,int DomesticCount,int ExportCount,List<InstrumentInventoryRow> Instruments,List<MaterialStockRow> Stock,List<MaterialMovementRow> Movements,List<MaterialOutflowRow> Outflow);
-public sealed record InstrumentInventoryRow(Guid Id,string Code,string ItemType,string Destination,string Material,string Scale,DateTime EnteredAt);
+public sealed record InstrumentInventoryRow(Guid Id,string Code,string ItemType,string Destination,string Material,string Scale,DateTime EnteredAt,List<string> Notes);
 public sealed record MaterialStockRow(Guid Id,string Name,string Category,int Quantity,int TopQuantity,int BottomQuantity);
 public sealed record MaterialMovementRow(string MaterialName,string StockKind,int Delta,string Direction,string PerformedBy,DateTime OccurredAt,string Reason);
 public sealed record MaterialOutflowRow(string MaterialName,string StockKind,int Quantity);

@@ -103,15 +103,36 @@ public sealed class ProductionController : ControllerBase
         => Ok(await _mediator.Send(new GetStageWorkloadQuery()));
 
     [HttpGet("warehouse")]
-    public async Task<IActionResult> Warehouse()
-        => Ok(await _mediator.Send(new GetWarehouseInventoryQuery()));
+    public async Task<IActionResult> Warehouse(CancellationToken ct)
+    {
+        var items = (await _mediator.Send(new GetWarehouseInventoryQuery(), ct)).ToList();
+        await PopulateWarehouseNotesAsync(items, ct);
+        return Ok(items);
+    }
 
     [HttpGet("warehouse/{handpanId:guid}/details")]
-    public async Task<IActionResult> WarehouseDetails(Guid handpanId)
+    public async Task<IActionResult> WarehouseDetails(Guid handpanId, CancellationToken ct)
     {
-        var items = await _mediator.Send(new GetWarehouseInventoryQuery(handpanId));
+        var items = (await _mediator.Send(new GetWarehouseInventoryQuery(handpanId), ct)).ToList();
         var item = items.FirstOrDefault();
+        if (item is not null) await PopulateWarehouseNotesAsync(items, ct);
         return item is null ? NotFound() : Ok(item);
+    }
+
+    private async Task PopulateWarehouseNotesAsync(
+        List<TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory.GetWarehouseInventoryResponse> items,
+        CancellationToken ct)
+    {
+        if (items.Count == 0) return;
+        var ids = items.Select(x => x.HandpanId).ToArray();
+        var bowls = await _db.Handpans.AsNoTracking().Where(x => ids.Contains(x.Id))
+            .Select(x => new { x.Id, x.Assembly.TopBowlId, x.Assembly.BottomBowlId }).ToListAsync(ct);
+        var notes = await TORSEPAN.API.Services.InstrumentNotes.ForBowlsAsync(_db,
+            bowls.SelectMany(x => new[] { x.TopBowlId, x.BottomBowlId }), ct);
+        var byHandpan = bowls.ToDictionary(x => x.Id);
+        foreach (var item in items)
+            if (byHandpan.TryGetValue(item.HandpanId, out var bowl))
+                item.Notes = TORSEPAN.API.Services.InstrumentNotes.Combine(notes, bowl.TopBowlId, bowl.BottomBowlId);
     }
 
     [HttpPost("warehouse/gallery")]
