@@ -24,6 +24,8 @@ public sealed class GetWarehouseInventoryResponse
         = [];
 
     public IReadOnlyList<string> PackagingItems { get; set; } = [];
+
+    public IReadOnlyList<string> Notes { get; set; } = [];
 }
 
 public sealed class WarehouseOperationResponse
