@@ -114,7 +114,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/health", (DatabaseBackupStatus backup, TelegramAlertStatus alerts, IConfiguration configuration) => Results.Ok(new
+app.MapGet("/health", (DatabaseBackupStatus backup, TelegramAlertStatus alerts, OrderReminderStatus orderReminders, IConfiguration configuration) => Results.Ok(new
 {
     status = "healthy",
     telegram = new
@@ -133,7 +133,8 @@ app.MapGet("/health", (DatabaseBackupStatus backup, TelegramAlertStatus alerts, 
         backup.LastAttemptUtc,
         backup.LastSuccessUtc,
         backup.Error
-    }
+    },
+    orderReminders = orderReminders.Snapshot()
 }));
 
 app.Run();

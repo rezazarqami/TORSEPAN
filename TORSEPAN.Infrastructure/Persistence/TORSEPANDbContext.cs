@@ -21,6 +21,8 @@ public class TORSEPANDbContext : DbContext
     public DbSet<Handpan> Handpans => Set<Handpan>();
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<Scale> Scales => Set<Scale>();
+    public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
+    public DbSet<OrderReminder> OrderReminders => Set<OrderReminder>();
     public DbSet<ProductionEvent> ProductionEvents => Set<ProductionEvent>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PayrollRate> PayrollRates => Set<PayrollRate>();

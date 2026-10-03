@@ -1,0 +1,192 @@
+@page "/orders"
+@using System.Globalization
+@using TORSEPAN.Application.Orders
+@using TORSEPAN.Application
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject OrderService OrderService
+@inject ScaleService ScaleService
+@implements IAsyncDisposable
+
+<PageTitle>ثبت سفارش | تورسپن</PageTitle>
+<section class="orders-hero">
+    <span class="hero-kicker">مدیریت سفارش‌های کاستوم</span>
+    <div class="hero-symbol" aria-hidden="true">♫</div>
+    <h1>ثبت سفارش</h1>
+    <p>از ثبت سفارش تا ساخت ساز؛ زمان و مسیر تولید، در یک نگاه</p>
+</section>
+
+<nav class="order-tabs" aria-label="بخش‌های سفارش">
+    <button class="@(_tab == "new" ? "active" : "")" aria-pressed="@(_tab == "new")" @onclick='() => _tab = "new"'>
+        <i aria-hidden="true">＋</i><span><strong>سفارش جدید</strong><small>نام، اسکیل و زمان تحویل</small></span>
+    </button>
+    <button class="@(_tab == "list" ? "active" : "")" aria-pressed="@(_tab == "list")" @onclick='() => _tab = "list"'>
+        <i aria-hidden="true">☷</i><span><strong>سفارش‌های ثبت‌شده</strong><small>پیگیری زمان و مراحل تولید</small></span><b>@_orders.Count</b>
+    </button>
+</nav>
+
+@if (_message is not null)
+{
+    <div class="order-notice @(_isError ? "error" : "success")" role="@(_isError ? "alert" : "status")">
+        <span>@_message</span><button type="button" aria-label="بستن پیام" @onclick="() => _message = null">×</button>
+    </div>
+}
+@if (_loading)
+{
+    <div class="orders-loading" role="status"><span class="spinner-border spinner-border-sm"></span> در حال دریافت سفارش‌ها…</div>
+}
+else if (_loadFailed)
+{
+    <section class="order-panel empty-orders"><h2>دریافت اطلاعات کامل نشد</h2><p>برای مشاهده سفارش‌ها و اسکیل‌ها دوباره تلاش کنید.</p><button class="btn btn-primary" @onclick="ReloadAsync">تلاش دوباره</button></section>
+}
+else if (_tab == "new")
+{
+    <div class="new-order-layout">
+        <section class="order-panel">
+            <header><div><small>یک شروع دقیق</small><h2>اطلاعات سفارش</h2></div><span class="header-badge">ساز کاستوم</span></header>
+            <form @onsubmit="CreateAsync" @onsubmit:preventDefault="true">
+                <div class="order-fields">
+                    <label for="order-customer"><span>نام سفارش‌دهنده <em>*</em></span><input id="order-customer" class="form-control" maxlength="200" required placeholder="نام و نام خانوادگی" @bind="_customerName" @bind:event="oninput" disabled="@_saving" /></label>
+                    <label for="order-scale-search"><span>جست‌وجوی اسکیل</span><input id="order-scale-search" class="form-control" placeholder="نام اسکیل کاستوم ساز…" @bind="_scaleSearch" @bind:event="oninput" disabled="@_saving" /></label>
+                    <label for="order-scale"><span>اسکیل کاستوم ساز <em>*</em></span><select id="order-scale" class="form-select" required @bind="_scaleId" disabled="@(_saving || _scales.Count == 0)"><option value="">انتخاب اسکیل</option>@foreach (var scale in FilteredScales){<option value="@scale.Id">@scale.Name</option>}</select><small>اسکیل‌ها از بخش «Scale Custom ساز» دریافت می‌شوند.</small></label>
+                    <label for="order-duration"><span>مدت سفارش <em>*</em></span><div class="duration-field"><input id="order-duration" class="form-control" inputmode="numeric" required maxlength="5" placeholder="مثلاً ۳۰" @bind="_duration" @bind:event="oninput" disabled="@_saving" /><b>روز</b></div><small>از زمان ثبت سفارش تا موعد تحویل</small></label>
+                </div>
+                @if (_scales.Count == 0){<div class="form-hint warning">اسکیل کاستوم ساز ثبت نشده است. ابتدا آن را در <a href="/custom-scales">Scale Custom</a> ثبت کنید.</div>}
+                @if (DurationDays is > 0 and <= 36500){<div class="deadline-preview"><span>موعد تقریبی تحویل</span><strong>@PersianDate(DateTime.UtcNow.AddDays(DurationDays))</strong><small>موعد دقیق هنگام ثبت تعیین می‌شود.</small></div>}
+                <footer><button type="submit" class="btn create-order" disabled="@(_saving || !CanCreate)">@(_saving ? "در حال ثبت…" : "ثبت سفارش") <span aria-hidden="true">←</span></button><span>کد ساز را می‌توانید بعداً اضافه کنید.</span></footer>
+            </form>
+        </section>
+        <aside class="order-guide">
+            <small>همراه سفارش تا تحویل</small><h2>زمان‌بندی روشن،<br />پیگیری خودکار</h2><p>پس از ثبت، زمان باقی‌مانده در فهرست سفارش‌ها نمایش داده می‌شود.</p>
+            <div class="guide-milestones"><span>۲۵٪</span><span>۵۰٪</span><span>۷۵٪</span><span>پایان</span></div>
+            <p>در هر نقطه، نام سفارش‌دهنده، اسکیل، زمان گذشته و زمان باقی‌مانده به گروه تلگرام ارسال می‌شود.</p>
+            <div class="guide-note"><strong>کد ساز را که اضافه کنید…</strong><p>مرحلهٔ فعلی و عملیات انجام‌شده از سوابق تولید نمایش داده می‌شوند.</p></div>
+        </aside>
+    </div>
+}
+else
+{
+    <div class="order-metrics"><article><small>کل سفارش‌ها</small><strong>@_orders.Count</strong></article><article><small>دارای مهلت</small><strong>@_orders.Count(x => x.DueAtUtc > _now)</strong></article><article class="near"><small>یک‌چهارم پایانی</small><strong>@_orders.Count(x => x.DueAtUtc > _now && Remaining(x) <= x.DurationDays / 4d)</strong></article><article class="overdue"><small>مهلت پایان‌یافته</small><strong>@_orders.Count(x => x.DueAtUtc <= _now)</strong></article></div>
+    <section class="order-panel list-panel">
+        <header><div><small>پیگیری سفارش‌ها</small><h2>زمان باقی‌مانده و وضعیت ساخت</h2></div><button class="btn refresh-orders" disabled="@_refreshing" @onclick="RefreshAsync">@(_refreshing ? "در حال به‌روزرسانی…" : "↻ به‌روزرسانی")</button></header>
+        <div class="order-filters"><label for="order-search" class="search-label"><span class="visually-hidden">جست‌وجوی سفارش</span><input id="order-search" class="form-control" placeholder="جست‌وجوی نام، اسکیل یا کد ساز…" @bind="_search" @bind:event="oninput" /></label><label for="order-filter"><span class="visually-hidden">وضعیت مهلت</span><select id="order-filter" class="form-select" @bind="_filter"><option value="all">همه سفارش‌ها</option><option value="active">دارای مهلت</option><option value="near">یک‌چهارم پایانی</option><option value="overdue">مهلت پایان‌یافته</option><option value="no-code">بدون کد ساز</option></select></label></div>
+        @if (!VisibleOrders.Any())
+        {
+            <div class="empty-orders"><div aria-hidden="true">☷</div><h3>@(_orders.Count == 0 ? "هنوز سفارشی ثبت نشده" : "سفارشی با این فیلتر پیدا نشد")</h3><p>@(_orders.Count == 0 ? "اولین سفارش کاستوم را ثبت کنید تا مسیر ساخت آن را اینجا دنبال کنید." : "نام، اسکیل یا فیلتر زمان را تغییر دهید.")</p>@if(_orders.Count == 0){<button class="btn create-order" @onclick='()=>_tab="new"'>ثبت اولین سفارش</button>}</div>
+        }
+        else
+        {
+            <div class="orders-list">
+                @foreach (var order in VisibleOrders)
+                {
+                    <article class="order-card @(order.DueAtUtc <= _now ? "late" : "")" @key="order.Id">
+                        <div class="order-card-head"><div><small>سفارش کاستوم</small><h3>@order.CustomerName</h3><span class="scale-tag" dir="auto">@order.ScaleName</span></div><div class="time-badge"><strong>@TimeLabel(order)</strong><small>@(order.DueAtUtc <= _now ? "از موعد گذشته" : "تا موعد تحویل")</small></div></div>
+                        <div class="order-dates"><span>ثبت: <b>@PersianDate(order.CreatedAtUtc)</b></span><span>مدت: <b>@order.DurationDays روز</b></span><span>موعد: <b>@PersianDate(order.DueAtUtc)</b></span></div>
+                        <div class="order-progress" role="progressbar" aria-label="زمان سپری‌شده از سفارش" aria-valuenow="@((int)Progress(order))" aria-valuemin="0" aria-valuemax="100"><i style="width: @(Progress(order).ToString("0.##", CultureInfo.InvariantCulture))%"></i></div>
+                        <div class="progress-caption"><span>@((int)Progress(order))٪ زمان گذشته</span><span>@Days(OrderTiming.ElapsedDays(order.CreatedAtUtc, _now)) روز سپری شده</span></div>
+                        <div class="production-status"><div><small>کد ساز</small><strong dir="ltr">@(order.InstrumentCode ?? "—")</strong></div><div><small>مرحلهٔ فعلی</small><strong>@order.ProductionStage</strong>@if(order.ProductionStatus.Length > 0){<span>@order.ProductionStatus</span>}</div><button class="btn code-button" @onclick="()=>OpenCode(order)">@(order.InstrumentCode is null ? "＋ ثبت کد ساز" : "ویرایش کد")</button></div>
+                        @if (order.CompletedOperations.Count > 0){<div class="completed-operations"><small>سوابق تکمیل‌شده</small>@foreach(var operation in order.CompletedOperations){<span>✓ @operation</span>}</div>}
+                        <div class="reminder-row"><small>یادآوری تلگرام</small>@foreach(var reminder in order.Reminders){<span class="@(reminder.SentAtUtc.HasValue ? "sent" : reminder.HasError ? "retry" : "")" title="@ReminderTitle(reminder)">@(reminder.Milestone == 4 ? "پایان" : $"{reminder.Milestone * 25}٪") @(reminder.SentAtUtc.HasValue ? "✓" : reminder.HasError ? "↻" : "")</span>}</div>
+                    </article>
+                }
+            </div>
+        }
+        <div class="list-footnote">نمایش زمان و وضعیت تولید هر دقیقه به‌روز می‌شود. تاریخ‌ها به وقت تهران هستند.</div>
+    </section>
+}
+
+@if (_codeOrder is not null)
+{
+    <div class="code-overlay" @onclick="CloseCode"><section class="code-dialog" role="dialog" aria-modal="true" aria-labelledby="order-code-title" @onkeydown="CodeKeyDown" @onclick:stopPropagation="true"><header><div><small>اتصال سفارش به تولید</small><h2 id="order-code-title">کد ساز @_codeOrder.CustomerName</h2></div><button type="button" aria-label="بستن" disabled="@_savingCode" @onclick="CloseCode">×</button></header><form @onsubmit="SaveCodeAsync" @onsubmit:preventDefault="true"><label for="assign-instrument-code">کد ساز یا کاسهٔ رو</label><input id="assign-instrument-code" @ref="_codeInput" class="form-control" dir="ltr" autofocus required maxlength="50" @bind="_code" @bind:event="oninput" disabled="@_savingCode" /><p>کد موجود در سامانه را وارد کنید. مرحلهٔ ساخت از سوابق تولید دریافت می‌شود.</p>@if(_codeError is not null){<div class="order-notice error" role="alert">@_codeError</div>}<footer><button type="button" class="btn btn-light" disabled="@_savingCode" @onclick="CloseCode">انصراف</button><button type="submit" class="btn create-order" disabled="@(_savingCode || string.IsNullOrWhiteSpace(_code))">@(_savingCode ? "در حال ثبت…" : "ثبت کد ساز")</button></footer></form></section></div>
+}
+
+@code {
+    private List<OrderDto> _orders = [];
+    private List<ScaleDto> _scales = [];
+    private string _tab = "new", _customerName = "", _duration = "", _scaleSearch = "", _search = "", _filter = "all", _code = "";
+    private Guid? _scaleId;
+    private bool _loading = true, _loadFailed, _saving, _refreshing, _savingCode, _isError;
+    private string? _message, _codeError;
+    private OrderDto? _codeOrder;
+    private ElementReference _codeInput;
+    private bool _focusCode;
+    private DateTime _now = DateTime.UtcNow;
+    private readonly CancellationTokenSource _lifetime = new();
+    private Task? _polling;
+    private int DurationDays => int.TryParse(ProductionCodeNormalizer.Normalize(_duration), out var n) ? n : 0;
+    private bool CanCreate => !string.IsNullOrWhiteSpace(_customerName) && _scaleId.HasValue && DurationDays is > 0 and <= 36500;
+    private IEnumerable<ScaleDto> FilteredScales => _scales.Where(x => x.Id == _scaleId || x.Name.Contains(_scaleSearch.Trim(), StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<OrderDto> VisibleOrders => _orders.Where(x =>
+        (string.IsNullOrWhiteSpace(_search) || x.CustomerName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase) || x.ScaleName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase) || (x.InstrumentCode?.Contains(ProductionCodeNormalizer.Normalize(_search), StringComparison.OrdinalIgnoreCase) ?? false)) &&
+        (_filter switch { "active" => x.DueAtUtc > _now, "overdue" => x.DueAtUtc <= _now, "near" => x.DueAtUtc > _now && Remaining(x) <= x.DurationDays / 4d, "no-code" => x.InstrumentCode is null, _ => true }));
+
+    protected override async Task OnInitializedAsync() { await ReloadAsync(); _polling = PollAsync(); }
+    private async Task ReloadAsync()
+    {
+        _loading = true; _loadFailed = false;
+        try
+        {
+            var orders = OrderService.GetAsync(); var scales = ScaleService.GetAsync();
+            await Task.WhenAll(orders, scales);
+            _orders = (await orders).ToList(); _scales = (await scales).Where(x => (x.Usage & 32) != 0).OrderBy(x => x.Name).ToList();
+            _now = DateTime.UtcNow;
+        }
+        catch { _loadFailed = true; _message = "دریافت اطلاعات سفارش‌ها کامل نشد."; _isError = true; }
+        finally { _loading = false; }
+    }
+    private async Task RefreshAsync()
+    {
+        if (_refreshing) return;
+        _refreshing = true;
+        try { _orders = (await OrderService.GetAsync()).ToList(); _now = DateTime.UtcNow; }
+        catch { _message = "به‌روزرسانی سفارش‌ها انجام نشد؛ اطلاعات قبلی نمایش داده می‌شود."; _isError = true; }
+        finally { _refreshing = false; }
+    }
+    private async Task CreateAsync()
+    {
+        if (_saving || !CanCreate) return;
+        _saving = true; _message = null; _isError = false;
+        try
+        {
+            await OrderService.CreateAsync(new(_customerName.Trim(), _scaleId!.Value, DurationDays));
+            _customerName = ""; _duration = ""; _scaleId = null; _scaleSearch = ""; _tab = "list";
+            await RefreshAsync();
+            if (!_isError) { _message = "سفارش با موفقیت ثبت شد. یادآوری‌های زمان‌بندی آن فعال هستند."; }
+        }
+        catch { _message = "سفارش ثبت نشد. نام، اسکیل کاستوم ساز و مدت زمان را بررسی کنید و دوباره تلاش کنید."; _isError = true; }
+        finally { _saving = false; }
+    }
+    private void OpenCode(OrderDto order) { _codeOrder = order; _code = order.InstrumentCode ?? ""; _codeError = null; _focusCode = true; }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusCode && _codeOrder is not null) { _focusCode = false; await _codeInput.FocusAsync(); }
+    }
+    private void CodeKeyDown(KeyboardEventArgs e) { if (e.Key == "Escape") CloseCode(); }
+    private void CloseCode() { if (!_savingCode) _codeOrder = null; }
+    private async Task SaveCodeAsync()
+    {
+        if (_codeOrder is null || _savingCode || string.IsNullOrWhiteSpace(_code)) return;
+        _savingCode = true; _codeError = null;
+        try
+        {
+            await OrderService.AssignCodeAsync(_codeOrder.Id, ProductionCodeNormalizer.Normalize(_code));
+            _codeOrder = null; _isError = false; await RefreshAsync();
+            if (!_isError) _message = "کد ساز ثبت شد؛ وضعیت تولید سفارش به‌روز شد.";
+        }
+        catch (HttpRequestException ex) { _codeError = ex.StatusCode == System.Net.HttpStatusCode.Conflict ? "این ساز به سفارش دیگری متصل شده است." : "کد معتبر نیست یا به سفارش دیگری متصل است. کد ساز یا کاسهٔ روی آن را بررسی کنید."; }
+        catch { _codeError = "ثبت کد انجام نشد. دوباره تلاش کنید."; }
+        finally { _savingCode = false; }
+    }
+    private async Task PollAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+        try { while (await timer.WaitForNextTickAsync(_lifetime.Token)) await InvokeAsync(async () => { _now = DateTime.UtcNow; if (!_saving && !_savingCode && _codeOrder is null && !_loadFailed) await RefreshAsync(); StateHasChanged(); }); }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+    }
+    private double Remaining(OrderDto order) => OrderTiming.RemainingDays(order.DueAtUtc, _now);
+    private double Progress(OrderDto order) => OrderTiming.Progress(order.CreatedAtUtc, order.DueAtUtc, _now);
+    private static string Days(double n) => n.ToString("0.#", CultureInfo.GetCultureInfo("fa-IR"));
+    private string TimeLabel(OrderDto order) => order.DueAtUtc <= _now ? $"{Days((_now - order.DueAtUtc).TotalDays)} روز" : Remaining(order) < 1 ? $"{Days(Remaining(order) * 24)} ساعت" : $"{Days(Remaining(order))} روز";
+    private static string PersianDate(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran")).ToString("yyyy/MM/dd", CultureInfo.GetCultureInfo("fa-IR"));
+    private static string ReminderTitle(OrderReminderDto reminder) => reminder.SentAtUtc.HasValue ? "به تلگرام ارسال شده" : reminder.HasError ? "ارسال ناموفق؛ در انتظار تلاش مجدد" : "زمان‌بندی‌شده برای " + PersianDate(reminder.DueAtUtc);
+    public async ValueTask DisposeAsync() { _lifetime.Cancel(); if (_polling is not null) await _polling; _lifetime.Dispose(); }
+}

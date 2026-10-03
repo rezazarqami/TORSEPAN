@@ -1,0 +1,25 @@
+[Unit]
+Description=Torsepan order reminder Telegram relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=torsepan-order-relay
+Group=torsepan-order-relay
+EnvironmentFile=/etc/torsepan-telegram-relay.env
+Environment=ORDER_RELAY_DB=/var/lib/torsepan-order-relay/deliveries.sqlite3
+ExecStart=/usr/bin/python3 /opt/torsepan-order-relay/order_reminder_relay.py
+Restart=on-failure
+RestartSec=5
+StateDirectory=torsepan-order-relay
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/torsepan-order-relay
+
+[Install]
+WantedBy=multi-user.target
