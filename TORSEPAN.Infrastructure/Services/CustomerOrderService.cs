@@ -11,6 +11,20 @@ public sealed class OrderValidationException(string message) : Exception(message
 
 public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider clock)
 {
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        // Wait for any in-flight reminder batch, then remove the order and its reminders together.
+        if (db.Database.IsNpgsql())
+            await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(730031, 1)", ct);
+        var order = await db.CustomerOrders.Include(x => x.Reminders).SingleOrDefaultAsync(x => x.Id == id, ct);
+        if (order is null) return false;
+        db.CustomerOrders.Remove(order);
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return true;
+    }
+
     public async Task<Guid> CreateAsync(CreateOrderRequest request, Guid userId, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.CustomerName) || request.CustomerName.Trim().Length > 200)

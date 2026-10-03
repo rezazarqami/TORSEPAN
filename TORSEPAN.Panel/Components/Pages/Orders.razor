@@ -84,6 +84,7 @@ else
                         <div class="progress-caption"><span>@((int)Progress(order))٪ زمان گذشته</span><span>@Days(OrderTiming.ElapsedDays(order.CreatedAtUtc, _now)) روز سپری شده</span></div>
                         <div class="production-status"><div><small>کد ساز</small><strong dir="ltr">@(order.InstrumentCode ?? "—")</strong></div><div><small>مرحلهٔ فعلی</small><strong>@order.ProductionStage</strong>@if(order.ProductionStatus.Length > 0){<span>@order.ProductionStatus</span>}</div><button class="btn code-button" @onclick="()=>OpenCode(order)">@(order.InstrumentCode is null ? "＋ ثبت کد ساز" : "ویرایش کد")</button></div>
                         @if (order.CompletedOperations.Count > 0){<div class="completed-operations"><small>سوابق تکمیل‌شده</small>@foreach(var operation in order.CompletedOperations){<span>✓ @operation</span>}</div>}
+                        <div class="order-card-actions"><button type="button" class="btn delete-order" disabled="@_deleting" @onclick="()=>OpenDelete(order)">حذف سفارش</button></div>
                         <div class="reminder-row"><small>یادآوری تلگرام</small>@foreach(var reminder in order.Reminders){<span class="@(reminder.SentAtUtc.HasValue ? "sent" : reminder.HasError ? "retry" : "")" title="@ReminderTitle(reminder)">@(reminder.Milestone == 4 ? "پایان" : $"{reminder.Milestone * 25}٪") @(reminder.SentAtUtc.HasValue ? "✓" : reminder.HasError ? "↻" : "")</span>}</div>
                     </article>
                 }
@@ -98,6 +99,8 @@ else
     <div class="code-overlay" @onclick="CloseCode"><section class="code-dialog" role="dialog" aria-modal="true" aria-labelledby="order-code-title" @onkeydown="CodeKeyDown" @onclick:stopPropagation="true"><header><div><small>اتصال سفارش به تولید</small><h2 id="order-code-title">کد ساز @_codeOrder.CustomerName</h2></div><button type="button" aria-label="بستن" disabled="@_savingCode" @onclick="CloseCode">×</button></header><form @onsubmit="SaveCodeAsync" @onsubmit:preventDefault="true"><label for="assign-instrument-code">کد ساز یا کاسهٔ رو</label><input id="assign-instrument-code" @ref="_codeInput" class="form-control" dir="ltr" autofocus required maxlength="50" @bind="_code" @bind:event="oninput" disabled="@_savingCode" /><p>کد موجود در سامانه را وارد کنید. مرحلهٔ ساخت از سوابق تولید دریافت می‌شود.</p>@if(_codeError is not null){<div class="order-notice error" role="alert">@_codeError</div>}<footer><button type="button" class="btn btn-light" disabled="@_savingCode" @onclick="CloseCode">انصراف</button><button type="submit" class="btn create-order" disabled="@(_savingCode || string.IsNullOrWhiteSpace(_code))">@(_savingCode ? "در حال ثبت…" : "ثبت کد ساز")</button></footer></form></section></div>
 }
 
+<AppConfirmDialog IsOpen="@(_deleteOrder is not null)" Title="حذف سفارش" Message="@DeleteMessage" ConfirmText="حذف سفارش" Danger="true" Busy="@_deleting" Error="@_deleteError" OnConfirm="DeleteAsync" OnCancel="CloseDelete" />
+
 @code {
     private List<OrderDto> _orders = [];
     private List<ScaleDto> _scales = [];
@@ -105,7 +108,10 @@ else
     private Guid? _scaleId;
     private bool _loading = true, _loadFailed, _saving, _refreshing, _savingCode, _isError;
     private string? _message, _codeError;
-    private OrderDto? _codeOrder;
+    private OrderDto? _codeOrder, _deleteOrder;
+    private bool _deleting;
+    private string? _deleteError;
+    private string DeleteMessage => $"سفارش «{_deleteOrder?.CustomerName}» با اسکیل «{_deleteOrder?.ScaleName}» حذف شود؟ سفارش و یادآوری‌های آن حذف می‌شوند؛ سوابق تولید ساز باقی می‌مانند.";
     private ElementReference _codeInput;
     private bool _focusCode;
     private DateTime _now = DateTime.UtcNow;
@@ -153,6 +159,29 @@ else
         catch { _message = "سفارش ثبت نشد. نام، اسکیل ساز و مدت زمان را بررسی کنید و دوباره تلاش کنید."; _isError = true; }
         finally { _saving = false; }
     }
+    private void OpenDelete(OrderDto order) { _deleteOrder = order; _deleteError = null; }
+    private void CloseDelete() { if (!_deleting) { _deleteOrder = null; _deleteError = null; } }
+    private async Task DeleteAsync()
+    {
+        if (_deleteOrder is null || _deleting) return;
+        _deleting = true; _deleteError = null;
+        var id = _deleteOrder.Id;
+        try
+        {
+            await OrderService.DeleteAsync(id);
+            _orders.RemoveAll(x => x.Id == id);
+            _deleteOrder = null; _isError = false;
+            _message = "سفارش و یادآوری‌های آن حذف شدند.";
+            await RefreshAsync();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _orders.RemoveAll(x => x.Id == id); _deleteOrder = null; _isError = false;
+            _message = "این سفارش قبلاً حذف شده است.";
+        }
+        catch { _deleteError = "حذف سفارش انجام نشد. دوباره تلاش کنید."; }
+        finally { _deleting = false; }
+    }
     private void OpenCode(OrderDto order) { _codeOrder = order; _code = order.InstrumentCode ?? ""; _codeError = null; _focusCode = true; }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -177,7 +206,7 @@ else
     private async Task PollAsync()
     {
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
-        try { while (await timer.WaitForNextTickAsync(_lifetime.Token)) await InvokeAsync(async () => { _now = DateTime.UtcNow; if (!_saving && !_savingCode && _codeOrder is null && !_loadFailed) await RefreshAsync(); StateHasChanged(); }); }
+        try { while (await timer.WaitForNextTickAsync(_lifetime.Token)) await InvokeAsync(async () => { _now = DateTime.UtcNow; if (!_saving && !_savingCode && !_deleting && _deleteOrder is null && _codeOrder is null && !_loadFailed) await RefreshAsync(); StateHasChanged(); }); }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
     }
     private double Remaining(OrderDto order) => OrderTiming.RemainingDays(order.DueAtUtc, _now);

@@ -121,6 +121,19 @@ internal static class OrdersSmoke
         var firstOrderKeys = sender.Keys.Where(x => x.Contains(id.ToString("N"))).ToArray();
         Check(firstOrderKeys.Length == 4 && firstOrderKeys.Distinct().Count() == 4, "restart catches up remaining milestones without repeating earlier success");
         Check(sender.Messages.Any(x => x.Contains("پایان مهلت سفارش") && x.Contains("مهلت این سفارش به پایان رسیده")), "final deadline reminder announces expiration");
+        await using (var deleteDb = new TORSEPANDbContext(options))
+        {
+            var deletion = new CustomerOrderService(deleteDb, clock);
+            Check(await deletion.DeleteAsync(id, default), "existing linked order can be deleted");
+            Check(!await deleteDb.CustomerOrders.AnyAsync(x => x.Id == id) && !await deleteDb.OrderReminders.AnyAsync(x => x.OrderId == id), "deleting an order removes every reminder");
+            Check(await deleteDb.Bowls.CountAsync() == 2 && await deleteDb.Handpans.AnyAsync(x => x.Id == handpan.Id) && await deleteDb.HandpanAssemblies.AnyAsync(x => x.Id == assembly.Id) && await deleteDb.ProductionEvents.AnyAsync(), "deleting an order preserves bowls, assembled instrument and production history");
+            Check(!await deletion.DeleteAsync(id, default), "repeated deletion returns not-found");
+            Check(await deletion.AssignCodeAsync(second, top.ProductionCode, user.Id, default), "deleted order releases its instrument for another order");
+            var sentBefore = sender.Keys.Count(x => x.Contains(id.ToString("N")));
+            var afterDeleteProcessor = new OrderReminderProcessor(deleteDb, sender, clock, status, Microsoft.Extensions.Logging.Abstractions.NullLogger<OrderReminderProcessor>.Instance);
+            await afterDeleteProcessor.DispatchDueAsync(default);
+            Check(sender.Keys.Count(x => x.Contains(id.ToString("N"))) == sentBefore, "deleted order cannot send future reminders");
+        }
         await TestAuthorizationAsync(connection, clock, user.Id);
         await TestTelegramTransportAsync();
         await using var postgresModel = new TORSEPANDbContext(new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused").Options);
@@ -151,12 +164,14 @@ internal static class OrdersSmoke
         Check((await http.GetAsync("api/orders")).StatusCode == HttpStatusCode.Unauthorized, "anonymous order API request returns 401");
         Check((await http.PostAsJsonAsync("api/orders", new CreateOrderRequest("نام", Guid.NewGuid(), 30))).StatusCode == HttpStatusCode.Unauthorized, "anonymous order creation returns 401");
         Check((await http.PutAsJsonAsync($"api/orders/{Guid.NewGuid()}/code", new AssignOrderCodeRequest("CODE"))).StatusCode == HttpStatusCode.Unauthorized, "anonymous code assignment returns 401");
+        Check((await http.DeleteAsync($"api/orders/{Guid.NewGuid()}")).StatusCode == HttpStatusCode.Unauthorized, "anonymous order deletion returns 401");
         foreach (var role in Enum.GetNames<SystemRole>().Append("AuthenticatedOnly"))
         {
             http.DefaultRequestHeaders.Remove("X-Fixture-Role"); http.DefaultRequestHeaders.Add("X-Fixture-Role", role);
             Check((await http.GetAsync("api/orders")).StatusCode == HttpStatusCode.OK, "order list accessible to authenticated user: " + role);
             var creation = await http.PostAsJsonAsync("api/orders", new CreateOrderRequest(" ", Guid.Empty, 1));
             Check(creation.StatusCode == HttpStatusCode.BadRequest, "authenticated user reaches order creation validation: " + role);
+            Check((await http.DeleteAsync($"api/orders/{Guid.NewGuid()}")).StatusCode == HttpStatusCode.NotFound, "authenticated user reaches order deletion: " + role);
             var assignment = await http.PutAsJsonAsync($"api/orders/{Guid.NewGuid()}/code", new AssignOrderCodeRequest("MISSING"));
             Check(assignment.StatusCode == HttpStatusCode.NotFound, "authenticated user reaches code assignment: " + role);
         }
