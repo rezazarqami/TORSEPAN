@@ -26,6 +26,8 @@ public sealed class CustomerOrder
             createdAtUtc.AddTicks((DueAtUtc - createdAtUtc).Ticks * n / 4))).ToList();
     }
 
+    public void QueueRegistrationNotice(DateTime nowUtc) => Reminders.Add(new OrderReminder(Id, 0, nowUtc));
+
     public Guid Id { get; private set; }
     public string CustomerName { get; private set; } = "";
     public Guid ScaleId { get; private set; }
@@ -72,7 +74,9 @@ public sealed class OrderReminder
     public DateTime? SentAtUtc { get; private set; }
     public int Attempts { get; private set; }
     public string? LastError { get; private set; }
-    public string DeliveryKey => $"order:{OrderId:N}:{Milestone}";
+    public string DeliveryKey => Milestone == 0
+        ? $"order:{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"created:{OrderId:N}")))[..32].ToLowerInvariant()}:1"
+        : $"order:{OrderId:N}:{Milestone}";
     public void Delivered(DateTime nowUtc) { SentAtUtc = nowUtc; Attempts++; LastError = null; }
     public void Failed(DateTime nowUtc, string reason)
     {

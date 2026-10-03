@@ -65,7 +65,7 @@ public sealed class OrderReminderStatus
 public sealed class OrderReminderProcessor(TORSEPANDbContext db, IOrderReminderSender sender, TimeProvider clock,
     OrderReminderStatus status, ILogger<OrderReminderProcessor> logger)
 {
-    public async Task ProcessAsync(CancellationToken ct)
+    public async Task ProcessAsync(CancellationToken ct, Guid? createdOrderId = null)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         // Covers overlapping instances during rolling deployments. Released even after a crash.
@@ -73,24 +73,28 @@ public sealed class OrderReminderProcessor(TORSEPANDbContext db, IOrderReminderS
         command.Transaction = transaction.GetDbTransaction();
         command.CommandText = "SELECT pg_try_advisory_xact_lock(730031, 1)";
         if (!Equals(await command.ExecuteScalarAsync(ct), true)) return;
-        await DispatchDueAsync(ct);
+        await DispatchDueAsync(ct, createdOrderId);
         await transaction.CommitAsync(ct);
     }
 
     // Called under ProcessAsync's database lock in production; also allows deterministic delivery tests.
-    public async Task DispatchDueAsync(CancellationToken ct)
+    public async Task DispatchDueAsync(CancellationToken ct, Guid? createdOrderId = null)
     {
         var now = clock.GetUtcNow().UtcDateTime;
         var due = await db.OrderReminders.Include(x => x.Order)
-            .Where(x => x.SentAtUtc == null && x.DueAtUtc <= now && x.NextAttemptAtUtc <= now)
+            .Where(x => x.SentAtUtc == null && x.DueAtUtc <= now && x.NextAttemptAtUtc <= now &&
+                (!createdOrderId.HasValue || (x.OrderId == createdOrderId.Value && x.Milestone == 0)))
             .OrderBy(x => x.DueAtUtc).ThenBy(x => x.Milestone).Take(20).ToListAsync(ct);
+        var production = due.Any(x => x.Milestone > 0 && x.Order.InstrumentCode is not null)
+            ? (await new CustomerOrderService(db, clock).GetAsync(ct)).ToDictionary(x => x.Id)
+            : new Dictionary<Guid, OrderDto>();
         var failed = false;
         foreach (var reminder in due)
         {
             ct.ThrowIfCancellationRequested();
             try
             {
-                await sender.SendAsync(reminder.DeliveryKey, BuildMessage(reminder.Order, reminder.Milestone, now), ct);
+                await sender.SendAsync(reminder.DeliveryKey, BuildMessage(reminder.Order, reminder.Milestone, now, production.GetValueOrDefault(reminder.OrderId)), ct);
                 reminder.Delivered(clock.GetUtcNow().UtcDateTime);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
@@ -109,9 +113,9 @@ public sealed class OrderReminderProcessor(TORSEPANDbContext db, IOrderReminderS
             failed ? "One or more reminders are awaiting a retry." : null);
     }
 
-    public static string BuildMessage(CustomerOrder order, int milestone, DateTime now)
+    public static string BuildMessage(CustomerOrder order, int milestone, DateTime now, OrderDto? production = null)
     {
-        var title = milestone == 4 ? "⏰ پایان مهلت سفارش" : $"🔔 یادآوری سفارش — {milestone * 25}٪ زمان";
+        var title = milestone == 0 ? "✅ سفارش جدید ثبت شد" : milestone == 4 ? "⏰ پایان مهلت سفارش" : $"🔔 یادآوری سفارش — {milestone * 25}٪ زمان";
         var culture = CultureInfo.GetCultureInfo("fa-IR");
         var elapsed = OrderTiming.ElapsedDays(order.CreatedAtUtc, now).ToString("0.##", culture);
         var remaining = OrderTiming.RemainingDays(order.DueAtUtc, now).ToString("0.##", culture);
@@ -120,7 +124,7 @@ public sealed class OrderReminderProcessor(TORSEPANDbContext db, IOrderReminderS
         return $"{title}\nسفارش‌دهنده: {order.CustomerName}\nاسکیل: {order.ScaleName}\n" +
             $"مدت سفارش: {order.DurationDays} روز\nزمان گذشته: {elapsed} روز\nزمان باقی‌مانده: {remaining} روز\n" +
             $"موعد تحویل: {due} (تهران)" +
-            (order.InstrumentCode is null ? "" : $"\nکد ساز: {order.InstrumentCode}") +
+            (order.InstrumentCode is null ? "\nکد ساز ثبت نشده است." : $"\nکد ساز: {order.InstrumentCode}\nمرحلهٔ فعلی: {production?.ProductionStage ?? "وضعیت تولید در دسترس نیست"}" + (string.IsNullOrWhiteSpace(production?.ProductionStatus) ? "" : $" — {production.ProductionStatus}")) +
             (milestone == 4 ? "\nمهلت این سفارش به پایان رسیده است." : "");
     }
 }

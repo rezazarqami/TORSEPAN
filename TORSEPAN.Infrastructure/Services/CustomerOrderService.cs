@@ -9,7 +9,7 @@ namespace TORSEPAN.Infrastructure.Services;
 
 public sealed class OrderValidationException(string message) : Exception(message);
 
-public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider clock)
+public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider clock, OrderReminderProcessor? notifications = null)
 {
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct)
     {
@@ -34,10 +34,29 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         var scale = await db.Scales.SingleOrDefaultAsync(x => x.Id == request.ScaleId && x.IsActive &&
             (x.Usage & ScaleUsage.CustomHandpan) != 0, ct);
         if (scale is null) throw new OrderValidationException("اسکیل را از فهرست اسکیل‌های کاستوم ساز انتخاب کنید.");
+        var startUtc = clock.GetUtcNow().UtcDateTime;
+        if (request.OrderDate is { } date)
+        {
+            var tehran = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(startUtc, tehran));
+            if (date > today || date < new DateOnly(1900, 1, 1))
+                throw new OrderValidationException("تاریخ سفارش باید معتبر و حداکثر امروز باشد.");
+            var localStart = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+            // Some historical Tehran dates started with a daylight-saving clock jump.
+            while (tehran.IsInvalidTime(localStart)) localStart = localStart.AddMinutes(1);
+            startUtc = TimeZoneInfo.ConvertTimeToUtc(localStart, tehran);
+        }
         var order = new CustomerOrder(request.CustomerName, scale.Id, scale.Name, request.DurationDays,
-            userId, clock.GetUtcNow().UtcDateTime);
+            userId, startUtc);
+        order.QueueRegistrationNotice(clock.GetUtcNow().UtcDateTime);
         db.CustomerOrders.Add(order);
         await db.SaveChangesAsync(ct);
+        // The durable notice is committed first. Telegram failure must not turn a saved order into a failed creation.
+        if (notifications is not null)
+        {
+            try { await notifications.ProcessAsync(ct, order.Id); }
+            catch { /* The background worker retries the committed notice after interruption/failure. */ }
+        }
         return order.Id;
     }
 
@@ -103,7 +122,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
                 order.CreatedAtUtc, order.DueAtUtc, order.InstrumentCode,
                 stage.HasValue ? StageTitle(stage.Value) : order.InstrumentCode is null ? "در انتظار ثبت کد ساز" : "کد تولید در دسترس نیست",
                 status.HasValue ? StatusTitle(status.Value) : "", completed,
-                order.Reminders.OrderBy(x => x.Milestone).Select(x => new OrderReminderDto(x.Milestone, x.DueAtUtc,
+                order.Reminders.Where(x => x.Milestone > 0).OrderBy(x => x.Milestone).Select(x => new OrderReminderDto(x.Milestone, x.DueAtUtc,
                     x.SentAtUtc, x.LastError != null)).ToArray());
         }).ToArray();
     }
