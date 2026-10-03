@@ -17,6 +17,7 @@ static void Check(bool value,string message){if(!value)throw new Exception(messa
 if(args.Contains("--telegram-alert-only"))
 {
     await TelegramDeliverySmoke.RunAsync();
+    await DatabaseBackupSmoke.RunAsync();
     return;
 }
 if(args.Contains("--pdf-preview-only"))

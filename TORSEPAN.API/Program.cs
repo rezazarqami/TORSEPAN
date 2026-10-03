@@ -128,6 +128,8 @@ app.MapGet("/health", (DatabaseBackupStatus backup, TelegramAlertStatus alerts, 
     databaseBackup = new
     {
         backup.State,
+        backup.Stage,
+        backup.Mode,
         backup.LastAttemptUtc,
         backup.LastSuccessUtc,
         backup.Error

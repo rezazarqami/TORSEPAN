@@ -13,6 +13,8 @@ public sealed class DatabaseBackupStatus
     public DateTimeOffset? LastSuccessUtc { get; internal set; }
     public string State { get; internal set; } = "not-started";
     public string? Error { get; internal set; }
+    public string Stage { get; internal set; } = "idle";
+    public string Mode => "data-only";
 }
 
 public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpClientFactory clients,
@@ -46,6 +48,7 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             await BackupAsync(ct);
             status.LastSuccessUtc = DateTimeOffset.UtcNow;
             status.State = "succeeded";
+            status.Stage = "completed";
             return true;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
@@ -60,6 +63,7 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
 
     private async Task BackupAsync(CancellationToken ct)
     {
+        status.Stage = "configuration";
         var db = config["DATABASE_URL"] ?? config.GetConnectionString("DefaultConnection");
         var relay = config["Telegram:BackupRelayUrl"];
         if (string.IsNullOrWhiteSpace(relay)) relay = config["Telegram:RelayUrl"];
@@ -79,25 +83,20 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
         try
         {
             var data = Path.Combine(directory, $"TORSEPAN-DATA-{stamp}.dump");
-            var photos = Path.Combine(directory, $"TORSEPAN-PHOTOS-{stamp}.dump");
-            // The first archive contains the schema (including HandpanPhotos) and all other data.
+            // Keep the photo table schema, but never dump or send its binary rows.
+            status.Stage = "database-dump";
             await DumpAsync(connection, data, "--exclude-table-data=public.\"HandpanPhotos\"", ct);
-            // Restore this second, after the data archive. Keep all binary photo rows.
-            await DumpAsync(connection, photos, "--data-only", "--table=public.\"HandpanPhotos\"", ct);
             using var client = clients.CreateClient();
             client.Timeout = TimeSpan.FromMinutes(10);
+            status.Stage = "telegram-delivery";
             await SendArchiveAsync(client, url, secret, data, ct);
-            await SendArchiveAsync(client, url, secret, photos, ct);
-            logger.LogInformation("Database data and photos sent to Telegram at {BackupTime} Tehran time.", stamp);
+            logger.LogInformation("Data-only database backup sent to Telegram at {BackupTime} Tehran time.", stamp);
         }
         finally { Directory.Delete(directory, recursive: true); }
     }
 
     private static Task DumpAsync(NpgsqlConnectionStringBuilder connection, string file, string option, CancellationToken ct) =>
         DumpAsync(connection, file, [option], ct);
-
-    private static Task DumpAsync(NpgsqlConnectionStringBuilder connection, string file, string option1, string option2, CancellationToken ct) =>
-        DumpAsync(connection, file, [option1, option2], ct);
 
     private static async Task DumpAsync(NpgsqlConnectionStringBuilder connection, string file, string[] options, CancellationToken ct)
     {
@@ -111,12 +110,18 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
         info.ArgumentList.Add($"--dbname={connection.Database}");
         info.Environment["PGPASSWORD"] = connection.Password;
         info.Environment["PGSSLMODE"] = connection.SslMode == SslMode.Disable ? "disable" : "require";
+        info.Environment["PGCONNECT_TIMEOUT"] = "30";
+        using var dumpTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        dumpTimeout.CancelAfter(TimeSpan.FromMinutes(10));
         using var process = Process.Start(info) ?? throw new InvalidOperationException("pg_dump failed to start.");
         var errorTask = process.StandardError.ReadToEndAsync(ct);
-        try { await process.WaitForExitAsync(ct); }
+        try { await process.WaitForExitAsync(dumpTimeout.Token); }
         catch (OperationCanceledException)
         {
             if (!process.HasExited) process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync(CancellationToken.None);
+            if (!ct.IsCancellationRequested)
+                throw new TimeoutException("Database dump exceeded the 10-minute limit.");
             throw;
         }
         var error = await errorTask;
