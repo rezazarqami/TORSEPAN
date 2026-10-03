@@ -1,6 +1,6 @@
 namespace TORSEPAN.Application.Orders;
 
-public sealed record CreateOrderRequest(string CustomerName, Guid ScaleId, int DurationDays);
+public sealed record CreateOrderRequest(string CustomerName, Guid ScaleId, int DurationDays, DateOnly? OrderDate = null);
 public sealed record AssignOrderCodeRequest(string Code);
 public sealed record OrderDto(Guid Id, string CustomerName, Guid ScaleId, string ScaleName,
     int DurationDays, DateTime CreatedAtUtc, DateTime DueAtUtc, string? InstrumentCode,
