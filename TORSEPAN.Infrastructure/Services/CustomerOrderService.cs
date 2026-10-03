@@ -9,7 +9,7 @@ namespace TORSEPAN.Infrastructure.Services;
 
 public sealed class OrderValidationException(string message) : Exception(message);
 
-public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider clock)
+public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider clock, OrderReminderProcessor? notifications = null)
 {
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct)
     {
@@ -48,8 +48,15 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         }
         var order = new CustomerOrder(request.CustomerName, scale.Id, scale.Name, request.DurationDays,
             userId, startUtc);
+        order.QueueRegistrationNotice(clock.GetUtcNow().UtcDateTime);
         db.CustomerOrders.Add(order);
         await db.SaveChangesAsync(ct);
+        // The durable notice is committed first. Telegram failure must not turn a saved order into a failed creation.
+        if (notifications is not null)
+        {
+            try { await notifications.ProcessAsync(ct, order.Id); }
+            catch { /* The background worker retries the committed notice after interruption/failure. */ }
+        }
         return order.Id;
     }
 
@@ -115,7 +122,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
                 order.CreatedAtUtc, order.DueAtUtc, order.InstrumentCode,
                 stage.HasValue ? StageTitle(stage.Value) : order.InstrumentCode is null ? "در انتظار ثبت کد ساز" : "کد تولید در دسترس نیست",
                 status.HasValue ? StatusTitle(status.Value) : "", completed,
-                order.Reminders.OrderBy(x => x.Milestone).Select(x => new OrderReminderDto(x.Milestone, x.DueAtUtc,
+                order.Reminders.Where(x => x.Milestone > 0).OrderBy(x => x.Milestone).Select(x => new OrderReminderDto(x.Milestone, x.DueAtUtc,
                     x.SentAtUtc, x.LastError != null)).ToArray());
         }).ToArray();
     }
