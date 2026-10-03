@@ -14,6 +14,11 @@ using TORSEPAN.Application.Materials;
 using TORSEPAN.Application.Common.Reporting;
 
 static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
+if(args.Contains("--orders-only"))
+{
+    await OrdersSmoke.RunAsync();
+    return;
+}
 if(args.Contains("--telegram-alert-only"))
 {
     await TelegramDeliverySmoke.RunAsync();

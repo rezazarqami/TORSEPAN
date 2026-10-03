@@ -13,6 +13,13 @@
         <span>ثبت کاسه</span>
     </NavLink>
 
+    <AuthorizeView Roles="@TORSEPAN.Application.Orders.OrderAccess.Roles">
+        <NavLink href="/orders">
+            <span>📝</span>
+            <span>ثبت سفارش</span>
+        </NavLink>
+    </AuthorizeView>
+
     <NavLink href="/bowls">
         <span>⚙️</span>
         <span>تولید</span>
