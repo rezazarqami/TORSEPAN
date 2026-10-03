@@ -14,6 +14,10 @@ public sealed class OrdersController(CustomerOrderService orders) : ControllerBa
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<OrderDto>>> Get(CancellationToken ct) => Ok(await orders.GetAsync(ct));
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct) =>
+        await orders.DeleteAsync(id, ct) ? NoContent() : NotFound();
+
     [HttpPost]
     public async Task<IActionResult> Create(CreateOrderRequest request, CancellationToken ct)
     {
