@@ -13,6 +13,7 @@ import sqlite3
 import time
 import urllib.error
 import urllib.request
+from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
@@ -37,7 +38,7 @@ def telegram_send(text):
 
 def deliver_once(database, key, text, send=telegram_send):
     # SQLite serializes concurrent retries, including after API rolling deployments.
-    with sqlite3.connect(database, timeout=23) as db:
+    with closing(sqlite3.connect(database, timeout=23)) as db:
         db.execute("CREATE TABLE IF NOT EXISTS deliveries (delivery_key TEXT PRIMARY KEY, sent_at INTEGER NOT NULL)")
         db.execute("BEGIN IMMEDIATE")
         if db.execute("SELECT 1 FROM deliveries WHERE delivery_key=?", (key,)).fetchone():

@@ -13,8 +13,11 @@ test -f "$existing_snippet"
 python3 -m py_compile "$relay_source/order_reminder_relay.py"
 nginx -t
 
+if ! getent group torsepan-order-relay >/dev/null; then
+    groupadd --system torsepan-order-relay
+fi
 if ! id torsepan-order-relay >/dev/null 2>&1; then
-    useradd --system --no-create-home --shell /usr/sbin/nologin torsepan-order-relay
+    useradd --system --gid torsepan-order-relay --no-create-home --shell /usr/sbin/nologin torsepan-order-relay
 fi
 install -d -m 0755 /opt/torsepan-order-relay
 install -m 0644 "$relay_source/order_reminder_relay.py" /opt/torsepan-order-relay/order_reminder_relay.py
@@ -22,6 +25,7 @@ install -m 0644 "$relay_source/torsepan-order-relay.service" /etc/systemd/system
 install -m 0644 "$relay_source/torsepan-order-relay.nginx.conf" /etc/nginx/snippets/torsepan-order-relay.conf
 rollback_file="${existing_snippet}.pre-orders-$(date -u +%Y%m%dT%H%M%S)"
 cp -a "$existing_snippet" "$rollback_file"
+trap 'cp -a "$rollback_file" "$existing_snippet"' ERR
 if ! grep -Fq 'include /etc/nginx/snippets/torsepan-order-relay.conf;' "$existing_snippet"; then
     printf '\ninclude /etc/nginx/snippets/torsepan-order-relay.conf;\n' >> "$existing_snippet"
 fi
@@ -34,5 +38,6 @@ systemctl enable torsepan-order-relay
 systemctl restart torsepan-order-relay
 curl --fail --silent --show-error --retry 3 --retry-connrefused --retry-delay 1 http://127.0.0.1:5052/health
 systemctl reload nginx
+trap - ERR
 echo
 echo 'Order reminder relay installed. Existing backup service was not restarted.'

@@ -20,6 +20,7 @@ internal static class OrderPreviewFixtures
         if (string.IsNullOrWhiteSpace(output)) return;
         Directory.CreateDirectory(output);
         var root = FindRoot();
+        var buildConfiguration = typeof(Orders).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration ?? "Release";
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IJSRuntime, FixtureJs>();
@@ -33,7 +34,7 @@ internal static class OrderPreviewFixtures
         {
             var markup = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync(type, ParameterView.Empty)).ToHtmlString());
             if (!markup.Contains("ثبت سفارش") || !markup.Contains("orders-hero")) throw new Exception("Orders preview failed");
-            var styles = await File.ReadAllTextAsync(Path.Combine(root, "TORSEPAN.Panel/obj/Debug/net10.0/scopedcss/Components/Pages/Orders.razor.rz.scp.css"));
+            var styles = await File.ReadAllTextAsync(Path.Combine(root, $"TORSEPAN.Panel/obj/{buildConfiguration}/net10.0/scopedcss/Components/Pages/Orders.razor.rz.scp.css"));
             var global = await File.ReadAllTextAsync(Path.Combine(root, "TORSEPAN.Panel/wwwroot/app.css"));
             var bootstrapPath = Path.Combine(root, "TORSEPAN.Panel/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css");
             var bootstrap = File.Exists(bootstrapPath) ? await File.ReadAllTextAsync(bootstrapPath) : ".form-control,.form-select{display:block;width:100%;padding:10px 14px;border:1px solid #d9e3e8;background:#fff;font:inherit}.btn{border:0;cursor:pointer;font:inherit}.btn:disabled{opacity:.6}.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden}";
