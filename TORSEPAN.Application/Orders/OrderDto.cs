@@ -1,10 +1,5 @@
 namespace TORSEPAN.Application.Orders;
 
-public static class OrderAccess
-{
-    public const string Roles = "Administrator,ProductionManager,Workshop,SalesAdmin";
-}
-
 public sealed record CreateOrderRequest(string CustomerName, Guid ScaleId, int DurationDays);
 public sealed record AssignOrderCodeRequest(string Code);
 public sealed record OrderDto(Guid Id, string CustomerName, Guid ScaleId, string ScaleName,

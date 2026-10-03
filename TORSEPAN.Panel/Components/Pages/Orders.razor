@@ -2,7 +2,7 @@
 @using System.Globalization
 @using TORSEPAN.Application.Orders
 @using TORSEPAN.Application
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = OrderAccess.Roles)]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject OrderService OrderService
 @inject ScaleService ScaleService
 @implements IAsyncDisposable

@@ -8,7 +8,7 @@ using TORSEPAN.Infrastructure.Services;
 
 namespace TORSEPAN.API.Controllers;
 
-[ApiController, Route("api/orders"), Authorize(Roles = OrderAccess.Roles)]
+[ApiController, Route("api/orders"), Authorize]
 public sealed class OrdersController(CustomerOrderService orders) : ControllerBase
 {
     [HttpGet]

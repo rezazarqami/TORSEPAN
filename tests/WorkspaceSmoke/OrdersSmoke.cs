@@ -52,8 +52,10 @@ internal static class OrdersSmoke
         await db.SaveChangesAsync();
         var clock = new TestClock(new DateTimeOffset(2026, 10, 3, 6, 0, 0, TimeSpan.Zero));
         var orders = new CustomerOrderService(db, clock);
-        Check(typeof(TORSEPAN.Panel.Components.Pages.Orders).GetCustomAttribute<AuthorizeAttribute>()?.Roles == OrderAccess.Roles,
-            "panel route enforces the same order access roles as the API");
+        var pageAccess = typeof(TORSEPAN.Panel.Components.Pages.Orders).GetCustomAttribute<AuthorizeAttribute>();
+        var apiAccess = typeof(OrdersController).GetCustomAttribute<AuthorizeAttribute>();
+        Check(pageAccess is not null && pageAccess.Roles is null && apiAccess is not null && apiAccess.Roles is null,
+            "panel and API allow every authenticated user and still require sign-in");
         await Reject(() => orders.CreateAsync(new(" ", scale.Id, 30), user.Id, default), "empty customer is rejected");
         await Reject(() => orders.CreateAsync(new("نام", scale.Id, 0), user.Id, default), "zero duration is rejected");
         await Reject(() => orders.CreateAsync(new("نام", scale.Id, 36501), user.Id, default), "duration overflow is rejected");
@@ -147,15 +149,16 @@ internal static class OrdersSmoke
         var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
         using var http = new HttpClient { BaseAddress = new Uri(address) };
         Check((await http.GetAsync("api/orders")).StatusCode == HttpStatusCode.Unauthorized, "anonymous order API request returns 401");
-        foreach (var role in Enum.GetNames<SystemRole>())
+        Check((await http.PostAsJsonAsync("api/orders", new CreateOrderRequest("نام", Guid.NewGuid(), 30))).StatusCode == HttpStatusCode.Unauthorized, "anonymous order creation returns 401");
+        Check((await http.PutAsJsonAsync($"api/orders/{Guid.NewGuid()}/code", new AssignOrderCodeRequest("CODE"))).StatusCode == HttpStatusCode.Unauthorized, "anonymous code assignment returns 401");
+        foreach (var role in Enum.GetNames<SystemRole>().Append("AuthenticatedOnly"))
         {
             http.DefaultRequestHeaders.Remove("X-Fixture-Role"); http.DefaultRequestHeaders.Add("X-Fixture-Role", role);
-            var allowed = OrderAccess.Roles.Split(',').Contains(role);
-            Check((await http.GetAsync("api/orders")).StatusCode == (allowed ? HttpStatusCode.OK : HttpStatusCode.Forbidden), "order API role boundary: " + role);
+            Check((await http.GetAsync("api/orders")).StatusCode == HttpStatusCode.OK, "order list accessible to authenticated user: " + role);
             var creation = await http.PostAsJsonAsync("api/orders", new CreateOrderRequest(" ", Guid.Empty, 1));
-            Check(creation.StatusCode == (allowed ? HttpStatusCode.BadRequest : HttpStatusCode.Forbidden), "order creation role boundary: " + role);
+            Check(creation.StatusCode == HttpStatusCode.BadRequest, "authenticated user reaches order creation validation: " + role);
             var assignment = await http.PutAsJsonAsync($"api/orders/{Guid.NewGuid()}/code", new AssignOrderCodeRequest("MISSING"));
-            Check(assignment.StatusCode == (allowed ? HttpStatusCode.NotFound : HttpStatusCode.Forbidden), "code assignment role boundary: " + role);
+            Check(assignment.StatusCode == HttpStatusCode.NotFound, "authenticated user reaches code assignment: " + role);
         }
         await app.StopAsync();
     }
@@ -190,7 +193,8 @@ internal static class OrdersSmoke
         {
             var role = Request.Headers["X-Fixture-Role"].ToString();
             if (role.Length == 0) return Task.FromResult(AuthenticateResult.NoResult());
-            var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, identity.Id.ToString()), new Claim(ClaimTypes.Role, role) }, Scheme.Name);
+            var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, identity.Id.ToString()) }, Scheme.Name);
+            if (role != "AuthenticatedOnly") claims.AddClaim(new Claim(ClaimTypes.Role, role));
             return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(claims), Scheme.Name)));
         }
     }
