@@ -6,6 +6,15 @@ on:
   pull_request:
 
 jobs:
+  warranty:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify automatic sale warranties and sold-only backfill
+        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --warranty-only
   pdf-preview:
     runs-on: ubuntu-latest
     steps:

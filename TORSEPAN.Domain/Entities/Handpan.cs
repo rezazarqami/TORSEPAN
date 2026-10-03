@@ -72,6 +72,7 @@ public class Handpan : Entity
         SaleDestination = isExportSale && !string.IsNullOrWhiteSpace(destination) ? destination.Trim() : null;
         SoldByUserId = soldByUserId; SoldAt = DateTime.UtcNow;
         Stage = ProductionStage.Sold; UpdatedAt = SoldAt;
+        ActivateWarranty();
     }
 
     public void UpdateSaleDetails(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination, bool? isExportSale = null)
