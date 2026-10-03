@@ -34,8 +34,20 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         var scale = await db.Scales.SingleOrDefaultAsync(x => x.Id == request.ScaleId && x.IsActive &&
             (x.Usage & ScaleUsage.CustomHandpan) != 0, ct);
         if (scale is null) throw new OrderValidationException("اسکیل را از فهرست اسکیل‌های کاستوم ساز انتخاب کنید.");
+        var startUtc = clock.GetUtcNow().UtcDateTime;
+        if (request.OrderDate is { } date)
+        {
+            var tehran = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(startUtc, tehran));
+            if (date > today || date < new DateOnly(1900, 1, 1))
+                throw new OrderValidationException("تاریخ سفارش باید معتبر و حداکثر امروز باشد.");
+            var localStart = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+            // Some historical Tehran dates started with a daylight-saving clock jump.
+            while (tehran.IsInvalidTime(localStart)) localStart = localStart.AddMinutes(1);
+            startUtc = TimeZoneInfo.ConvertTimeToUtc(localStart, tehran);
+        }
         var order = new CustomerOrder(request.CustomerName, scale.Id, scale.Name, request.DurationDays,
-            userId, clock.GetUtcNow().UtcDateTime);
+            userId, startUtc);
         db.CustomerOrders.Add(order);
         await db.SaveChangesAsync(ct);
         return order.Id;

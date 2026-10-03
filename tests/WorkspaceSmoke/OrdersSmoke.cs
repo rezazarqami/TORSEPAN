@@ -61,6 +61,25 @@ internal static class OrdersSmoke
         await Reject(() => orders.CreateAsync(new("نام", scale.Id, 36501), user.Id, default), "duration overflow is rejected");
         foreach (var badScale in new[] { standard, customTop, inactive })
             await Reject(() => orders.CreateAsync(new("نام", badScale.Id, 30), user.Id, default), "only active custom instrument scales can be ordered: " + badScale.Name);
+        var tehran = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(clock.GetUtcNow().UtcDateTime, tehran));
+        await Reject(() => orders.CreateAsync(new("آینده", scale.Id, 45, today.AddDays(1)), user.Id, default), "future order date is rejected");
+        var pastDate = today.AddDays(-20);
+        var backdatedId = await orders.CreateAsync(new("سفارش قبلی", scale.Id, 45, pastDate), user.Id, default);
+        var backdated = await db.CustomerOrders.Include(x => x.Reminders).SingleAsync(x => x.Id == backdatedId);
+        var expectedStart = TimeZoneInfo.ConvertTimeToUtc(pastDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), tehran);
+        Check(backdated.CreatedAtUtc == expectedStart && backdated.DueAtUtc == expectedStart.AddDays(45), "backdated 45-day order starts on the selected Tehran calendar date");
+        Check(Math.Floor(OrderTiming.ElapsedDays(backdated.CreatedAtUtc, clock.GetUtcNow().UtcDateTime)) == 20 && Math.Ceiling(OrderTiming.RemainingDays(backdated.DueAtUtc, clock.GetUtcNow().UtcDateTime)) == 25, "20 elapsed days leave 25 calendar days on a 45-day order");
+        Check(backdated.Reminders.Select(x => (x.DueAtUtc - expectedStart).TotalDays).SequenceEqual(new[] { 11.25, 22.5, 33.75, 45 }), "backdated reminder milestones use the selected start date");
+        await orders.DeleteAsync(backdatedId, default);
+        var originalNow = clock.Now;
+        clock.Now = new DateTimeOffset(2026, 10, 3, 22, 0, 0, TimeSpan.Zero);
+        var localTomorrow = today.AddDays(1);
+        var todayId = await orders.CreateAsync(new("امروز تهران", scale.Id, 1, localTomorrow), user.Id, default);
+        var todayOrder = await db.CustomerOrders.SingleAsync(x => x.Id == todayId);
+        Check(DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(todayOrder.CreatedAtUtc, tehran)) == localTomorrow, "today validation uses Tehran even after local midnight before UTC midnight");
+        await orders.DeleteAsync(todayId, default);
+        clock.Now = originalNow;
         var id = await orders.CreateAsync(new("  آقای رضایی  ", scale.Id, 30), user.Id, default);
         var order = await db.CustomerOrders.Include(x => x.Reminders).SingleAsync(x => x.Id == id);
         Check(order.CustomerName == "آقای رضایی" && order.DueAtUtc == clock.GetUtcNow().UtcDateTime.AddDays(30), "order stores customer and exact 30-day deadline");
