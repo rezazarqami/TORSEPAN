@@ -273,12 +273,8 @@ public sealed class ProductionController : ControllerBase
         else if (document is not null)
             return BadRequest("به دلیل ثبت دریافت وجه، قیمت این فروش نمی‌تواند خالی شود.");
         handpan.SetSaleAttribution(request.LeadSourceId, request.ReferrerId);
+        handpan.ActivateWarranty();
         await _db.SaveChangesAsync();
-        if (request.ActivateWarranty)
-        {
-            handpan.ActivateWarranty();
-            await _db.SaveChangesAsync();
-        }
         var warranty = await ActivateWarrantyAsync([handpan.SerialNumber], request);
         return Ok(new SellHandpansResponse(true, warranty.IsActive, warranty.Error));
     }
@@ -295,7 +291,7 @@ public sealed class ProductionController : ControllerBase
         if (attributionError is not null) return attributionError;
         await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination, request.IsExportSale.Value));
         handpan.SetSaleAttribution(request.LeadSourceId, request.ReferrerId);
-        if (request.ActivateWarranty) handpan.ActivateWarranty();
+        handpan.ActivateWarranty();
         if (request.Price.HasValue)
             _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {serial}", request.Price.Value, Math.Min(request.Price.Value, request.ReceivedAmount ?? 0), party?.Id, handpanId, null, SaleNotes(request.Destination), CurrentUserId()));
         await _db.SaveChangesAsync();
@@ -378,7 +374,6 @@ public sealed class ProductionController : ControllerBase
 
     private async Task<WarrantyActivationResult> ActivateWarrantyAsync(IEnumerable<string> serials, SellHandpanRequest request)
     {
-        if (!request.ActivateWarranty) return new WarrantyActivationResult(false, null);
         var party = request.PartyId.HasValue ? await _db.AccountingParties.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.PartyId) : null;
         var name = party?.Name ?? request.BuyerName ?? "ثبت از فروش";
         var phone = party?.Phone ?? request.BuyerPhoneNumber ?? string.Empty;
