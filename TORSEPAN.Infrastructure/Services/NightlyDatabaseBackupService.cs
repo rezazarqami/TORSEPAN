@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,8 @@ public sealed class DatabaseBackupStatus
     public DateTimeOffset? LastSuccessUtc { get; internal set; }
     public string State { get; internal set; } = "not-started";
     public string? Error { get; internal set; }
+    public string Stage { get; internal set; } = "idle";
+    public string Mode => "data-only";
 }
 
 public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpClientFactory clients,
@@ -22,18 +25,20 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        await TryBackupAsync("Initial", ct);
+        var succeeded = await TryBackupAsync("Initial", ct);
         while (!ct.IsCancellationRequested)
         {
             var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(3.5));
             var next = new DateTimeOffset(now.Year, now.Month, now.Day, 2, 0, 0, now.Offset);
             if (next <= now) next = next.AddDays(1);
-            await Task.Delay(next - now, ct);
-            await TryBackupAsync("Nightly", ct);
+            // A missed backup must retry; otherwise an outage can silently skip a full day.
+            var delay = succeeded ? next - now : TimeSpan.FromMinutes(30);
+            await Task.Delay(delay, ct);
+            succeeded = await TryBackupAsync(succeeded ? "Nightly" : "Retry", ct);
         }
     }
 
-    private async Task TryBackupAsync(string runType, CancellationToken ct)
+    private async Task<bool> TryBackupAsync(string runType, CancellationToken ct)
     {
         status.LastAttemptUtc = DateTimeOffset.UtcNow;
         status.State = "running";
@@ -43,6 +48,8 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             await BackupAsync(ct);
             status.LastSuccessUtc = DateTimeOffset.UtcNow;
             status.State = "succeeded";
+            status.Stage = "completed";
+            return true;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex)
@@ -50,13 +57,16 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             status.State = "failed";
             status.Error = $"{ex.GetType().Name}: {ex.Message}";
             logger.LogError(ex, "{RunType} database backup failed.", runType);
+            return false;
         }
     }
 
     private async Task BackupAsync(CancellationToken ct)
     {
+        status.Stage = "configuration";
         var db = config["DATABASE_URL"] ?? config.GetConnectionString("DefaultConnection");
-        var relay = config["Telegram:BackupRelayUrl"] ?? config["Telegram:RelayUrl"];
+        var relay = config["Telegram:BackupRelayUrl"];
+        if (string.IsNullOrWhiteSpace(relay)) relay = config["Telegram:RelayUrl"];
         var secret = config["Telegram:RelaySecret"];
         if (string.IsNullOrWhiteSpace(db))
             throw new InvalidOperationException("Database backup connection is not configured.");
@@ -73,25 +83,20 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
         try
         {
             var data = Path.Combine(directory, $"TORSEPAN-DATA-{stamp}.dump");
-            var photos = Path.Combine(directory, $"TORSEPAN-PHOTOS-{stamp}.dump");
-            // The first archive contains the schema (including HandpanPhotos) and all other data.
+            // Keep the photo table schema, but never dump or send its binary rows.
+            status.Stage = "database-dump";
             await DumpAsync(connection, data, "--exclude-table-data=public.\"HandpanPhotos\"", ct);
-            // Restore this second, after the data archive. Keep all binary photo rows.
-            await DumpAsync(connection, photos, "--data-only", "--table=public.\"HandpanPhotos\"", ct);
             using var client = clients.CreateClient();
             client.Timeout = TimeSpan.FromMinutes(10);
+            status.Stage = "telegram-delivery";
             await SendArchiveAsync(client, url, secret, data, ct);
-            await SendArchiveAsync(client, url, secret, photos, ct);
-            logger.LogInformation("Database data and photos sent to Telegram at {BackupTime} Tehran time.", stamp);
+            logger.LogInformation("Data-only database backup sent to Telegram at {BackupTime} Tehran time.", stamp);
         }
         finally { Directory.Delete(directory, recursive: true); }
     }
 
     private static Task DumpAsync(NpgsqlConnectionStringBuilder connection, string file, string option, CancellationToken ct) =>
         DumpAsync(connection, file, [option], ct);
-
-    private static Task DumpAsync(NpgsqlConnectionStringBuilder connection, string file, string option1, string option2, CancellationToken ct) =>
-        DumpAsync(connection, file, [option1, option2], ct);
 
     private static async Task DumpAsync(NpgsqlConnectionStringBuilder connection, string file, string[] options, CancellationToken ct)
     {
@@ -105,12 +110,18 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
         info.ArgumentList.Add($"--dbname={connection.Database}");
         info.Environment["PGPASSWORD"] = connection.Password;
         info.Environment["PGSSLMODE"] = connection.SslMode == SslMode.Disable ? "disable" : "require";
+        info.Environment["PGCONNECT_TIMEOUT"] = "30";
+        using var dumpTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        dumpTimeout.CancelAfter(TimeSpan.FromMinutes(10));
         using var process = Process.Start(info) ?? throw new InvalidOperationException("pg_dump failed to start.");
         var errorTask = process.StandardError.ReadToEndAsync(ct);
-        try { await process.WaitForExitAsync(ct); }
+        try { await process.WaitForExitAsync(dumpTimeout.Token); }
         catch (OperationCanceledException)
         {
             if (!process.HasExited) process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync(CancellationToken.None);
+            if (!ct.IsCancellationRequested)
+                throw new TimeoutException("Database dump exceeded the 10-minute limit.");
             throw;
         }
         var error = await errorTask;
@@ -147,10 +158,33 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
                 request.Headers.Add("X-Relay-Secret", secret);
                 using var response = await client.SendAsync(request, ct);
                 if (!response.IsSuccessStatusCode)
-                    throw new HttpRequestException($"Telegram backup {name} failed at relay (HTTP {(int)response.StatusCode}).");
+                {
+                    var reason = response.StatusCode switch
+                    {
+                        System.Net.HttpStatusCode.Unauthorized => "Relay secret was rejected (401).",
+                        System.Net.HttpStatusCode.NotFound => "Backup relay route was not found (404).",
+                        _ => await RelayFailureAsync(response, ct)
+                    };
+                    throw new HttpRequestException($"Telegram backup {name} failed: {reason}");
+                }
             }
             finally { File.Delete(part); }
         }
+    }
+
+    private static async Task<string> RelayFailureAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+            if (json.RootElement.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String)
+            {
+                var message = detail.GetString();
+                if (!string.IsNullOrWhiteSpace(message)) return message[..Math.Min(message.Length, 180)];
+            }
+        }
+        catch (JsonException) { }
+        return $"relay returned HTTP {(int)response.StatusCode}.";
     }
 
     private static NpgsqlConnectionStringBuilder BuildConnection(string configured)

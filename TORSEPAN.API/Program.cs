@@ -119,6 +119,8 @@ app.MapGet("/health", (DatabaseBackupStatus backup) => Results.Ok(new
     databaseBackup = new
     {
         backup.State,
+        backup.Stage,
+        backup.Mode,
         backup.LastAttemptUtc,
         backup.LastSuccessUtc,
         backup.Error
