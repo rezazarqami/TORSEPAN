@@ -42,12 +42,11 @@ else if (_tab == "new")
 {
     <div class="new-order-layout">
         <section class="order-panel">
-            <header><div><small>یک شروع دقیق</small><h2>اطلاعات سفارش</h2></div><span class="header-badge">ساز کاستوم</span></header>
+            <header><h2>اطلاعات سفارش</h2></header>
             <form @onsubmit="CreateAsync" @onsubmit:preventDefault="true">
                 <div class="order-fields">
                     <label for="order-customer"><span>نام سفارش‌دهنده <em>*</em></span><input id="order-customer" class="form-control" maxlength="200" required placeholder="نام و نام خانوادگی" @bind="_customerName" @bind:event="oninput" disabled="@_saving" /></label>
-                    <label for="order-scale-search"><span>جست‌وجوی اسکیل</span><input id="order-scale-search" class="form-control" placeholder="نام اسکیل کاستوم ساز…" @bind="_scaleSearch" @bind:event="oninput" disabled="@_saving" /></label>
-                    <label for="order-scale"><span>اسکیل کاستوم ساز <em>*</em></span><select id="order-scale" class="form-select" required @bind="_scaleId" disabled="@(_saving || _scales.Count == 0)"><option value="">انتخاب اسکیل</option>@foreach (var scale in FilteredScales){<option value="@scale.Id">@scale.Name</option>}</select><small>اسکیل‌ها از بخش «Scale Custom ساز» دریافت می‌شوند.</small></label>
+                    <label for="order-scale"><span>اسکیل ساز <em>*</em></span><select id="order-scale" class="form-select" required @bind="_scaleId" disabled="@(_saving || _scales.Count == 0)"><option value="">انتخاب اسکیل</option>@foreach (var scale in _scales){<option value="@scale.Id">@scale.Name</option>}</select><small>اسکیل‌ها از بخش «Scale Custom ساز» دریافت می‌شوند.</small></label>
                     <label for="order-duration"><span>مدت سفارش <em>*</em></span><div class="duration-field"><input id="order-duration" class="form-control" inputmode="numeric" required maxlength="5" placeholder="مثلاً ۳۰" @bind="_duration" @bind:event="oninput" disabled="@_saving" /><b>روز</b></div><small>از زمان ثبت سفارش تا موعد تحویل</small></label>
                 </div>
                 @if (_scales.Count == 0){<div class="form-hint warning">اسکیل کاستوم ساز ثبت نشده است. ابتدا آن را در <a href="/custom-scales">Scale Custom</a> ثبت کنید.</div>}
@@ -79,7 +78,7 @@ else
                 @foreach (var order in VisibleOrders)
                 {
                     <article class="order-card @(order.DueAtUtc <= _now ? "late" : "")" @key="order.Id">
-                        <div class="order-card-head"><div><small>سفارش کاستوم</small><h3>@order.CustomerName</h3><span class="scale-tag" dir="auto">@order.ScaleName</span></div><div class="time-badge"><strong>@TimeLabel(order)</strong><small>@(order.DueAtUtc <= _now ? "از موعد گذشته" : "تا موعد تحویل")</small></div></div>
+                        <div class="order-card-head"><div><h3>@order.CustomerName</h3><span class="scale-tag" dir="auto">@order.ScaleName</span></div><div class="time-badge"><strong>@TimeLabel(order)</strong><small>@(order.DueAtUtc <= _now ? "از موعد گذشته" : "تا موعد تحویل")</small></div></div>
                         <div class="order-dates"><span>ثبت: <b>@PersianDate(order.CreatedAtUtc)</b></span><span>مدت: <b>@order.DurationDays روز</b></span><span>موعد: <b>@PersianDate(order.DueAtUtc)</b></span></div>
                         <div class="order-progress" role="progressbar" aria-label="زمان سپری‌شده از سفارش" aria-valuenow="@((int)Progress(order))" aria-valuemin="0" aria-valuemax="100"><i style="width: @(Progress(order).ToString("0.##", CultureInfo.InvariantCulture))%"></i></div>
                         <div class="progress-caption"><span>@((int)Progress(order))٪ زمان گذشته</span><span>@Days(OrderTiming.ElapsedDays(order.CreatedAtUtc, _now)) روز سپری شده</span></div>
@@ -102,7 +101,7 @@ else
 @code {
     private List<OrderDto> _orders = [];
     private List<ScaleDto> _scales = [];
-    private string _tab = "new", _customerName = "", _duration = "", _scaleSearch = "", _search = "", _filter = "all", _code = "";
+    private string _tab = "new", _customerName = "", _duration = "", _search = "", _filter = "all", _code = "";
     private Guid? _scaleId;
     private bool _loading = true, _loadFailed, _saving, _refreshing, _savingCode, _isError;
     private string? _message, _codeError;
@@ -114,7 +113,6 @@ else
     private Task? _polling;
     private int DurationDays => int.TryParse(ProductionCodeNormalizer.Normalize(_duration), out var n) ? n : 0;
     private bool CanCreate => !string.IsNullOrWhiteSpace(_customerName) && _scaleId.HasValue && DurationDays is > 0 and <= 36500;
-    private IEnumerable<ScaleDto> FilteredScales => _scales.Where(x => x.Id == _scaleId || x.Name.Contains(_scaleSearch.Trim(), StringComparison.OrdinalIgnoreCase));
     private IEnumerable<OrderDto> VisibleOrders => _orders.Where(x =>
         (string.IsNullOrWhiteSpace(_search) || x.CustomerName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase) || x.ScaleName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase) || (x.InstrumentCode?.Contains(ProductionCodeNormalizer.Normalize(_search), StringComparison.OrdinalIgnoreCase) ?? false)) &&
         (_filter switch { "active" => x.DueAtUtc > _now, "overdue" => x.DueAtUtc <= _now, "near" => x.DueAtUtc > _now && Remaining(x) <= x.DurationDays / 4d, "no-code" => x.InstrumentCode is null, _ => true }));
@@ -148,11 +146,11 @@ else
         try
         {
             await OrderService.CreateAsync(new(_customerName.Trim(), _scaleId!.Value, DurationDays));
-            _customerName = ""; _duration = ""; _scaleId = null; _scaleSearch = ""; _tab = "list";
+            _customerName = ""; _duration = ""; _scaleId = null; _tab = "list";
             await RefreshAsync();
             if (!_isError) { _message = "سفارش با موفقیت ثبت شد. یادآوری‌های زمان‌بندی آن فعال هستند."; }
         }
-        catch { _message = "سفارش ثبت نشد. نام، اسکیل کاستوم ساز و مدت زمان را بررسی کنید و دوباره تلاش کنید."; _isError = true; }
+        catch { _message = "سفارش ثبت نشد. نام، اسکیل ساز و مدت زمان را بررسی کنید و دوباره تلاش کنید."; _isError = true; }
         finally { _saving = false; }
     }
     private void OpenCode(OrderDto order) { _codeOrder = order; _code = order.InstrumentCode ?? ""; _codeError = null; _focusCode = true; }
