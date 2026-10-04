@@ -1,19 +1,83 @@
 @page "/payroll/exclusions"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles="Administrator,ProductionManager")]
+@using TORSEPAN.Panel.Models
 @inject TORSEPAN.Panel.Services.Api.PayrollExclusionService Service
 <PageTitle>دستمزدهای قبلاً محاسبه‌شده</PageTitle>
-<PageHeader Title="دستمزدهای قبلاً محاسبه‌شده" SubTitle="عملیات پرداخت‌شده را از محاسبات بعدی خارج کنید" />
+<PageHeader Title="دستمزدهای قبلاً محاسبه‌شده" SubTitle="عملیات پرداخت‌شده را انتخاب کنید و با تأیید نهایی از محاسبات بعدی خارج کنید" />
 <Card>
-<div class="d-flex gap-2 mb-4"><input class="form-control" @bind="_code" placeholder="کد ساز یا کاسه" @onkeydown="OnKey" /><button class="btn btn-primary" disabled="@_loading" @onclick="Search">جست‌وجو</button></div>
-@if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
-@if(_result is not null){<h5 class="mb-3">عملیات ثبت‌شده برای @_result.Code</h5>
-@if(_result.Events.Count==0){<div class="alert alert-info">عملیات قابل محاسبه‌ای برای این کد ثبت نشده است.</div>}
-else{<div class="table-responsive"><table class="table"><thead><tr><th>حساب شده</th><th>عملیات</th><th>کاسه</th><th>انجام‌دهنده</th><th>تاریخ</th></tr></thead><tbody>@foreach(var item in _result.Events){<tr><td><input type="checkbox" checked="@item.IsPayrollExcluded" @onchange="e=>Change(item,(bool?)e.Value==true)" /></td><td>@item.ActionTitle</td><td>@(item.BowlCode??"—")</td><td>@item.Performer</td><td>@PersianDateTime.FormatDateTime(item.EventDate)</td></tr>}</tbody></table></div>}
-}
+    <div class="exclusion-search"><input class="form-control" @bind="_code" @bind:event="oninput" placeholder="کد ساز یا کاسه" aria-label="کد ساز یا کاسه" disabled="@(_loading || _saving)" @onkeydown="OnKey" /><button type="button" class="btn btn-primary" disabled="@(_loading || _saving)" @onclick="Search">جست‌وجو</button></div>
+    @if (_error is not null && _pending.Count == 0) { <div class="alert alert-danger" role="alert">@_error</div> }
+    @if (_loading) { <p role="status">در حال دریافت عملیات…</p> }
+    @if (_result is not null)
+    {
+        <h5 class="mb-3">عملیات ثبت‌شده برای @_result.Code</h5>
+        @if (_result.Events.Count == 0) { <div class="alert alert-info">عملیات قابل محاسبه‌ای برای این کد ثبت نشده است.</div> }
+        else
+        {
+            <p class="exclusion-hint">تیک «حساب شده» یعنی این عملیات از دستمزدهای بعدی خارج شود. انتخاب‌ها پس از تأیید ذخیره می‌شوند.</p>
+            <div class="table-responsive"><table class="table exclusion-table"><thead><tr><th>حساب شده</th><th>عملیات</th><th>کاسه</th><th>انجام‌دهنده</th><th>تاریخ</th></tr></thead><tbody>
+                @foreach (var item in _result.Events)
+                {
+                    <tr @key="item.Id" class="@(_pending.ContainsKey(item.Id) ? "pending" : "")"><td><input type="checkbox" checked="@SelectedValue(item)" disabled="@_saving" aria-label="@($"حساب شده: {item.ActionTitle}، {item.Performer}، {item.BowlCode ?? _result.Code}")" @onchange="e => Change(item, (bool?)e.Value == true)" /></td><td>@item.ActionTitle</td><td>@(item.BowlCode ?? "—")</td><td>@item.Performer</td><td>@PersianDateTime.FormatDateTime(item.EventDate)</td></tr>
+                }
+            </tbody></table></div>
+            <div class="exclusion-savebar">
+                <div><strong>@_pending.Count تغییر ذخیره‌نشده</strong><small>@ExcludeCount عملیات برای خروج از دستمزد · @RestoreCount عملیات برای بازگشت به محاسبه</small></div>
+                <div class="exclusion-actions"><button type="button" class="btn btn-primary" disabled="@(_saving || _pending.Count == 0)" @onclick="() => _confirming = true">تأیید تغییرات</button><button type="button" class="btn btn-light" disabled="@(_saving || _pending.Count == 0)" @onclick="Discard">لغو تغییرات</button></div>
+            </div>
+            @if (_success is not null) { <div class="alert alert-success mt-3 mb-0" role="status">@_success</div> }
+            @if (_error is not null && _pending.Count > 0) { <div class="alert alert-danger mt-3 mb-0" role="alert">@_error</div> }
+        }
+    }
 </Card>
-@code{
-private string _code="";private bool _loading;private string?_error;private TORSEPAN.Panel.Models.PayrollExclusionLookupDto?_result;
-private async Task Search(){if(string.IsNullOrWhiteSpace(_code))return;_loading=true;_error=null;try{_result=await Service.LookupAsync(_code.Trim());}catch(Exception ex){_error=ex.Message;}finally{_loading=false;}}
-private async Task Change(TORSEPAN.Panel.Models.PayrollExclusionEventDto item,bool value){var old=item.IsPayrollExcluded;item.IsPayrollExcluded=value;try{await Service.SaveAsync([item.Id],value);}catch(Exception ex){item.IsPayrollExcluded=old;_error=ex.Message;}}
-private async Task OnKey(KeyboardEventArgs e){if(e.Key=="Enter")await Search();}
+@if (_confirming && _result is not null)
+{
+    <div class="exclusion-overlay"><section class="exclusion-dialog" role="dialog" aria-modal="true" aria-labelledby="exclusion-confirm-title">
+        <h2 id="exclusion-confirm-title">تأیید تغییرات دستمزد</h2><p>تغییرات زیر برای کد <strong>@_result.Code</strong> ثبت شود؟</p>
+        <ul>@foreach (var item in _result.Events.Where(x => _pending.ContainsKey(x.Id))) { <li><strong>@item.ActionTitle · @item.Performer</strong><span>@(item.BowlCode ?? _result.Code) · @(_pending[item.Id] ? "خروج از محاسبهٔ دستمزد" : "بازگشت به محاسبهٔ دستمزد")</span></li> }</ul>
+        <div class="exclusion-actions"><button type="button" class="btn btn-primary" disabled="@_saving" @onclick="SaveAsync">@(_saving ? "در حال ذخیره…" : "تأیید و ثبت")</button><button type="button" class="btn btn-light" disabled="@_saving" @onclick="() => _confirming = false">بازگشت</button></div>
+    </section></div>
+}
+@code {
+    private string _code = "";
+    private bool _loading, _saving, _confirming;
+    private string? _error, _success;
+    private PayrollExclusionLookupDto? _result;
+    private readonly Dictionary<Guid, bool> _pending = [];
+    private int ExcludeCount => _pending.Values.Count(x => x);
+    private int RestoreCount => _pending.Values.Count(x => !x);
+    private bool SelectedValue(PayrollExclusionEventDto item) => _pending.GetValueOrDefault(item.Id, item.IsPayrollExcluded);
+    private void Change(PayrollExclusionEventDto item, bool value)
+    {
+        if (_saving) return;
+        _success = null; _error = null;
+        if (value == item.IsPayrollExcluded) _pending.Remove(item.Id); else _pending[item.Id] = value;
+    }
+    private void Discard() { _pending.Clear(); _confirming = false; _error = null; }
+    private async Task Search()
+    {
+        if (_loading || _saving || string.IsNullOrWhiteSpace(_code)) return;
+        if (_pending.Count > 0) { _error = "ابتدا تغییرات انتخاب‌شده را تأیید یا لغو کنید."; return; }
+        _loading = true; _error = null; _success = null; _result = null;
+        try { _result = await Service.LookupAsync(_code.Trim()); }
+        catch (Exception ex) { _error = ex.Message; } finally { _loading = false; }
+    }
+    private async Task SaveAsync()
+    {
+        if (_saving || _result is null || _pending.Count == 0) return;
+        _saving = true; _error = null; _success = null;
+        var excluded = ExcludeCount; var restored = RestoreCount;
+        try
+        {
+            await Service.SaveChangesAsync(_pending.Select(x => new PayrollExclusionChangeDto(x.Key, x.Value)).ToArray());
+            foreach (var item in _result.Events)
+                if (_pending.TryGetValue(item.Id, out var value)) item.IsPayrollExcluded = value;
+            _pending.Clear();
+            _success = excluded > 0 && restored > 0 ? $"{excluded} عملیات از محاسبهٔ دستمزد خارج شد و {restored} عملیات به محاسبه بازگشت."
+                : excluded > 0 ? $"{excluded} عملیات تأیید و از محاسبهٔ دستمزد خارج شد." : $"{restored} عملیات تأیید و به محاسبهٔ دستمزد بازگشت.";
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _saving = false; _confirming = false; }
+    }
+    private async Task OnKey(KeyboardEventArgs e) { if (e.Key == "Enter") await Search(); }
 }
