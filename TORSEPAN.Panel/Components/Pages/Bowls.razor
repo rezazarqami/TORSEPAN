@@ -45,25 +45,25 @@ else if (_tab == "bowls")
         }
         else
         {
-            <table class="table production-table"><thead><tr><th class="details-column">عملیات</th><th>کد</th><th>نوع کاسه</th><th>دارای نت</th><th>متریال</th><th>اسکیل کاسه</th><th>وضعیت</th><th>مدیریت</th></tr></thead><tbody>
+            <div class="production-card-grid">
                 @foreach (var bowl in _bowls)
                 {
-                    <tr class="production-item" @key="bowl.Id">
-                        <td class="item-details-toggle"><button type="button" class="btn btn-sm btn-outline-primary" aria-label="@($"عملیات کاسه {bowl.ProductionCode}")" aria-expanded="@_expandedBowls.Contains(bowl.Id)" @onclick="() => ToggleBowlDetails(bowl.Id)">@(_expandedBowls.Contains(bowl.Id) ? "−" : "+")<span> عملیات</span></button></td>
-                        <td class="item-code" data-label="کد کاسه"><bdi dir="ltr">@bowl.ProductionCode</bdi></td>
-                        <td data-label="نوع کاسه">@(bowl.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</td>
-                        <td data-label="دارای نت">@(bowl.HasNotes ? "بله" : "خیر")</td>
-                        <td data-label="متریال">@bowl.MaterialName</td>
-                        <td class="item-scale" data-label="اسکیل کاسه">@bowl.ScaleName</td>
-                        <td class="item-stage" data-label="وضعیت"><span class="badge">@StageText(bowl.Stage)</span></td>
-                        <td class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@_deleting" @onclick="() => RollbackBowlAsync(bowl)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@_deleting" @onclick="() => RequestDelete(bowl)">حذف</button></AuthorizeView></td>
-                    </tr>
-                    @if (_expandedBowls.Contains(bowl.Id))
-                    {
-                        <tr class="production-details"><td colspan="8"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی کاسه {bowl.ProductionCode}")" Operations="bowl.Operations" /></td></tr>
-                    }
+                    <article class="production-card" @key="bowl.Id">
+                        <header><strong class="card-code"><bdi dir="ltr">@bowl.ProductionCode</bdi></strong><small>@(bowl.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</small></header>
+                        <p class="card-scale">@bowl.ScaleName</p>
+                        <span class="card-stage">@StageText(bowl.Stage)</span>
+                        <button type="button" class="card-expand" aria-label="@($"جزئیات و عملیات کاسه {bowl.ProductionCode}")" aria-expanded="@_expandedBowls.Contains(bowl.Id)" @onclick="() => ToggleBowlDetails(bowl.Id)">@(_expandedBowls.Contains(bowl.Id) ? "بستن جزئیات −" : "جزئیات و عملیات +")</button>
+                        @if (_expandedBowls.Contains(bowl.Id))
+                        {
+                            <div class="production-card-details">
+                                <dl><div><dt>متریال</dt><dd>@bowl.MaterialName</dd></div><div><dt>دارای نت</dt><dd>@(bowl.HasNotes ? "بله" : "خیر")</dd></div></dl>
+                                <div class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@_deleting" @onclick="() => RollbackBowlAsync(bowl)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@_deleting" @onclick="() => RequestDelete(bowl)">حذف</button></AuthorizeView></div>
+                                <div class="production-details"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی کاسه {bowl.ProductionCode}")" Operations="bowl.Operations" /></div>
+                            </div>
+                        }
+                    </article>
                 }
-            </tbody></table>
+            </div>
             @if (_bowlTotalPages > 1)
             {
                 <nav aria-label="صفحه‌بندی کاسه‌ها"><ul class="pagination justify-content-center flex-wrap">
@@ -90,25 +90,25 @@ else
         }
         else
         {
-            <table class="table production-table"><thead><tr><th class="details-column">عملیات</th><th>کد ساز</th><th>کاسه رو</th><th>کاسه زیر</th><th>متریال</th><th>اسکیل</th><th>وضعیت</th><th>مدیریت</th></tr></thead><tbody>
+            <div class="production-card-grid">
                 @foreach (var handpan in PagedHandpans)
                 {
-                    <tr class="production-item" @key="handpan.Id">
-                        <td class="item-details-toggle"><button type="button" class="btn btn-sm btn-outline-primary" aria-label="@($"عملیات ساز {handpan.SerialNumber}")" aria-expanded="@_expandedHandpans.Contains(handpan.Id)" @onclick="() => ToggleHandpanDetails(handpan.Id)">@(_expandedHandpans.Contains(handpan.Id) ? "−" : "+")<span> عملیات</span></button></td>
-                        <td class="item-code" data-label="کد ساز"><bdi dir="ltr">@handpan.SerialNumber</bdi></td>
-                        <td data-label="کد کاسه رو"><bdi dir="ltr">@handpan.TopBowlCode</bdi></td>
-                        <td data-label="کد کاسه زیر"><bdi dir="ltr">@handpan.BottomBowlCode</bdi></td>
-                        <td data-label="متریال">@handpan.MaterialName</td>
-                        <td class="item-scale" data-label="اسکیل ساز">@handpan.ScaleName</td>
-                        <td class="item-stage" data-label="وضعیت"><span class="badge">@StageText(handpan.Stage)</span></td>
-                        <td class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@_deleting" @onclick="() => RollbackHandpanAsync(handpan)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@_deleting" @onclick="() => RequestDelete(handpan)">حذف</button></AuthorizeView></td>
-                    </tr>
-                    @if (_expandedHandpans.Contains(handpan.Id))
-                    {
-                        <tr class="production-details"><td colspan="8"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی ساز {handpan.SerialNumber}")" Operations="handpan.Operations" /></td></tr>
-                    }
+                    <article class="production-card" @key="handpan.Id">
+                        <header><strong class="card-code"><bdi dir="ltr">@handpan.SerialNumber</bdi></strong><small>ساز</small></header>
+                        <p class="card-scale">@handpan.ScaleName</p>
+                        <span class="card-stage">@StageText(handpan.Stage)</span>
+                        <button type="button" class="card-expand" aria-label="@($"جزئیات و عملیات ساز {handpan.SerialNumber}")" aria-expanded="@_expandedHandpans.Contains(handpan.Id)" @onclick="() => ToggleHandpanDetails(handpan.Id)">@(_expandedHandpans.Contains(handpan.Id) ? "بستن جزئیات −" : "جزئیات و عملیات +")</button>
+                        @if (_expandedHandpans.Contains(handpan.Id))
+                        {
+                            <div class="production-card-details">
+                                <dl><div><dt>متریال</dt><dd>@handpan.MaterialName</dd></div><div><dt>کد کاسه رو</dt><dd><bdi dir="ltr">@handpan.TopBowlCode</bdi></dd></div><div><dt>کد کاسه زیر</dt><dd><bdi dir="ltr">@handpan.BottomBowlCode</bdi></dd></div></dl>
+                                <div class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@_deleting" @onclick="() => RollbackHandpanAsync(handpan)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@_deleting" @onclick="() => RequestDelete(handpan)">حذف</button></AuthorizeView></div>
+                                <div class="production-details"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی ساز {handpan.SerialNumber}")" Operations="handpan.Operations" /></div>
+                            </div>
+                        }
+                    </article>
                 }
-            </tbody></table>
+            </div>
             @if (HandpanTotalPages > 1)
             {
                 <nav aria-label="صفحه‌بندی سازها"><ul class="pagination justify-content-center flex-wrap">

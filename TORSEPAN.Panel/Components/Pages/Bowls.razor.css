@@ -6,3 +6,29 @@
 @media(max-width:700px){.production-hero{padding:20px 14px;border-radius:20px}.production-hero h1{font-size:1.45rem}.production-hero p{font-size:.76rem}.production-toolbar p{font-size:.76rem}.production-toolbar .btn{padding:10px 13px;font-size:.82rem}.production-tabs{gap:9px}.production-tabs button{flex-wrap:wrap;gap:8px;padding:14px 12px;border-radius:16px}.production-tabs button>span{width:30px;height:30px;flex-basis:30px;font-size:1rem}.production-tabs strong{font-size:.92rem}.production-tabs small{display:none}.production-tabs b{font-size:.73rem;padding:3px 7px}.production-panel{padding:15px;border-radius:18px}.production-heading h2{font-size:1.02rem}.production-filters{padding:13px}.production-table>tbody>.production-item{padding:15px;gap:10px 12px}}
 @media(max-width:420px){.production-filter-grid{grid-template-columns:1fr}.production-toolbar{align-items:stretch;flex-direction:column;gap:10px}.production-tabs button{justify-content:center;padding:13px 8px}.production-tabs b{margin-inline-start:0}.production-heading>span{font-size:.73rem}.production-kicker{padding:7px 11px;letter-spacing:1px}.production-filter-actions .btn{flex:1}}
 .production-page-caption{margin:10px 0 0;text-align:center;color:#8293a2;font-size:.73rem}
+
+/* Dense cards: two columns even on phones, with optional details inside each card. */
+.production-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;align-items:start;min-width:0}
+.production-card{min-width:0;padding:12px;border:1px solid #dfe8ef;border-radius:14px;background:linear-gradient(145deg,#fff,#f7fafc);overflow-wrap:anywhere}
+.production-card header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px}
+.card-code{font-size:.94rem;color:#173f63;line-height:1.5}.production-card header small{font-size:.66rem;color:#7c8e9d}
+.card-scale{margin:5px 0;font-size:.76rem;color:#35516b;line-height:1.6;white-space:normal}
+.card-stage{display:block;color:#18765b;font-size:.67rem;line-height:1.7}
+.card-expand{display:block;width:100%;min-height:36px;margin-top:7px;padding:5px;border:1px solid #d9e6ed;border-radius:8px;background:#edf4f7;color:#24536f;font-size:.69rem;font-weight:800}
+.card-expand:focus-visible{outline:3px solid #288a80;outline-offset:2px}
+.production-card-details{margin-top:10px;padding-top:10px;border-top:1px solid #dfe8ef}
+.production-card-details dl{display:grid;gap:8px;margin:0 0 10px}.production-card-details dt{font-size:.65rem;color:#8293a2}.production-card-details dd{margin:0;font-size:.75rem;line-height:1.7}
+.production-card-details .item-actions{display:flex;flex-wrap:wrap;gap:6px}.production-card-details .item-actions .btn{flex:1;margin:0;padding:7px 4px;font-size:.68rem;min-height:36px}
+.production-card-details .production-details{margin-top:10px;min-width:0}
+.production-card-details ::deep .card-body{padding:8px!important}.production-card-details ::deep h6{font-size:.72rem}
+.production-card-details ::deep .table,.production-card-details ::deep tbody{display:block!important;width:100%;max-width:100%;white-space:normal!important;overflow:visible}
+.production-card-details ::deep thead{display:none}.production-card-details ::deep tr{display:grid;grid-template-columns:1fr;gap:5px;padding:8px 0;border-bottom:1px solid #dde7ec}
+.production-card-details ::deep td{display:block;min-width:0;padding:0;border:0;font-size:.7rem;line-height:1.7;white-space:normal!important;overflow-wrap:anywhere}
+.production-card-details ::deep td::before{display:block;color:#8293a2;font-size:.6rem}.production-card-details ::deep td:first-child::before{content:"عملیات"}.production-card-details ::deep td:nth-child(2)::before{content:"انجام‌دهنده"}.production-card-details ::deep td:nth-child(3)::before{content:"تاریخ انجام"}
+@media(max-width:700px){
+.production-hero{padding:12px;margin-bottom:10px}.production-hero img{width:42px;height:42px;margin:7px auto}.production-hero h1{font-size:1.15rem}.production-hero p{margin-top:4px;font-size:.7rem}.production-kicker{padding:5px 12px;font-size:.72rem}
+.production-toolbar{margin-bottom:10px;flex-direction:row;align-items:center;gap:8px}.production-toolbar p{font-size:.68rem}.production-toolbar .btn{padding:8px 10px;font-size:.74rem}
+.production-tabs{margin-bottom:10px}.production-tabs button{padding:9px 8px}.production-tabs strong{font-size:.8rem}.production-tabs button>span{display:none}
+.production-panel{padding:10px}.production-heading{padding-bottom:9px;margin-bottom:9px}.production-heading small{display:none}.production-heading h2{margin:0;font-size:.9rem}.production-filters{padding:9px 10px;margin-bottom:10px}.production-filters summary{font-size:.76rem}
+.production-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.production-card{padding:9px;border-radius:11px}.card-code{font-size:.81rem}.card-scale{font-size:.69rem;margin:4px 0}.card-stage{font-size:.63rem}.card-expand{font-size:.62rem;margin-top:5px}
+}
