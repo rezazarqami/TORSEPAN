@@ -54,6 +54,7 @@ else
                             <div class="scale-edit">
                                 <label for="edit-scale-name">نام جدید اسکیل<input id="edit-scale-name" class="form-control" maxlength="100" @bind="_editingName" @bind:event="oninput" disabled="@_busy" /></label>
                                 <p>نام «@scale.Name» برای همهٔ سازها و کاسه‌های مرتبط اصلاح می‌شود.</p>
+                                @if (_isError && _message is not null) { <div class="scale-notice error" role="alert">@_message</div> }
                                 <div class="scale-actions"><button type="button" class="btn btn-primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_editingName))" @onclick="SaveEditAsync">ذخیره تغییرات</button><button type="button" class="btn btn-light" disabled="@_busy" @onclick="CancelEdit">انصراف</button></div>
                             </div>
                         }

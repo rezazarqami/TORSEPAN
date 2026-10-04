@@ -6,8 +6,7 @@
 <PageHeader Title="دستمزدهای قبلاً محاسبه‌شده" SubTitle="عملیات پرداخت‌شده را انتخاب کنید و با تأیید نهایی از محاسبات بعدی خارج کنید" />
 <Card>
     <div class="exclusion-search"><input class="form-control" @bind="_code" @bind:event="oninput" placeholder="کد ساز یا کاسه" aria-label="کد ساز یا کاسه" disabled="@(_loading || _saving)" @onkeydown="OnKey" /><button type="button" class="btn btn-primary" disabled="@(_loading || _saving)" @onclick="Search">جست‌وجو</button></div>
-    @if (_error is not null) { <div class="alert alert-danger" role="alert">@_error</div> }
-    @if (_success is not null) { <div class="alert alert-success" role="status">@_success</div> }
+    @if (_error is not null && _pending.Count == 0) { <div class="alert alert-danger" role="alert">@_error</div> }
     @if (_loading) { <p role="status">در حال دریافت عملیات…</p> }
     @if (_result is not null)
     {
@@ -26,6 +25,8 @@
                 <div><strong>@_pending.Count تغییر ذخیره‌نشده</strong><small>@ExcludeCount عملیات برای خروج از دستمزد · @RestoreCount عملیات برای بازگشت به محاسبه</small></div>
                 <div class="exclusion-actions"><button type="button" class="btn btn-primary" disabled="@(_saving || _pending.Count == 0)" @onclick="() => _confirming = true">تأیید تغییرات</button><button type="button" class="btn btn-light" disabled="@(_saving || _pending.Count == 0)" @onclick="Discard">لغو تغییرات</button></div>
             </div>
+            @if (_success is not null) { <div class="alert alert-success mt-3 mb-0" role="status">@_success</div> }
+            @if (_error is not null && _pending.Count > 0) { <div class="alert alert-danger mt-3 mb-0" role="alert">@_error</div> }
         }
     }
 </Card>
