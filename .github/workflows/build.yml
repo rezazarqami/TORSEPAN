@@ -6,6 +6,15 @@ on:
   pull_request:
 
 jobs:
+  production-delete:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify production deletion confirmation and error feedback
+        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --production-delete-only
   scales-payroll:
     runs-on: ubuntu-latest
     steps:

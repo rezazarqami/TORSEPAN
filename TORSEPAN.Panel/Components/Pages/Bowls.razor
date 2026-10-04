@@ -62,7 +62,7 @@ else
                         <td>@bowl.MaterialName</td>
                         <td>@bowl.ScaleName</td>
                         <td><span class="badge bg-primary">@StageText(bowl.Stage)</span></td>
-                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => RollbackBowlAsync(bowl)">مرحله قبل</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBowlAsync(bowl)">حذف</button></AuthorizeView></td>
+                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => RollbackBowlAsync(bowl)">مرحله قبل</button><button class="btn btn-sm btn-outline-danger" disabled="@_deleting" @onclick="() => RequestDelete(bowl)">حذف</button></AuthorizeView></td>
                     </tr>
                     @if (_expandedBowls.Contains(bowl.Id))
                     {
@@ -114,7 +114,7 @@ else
                         <td>@handpan.SerialNumber</td><td>@handpan.TopBowlCode</td><td>@handpan.BottomBowlCode</td>
                         <td>@handpan.MaterialName</td><td>@handpan.ScaleName</td>
                         <td><span class="badge bg-primary">@StageText(handpan.Stage)</span></td>
-                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => RollbackHandpanAsync(handpan)">مرحله قبل</button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteHandpanAsync(handpan)">حذف</button></AuthorizeView></td>
+                        <td><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning ms-1" @onclick="() => RollbackHandpanAsync(handpan)">مرحله قبل</button><button class="btn btn-sm btn-outline-danger" disabled="@_deleting" @onclick="() => RequestDelete(handpan)">حذف</button></AuthorizeView></td>
                     </tr>
                     @if (_expandedHandpans.Contains(handpan.Id))
                     {
@@ -138,7 +138,26 @@ else
     }
 }
 
+@if (_deleteBowl is not null || _deleteHandpan is not null)
+{
+    <div class="production-delete-overlay"><section class="production-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="production-delete-title">
+        <h2 id="production-delete-title">تأیید حذف @(_deleteBowl is not null ? "کاسه" : "ساز")</h2>
+        <p>کد <strong>@(_deleteBowl?.ProductionCode ?? _deleteHandpan?.SerialNumber)</strong> برای همیشه حذف شود؟</p>
+        <p class="delete-warning">@(_deleteBowl is not null ? "کاسه و سوابق مرتبط حذف می‌شوند. اگر کاسه به ساز متصل باشد، ساز و کاسهٔ دیگر آن هم حذف می‌شوند." : "ساز، کاسه‌های مرتبط و تمام سوابق آن حذف می‌شوند.")</p>
+        @if (_deleteError is not null) { <div class="alert alert-danger" role="alert">@_deleteError</div> }
+        <div class="production-delete-actions"><button type="button" class="btn btn-danger" disabled="@_deleting" @onclick="ConfirmDeleteAsync">@(_deleting ? "در حال حذف…" : "تأیید و حذف")</button><button type="button" class="btn btn-light" disabled="@_deleting" @onclick="CancelDelete">انصراف</button></div>
+    </section></div>
+}
+@if (_deleteNotice is not null)
+{
+    <div class="production-delete-notice" role="status"><span>@_deleteNotice</span><button type="button" aria-label="بستن پیام" @onclick="() => _deleteNotice = null">×</button></div>
+}
+
 @code {
+    private BowlDto? _deleteBowl;
+    private HandpanDto? _deleteHandpan;
+    private bool _deleting;
+    private string? _deleteError, _deleteNotice;
     private bool _loading = true;
     private string? _error;
     private List<BowlDto> _bowls = [];
@@ -205,22 +224,51 @@ else
     private void ApplyHandpanFilters(){_handpanPage=1;_expandedHandpans.Clear();}
     private void ClearHandpanFilters(){_handpanMaterialFilter=_handpanScaleFilter=_handpanStageFilter="";ApplyHandpanFilters();}
 
-    private async Task DeleteBowlAsync(BowlDto bowl)
+    private void RequestDelete(BowlDto bowl)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"کاسه {bowl.ProductionCode} و تمام سوابق مرتبط برای همیشه حذف شود؟")) return;
-        await BowlService.DeleteAsync(bowl.Id);
-        await LoadBowlPageAsync(_bowlPage);
-        if (_bowls.Count == 0 && _bowlPage > 1) await LoadBowlPageAsync(_bowlPage - 1);
-        _handpans = (await HandpanService.GetAllAsync()).ToList();
+        if (_deleting) return;
+        _deleteBowl = bowl; _deleteHandpan = null; _deleteError = null; _deleteNotice = null;
     }
-
-    private async Task DeleteHandpanAsync(HandpanDto handpan)
+    private void RequestDelete(HandpanDto handpan)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"ساز {handpan.SerialNumber}، کاسه‌ها و تمام سوابق آن برای همیشه حذف شود؟")) return;
-        await HandpanService.DeleteAsync(handpan.Id);
-        _handpans.Remove(handpan);
-        if (_handpanPage > HandpanTotalPages && _handpanPage > 1) _handpanPage--;
-        await LoadBowlPageAsync(_bowlPage);
+        if (_deleting) return;
+        _deleteHandpan = handpan; _deleteBowl = null; _deleteError = null; _deleteNotice = null;
+    }
+    private void CancelDelete()
+    {
+        if (_deleting) return;
+        _deleteBowl = null; _deleteHandpan = null; _deleteError = null;
+    }
+    private async Task ConfirmDeleteAsync()
+    {
+        if (_deleting || (_deleteBowl is null && _deleteHandpan is null)) return;
+        _deleting = true; _deleteError = null;
+        var code = _deleteBowl?.ProductionCode ?? _deleteHandpan!.SerialNumber;
+        try
+        {
+            if (_deleteBowl is not null) await BowlService.DeleteAsync(_deleteBowl.Id);
+            else await HandpanService.DeleteAsync(_deleteHandpan!.Id);
+        }
+        catch (Exception ex)
+        {
+            _deleteError = string.IsNullOrWhiteSpace(ex.Message) ? "حذف انجام نشد؛ دوباره تلاش کنید." : ex.Message;
+            _deleting = false;
+            return;
+        }
+        _deleteBowl = null; _deleteHandpan = null;
+        _deleteNotice = $"کد {code} و سوابق مرتبط حذف شد.";
+        try
+        {
+            await LoadBowlPageAsync(_bowlPage);
+            if (_bowls.Count == 0 && _bowlPage > 1) await LoadBowlPageAsync(_bowlPage - 1);
+            _handpans = (await HandpanService.GetAllAsync()).ToList();
+            if (_handpanPage > HandpanTotalPages && _handpanPage > 1) _handpanPage = Math.Max(1, HandpanTotalPages);
+        }
+        catch
+        {
+            _deleteNotice = $"کد {code} حذف شد؛ برای دریافت فهرست جدید، صفحه را تازه کنید.";
+        }
+        finally { _deleting = false; }
     }
     private Task ApplyFiltersAsync() => LoadBowlPageAsync(1);
     private async Task ClearFiltersAsync(){_bowlTypeFilter=_notesFilter=_materialFilter=_scaleFilter=_stageFilter="";await LoadBowlPageAsync(1);}
