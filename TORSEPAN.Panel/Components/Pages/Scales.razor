@@ -1,106 +1,119 @@
 @page "/scales"
 @attribute [Authorize(Roles = "Administrator,ProductionManager")]
 @using Microsoft.AspNetCore.Authorization
-
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 @inject ScaleService ScaleService
-@inject IJSRuntime JS
 
-<PageTitle>Scale‌ها</PageTitle>
-
-<h3 class="mb-4">مدیریت Scale‌ها</h3>
-
-<div class="card p-4 mb-4">
-    <label class="form-label">نام Scale جدید</label>
-    <div class="row g-2">
-        <div class="col-md-7">
-        <input class="form-control" placeholder="مثلاً ۹ نت، ۱۰ نت یا ۱۲ نت" @bind="_name" />
-        </div>
-        <div class="col-md-3">
-            <select class="form-select" @bind="_usage">
-                <option value="1">Scale کاسه رو</option>
-                <option value="2">Scale کاسه زیر</option>
-                <option value="4">Scale ساز</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-        <button class="btn btn-primary" disabled="@(_loading || string.IsNullOrWhiteSpace(_name))" @onclick="CreateAsync">
-            ثبت Scale
-        </button>
-        </div>
-    </div>
-    @if (!string.IsNullOrWhiteSpace(_error))
+<PageTitle>مدیریت اسکیل‌ها | تورسپن</PageTitle>
+<section class="scales-hero">
+    <span dir="ltr">SCALE MANAGEMENT</span>
+    <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
+    <h1>مدیریت اسکیل‌ها</h1>
+    <p>اسکیل کاسه رو، کاسه زیر و ساز؛ مرتب و در دسترس</p>
+</section>
+<nav class="scale-tabs" aria-label="دسته‌بندی اسکیل‌ها">
+    @foreach (var category in Categories)
     {
-        <div class="alert alert-danger mt-3 mb-0">@_error</div>
+        <button type="button" class="@(_usage == category.Usage ? "active" : "")" aria-pressed="@(_usage == category.Usage)" disabled="@_busy" @onclick="() => SelectCategory(category.Usage)">
+            <strong>@category.Title</strong><small>@Items(category.Usage).Count اسکیل</small>
+        </button>
     }
-</div>
-
-@foreach (var category in Categories)
+</nav>
+@if (_message is not null)
 {
-<div class="card p-3 mb-3">
-    <h5 class="mb-3">@category.Title</h5>
-    <table class="table table-striped mb-0">
-        <thead><tr><th>Scale‌های فعال و قابل انتخاب</th><th style="width:190px">مدیریت</th></tr></thead>
-        <tbody>
-        @foreach (var scale in _scales.Where(x => (x.Usage & category.Usage) != 0))
-        {
-            <tr><td>@scale.Name</td><td>
-                <button class="btn btn-sm btn-outline-primary ms-1" @onclick="()=>RenameAsync(scale)">ویرایش</button>
-                <button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(scale, category.Usage, category.Title)">حذف از این دسته</button>
-            </td></tr>
-        }
-        </tbody>
-    </table>
-</div>
+    <div class="scale-notice @(_isError ? "error" : "success")" role="@(_isError ? "alert" : "status")">@_message</div>
 }
-
+@if (_loading)
+{
+    <div class="scale-empty" role="status">در حال دریافت اسکیل‌ها…</div>
+}
+else
+{
+    <section class="scale-card">
+        <header><h2>اسکیل جدید · @CurrentTitle</h2><p>اسکیل جدید در همین دسته ثبت می‌شود.</p></header>
+        <div class="scale-create">
+            <label for="new-scale-name">نام اسکیل<input id="new-scale-name" class="form-control" maxlength="100" placeholder="مثلاً ۱۱ نت (۹+۲)" @bind="_name" @bind:event="oninput" disabled="@_busy" /></label>
+            <button type="button" class="btn btn-primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_name))" @onclick="CreateAsync">ثبت اسکیل</button>
+        </div>
+    </section>
+    <section class="scale-card">
+        <header><h2>اسکیل‌های @CurrentTitle</h2><p>ویرایش نام، در تمام سازها و کاسه‌های مرتبط هم نمایش داده می‌شود.</p></header>
+        @if (Items(_usage).Count == 0)
+        {
+            <div class="scale-empty">هنوز اسکیلی در این دسته ثبت نشده است.</div>
+        }
+        else
+        {
+            <div class="scale-list">
+                @foreach (var scale in Items(_usage))
+                {
+                    <div class="scale-row" @key="scale.Id">
+                        @if (_editingId == scale.Id)
+                        {
+                            <div class="scale-edit">
+                                <label for="edit-scale-name">نام جدید اسکیل<input id="edit-scale-name" class="form-control" maxlength="100" @bind="_editingName" @bind:event="oninput" disabled="@_busy" /></label>
+                                <p>نام «@scale.Name» برای همهٔ سازها و کاسه‌های مرتبط اصلاح می‌شود.</p>
+                                <div class="scale-actions"><button type="button" class="btn btn-primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_editingName))" @onclick="SaveEditAsync">ذخیره تغییرات</button><button type="button" class="btn btn-light" disabled="@_busy" @onclick="CancelEdit">انصراف</button></div>
+                            </div>
+                        }
+                        else
+                        {
+                            <strong class="scale-name">@scale.Name</strong>
+                            <div class="scale-actions"><button type="button" class="btn btn-outline-primary" disabled="@_busy" @onclick="() => BeginEdit(scale)">ویرایش</button><button type="button" class="btn btn-outline-danger" disabled="@_busy" @onclick="() => _deleting = scale">حذف از دسته</button></div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </section>
+}
+@if (_deleting is not null)
+{
+    <div class="scale-overlay"><section class="scale-dialog" role="dialog" aria-modal="true" aria-labelledby="scale-delete-title"><h2 id="scale-delete-title">حذف از دستهٔ @CurrentTitle</h2><p>اسکیل «@_deleting.Name» از این دسته حذف شود؟ اطلاعات سازها و کاسه‌های قبلی حفظ می‌شود.</p><div class="scale-actions"><button type="button" class="btn btn-danger" disabled="@_busy" @onclick="DeleteAsync">تأیید حذف</button><button type="button" class="btn btn-light" disabled="@_busy" @onclick="() => _deleting = null">انصراف</button></div></section></div>
+}
 @code {
     private readonly List<ScaleDto> _scales = [];
-    private string _name = string.Empty;
+    private static readonly (int Usage, string Title)[] Categories = [(1, "کاسه رو"), (2, "کاسه زیر"), (4, "ساز")];
     private int _usage = 1;
-    private string? _error;
-    private bool _loading;
-
-    protected override async Task OnInitializedAsync() => await ReloadAsync();
-
-    private async Task CreateAsync()
+    private string _name = "", _editingName = "";
+    private Guid? _editingId;
+    private ScaleDto? _deleting;
+    private bool _loading = true, _busy, _isError;
+    private string? _message;
+    private string CurrentTitle => Categories.Single(x => x.Usage == _usage).Title;
+    private List<ScaleDto> Items(int usage) => _scales.Where(x => (x.Usage & usage) != 0).OrderBy(x => x.Name).ToList();
+    protected override async Task OnInitializedAsync()
     {
-        _loading = true;
-        _error = null;
-        try
-        {
-            await ScaleService.CreateAsync(_name, _usage);
-            _name = string.Empty;
-            await ReloadAsync();
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
-        }
-        finally
-        {
-            _loading = false;
-        }
+        try { await ReloadAsync(); } catch (Exception ex) { ShowError(ex); } finally { _loading = false; }
     }
-
+    private void SelectCategory(int usage) { _usage = usage; CancelEdit(); _deleting = null; _message = null; }
+    private void BeginEdit(ScaleDto scale) { _editingId = scale.Id; _editingName = scale.Name; _message = null; }
+    private void CancelEdit() { _editingId = null; _editingName = ""; }
+    private void ShowError(Exception ex) { _isError = true; _message = ex.Message; }
     private async Task ReloadAsync()
     {
-        _scales.Clear();
-        _scales.AddRange(await ScaleService.GetAsync());
+        var scales = await ScaleService.GetAsync(); _scales.Clear(); _scales.AddRange(scales);
     }
-    private static readonly (int Usage, string Title)[] Categories =
-        [(1, "Scale‌های کاسه رو"), (2, "Scale‌های کاسه زیر"), (4, "Scale‌های ساز")];
-    private async Task DeleteAsync(ScaleDto scale, int usage, string categoryTitle)
+    private async Task CreateAsync()
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Scale «{scale.Name}» فقط از «{categoryTitle}» حذف شود؟ سایر دسته‌ها و اطلاعات قبلی حفظ می‌شوند.")) return;
-        await ScaleService.DeleteAsync(scale.Id, usage); await ReloadAsync();
+        if (_busy || string.IsNullOrWhiteSpace(_name)) return;
+        _busy = true; _message = null;
+        try { await ScaleService.CreateAsync(_name, _usage); _name = ""; await ReloadAsync(); _isError = false; _message = "اسکیل در دستهٔ مربوطه ثبت شد."; }
+        catch (Exception ex) { ShowError(ex); } finally { _busy = false; }
     }
-    private async Task RenameAsync(ScaleDto scale)
+    private async Task SaveEditAsync()
     {
-        var name = await JS.InvokeAsync<string?>("prompt", "نام جدید Scale را وارد کنید:", scale.Name);
-        if (string.IsNullOrWhiteSpace(name) || name.Trim() == scale.Name) return;
-        try { await ScaleService.RenameAsync(scale.Id, name); await ReloadAsync(); }
-        catch (Exception ex) { _error = ex.Message; }
+        if (_busy || !_editingId.HasValue || string.IsNullOrWhiteSpace(_editingName)) return;
+        _busy = true; _message = null;
+        try { await ScaleService.RenameAsync(_editingId.Value, _editingName); await ReloadAsync(); CancelEdit(); _isError = false; _message = "نام اسکیل اصلاح شد؛ سازها و کاسه‌های مرتبط هم با نام جدید نمایش داده می‌شوند."; }
+        catch (Exception ex) { ShowError(ex); } finally { _busy = false; }
+    }
+    private async Task DeleteAsync()
+    {
+        if (_busy || _deleting is null) return;
+        _busy = true; _message = null;
+        try { await ScaleService.DeleteAsync(_deleting.Id, _usage); _deleting = null; await ReloadAsync(); _isError = false; _message = "اسکیل از این دسته حذف شد."; }
+        catch (Exception ex) { _deleting = null; ShowError(ex); } finally { _busy = false; }
     }
 }

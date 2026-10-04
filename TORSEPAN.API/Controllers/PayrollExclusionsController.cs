@@ -46,6 +46,30 @@ public sealed class PayrollExclusionsController(TORSEPANDbContext db) : Controll
         return NoContent();
     }
 
+    [HttpPut("batch")]
+    public async Task<IActionResult> SaveBatch([FromBody] PayrollExclusionBatchSave request, CancellationToken ct)
+    {
+        if (request.Changes is null || request.Changes.Count == 0)
+            return BadRequest("حداقل یک تغییر را انتخاب کنید.");
+        if (request.Changes.Count > 500)
+            return BadRequest("در هر مرحله حداکثر ۵۰۰ عملیات قابل تغییر است.");
+        var ids = request.Changes.Select(x => x.EventId).Distinct().ToArray();
+        if (ids.Length != request.Changes.Count)
+            return BadRequest("هر عملیات فقط یک بار قابل انتخاب است.");
+        var events = await db.ProductionEvents.Where(x => ids.Contains(x.Id) && Allowed.Contains(x.Action)
+            && x.Result == EventResult.Completed).ToListAsync(ct);
+        if (events.Count != ids.Length) return BadRequest("یک یا چند عملیات معتبر نیست.");
+        var changes = request.Changes.ToDictionary(x => x.EventId, x => x.Excluded);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        foreach (var item in events) item.SetPayrollExcluded(changes[item.Id], userId);
+        // One SaveChanges call commits exclusions and restorations atomically.
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
     private static string Title(ProductionAction action) => action switch { ProductionAction.Dimple => "Dimple", ProductionAction.Shape => "Shape", ProductionAction.Tune => "Tune", ProductionAction.Glue => "چسب", ProductionAction.Design => "Design", ProductionAction.FineTune => "Fine Tune", _ => action.ToString() };
 }
 public sealed record PayrollExclusionSave(IReadOnlyCollection<Guid> EventIds, bool Excluded);
+
+public sealed record PayrollExclusionChange(Guid EventId, bool Excluded);
+public sealed record PayrollExclusionBatchSave(IReadOnlyCollection<PayrollExclusionChange> Changes);
