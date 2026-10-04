@@ -8,12 +8,17 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>ثبت کاسه</PageTitle>
-<PageHeader Title="ثبت کاسه جدید" SubTitle="متریال و نوع کاسه را انتخاب کنید؛ کد استاندارد به‌صورت خودکار پیشنهاد می‌شود" />
+<section class="new-bowl-hero" aria-labelledby="new-bowl-title">
+    <span class="hero-eyebrow" dir="ltr">BOWL REGISTRATION</span>
+    <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
+    <h1 id="new-bowl-title">ثبت کاسه جدید</h1>
+    <p>متریال و نوع کاسه را انتخاب کنید؛ کد به‌صورت خودکار پیشنهاد می‌شود.</p>
+</section>
 
 <EditForm Model="_model" FormName="CreateBowl" OnValidSubmit="SaveAsync" class="new-bowl-form">
     <DataAnnotationsValidator />
     <section class="bowl-form-card">
-        <div class="bowl-form-heading"><span>🥣</span><div><h3>مشخصات کاسه</h3><p>اطلاعات موردنیاز را در چند مرحله‌ی کوتاه وارد کنید.</p></div></div>
+        <div class="bowl-form-heading"><h2>مشخصات کاسه</h2><span>شروع تولید</span></div>
         <ValidationSummary class="validation-summary" />
         @if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
 
@@ -33,14 +38,14 @@
 
         @if(_model.BowlType==2)
         {
-            <label class="notes-option"><InputCheckbox @bind-Value="_model.HasNotes" /><span><strong>دارای نت</strong><small>برای کاسه‌ی زیر، وجود نت را مشخص کنید.</small></span></label>
+            <label class="notes-option"><InputCheckbox @bind-Value="_model.HasNotes" /><span><strong>کاسه زیر دارای نت است</strong></span></label>
         }
 
         <div class="code-section">
-            <div class="code-section-title"><div><span>کد کاسه</span><small>بر اساس قالب متریال و نوع انتخاب‌شده</small></div>@if(_refreshing){<span class="spinner-border spinner-border-sm"></span>}</div>
+            <div class="code-section-title"><span>کد کاسه</span><small>پیشنهاد خودکار</small>@if(_refreshing){<span class="spinner-border spinner-border-sm" role="status" aria-label="دریافت کد پیشنهادی"></span>}</div>
             <AuthorizeView Roles="Administrator,ProductionManager">
-                <Authorized Context="codeAuth"><InputText class="form-control code-input" dir="ltr" @bind-Value="_model.ProductionCode" placeholder="ابتدا متریال را انتخاب کنید" /></Authorized>
-                <NotAuthorized Context="codeAuth"><InputText class="form-control code-input" dir="ltr" readonly @bind-Value="_model.ProductionCode" placeholder="ابتدا متریال را انتخاب کنید" /></NotAuthorized>
+                <Authorized Context="codeAuth"><InputText class="form-control code-input" aria-label="کد کاسه" dir="ltr" @bind-Value="_model.ProductionCode" placeholder="ابتدا متریال را انتخاب کنید" /></Authorized>
+                <NotAuthorized Context="codeAuth"><InputText class="form-control code-input" aria-label="کد کاسه" dir="ltr" readonly @bind-Value="_model.ProductionCode" placeholder="ابتدا متریال را انتخاب کنید" /></NotAuthorized>
             </AuthorizeView>
 
             @if(_model.MaterialId == Guid.Empty)
