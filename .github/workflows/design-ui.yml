@@ -1,0 +1,23 @@
+name: Design page UI
+on:
+  push:
+    branches: [master, deploy-panel]
+    paths:
+      - 'TORSEPAN.Panel/**'
+      - 'tests/DesignUiSmoke/**'
+      - '.github/workflows/design-ui.yml'
+  pull_request:
+    paths:
+      - 'TORSEPAN.Panel/**'
+      - 'tests/DesignUiSmoke/**'
+      - '.github/workflows/design-ui.yml'
+jobs:
+  design-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Check design tabs, permissions and registration flows
+        run: dotnet run --project tests/DesignUiSmoke/DesignUiSmoke.csproj -c Release

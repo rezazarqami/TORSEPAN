@@ -2,35 +2,106 @@
 @using System.Net
 @using Microsoft.AspNetCore.Components.Authorization
 @inject DesignService DesignService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>دیزاین</PageTitle>
-<PageHeader Title="ثبت دیزاین هنگدرام" SubTitle="انتخاب یک یا چند دیزاین و ثبت مجری هرکدام" />
+<PageTitle>ثبت دیزاین | تورسپن</PageTitle>
+<section class="design-hero" aria-labelledby="design-title">
+    <span dir="ltr">DESIGN STUDIO</span>
+    <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
+    <h1 id="design-title">ثبت دیزاین هنگدرام</h1>
+    <p>انتخاب دیزاین و مجری؛ یک‌جا و در چند قدم کوتاه</p>
+</section>
 <div class="design-layout" dir="rtl">
+ @if (_canManage)
+ {
+  <nav class="design-tabs" aria-label="بخش‌های دیزاین">
+   <button type="button" class="@(!_management ? "active" : "")" aria-pressed="@(!_management)" @onclick="() => SelectTab(false)">ثبت دیزاین</button>
+   <button type="button" class="@(_management ? "active" : "")" aria-pressed="@_management" @onclick="() => SelectTab(true)">دیزاین‌ها و نرخ‌ها</button>
+  </nav>
+ }
+ @if (!_management || !_canManage)
+ {
  <section class="design-panel registration-panel">
-  <div class="panel-heading"><span class="panel-icon">🎨</span><div><h3>ثبت دیزاین</h3><p>کد کاسه یا ساز را وارد و دیزاین‌ها را انتخاب کنید.</p></div></div>
-  <label class="field-label">کد کاسه</label><div class="input-group"><input class="form-control code-input" @bind="_code" @bind:event="oninput" placeholder="مثلاً 446" /><button class="btn btn-outline-primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_code))" @onclick="SearchBowlAsync">جست‌وجو</button></div>
-  @if (_bowl is not null) { <div class="alert alert-info mt-3"><strong>@_bowl.ProductionCode</strong> — @_bowl.BowlType — @_bowl.MaterialName</div><div class="registered-designs"><div class="section-title"><span>دیزاین‌های ثبت‌شده</span><small>@_bowl.Designs.Count مورد</small></div>@if(_bowl.Designs.Count==0){<div class="empty-state">هنوز دیزاینی برای این کاسه ثبت نشده است.</div>}else{@foreach(var registered in _bowl.Designs){<div class="registered-design"><div><strong>@registered.Name</strong><small>@registered.PerformedBy — @PersianDateTime.FormatDateTime(registered.RegisteredAt)</small></div><AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-danger" @onclick="()=>AskDeleteRegistration(registered)">حذف</button></AuthorizeView></div>}}</div> }
-  <div class="section-title"><span>نوع دیزاین</span><small>@SelectedCount مورد انتخاب شده</small></div>
+  <div class="code-search"><input id="design-bowl-code" aria-label="کد کاسه یا ساز" class="form-control code-input" @bind="_code" @bind:event="oninput" @onkeydown="SearchOnEnterAsync" placeholder="کد کاسه یا ساز، مثلاً 446" /><button type="button" class="btn btn-primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_code))" @onclick="SearchBowlAsync">@(_busy ? "در حال بررسی…" : "جست‌وجو")</button></div>
+  @if (_bowl is not null)
+  {
+   <div class="bowl-summary"><strong dir="ltr">@_bowl.ProductionCode</strong><span>@_bowl.BowlType · @_bowl.MaterialName</span></div>
+   <details class="registered-designs"><summary>دیزاین‌های ثبت‌شده <span>@_bowl.Designs.Count مورد</span></summary>
+    <div class="history-list">@if (_bowl.Designs.Count == 0) { <div class="empty-state">هنوز دیزاینی ثبت نشده است.</div> }
+    @foreach (var registered in _bowl.Designs)
+    {
+     <div class="registered-design"><div><strong>@registered.Name</strong><small>@registered.PerformedBy — @PersianDateTime.FormatDateTime(registered.RegisteredAt)</small></div><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-danger" disabled="@_busy" @onclick="() => AskDeleteRegistration(registered)">حذف</button></AuthorizeView></div>
+    }</div>
+   </details>
+  }
+  <div class="section-title"><span>نوع دیزاین</span><small>@SelectedCount انتخاب</small></div>
+  @if (_bowl is null) { <p class="field-hint">ابتدا کد را جست‌وجو کنید، سپس دیزاین و مجری را انتخاب کنید.</p> }
   @if (_types.Count == 0) { <div class="empty-state">هنوز نوع دیزاینی تعریف نشده است.</div> }
-  else { <div class="design-options">@foreach (var item in _types) { var selection = SelectionFor(item.Id); var alreadyRegistered = IsRegistered(item.Id); <div class="design-option @(selection.Selected ? "selected" : "") @(alreadyRegistered ? "disabled" : "")"><label class="option-check"><input type="checkbox" disabled="@(_bowl is null || alreadyRegistered)" checked="@(alreadyRegistered || selection.Selected)" @onchange="e => Toggle(item.Id, (bool)(e.Value ?? false))" /><span class="check-mark">✓</span><span class="option-name">@item.Name @(alreadyRegistered ? "(قبلاً ثبت شده)" : "")</span></label>@if (selection.Selected && !alreadyRegistered) { <div class="performer-row"><label>مجری این دیزاین</label><select class="form-select" value="@selection.UserId" @onchange="e => SetUser(item.Id, e.Value?.ToString())"><option value="">خودم (کاربر ثبت‌کننده)</option>@foreach (var user in _users) { <option value="@user.Id">@user.Name</option> }</select></div> }</div> }</div> }
-  @if (!string.IsNullOrWhiteSpace(_message)) { <div class="app-message @(_success ? "success" : "error")">@_message</div> }
-  <button class="btn btn-primary register-button" disabled="@(_busy || _bowl is null || SelectedCount == 0)" @onclick="AskRegister">ثبت @SelectedCount دیزاین</button>
+  else
+  {
+   <div class="design-options">@foreach (var item in _types)
+   {
+    var selection = SelectionFor(item.Id); var alreadyRegistered = IsRegistered(item.Id);
+    <div class="design-option @(selection.Selected ? "selected" : "") @(alreadyRegistered ? "disabled" : "")">
+     <label class="option-check"><input type="checkbox" disabled="@(_busy || _bowl is null || alreadyRegistered)" checked="@(alreadyRegistered || selection.Selected)" @onchange="e => Toggle(item.Id, (bool)(e.Value ?? false))" /><span class="option-name">@item.Name @if (alreadyRegistered) { <small>ثبت‌شده</small> }</span></label>
+     @if (selection.Selected && !alreadyRegistered)
+     {
+      <div class="performer-row"><select class="form-select" aria-label="مجری دیزاین @item.Name" disabled="@_busy" value="@selection.UserId" @onchange="e => SetUser(item.Id, e.Value?.ToString())"><option value="">خودم (ثبت‌کننده)</option>@foreach (var user in _users) { <option value="@user.Id">@user.Name</option> }</select></div>
+     }
+    </div>
+   }</div>
+  }
+  @if (!string.IsNullOrWhiteSpace(_message)) { <div role="status" class="app-message @(_success ? "success" : "error")">@_message</div> }
+  <button type="button" class="btn btn-primary register-button" disabled="@(_busy || _bowl is null || SelectedCount == 0)" @onclick="AskRegister">ثبت @SelectedCount دیزاین</button>
  </section>
- <AuthorizeView Roles="Administrator,ProductionManager"><Authorized><section class="design-panel management-panel">
-  <div class="panel-heading"><span class="panel-icon">⚙️</span><div><h3>انواع و نرخ دیزاین</h3><p>این بخش فقط برای مدیر تولید و ادمین نمایش داده می‌شود.</p></div></div>
-  <div class="new-design-box"><input id="new-design-name" class="form-control" @bind="_newName" placeholder="نام دیزاین جدید" /><div class="rate-input"><input id="new-design-rate" type="number" min="0" class="form-control" @bind="_newRate" placeholder="نرخ عادی" /><span>عادی</span></div><div class="rate-input"><input id="new-design-export-rate" type="number" min="0" class="form-control" @bind="_newExportRate" placeholder="نرخ صادراتی" /><span>صادراتی</span></div><button type="button" class="btn btn-success" onclick="torsepanDesign.createType()">ایجاد دیزاین</button><div id="design-create-message" class="app-message" style="display:none"></div></div>
-  @if (!string.IsNullOrWhiteSpace(_message)) { <div class="app-message @(_success ? "success" : "error")">@_message</div> }
-  <div class="rate-list">@foreach (var item in _types) { <div class="rate-card"><div class="rate-name"><span class="color-dot"></span><input class="form-control" value="@NameFor(item)" @onchange="e => ChangeName(item.Id, e.Value?.ToString())" aria-label="نام دیزاین" /></div><div class="rate-actions"><div class="rate-input"><input type="number" min="0" class="form-control" value="@RateFor(item)" @onchange="e => ChangeRate(item.Id, e.Value?.ToString())" /><span>نرخ عادی</span></div><div class="rate-input"><input type="number" min="0" class="form-control" value="@ExportRateFor(item)" @onchange="e => ChangeExportRate(item.Id, e.Value?.ToString())" /><span>نرخ صادراتی</span></div><button class="btn btn-sm btn-outline-success" @onclick="() => SaveTypeAsync(item)">ذخیره تغییرات</button><AuthorizeView Roles="Administrator" Context="deleteAuthorization"><button class="btn btn-sm btn-outline-danger" @onclick="() => AskDelete(item)">حذف</button></AuthorizeView></div></div> }</div>
- </section></Authorized></AuthorizeView>
+ }
+ else
+ {
+ <AuthorizeView Roles="Administrator,ProductionManager"><Authorized>
+ <section class="design-panel management-panel">
+  <div class="panel-heading"><h2>دیزاین‌ها و نرخ‌ها</h2><span>@_types.Count نوع</span></div>
+  <div class="management-tools"><button type="button" class="@(!_creating ? "active" : "")" disabled="@_busy" @onclick="() => _creating = false">ویرایش نرخ‌ها</button><button type="button" class="@(_creating ? "active" : "")" disabled="@_busy" @onclick="() => _creating = true">＋ دیزاین جدید</button></div>
+  @if (_creating)
+  {
+   <div class="rate-editor">
+    <label class="editor-name">نام دیزاین<input class="form-control" @bind="_newName" placeholder="نام دیزاین جدید" disabled="@_busy" /></label>
+    <label>نرخ عادی<input type="number" min="0" class="form-control" @bind="_newRate" disabled="@_busy" /></label>
+    <label>نرخ صادراتی<input type="number" min="0" class="form-control" @bind="_newExportRate" disabled="@_busy" /></label>
+    <button type="button" class="btn btn-primary editor-submit" disabled="@(_busy || string.IsNullOrWhiteSpace(_newName))" @onclick="AddTypeAsync">@(_busy ? "در حال ثبت…" : "ایجاد دیزاین")</button>
+   </div>
+  }
+  else
+  {
+   <label class="field-label" for="design-type-picker">انتخاب دیزاین</label>
+   <select id="design-type-picker" class="form-select type-picker" @bind="_editingId" disabled="@_busy"><option value="@Guid.Empty">دیزاین را انتخاب کنید</option>@foreach (var type in _types) { <option value="@type.Id">@type.Name</option> }</select>
+   @if (EditingType is { } item)
+   {
+    <div class="rate-editor" @key="item.Id">
+     <label class="editor-name">نام دیزاین<input class="form-control" value="@NameFor(item)" disabled="@_busy" @onchange="e => ChangeName(item.Id, e.Value?.ToString())" /></label>
+     <label>نرخ عادی<input type="number" min="0" class="form-control" value="@RateFor(item)" disabled="@_busy" @onchange="e => ChangeRate(item.Id, e.Value?.ToString())" /></label>
+     <label>نرخ صادراتی<input type="number" min="0" class="form-control" value="@ExportRateFor(item)" disabled="@_busy" @onchange="e => ChangeExportRate(item.Id, e.Value?.ToString())" /></label>
+     <div class="editor-actions"><button type="button" class="btn btn-primary" disabled="@_busy" @onclick="() => SaveTypeAsync(item)">@(_busy ? "در حال ذخیره…" : "ذخیره تغییرات")</button><AuthorizeView Roles="Administrator" Context="deleteAuth"><button type="button" class="btn btn-outline-danger" disabled="@_busy" @onclick="() => AskDelete(item)">حذف دیزاین</button></AuthorizeView></div>
+    </div>
+   }
+   else { <p class="field-hint">برای تغییر نام و نرخ‌ها، یک دیزاین انتخاب کنید.</p> }
+  }
+  @if (!string.IsNullOrWhiteSpace(_message)) { <div role="status" class="app-message @(_success ? "success" : "error")">@_message</div> }
+ </section>
+ </Authorized></AuthorizeView>
+ }
 </div>
-@if (_confirm) { <div class="design-confirm-overlay" role="presentation" @onclick="() => _confirm=false"><section class="design-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="design-confirm-title" dir="rtl" @onclick:stopPropagation><div class="confirm-symbol">✓</div><h3 id="design-confirm-title">@_confirmTitle</h3><p>@_confirmText</p><div class="confirm-actions"><button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _confirm=false">انصراف</button><button class="btn btn-success" disabled="@_busy" @onclick="ConfirmAsync">@(_busy?"در حال ثبت…":"تأیید و ثبت")</button></div></section></div> }
+@if (_confirm) { <div class="design-confirm-overlay" role="presentation" @onclick="() => { if (!_busy) _confirm=false; }"><section class="design-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="design-confirm-title" dir="rtl" @onclick:stopPropagation><div class="confirm-symbol">✓</div><h3 id="design-confirm-title">@_confirmTitle</h3><p>@_confirmText</p><div class="confirm-actions"><button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _confirm=false">انصراف</button><button class="btn btn-success" disabled="@_busy" @onclick="ConfirmAsync">@(_busy?"در حال ثبت…":"تأیید و ثبت")</button></div></section></div> }
 
 @code {
  private List<DesignTypeDto> _types=[]; private List<DesignUserDto> _users=[]; private readonly Dictionary<Guid,DesignSelection> _selections=[]; private readonly Dictionary<Guid,decimal> _rates=[],_exportRates=[]; private readonly Dictionary<Guid,string> _names=[];
  private string _code="",_newName="",_message="",_confirmTitle="",_confirmText=""; private decimal _newRate,_newExportRate; private bool _busy,_success,_confirm; private Func<Task>? _action; private BowlDesignLookupDto? _bowl;
  private int SelectedCount=>_selections.Values.Count(x=>x.Selected);
- protected override async Task OnInitializedAsync()=>await LoadAsync();
- private async Task LoadAsync(){_types=await DesignService.GetTypesAsync();_users=await DesignService.GetUsersAsync();foreach(var item in _types){_selections.TryAdd(item.Id,new());_rates[item.Id]=item.Rate;_exportRates[item.Id]=item.ExportRate;_names[item.Id]=item.Name;}}
+ private bool _canManage, _management, _creating; private Guid _editingId;
+ private DesignTypeDto? EditingType => _types.FirstOrDefault(x => x.Id == _editingId);
+ protected override async Task OnInitializedAsync(){var user=(await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;_canManage=user.IsInRole("Administrator")||user.IsInRole("ProductionManager");await LoadAsync();}
+ private void SelectTab(bool management){if(_busy)return;_management=management&&_canManage;_message="";}
+ private async Task SearchOnEnterAsync(KeyboardEventArgs e){if(e.Key=="Enter"&&!_busy&&!string.IsNullOrWhiteSpace(_code))await SearchBowlAsync();}
+ private async Task LoadAsync(){_types=await DesignService.GetTypesAsync();_users=await DesignService.GetUsersAsync();foreach(var item in _types){_selections.TryAdd(item.Id,new());_rates[item.Id]=item.Rate;_exportRates[item.Id]=item.ExportRate;_names[item.Id]=item.Name;}if(!_types.Any(x=>x.Id==_editingId))_editingId=_types.FirstOrDefault()?.Id??Guid.Empty;}
  private DesignSelection SelectionFor(Guid id){if(!_selections.TryGetValue(id,out var value))_selections[id]=value=new();return value;}
  private bool IsRegistered(Guid id)=>_bowl?.Designs.Any(x=>x.DesignTypeId==id)==true;
  private async Task SearchBowlAsync(){_busy=true;_message="";_bowl=null;foreach(var value in _selections.Values){value.Selected=false;value.UserId=null;}try{_bowl=await DesignService.GetBowlAsync(_code.Trim());if(_bowl is null)throw new InvalidOperationException();}catch{_success=false;_message="کاسه‌ای با این کد پیدا نشد.";}finally{_busy=false;}}
@@ -42,10 +113,10 @@
  private void ChangeName(Guid id,string? value)=>_names[id]=value?.Trim()??"";
  private void ChangeRate(Guid id,string? value)=>_rates[id]=decimal.TryParse(value,out var rate)?Math.Max(0,rate):0;
  private void ChangeExportRate(Guid id,string? value)=>_exportRates[id]=decimal.TryParse(value,out var rate)?Math.Max(0,rate):0;
- private void AskRegister(){var selected=_types.Where(x=>SelectionFor(x.Id).Selected&&!IsRegistered(x.Id)).ToList();if(_bowl is null||selected.Count==0){_success=false;_message="ابتدا کد کاسه را جست‌وجو و حداقل یک دیزاین جدید انتخاب کنید.";return;}var summary=string.Join("، ",selected.Select(x=>x.Name));Show("تأیید ثبت دیزاین",$"دیزاین‌های «{summary}» فقط برای کاسه با کد «{_bowl.ProductionCode}» ثبت شوند؟",async()=>{await DesignService.RegisterAsync(_bowl.ProductionCode,selected.Select(x=>(x.Id,SelectionFor(x.Id).UserId)));_success=true;_message=$"{selected.Count} دیزاین با موفقیت برای همین کاسه ثبت شد.";await SearchBowlAsync();});}
+ private void AskRegister(){var selected=_types.Where(x=>SelectionFor(x.Id).Selected&&!IsRegistered(x.Id)).ToList();if(_bowl is null||selected.Count==0){_success=false;_message="ابتدا کد کاسه را جست‌وجو و حداقل یک دیزاین جدید انتخاب کنید.";return;}var summary=string.Join("، ",selected.Select(x=>x.Name));Show("تأیید ثبت دیزاین",$"دیزاین‌های «{summary}» فقط برای کاسه با کد «{_bowl.ProductionCode}» ثبت شوند؟",async()=>{await DesignService.RegisterAsync(_bowl.ProductionCode,selected.Select(x=>(x.Id,SelectionFor(x.Id).UserId)));await SearchBowlAsync();_success=true;_message=$"{selected.Count} دیزاین با موفقیت برای همین کاسه ثبت شد.";});}
  private void AskDeleteRegistration(BowlDesignDto item)=>Show("حذف دیزاین ثبت‌شده",$"دیزاین «{item.Name}» از کاسه «{_bowl?.ProductionCode}» حذف شود؟",async()=>{await DesignService.DeleteRegistrationAsync(item.EventId);await SearchBowlAsync();_success=true;_message="دیزاین ثبت‌شده حذف شد.";});
- private async Task AddTypeAsync(){if(string.IsNullOrWhiteSpace(_newName)){_success=false;_message="نام دیزاین جدید را وارد کنید.";return;}try{await DesignService.AddTypeAsync(_newName.Trim(),_newRate,_newExportRate);_newName="";_newRate=_newExportRate=0;await LoadAsync();_success=true;_message="دیزاین جدید همراه با نرخ عادی و صادراتی ایجاد شد.";}catch{_success=false;_message="این نوع دیزاین قبلاً ثبت شده یا معتبر نیست.";}}
- private async Task SaveTypeAsync(DesignTypeDto item){var name=NameFor(item);if(string.IsNullOrWhiteSpace(name)){_success=false;_message="نام دیزاین نمی‌تواند خالی باشد.";return;}try{await DesignService.UpdateTypeAsync(item.Id,name,RateFor(item),ExportRateFor(item));await LoadAsync();_success=true;_message=$"نرخ عادی و صادراتی «{name}» ذخیره شد و در محاسبه دستمزد اعمال می‌شود.";}catch{_success=false;_message="ذخیره تغییرات انجام نشد؛ نام تکراری نباشد.";}}
+ private async Task AddTypeAsync(){if(_busy||!_canManage)return;if(string.IsNullOrWhiteSpace(_newName)){_success=false;_message="نام دیزاین جدید را وارد کنید.";return;}var _newCreatedName=_newName.Trim();_busy=true;try{await DesignService.AddTypeAsync(_newName.Trim(),_newRate,_newExportRate);_newName="";_newRate=_newExportRate=0;await LoadAsync();_editingId=_types.FirstOrDefault(x=>x.Name==_newCreatedName)?.Id??_editingId;_creating=false;_success=true;_message="دیزاین جدید همراه با نرخ عادی و صادراتی ایجاد شد.";}catch{_success=false;_message="این نوع دیزاین قبلاً ثبت شده یا معتبر نیست.";}finally{_busy=false;}}
+ private async Task SaveTypeAsync(DesignTypeDto item){if(_busy||!_canManage)return;var name=NameFor(item);if(string.IsNullOrWhiteSpace(name)){_success=false;_message="نام دیزاین نمی‌تواند خالی باشد.";return;}_busy=true;try{await DesignService.UpdateTypeAsync(item.Id,name,RateFor(item),ExportRateFor(item));await LoadAsync();_success=true;_message=$"نرخ عادی و صادراتی «{name}» ذخیره شد و در محاسبه دستمزد اعمال می‌شود.";}catch{_success=false;_message="ذخیره تغییرات انجام نشد؛ نام تکراری نباشد.";}finally{_busy=false;}}
  private void AskDelete(DesignTypeDto item)=>Show("حذف نوع دیزاین",$"نوع دیزاین «{item.Name}» از فهرست انتخاب حذف شود؟",async()=>{await DesignService.DeleteTypeAsync(item.Id);await LoadAsync();});
  private void Show(string title,string text,Func<Task> action){_confirmTitle=title;_confirmText=text;_action=action;_confirm=true;}
  private async Task ConfirmAsync(){if(_action is null)return;_busy=true;try{await _action();_confirm=false;}catch(HttpRequestException ex) when(ex.StatusCode==HttpStatusCode.Conflict){_confirm=false;_success=false;_message="یک یا چند دیزاین انتخاب‌شده قبلاً برای این کد ثبت شده است.";}catch{_confirm=false;_success=false;_message="ثبت عملیات انجام نشد.";}finally{_busy=false;}}
