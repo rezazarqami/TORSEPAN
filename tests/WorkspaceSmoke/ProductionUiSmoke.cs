@@ -35,17 +35,19 @@ internal static class ProductionUiSmoke
         var bowls = await Render(typeof(Bowls));
         Check(bowls.Contains("PRODUCTION MANAGEMENT") && bowls.Contains("torsepan-mark-new.webp") && bowls.Contains("production-tabs"),
             "production renders the branded hero and separate navigation tabs");
-        Check(bowls.Contains("BOWL-FIXTURE") && !bowls.Contains("HANDPAN-FIXTURE") && bowls.Contains("data-label=\"اسکیل کاسه\""),
-            "default tab displays bowl records with mobile labels and hides instrument records");
+        Check(bowls.Contains("BOWL-FIXTURE") && !bowls.Contains("HANDPAN-FIXTURE") && bowls.Contains("production-card-grid"),
+            "default tab displays compact bowl cards and hides instrument records");
         var handpans = await Render(typeof(HandpanPreview));
-        Check(handpans.Contains("HANDPAN-FIXTURE") && !handpans.Contains("BOWL-FIXTURE") && handpans.Contains("BOTTOM-LINKED"),
-            "instrument tab preserves instrument and related bowl codes without rendering the bowl list");
-        Check(handpans.Contains("12 notes (9+3) Full Custom Scale") && handpans.Contains("data-label=\"کد کاسه زیر\""),
-            "long scale names and related-code labels remain available in mobile cards");
-        Check(bowls.Contains("حذف") && handpans.Contains("حذف") && handpans.Contains("مرحله قبل"),
-            "administrator retains deletion and rollback controls in both tabs");
+        Check(handpans.Contains("HANDPAN-FIXTURE") && !handpans.Contains("BOWL-FIXTURE") && handpans.Contains("card-expand"),
+            "instrument tab displays compact cards with an accessible details button");
+        Check(handpans.Contains("12 notes (9+3) Full Custom Scale") && handpans.Contains("card-scale"),
+            "full scale names remain available in compact cards");
+        var expanded = await Render(typeof(ExpandedHandpanPreview));
+        Check(!handpans.Contains("BOTTOM-LINKED") && expanded.Contains("BOTTOM-LINKED") && expanded.Contains("TOP-LINKED"), "linked codes appear when instrument details are expanded");
+        Check(expanded.Contains("حذف") && expanded.Contains("مرحله قبل"),
+            "expanded instrument retains administrator deletion and rollback controls");
         var empty = await Render(typeof(EmptyBowlsPreview));
-        Check(empty.Contains("فیلتر کاسه‌ها") && empty.Contains("پاک کردن فیلترها") && !empty.Contains("production-item"),
+        Check(empty.Contains("فیلتر کاسه‌ها") && empty.Contains("پاک کردن فیلترها") && !empty.Contains("production-card-grid"),
             "empty filtered result keeps filter and reset controls available");
         var pages = typeof(Bowls).GetMethod("VisiblePages", BindingFlags.Static | BindingFlags.NonPublic)!;
         var middle = ((IEnumerable<int>)pages.Invoke(null, [50, 1000])!).ToArray();
@@ -58,6 +60,16 @@ internal static class ProductionUiSmoke
     {
         protected override async Task OnInitializedAsync()
         { await base.OnInitializedAsync(); typeof(Bowls).GetField("_tab", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(this, "handpans"); }
+    }
+    public sealed class ExpandedHandpanPreview : Bowls
+    {
+        protected override async Task OnInitializedAsync()
+        {
+            await base.OnInitializedAsync();
+            typeof(Bowls).GetField("_tab", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(this, "handpans");
+            var handpans = (List<HandpanDto>)typeof(Bowls).GetField("_handpans", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(this)!;
+            ((HashSet<Guid>)typeof(Bowls).GetField("_expandedHandpans", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(this)!).Add(handpans[0].Id);
+        }
     }
     public sealed class EmptyBowlsPreview : Bowls
     {
