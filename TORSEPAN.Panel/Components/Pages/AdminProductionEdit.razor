@@ -10,9 +10,13 @@
 
 <section class="edit-hero">
     <div class="edit-hero-copy"><small>ابزار اختصاصی مدیر سیستم</small><h1>ویرایش شناسنامه تولید</h1><p>کد ساز یا کاسه را وارد کنید؛ اطلاعات در هر مرحله‌ای از تولید، انبار یا فروش قابل بازیابی است.</p></div>
+</section>
+
+<section class="edit-lookup" aria-labelledby="production-search-title">
+    <header><h2 id="production-search-title">جست‌وجوی شناسنامه</h2><p>با واردکردن کد، اسکیل‌ها و سوابق تولید برای ویرایش نمایش داده می‌شوند.</p></header>
     <EditForm Model="_search" OnValidSubmit="SearchAsync" class="edit-search">
         <label for="production-code">کد ساز یا کاسه</label>
-        <div><InputText id="production-code" @bind-Value="_search.Code" autocomplete="off" placeholder="مثلاً 7113" /><button type="submit" disabled="@_loading">@if(_loading){<span class="spinner-border spinner-border-sm"></span>}else{<span>جست‌وجو</span>}</button></div>
+        <div class="edit-search-controls"><InputText id="production-code" @bind-Value="_search.Code" autocomplete="off" placeholder="مثلاً 7113" /><button type="submit" disabled="@_loading">@if(_loading){<span class="spinner-border spinner-border-sm"></span>}else{<span>جست‌وجو</span>}</button></div>
     </EditForm>
 </section>
 
