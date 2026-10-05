@@ -1,0 +1,16 @@
+name: Packaging consumption
+on:
+  push:
+    branches: [master, deploy-api, deploy-panel]
+    paths: ['TORSEPAN.Application/**', 'tests/PackagingSmoke/**', '.github/workflows/packaging-consumption.yml']
+  pull_request:
+    paths: ['TORSEPAN.Application/**', 'tests/PackagingSmoke/**', '.github/workflows/packaging-consumption.yml']
+jobs:
+  packaging-consumption:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet run --project tests/PackagingSmoke/PackagingSmoke.csproj -c Release
