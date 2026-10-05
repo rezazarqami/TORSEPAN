@@ -26,17 +26,16 @@
   <div class="inventory-totals"><span>کاسه رو <b>@BowlItems.Sum(x => x.TopBowlQuantity)</b></span><span>کاسه زیر <b>@BowlItems.Sum(x => x.BottomBowlQuantity)</b></span><span>سایر اقلام <b>@OtherItems.Sum(x => x.Quantity)</b></span></div>
   <div class="overview-grid">
    <section class="inventory-card"><header><h2>موجودی کاسه‌ها</h2><small>@BowlItems.Count() متریال</small></header>
-    <table class="bowl-overview"><thead><tr><th>متریال</th><th>رو</th><th>زیر</th></tr></thead><tbody>
+    <table class="bowl-overview" aria-label="موجودی کاسه‌ها؛ رنگ قرمز نشان‌دهنده موجودی صفر یا کمتر از حد هشدار است"><thead><tr><th>متریال</th><th>رو</th><th>زیر</th></tr></thead><tbody>
     @foreach (var item in BowlItems) { <tr><td>@item.Name</td><td class="@(IsLow(item.TopBowlQuantity, item.TopBowlLowStockThreshold) ? "low-stock" : "")">@item.TopBowlQuantity</td><td class="@(IsLow(item.BottomBowlQuantity, item.BottomBowlLowStockThreshold) ? "low-stock" : "")">@item.BottomBowlQuantity</td></tr> }
     </tbody></table>
     @if (!BowlItems.Any()) { <p class="inventory-empty">متریالی ثبت نشده است.</p> }
    </section>
    <section class="inventory-card"><header><h2>مواد مصرفی و بسته‌بندی</h2><small>@OtherItems.Count() قلم</small></header>
-    <div class="supplies-grid">@foreach (var item in OtherItems) { <div class="supply-item @(IsLow(item.Quantity, item.LowStockThreshold) ? "low-stock" : "")"><span>@item.Name</span><b>@item.Quantity</b></div> }</div>
+    <div class="supplies-grid" aria-label="موجودی سایر اقلام؛ رنگ قرمز نشان‌دهنده موجودی صفر یا کمتر از حد هشدار است">@foreach (var item in OtherItems) { <div class="supply-item @(IsLow(item.Quantity, item.LowStockThreshold) ? "low-stock" : "")"><span>@item.Name</span><b>@item.Quantity</b></div> }</div>
     @if (!OtherItems.Any()) { <p class="inventory-empty">قلمی ثبت نشده است.</p> }
    </section>
   </div>
-  <p class="inventory-hint">رنگ قرمز: موجودی صفر یا کمتر از حد هشدار</p>
  }
  else if (!_loading && !Overview && _isAdministrator)
  {
