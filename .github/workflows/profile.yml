@@ -30,7 +30,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Verify account changes, session revocation, avatars and performance tabs
-        run: dotnet run --project tests/ProfileSmoke/MessagesSmoke.csproj -c Release
+        run: dotnet run --project tests/ProfileSmoke/ProfileSmoke.csproj -c Release
       - name: Install browser for layout verification
         run: |
           npm install --prefix /tmp/profile-browser playwright bootstrap
