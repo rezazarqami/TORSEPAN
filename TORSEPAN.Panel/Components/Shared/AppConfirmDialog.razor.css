@@ -126,3 +126,6 @@
 @media (prefers-reduced-motion: reduce) {
     .app-confirm-dialog { animation: none; }
 }
+
+.app-confirm-overlay,.app-confirm-dialog,.app-confirm-dialog *{box-sizing:border-box}
+.app-confirm-dialog{max-height:calc(100dvh - 36px);overflow-y:auto;overflow-wrap:anywhere}

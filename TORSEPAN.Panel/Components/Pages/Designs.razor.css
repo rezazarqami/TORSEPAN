@@ -48,3 +48,8 @@
 @media(max-width:600px){.design-hero{padding:12px;gap:4px;border-radius:20px;margin-bottom:10px}.design-hero>span{font-size:.72rem;padding:4px 12px}.design-hero img{width:40px;height:40px}.design-hero h1{font-size:1.2rem}.design-hero p{font-size:.7rem}.design-panel{padding:12px;border-radius:18px}.panel-heading{margin-bottom:10px}.rate-editor{padding:10px;gap:8px}.design-tabs button{font-size:.75rem}.option-check{padding:6px 7px}.option-name{font-size:.72rem}}
 
 @media(max-width:600px){.design-options{max-height:clamp(100px,calc(100dvh - 576px),280px)}.design-layout:has(.design-tabs) .design-options{max-height:clamp(100px,calc(100dvh - 630px),240px)}}
+
+/* Include padding in page widths even when the global CSS reset is unavailable. */
+.design-hero,.design-layout,.design-hero *,.design-layout *{box-sizing:border-box}
+.design-hero,.design-layout{min-width:0}
+.design-hero>span,.design-hero p{max-width:100%;overflow-wrap:anywhere}
