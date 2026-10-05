@@ -100,7 +100,7 @@ else
         if(string.IsNullOrWhiteSpace(_currentPassword)){_profileError="رمز فعلی را وارد کنید.";return;}
         if((_newPassword.Length>0&&(_newPassword.Length<10||_newPassword!=_confirmation))||(_newPassword.Length==0&&_confirmation.Length>0)){_profileError="رمز جدید باید حداقل ۱۰ کاراکتر باشد و با تکرارش یکسان باشد.";return;}
         _busy=true;
-        try{var result=await Workspace.SaveCredentialsAsync(new(_userName,_currentPassword,_newPassword,_confirmation));if(result.Changed){await Auth.LogoutAsync();Navigation.NavigateTo("/login?accountUpdated=1",forceLoad:true);}else{_notice="تغییری در اطلاعات حساب وجود ندارد.";}}
+        try{var result=await Workspace.SaveCredentialsAsync(new(_userName,_currentPassword,_newPassword,_confirmation));if(result.Changed){try{await Auth.LogoutAsync();}catch{ /* The server has already revoked this session; always return to sign-in. */ }Navigation.NavigateTo("/login?accountUpdated=1",forceLoad:true);}else{_notice="تغییری در اطلاعات حساب وجود ندارد.";}}
         catch(AccountActionException e){_profileError=e.Message;}
         catch{_profileError="ذخیره انجام نشد؛ اتصال و ورود به حساب را بررسی کنید.";}
         finally{_currentPassword=_newPassword=_confirmation="";_busy=false;}
