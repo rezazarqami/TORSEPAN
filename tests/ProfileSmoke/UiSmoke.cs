@@ -34,6 +34,7 @@ internal static class UiSmoke
    Check(Html().Contains("activity-log")&&Html().Contains("کد بلند")&&!Html().Contains("<table"),"performance records use compact cards instead of a wide table");
    Check(!Html().Contains("دستمزد من"),"disabled personal payroll remains hidden");await Save("performance");
    api.PayrollEnabled=true;await page.Call("Load",1);page.Refresh();Check(Html().Contains("دستمزد من")&&Html().Contains("120,000"),"authorized personal payroll retains totals and lines");await Save("payroll");
+   api.PayrollMissing=true;await page.Call("Load",1);page.Refresh();Check(Html().Contains("activity-log")&&!Html().Contains("دستمزد من"),"missing optional payroll endpoint does not hide activity");api.PayrollMissing=false;
    page.Set("_from",new DateTime(2026,10,5));page.Set("_to",new DateTime(2026,10,4));var requests=api.ActivityReads;await page.Call("Apply");page.Refresh();Check(api.ActivityReads==requests&&Html().Contains("تاریخ شروع و پایان معتبر"),"invalid reporting dates do not send a request");
    page.Set("_security",true);page.Refresh();Check(Html().Contains("عکس پروفایل")&&Html().Contains("current-password")&&Html().Contains("new-password")&&!Html().Contains("activity-log"),"security tab separates photo and credential settings from performance");
    Check(Html().Contains("data:image/png;base64"),"stored avatar is fetched with the authenticated API client and rendered");await Save("security");
@@ -66,12 +67,13 @@ sealed class ProfileAuth:IAuthService
 sealed class ProfileFixtureApi:HttpMessageHandler
 {
  public static readonly Guid UserId=Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");public static readonly Guid ImageVersion=Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
- public bool PayrollEnabled,FailCredentials,AvatarRemoved;public int ActivityReads;public List<OwnCredentialsDto> Credentials=[];
+ public bool PayrollEnabled,PayrollMissing,FailCredentials,AvatarRemoved;public int ActivityReads;public List<OwnCredentialsDto> Credentials=[];
  protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
  {
   var path=request.RequestUri!.AbsolutePath;
   if(path.EndsWith("/me/profile"))return Json(new OwnProfileDto{Id=UserId,UserName="profile-me",FullName="رضا ضرغامی",Title="تیونر",AvatarVersion=ImageVersion});
   if(path.EndsWith("/me/activity")){ActivityReads++;return Json(new MyActivityDto{From=new(2026,9,23),To=new(2026,10,5),Total=2,Completed=2,Summary=[new(){Operation="تیون کاسه رو",Count=2}],Items=[new(){Id=Guid.NewGuid(),EventDate=DateTime.UtcNow,Code="کد بلند با جزئیات برای بررسی نمایش روی گوشی 123-456",Operation="تیون کاسه رو",Duration="۲۰ دقیقه",Result="تکمیل‌شده",Details="جزئیات طولانی فعالیت ثبت‌شده در کارگاه برای بررسی شکستن متن در صفحهٔ گوشی."}]});}
+  if(path.EndsWith("/activity/payroll")&&PayrollMissing)return new(HttpStatusCode.NotFound);
   if(path.EndsWith("/activity/payroll"))return Json(new MyPayrollDto{Enabled=PayrollEnabled,Total=120000,Lines=[new(){Operation="تیون",Description="متریال و اسکیل ساز",Count=2,Rate=60000,Total=120000}]});
   if(path.EndsWith("/credentials")){Credentials.Add((await request.Content!.ReadFromJsonAsync<OwnCredentialsDto>(ct))!);if(FailCredentials)return new(HttpStatusCode.Conflict){Content=JsonContent.Create(new{Message="این نام کاربری قبلاً استفاده شده است."})};return Json(new OwnCredentialsResult{Changed=true});}
   if(path.EndsWith("/me/profile/avatar")){AvatarRemoved=true;return Json(new OwnAvatarResult());}

@@ -26,7 +26,11 @@ const watchdog=setTimeout(()=>{console.error("Profile browser layout verificatio
    assert(await page.locator('input[autocomplete="current-password"]').getAttribute('type')==='password','current password must be masked');
    assert(await page.locator('input[autocomplete="new-password"]').count()===2,'password confirmation field must be present');
    const card=await page.locator('.credentials-card').boundingBox();assert(card.x>=0&&card.x+card.width<=width,'security form must fit without horizontal scrolling');
-  }else assert(await page.locator('table').count()===0,'performance and payroll must use responsive cards');
+  }else {
+   assert(await page.locator('table').count()===0,'performance and payroll must use responsive cards');
+   const popup=await page.evaluate(()=>{const el=document.createElement('div');el.className='position-absolute';el.style.cssText='width:300px;right:0';document.querySelector('.activity-filters .position-relative').appendChild(el);const r=el.getBoundingClientRect();el.remove();return{x:r.x,width:r.width};});
+   assert(popup.x>=0&&popup.x+popup.width<=width,'date popup must stay inside the mobile viewport');
+  }
   await page.screenshot({path:path.join(out,`${name}-${width}${noReset?'-no-reset':''}.png`),fullPage:true});console.log('PASS account layout',name,width,noReset);
  }
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{clearTimeout(watchdog);if(browser)await browser.close();server.close();});

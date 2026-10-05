@@ -1,3 +1,5 @@
+using TORSEPAN.Application.Auth.Commands.RefreshLogin;
+using TORSEPAN.Infrastructure.Persistence.Repositories;
 using System.Reflection;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
@@ -65,6 +67,15 @@ internal static class ApiSmoke
   Check(!await TokenAllowed(db,me.Id,null)&&await TokenAllowed(db,other.Id,null),"legacy tokens are accepted only for unchanged accounts");
   var jwt=new JwtService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{{"Jwt:Key",new string('k',64)},{"Jwt:Issuer","profile-fixture"},{"Jwt:Audience","profile-fixture"}}).Build());
   Check(new JwtSecurityTokenHandler().ReadJwtToken(jwt.GenerateAccessToken(me.Id,me.UserName,me.FullName,me.Title,["Tuner"],me.CredentialVersion)).Claims.Single(x=>x.Type=="credential_version").Value==me.CredentialVersion.ToString(),"JWT issuance includes the current account credential version");
+  var refreshRepo=new RefreshTokenRepository(db);var userRepo=new UserRepository(db);
+  var unit=new UnitOfWork(context:db,users:userRepo,roles:null!,userRoles:null!,refreshTokens:refreshRepo,handpans:null!,handpanAssemblies:null!,bowls:null!,materials:null!,scales:null!,productionEvents:null!);
+  var refreshHandler=new RefreshLoginCommandHandler(refreshRepo,userRepo,jwt,unit);
+  db.RefreshTokens.Add(new RefreshToken(me.Id,"raced-old-session",DateTime.UtcNow.AddDays(1),0));await db.SaveChangesAsync();
+  var rejected=false;try{await refreshHandler.Handle(new RefreshLoginCommand("raced-old-session"),default);}catch(UnauthorizedAccessException){rejected=true;}
+  Check(rejected,"a refresh token inserted by an old concurrent session cannot bypass credential rotation");
+  db.RefreshTokens.Add(new RefreshToken(me.Id,"current-version-session",DateTime.UtcNow.AddDays(1),me.CredentialVersion));await db.SaveChangesAsync();
+  var renewed=await refreshHandler.Handle(new RefreshLoginCommand("current-version-session"),default);
+  Check(new JwtSecurityTokenHandler().ReadJwtToken(renewed.AccessToken).Claims.Single(x=>x.Type=="credential_version").Value==me.CredentialVersion.ToString(),"valid refresh renews the current credential version");
   var hash=me.PasswordHash;Check(await profile.Credentials(new(me.UserName,"new-password-123",null,null),default) is OkObjectResult&&me.PasswordHash==hash,"no-op save does not rotate sessions or passwords");
   Check(await profile.Credentials(new("profile-final","new-password-123",null,null),default) is OkObjectResult&&me.VerifyPassword("new-password-123"),"username-only change preserves the actual password");
   await using var parallel=new TORSEPANDbContext(options);var stale=await parallel.Users.SingleAsync(x=>x.Id==me.Id);
