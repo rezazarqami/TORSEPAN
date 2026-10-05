@@ -19,7 +19,7 @@ var output=Environment.GetEnvironmentVariable("INVENTORY_PREVIEW_DIR");if(output
 foreach(var role in new[]{"Administrator","Tuner"})
 {
  var services=new ServiceCollection();services.AddLogging();services.AddAuthorizationCore();services.AddCascadingAuthenticationState();services.AddSingleton<AuthenticationStateProvider>(new AuthFixture(role));services.AddSingleton<IJSRuntime,JsFixture>();services.AddSingleton<NavigationManager,NavigationFixture>();services.AddScoped<TokenStorage>();
- services.AddSingleton(new HttpClient(new ApiFixture()){BaseAddress=new Uri("https://fixture.invalid/api/")});services.AddScoped<ApiClient>();services.AddScoped<MaterialService>();services.AddScoped<BowlService>();services.AddScoped<ScaleService>();services.AddScoped<ProductionService>();
+ services.AddSingleton(new HttpClient(new ApiFixture()){BaseAddress=new Uri("https://fixture.invalid/api/")});services.AddScoped<ApiClient>();services.AddScoped<MaterialService>();services.AddScoped<BowlService>();services.AddScoped<ScaleService>();services.AddScoped<ProductionService>();services.AddScoped<HandpanPhotoService>();
  await using var provider=services.BuildServiceProvider();await using var renderer=new HtmlRenderer(provider,provider.GetRequiredService<ILoggerFactory>());
  async Task<string> Render(Type type)=>await renderer.Dispatcher.InvokeAsync(async()=>WebUtility.HtmlDecode((await renderer.RenderComponentAsync(type,ParameterView.Empty)).ToHtmlString()));
  var overview=await Render(typeof(MaterialInventoryOverview));Check(overview.Contains("MATERIAL INVENTORY")&&overview.Contains("کارتون")&&overview.Contains("مثلثی"),role+" overview includes all inventory");
