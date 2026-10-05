@@ -55,6 +55,10 @@ internal static class UiSmoke
     Check(((List<ChatMessageDto>)page.Get("_messages")!).Single(x=>x.Id==MessageFixtureApi.OutgoingId).ReadAt.HasValue,role+" refresh updates persisted outgoing read receipts");
     SetDraft(page.GetProperty("Draft"),"Body","مسوده اول");await page.Call("OpenChatAsync",((List<ConversationDto>)page.Get("_members")!)[1]);SetDraft(page.GetProperty("Draft"),"Body","مسوده دوم");await page.Call("OpenChatAsync",member);
     Check((string)page.GetProperty("Draft").GetType().GetProperty("Body")!.GetValue(page.GetProperty("Draft"))! =="مسوده اول","switching peers preserves separate drafts");
+    SetDraft(page.GetProperty("Draft"),"Body","ارسال نامطمئن اول");api.FailSend=true;await page.Call("SendAsync");var firstPending=api.Sends.Last().Id;
+    await page.Call("OpenChatAsync",((List<ConversationDto>)page.Get("_members")!)[1]);SetDraft(page.GetProperty("Draft"),"Body","ارسال به همکار دیگر");api.FailSend=false;await page.Call("SendAsync");
+    await page.Call("OpenChatAsync",member);await page.Call("SendAsync");
+    Check(api.Sends.Last().Id==firstPending,"retry identity survives switching conversations and sending elsewhere");
     if(role!="Tuner")
     {
      await page.Call("OpenBroadcast");page.Refresh();await Save("broadcast");var announcement=page.GetProperty("Draft");SetDraft(announcement,"Title","اطلاعیه تازه");SetDraft(announcement,"Body","برنامه جدید کارگاه");

@@ -46,6 +46,8 @@ internal static class ApiSmoke
         var manager = As(0, "ProductionManager"); var broadcastId = Guid.NewGuid();
         Check(await manager.Send(new(broadcastId, "برنامه کارگاه", "جلسه فردا", true, null), default) is OkObjectResult, "workshop manager can publish to the announcement channel");
         Check(await db.WorkshopMessageReceipts.CountAsync(x => x.MessageId == broadcastId) == 9, "announcement reaches all other active members without self-unread receipts");
+        db.WorkshopMessageReceipts.Add(new(broadcastId,users[0].Id));await db.SaveChangesAsync();
+        Check(Value<UnreadDto>(await manager.Unread(default)).Count==0,"legacy self-receipts do not create an unread badge for the author");
         Check(Value<InboxDto>(await recipient.Announcements()).Items.Select(x => x.Id).SequenceEqual([broadcastId]), "announcement channel excludes private messages");
         Check(Value<InboxDto>(await manager.Announcements()).Items.Any(x => x.Id == broadcastId && x.IsMine), "author can read their own announcement archive");
         Check(Value<ChatHistoryDto>(await sender.History(users[1].Id, 1)).Items.All(x => x.Id != broadcastId), "private conversation excludes announcements");

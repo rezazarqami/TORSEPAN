@@ -21,7 +21,7 @@ public sealed class NotificationsController(TORSEPANDbContext db) : ControllerBa
 
     [HttpGet("unread")]
     public async Task<IActionResult> Unread(CancellationToken ct) =>
-        Ok(new { Count = await db.WorkshopMessageReceipts.CountAsync(x => x.RecipientId == CurrentUserId && x.ReadAt == null, ct) });
+        Ok(new { Count = await db.WorkshopMessageReceipts.CountAsync(x => x.RecipientId == CurrentUserId && x.Message.SenderId != CurrentUserId && x.ReadAt == null, ct) });
 
     // Keep the original inbox route compatible with older clients.
     [HttpGet]

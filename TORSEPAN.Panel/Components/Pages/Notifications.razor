@@ -118,7 +118,7 @@
     private ElementReference _thread;
     private readonly CancellationTokenSource _pollCancellation = new();
     private Task? _pollTask;
-    private PendingSend? _pendingSend;
+    private readonly Dictionary<Guid, PendingSend> _pendingSends = [];
     private int ChatUnread => _members.Sum(x => x.UnreadCount);
     private IEnumerable<ConversationDto> FilteredMembers => _members.Where(x => x.Name.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase));
     private MessageDraft Draft { get { var key = _broadcast ? Guid.Empty : _peer!.Id; if (!_drafts.TryGetValue(key, out var draft)) _drafts[key] = draft = new(); return draft; } }
@@ -188,13 +188,14 @@
         var draft = Draft; var body = draft.Body.Trim(); var title = _broadcast ? draft.Title.Trim() : "گفتگو";
         if (body.Length == 0 || body.Length > 4000 || title.Length == 0 || title.Length > 150) { _error = "متن پیام و عنوان اطلاعیه را تکمیل کنید."; return; }
         var peerId = _broadcast ? (Guid?)null : _peer!.Id;
-        if (_pendingSend is null || _pendingSend.Body != body || _pendingSend.Title != title || _pendingSend.Peer != peerId || _pendingSend.Broadcast != _broadcast)
-            _pendingSend = new(Guid.NewGuid(), title, body, _broadcast, peerId);
-        var pending = _pendingSend; _sending = true; _error = _notice = null;
+        var key = peerId ?? Guid.Empty;
+        if (!_pendingSends.TryGetValue(key, out var pending) || pending.Body != body || pending.Title != title)
+            _pendingSends[key] = pending = new(Guid.NewGuid(), title, body, _broadcast, peerId);
+        _sending = true; _error = _notice = null;
         try
         {
             await Workspace.SendAsync(pending.Id, pending.Title, pending.Body, pending.Broadcast, pending.Peer);
-            draft.Body = draft.Title = ""; _pendingSend = null;
+            draft.Body = draft.Title = ""; _pendingSends.Remove(key);
             if (!pending.Broadcast) Merge([new ChatMessageDto { Id = pending.Id, Title = title, Body = body, IsMine = true, CreatedAt = DateTime.UtcNow }]);
             else { _announcementPage = 1; _announcements.Items.Insert(0, new InboxMessageDto { Id = pending.Id, Title = title, Body = body, IsMine = true, SenderName = "شما", CreatedAt = DateTime.UtcNow }); _notice = "اطلاعیه برای کارگاه منتشر شد."; }
             _scrollBottom = true; await RefreshAsync();

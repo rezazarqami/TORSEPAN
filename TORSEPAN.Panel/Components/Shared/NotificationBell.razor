@@ -8,11 +8,20 @@
 </a>
 @code{
     private bool _disposed,_loading;
+    private readonly CancellationTokenSource _pollCancellation = new();
     private string Label=>Workspace.UnreadCount.HasValue?$"پیام‌ها؛ {Workspace.UnreadCount} خوانده‌نشده":"پیام‌ها؛ شمارنده در دسترس نیست";
     protected override async Task OnInitializedAsync(){Workspace.UnreadChanged+=Changed;Navigation.LocationChanged+=LocationChanged;await Load();}
     private async Task Load(){if(_loading||_disposed)return;_loading=true;try{await Workspace.RefreshUnreadAsync();}finally{_loading=false;}}
+    protected override void OnAfterRender(bool firstRender) { if (firstRender) _ = PollAsync(); }
+    private async Task PollAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        try { while (await timer.WaitForNextTickAsync(_pollCancellation.Token)) await InvokeAsync(Load); }
+        catch (OperationCanceledException) { }
+        catch (ObjectDisposedException) { }
+    }
     private void Changed(){if(!_disposed)_=InvokeAsync(StateHasChanged);}
     private async void LocationChanged(object? sender,LocationChangedEventArgs e){try{await InvokeAsync(Load);}catch{}}
-    public void Dispose(){_disposed=true;Workspace.UnreadChanged-=Changed;Navigation.LocationChanged-=LocationChanged;}
+    public void Dispose(){if(_disposed)return;_disposed=true;_pollCancellation.Cancel();_pollCancellation.Dispose();Workspace.UnreadChanged-=Changed;Navigation.LocationChanged-=LocationChanged;}
 }
 
