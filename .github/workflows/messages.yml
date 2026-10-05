@@ -1,0 +1,46 @@
+name: Workshop messaging
+on:
+  push:
+    branches: [master, deploy-api, deploy-panel]
+    paths: ['TORSEPAN.API/Controllers/NotificationsController.cs', 'TORSEPAN.Panel/**', 'tests/MessagesSmoke/**', 'tests/messages-layout.cjs', '.github/workflows/messages.yml']
+  pull_request:
+    paths: ['TORSEPAN.API/Controllers/NotificationsController.cs', 'TORSEPAN.Panel/**', 'tests/MessagesSmoke/**', 'tests/messages-layout.cjs', '.github/workflows/messages.yml']
+jobs:
+  workshop-messages:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: messages_test
+          POSTGRES_PASSWORD: fixture-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      MESSAGES_TEST_DB: 'Host=localhost;Port=5432;Database=messages_test;Username=postgres;Password=fixture-only'
+      MESSAGES_PREVIEW_DIR: ${{ github.workspace }}/message-previews
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify private messaging, read receipts, announcement permissions and UI
+        run: dotnet run --project tests/MessagesSmoke/MessagesSmoke.csproj -c Release
+      - name: Install browser for layout verification
+        run: |
+          npm install --prefix /tmp/messages-browser playwright bootstrap
+          /tmp/messages-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify mobile layout and visible-message reading
+        env:
+          MESSAGES_PLAYWRIGHT: /tmp/messages-browser/node_modules/playwright
+          MESSAGES_BOOTSTRAP: /tmp/messages-browser/node_modules/bootstrap/dist/css/bootstrap.rtl.min.css
+        run: node tests/messages-layout.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: message-previews
+          path: ${{ github.workspace }}/message-previews
