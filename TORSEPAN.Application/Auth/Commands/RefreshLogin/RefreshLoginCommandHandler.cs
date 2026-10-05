@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.Application.Auth.Commands.RefreshLogin;
@@ -38,7 +38,7 @@ public sealed class RefreshLoginCommandHandler
 
         var user = await _users.GetByIdAsync(refreshToken.UserId);
 
-        if (user is null || !user.IsActive)
+        if (user is null || !user.IsActive || refreshToken.CredentialVersion != user.CredentialVersion)
             throw new UnauthorizedAccessException("User not found.");
 
         var roles = user.UserRoles
@@ -50,7 +50,7 @@ public sealed class RefreshLoginCommandHandler
         var newRefreshToken = new Domain.Entities.RefreshToken(
             user.Id,
             _jwtService.GenerateRefreshToken(),
-            DateTime.UtcNow.AddYears(10));
+            DateTime.UtcNow.AddYears(10), user.CredentialVersion);
 
         await _refreshTokens.AddAsync(newRefreshToken);
 
@@ -65,7 +65,7 @@ public sealed class RefreshLoginCommandHandler
                 user.UserName,
                 user.FullName,
                 user.Title,
-                roles),
+                roles, user.CredentialVersion),
 
             RefreshToken = newRefreshToken.Token
         };

@@ -1,4 +1,4 @@
-﻿using TORSEPAN.Domain.Common;
+using TORSEPAN.Domain.Common;
 
 namespace TORSEPAN.Domain.Entities;
 
@@ -11,13 +11,17 @@ public sealed class RefreshToken : Entity
     public RefreshToken(
         Guid userId,
         string token,
-        DateTime expiresAt)
+        DateTime expiresAt,
+        int credentialVersion = 0)
     {
         UserId = userId;
+        CredentialVersion = credentialVersion;
         Token = token;
         ExpiresAt = expiresAt;
         Revoked = false;
     }
+
+    public int CredentialVersion { get; private set; }
 
     public Guid UserId { get; private set; }
 

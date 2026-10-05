@@ -46,6 +46,7 @@ public sealed class UnreadDto { public int Count {get;set;} }
 public sealed class ConversationListDto { public List<ConversationDto> Items {get;set;}=[]; }
 public sealed class ConversationDto
 {
+    public Guid? AvatarVersion {get;set;}
     public Guid Id {get;set;}
     public string Name {get;set;}="";
     public bool IsActive {get;set;}=true;

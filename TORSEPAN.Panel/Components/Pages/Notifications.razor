@@ -55,7 +55,7 @@
                     @foreach (var member in FilteredMembers)
                     {
                         <button class="contact @(_peer?.Id == member.Id ? "selected" : "")" disabled="@_sending" @onclick="() => OpenChatAsync(member)" @key="member.Id">
-                            <span class="contact-avatar">@Initial(member.Name)</span><span class="contact-text"><strong>@member.Name</strong><small>@(!member.IsActive ? "آرشیو · عضو غیرفعال" : member.LastBody ?? "شروع گفتگو")</small></span>@if (member.UnreadCount > 0) { <b class="contact-unread">@member.UnreadCount</b> }
+                            <UserAvatar UserId="member.Id" Version="member.AvatarVersion" Name="member.Name" /><span class="contact-text"><strong>@member.Name</strong><small>@(!member.IsActive ? "آرشیو · عضو غیرفعال" : member.LastBody ?? "شروع گفتگو")</small></span>@if (member.UnreadCount > 0) { <b class="contact-unread">@member.UnreadCount</b> }
                         </button>
                     }
                 </div>
@@ -68,7 +68,7 @@
                 }
                 else
                 {
-                    <header class="chat-heading"><button class="back-to-chats" disabled="@_sending" aria-label="بازگشت به فهرست گفتگوها" @onclick="CloseChat">‹</button><span class="contact-avatar">@(_broadcast ? "◇" : Initial(_peer!.Name))</span><div><h2>@(_broadcast ? "اطلاعیه‌های کارگاه" : _peer!.Name)</h2><small>@(_broadcast ? "انتشار برای همهٔ اعضای فعال کارگاه" : _peer!.IsActive ? "گفتگوی خصوصی · پیام‌ها محفوظ می‌مانند" : "آرشیو گفتگو · ارسال غیرفعال است")</small></div></header>
+                    <header class="chat-heading"><button class="back-to-chats" disabled="@_sending" aria-label="بازگشت به فهرست گفتگوها" @onclick="CloseChat">‹</button>@if (_broadcast) { <span class="contact-avatar">◇</span> } else { <UserAvatar UserId="_peer!.Id" Version="_peer.AvatarVersion" Name="_peer.Name" /> }<div><h2>@(_broadcast ? "اطلاعیه‌های کارگاه" : _peer!.Name)</h2><small>@(_broadcast ? "انتشار برای همهٔ اعضای فعال کارگاه" : _peer!.IsActive ? "گفتگوی خصوصی · پیام‌ها محفوظ می‌مانند" : "آرشیو گفتگو · ارسال غیرفعال است")</small></div></header>
                     <div class="chat-thread" @ref="_thread" @onscroll="ReadVisibleAsync" aria-label="تاریخچه گفتگو">
                         @if (_chatLoading) { <p class="message-empty">در حال دریافت گفتگو…</p> }
                         else if (_broadcast)
@@ -83,6 +83,7 @@
                             {
                                 <article class="chat-bubble @(item.IsMine ? "mine" : "theirs")" data-incoming-id="@(!item.IsMine && item.ReadAt is null ? item.Id.ToString() : null)" @key="item.Id">
                                     @if (!string.IsNullOrWhiteSpace(item.Title) && item.Title != "گفتگو") { <strong>@item.Title</strong> }
+                                    @if (!item.IsMine) { <div class="bubble-author"><UserAvatar UserId="_peer!.Id" Version="_peer.AvatarVersion" Name="_peer.Name" /><strong>@_peer.Name</strong></div> }
                                     <p>@item.Body</p><footer><time>@PersianDateTime.FormatDateTime(item.CreatedAt)</time>@if (item.IsMine) { <span class="message-ticks @(item.ReadAt.HasValue ? "read" : "")" aria-label="@(item.ReadAt.HasValue ? "خوانده‌شده" : "ارسال‌شده")" title="@(item.ReadAt.HasValue ? "خوانده‌شده" : "ارسال‌شده")">@(item.ReadAt.HasValue ? "✓✓" : "✓")</span> }</footer>
                                 </article>
                             }
