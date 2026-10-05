@@ -9,7 +9,7 @@ jobs:
   inventory-ui:
     runs-on: ubuntu-latest
     env:
-      INVENTORY_PREVIEW_DIR: ${{ runner.temp }}/inventory-previews
+      INVENTORY_PREVIEW_DIR: ${{ github.workspace }}/inventory-previews
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -30,4 +30,4 @@ jobs:
         if: always()
         with:
           name: inventory-previews
-          path: ${{ runner.temp }}/inventory-previews
+          path: ${{ github.workspace }}/inventory-previews
