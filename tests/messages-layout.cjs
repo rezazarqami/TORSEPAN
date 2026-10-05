@@ -11,8 +11,10 @@ const server=http.createServer((req,res)=>{
  else file=path.join(root,url.pathname);
  try{res.setHeader('Content-Type',({'.css':'text/css','.js':'application/javascript','.webp':'image/webp','.woff2':'font/woff2'})[path.extname(file)]||'application/octet-stream');res.end(fs.readFileSync(file));}catch{res.writeHead(404);res.end();}
 });
+let browser;
+const watchdog=setTimeout(()=>{console.error("Browser layout verification timed out");process.exit(1);},90000);
 (async()=>{
- await new Promise(resolve=>server.listen(5192,'127.0.0.1',resolve));const browser=await chromium.launch({headless:true}),page=await browser.newPage();
+ await new Promise(resolve=>server.listen(5192,'127.0.0.1',resolve));browser=await chromium.launch({headless:true});const page=await browser.newPage();page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(15000);
  for(const width of [360,384,412,1024])for(const noReset of [false,true])for(const name of ['announcements','contacts','chat','broadcast']){
   await page.setViewportSize({width,height:820});await page.goto(`http://127.0.0.1:5192/preview/${name}.html${noReset?'?no-reset=1':''}`);await page.evaluate(()=>document.fonts.ready);
   const bounds=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));assert(bounds.width<=bounds.viewport,`${name} ${width}: ${JSON.stringify(bounds)}`);
@@ -31,5 +33,4 @@ const server=http.createServer((req,res)=>{
  assert(ids.includes('visible-last')&&!ids.includes('11111111-1111-1111-1111-111111111111'),'read helper returns only viewport-visible incoming messages');
  const hidden=await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});return workshopMessages.visibleIncoming(document.querySelector('.chat-thread'));});
  assert.equal(hidden.length,0,'hidden browser tab must never mark incoming messages read');console.log('PASS actual browser visibility and read helper');
- await browser.close();server.close();
-})().catch(e=>{console.error(e);server.close();process.exitCode=1});
+ })().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{clearTimeout(watchdog);if(browser)await browser.close();server.close();});
