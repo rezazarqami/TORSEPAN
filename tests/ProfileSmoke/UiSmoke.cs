@@ -42,7 +42,7 @@ internal static class UiSmoke
    page.Set("_confirmation","new-password-123");api.FailCredentials=true;await page.Call("SaveCredentialsAsync");page.Refresh();Check(Html().Contains("این نام کاربری قبلاً استفاده شده است")&&!auth.LoggedOut,"server duplicate username feedback is displayed without logging out");
    Check((string)page.Get("_currentPassword")! ==""&&(string)page.Get("_newPassword")! =="","password fields are cleared after a submission");await Save("security-error");
    await page.Call("RemoveAvatarAsync");page.Refresh();Check(api.AvatarRemoved&&((OwnProfileDto)page.Get("_profile")!).AvatarVersion is null&&!Html().Contains("data:image/png;base64"),"avatar removal updates the image to initials");
-   api.FailCredentials=false;page.Set("_currentPassword","original-password");await page.Call("SaveCredentialsAsync");Check(auth.LoggedOut&&nav.Uri.Contains("/login?accountUpdated=1")&&api.Credentials.Last().NewPassword=="","username-only save returns to login after acknowledged success");
+   api.FailCredentials=false;auth.FailLogout=true;page.Set("_currentPassword","original-password");await page.Call("SaveCredentialsAsync");Check(auth.LoggedOut&&nav.Uri.Contains("/login?accountUpdated=1")&&api.Credentials.Last().NewPassword=="","acknowledged username-only save returns to login even if browser sign-out storage fails");
   });
  }
  private static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
@@ -61,8 +61,8 @@ sealed class ProfileState:AuthenticationStateProvider{public override Task<Authe
 sealed class ProfileJs:IJSRuntime{public ValueTask<T> InvokeAsync<T>(string id,object?[]? args)=>ValueTask.FromResult(default(T)!);public ValueTask<T> InvokeAsync<T>(string id,CancellationToken ct,object?[]? args)=>InvokeAsync<T>(id,args);}
 sealed class ProfileAuth:IAuthService
 {
- public bool LoggedOut;public bool IsAuthenticated=>!LoggedOut;public string? Token=>null;public string? UserName=>"profile-me";public string? FullName=>"عضو اول";public IReadOnlyList<string> Roles=>["Tuner"];
- public Task<LoginResult> LoginAsync(LoginCommand command)=>Task.FromResult(new LoginResult());public Task LogoutAsync(){LoggedOut=true;return Task.CompletedTask;}
+ public bool LoggedOut,FailLogout;public bool IsAuthenticated=>!LoggedOut;public string? Token=>null;public string? UserName=>"profile-me";public string? FullName=>"عضو اول";public IReadOnlyList<string> Roles=>["Tuner"];
+ public Task<LoginResult> LoginAsync(LoginCommand command)=>Task.FromResult(new LoginResult());public Task LogoutAsync(){LoggedOut=true;if(FailLogout)throw new Exception("Storage temporarily unavailable");return Task.CompletedTask;}
 }
 sealed class ProfileFixtureApi:HttpMessageHandler
 {
