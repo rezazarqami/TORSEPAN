@@ -1,5 +1,5 @@
 @inject NavigationManager Navigation
-@if (!IsDashboard)
+@if (!IsMessages && !IsDashboard)
 {
 <div class="card border-0 shadow-sm mb-4"><div class="card-body py-3"><div class="input-group">
 <input class="form-control" placeholder="کد کاسه یا ساز را وارد کنید" @bind="_code" @bind:event="oninput" @onkeydown="OnKeyDown" />
@@ -8,6 +8,7 @@
 }
 @code {
  private string _code=""; private bool IsDashboard => new Uri(Navigation.Uri).AbsolutePath == "/";
+ private bool IsMessages => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/notifications", StringComparison.OrdinalIgnoreCase);
  private void Open(){if(!string.IsNullOrWhiteSpace(_code)) Navigation.NavigateTo($"/production/process?code={Uri.EscapeDataString(_code.Trim())}");}
  private void OnKeyDown(KeyboardEventArgs e){if(e.Key=="Enter") Open();}
 }

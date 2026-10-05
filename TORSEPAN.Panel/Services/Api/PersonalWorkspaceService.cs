@@ -19,6 +19,14 @@ public sealed class PersonalWorkspaceService(ApiClient api)
         return await api.GetAsync<MyActivityDto>(query)??new();
     }
     public async Task<InboxDto> InboxAsync(int page=1)=>await api.GetAsync<InboxDto>($"notifications?page={page}")??new();
+    public async Task<InboxDto> AnnouncementsAsync(int page=1)=>await api.GetAsync<InboxDto>($"notifications/announcements?page={page}")??new();
+    public async Task<List<ConversationDto>> ConversationsAsync()=>(await api.GetAsync<ConversationListDto>("notifications/conversations"))?.Items??[];
+    public async Task<ChatHistoryDto> ChatAsync(Guid peer,int page=1)=>await api.GetAsync<ChatHistoryDto>($"notifications/conversations/{peer}?page={page}")??new();
+    public async Task<ChatReadDto> ReadChatAsync(Guid peer,IEnumerable<Guid> ids)
+    {
+        var result=await api.PostAsync<object,ChatReadDto>($"notifications/conversations/{peer}/read",new{Ids=ids.ToArray()})??new();
+        await RefreshUnreadAsync();return result;
+    }
     public async Task ReadAsync(Guid id)
     { await api.PostAsync<object,object?>($"notifications/{id}/read",new{});await RefreshUnreadAsync(); }
     public async Task<List<MessageRecipientDto>> RecipientsAsync()=>await api.GetAsync<List<MessageRecipientDto>>("notifications/recipients")??[];
