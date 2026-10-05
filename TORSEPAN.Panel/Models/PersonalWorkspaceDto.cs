@@ -21,6 +21,8 @@ public sealed class MyActivityRow
     public string Duration {get;set;} = "";
     public string Details {get;set;} = "";
 }
+public sealed class MyPayrollDto { public bool Enabled {get;set;} public DateTime From {get;set;} public DateTime To {get;set;} public decimal Total {get;set;} public List<MyPayrollLineDto> Lines {get;set;}=[]; }
+public sealed class MyPayrollLineDto { public string Operation {get;set;}=""; public string Description {get;set;}=""; public int Count {get;set;} public decimal Rate {get;set;} public decimal Total {get;set;} }
 public sealed class InboxDto
 {
     public int Total {get;set;}
@@ -44,6 +46,7 @@ public sealed class UnreadDto { public int Count {get;set;} }
 public sealed class ConversationListDto { public List<ConversationDto> Items {get;set;}=[]; }
 public sealed class ConversationDto
 {
+    public Guid? AvatarVersion {get;set;}
     public Guid Id {get;set;}
     public string Name {get;set;}="";
     public bool IsActive {get;set;}=true;

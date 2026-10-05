@@ -20,9 +20,9 @@
         </svg>
         <span class="logout-label">@(isLoggingOut ? "در حال خروج..." : "خروج")</span>
     </button>
-    <div class="user-box user-box-clean">
+    <a class="user-box user-box-clean" href="/my-account" title="ناحیهٔ کاربری" aria-label="ناحیهٔ کاربری">
         <div><div class="user-name">@DisplayName</div><div class="user-role">@UserTitle</div></div>
-    </div>
+    </a>
 </div>
 
 @code {

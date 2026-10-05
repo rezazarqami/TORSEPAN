@@ -9,6 +9,11 @@ public sealed class User : Entity
     public string FullName { get; private set; } = string.Empty;
     public string Title { get; private set; } = string.Empty;
 
+    public int CredentialVersion { get; private set; }
+    public byte[]? AvatarPng { get; private set; }
+    public Guid? AvatarVersion { get; private set; }
+    public void ChangeAvatar(byte[]? image) { AvatarPng = image; AvatarVersion = image is null ? null : Guid.NewGuid(); }
+
     public string PasswordHash { get; private set; } = string.Empty;
 
     // موقتاً برای سازگاری با بخش‌های فعلی پروژه نگه داشته می‌شود.
@@ -61,7 +66,8 @@ public sealed class User : Entity
 
     public void SetPassword(string password)
     {
-        PasswordHash = password;
+        PasswordHash = TORSEPAN.Domain.Security.PasswordCredential.Hash(password);
+        CredentialVersion++;
     }
 
     public void SetRole(string role)
@@ -71,7 +77,8 @@ public sealed class User : Entity
 
     public void ChangePassword(string password)
     {
-        PasswordHash = password;
+        PasswordHash = TORSEPAN.Domain.Security.PasswordCredential.Hash(password);
+        CredentialVersion++;
     }
 
     public void ChangeRole(string role)
@@ -81,7 +88,7 @@ public sealed class User : Entity
 
     public bool VerifyPassword(string password)
     {
-        return PasswordHash == password;
+        return TORSEPAN.Domain.Security.PasswordCredential.Verify(PasswordHash, password);
     }
 
     public bool IsInRole(string role)

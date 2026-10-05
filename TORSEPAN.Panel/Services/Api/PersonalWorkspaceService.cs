@@ -18,6 +18,13 @@ public sealed class PersonalWorkspaceService(ApiClient api)
         if(to.HasValue)query+="&to="+to.Value.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture);
         return await api.GetAsync<MyActivityDto>(query)??new();
     }
+    public async Task<MyPayrollDto> PayrollAsync(DateTime? from,DateTime? to)
+    {
+        var query="me/activity/payroll?x=1";
+        if(from.HasValue)query+="&from="+from.Value.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture);
+        if(to.HasValue)query+="&to="+to.Value.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture);
+        return await api.GetAsync<MyPayrollDto>(query)??new();
+    }
     public async Task<InboxDto> InboxAsync(int page=1)=>await api.GetAsync<InboxDto>($"notifications?page={page}")??new();
     public async Task<InboxDto> AnnouncementsAsync(int page=1)=>await api.GetAsync<InboxDto>($"notifications/announcements?page={page}")??new();
     public async Task<List<ConversationDto>> ConversationsAsync()=>(await api.GetAsync<ConversationListDto>("notifications/conversations"))?.Items??[];
@@ -32,5 +39,18 @@ public sealed class PersonalWorkspaceService(ApiClient api)
     public async Task<List<MessageRecipientDto>> RecipientsAsync()=>await api.GetAsync<List<MessageRecipientDto>>("notifications/recipients")??[];
     public async Task SendAsync(Guid id,string title,string body,bool broadcast,Guid? recipient)
     { await api.PostAsync<object,object?>("notifications",new{Id=id,Title=title,Body=body,Broadcast=broadcast,RecipientId=recipient});await RefreshUnreadAsync(); }
+    public Task<OwnProfileDto?> ProfileAsync()=>api.GetAsync<OwnProfileDto>("me/profile");
+    public async Task<OwnCredentialsResult> SaveCredentialsAsync(OwnCredentialsDto request)=>await api.PutAccountAsync<OwnCredentialsDto,OwnCredentialsResult>("me/profile/credentials",request)??throw new InvalidOperationException();
+    public async Task<OwnAvatarResult> SaveAvatarAsync(byte[]? png)=>await api.PutAccountAsync<object,OwnAvatarResult>("me/profile/avatar",new{PngBase64=png is null?null:Convert.ToBase64String(png)})??throw new InvalidOperationException();
+    private readonly Dictionary<Guid,(Guid Version,Task<string?> Image)> _avatars=[];
+    public Task<string?> AvatarAsync(Guid id,Guid version)
+    {
+        if(_avatars.TryGetValue(id,out var cached)&&cached.Version==version)return cached.Image;
+        var image=LoadAvatarAsync(id);_avatars[id]=(version,image);return image;
+    }
+    private async Task<string?> LoadAvatarAsync(Guid id)
+    {
+        try{return "data:image/png;base64,"+Convert.ToBase64String(await api.GetBytesAsync($"users/{id}/avatar"));}
+        catch{_avatars.Remove(id);return null;}
+    }
 }
-

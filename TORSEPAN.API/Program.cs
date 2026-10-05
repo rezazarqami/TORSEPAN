@@ -1,3 +1,6 @@
+using System.Threading.RateLimiting;
+using System.Security.Claims;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
 using TORSEPAN.Application;
@@ -43,6 +46,12 @@ builder.Services.AddApplication();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
+builder.Services.AddRateLimiter(options => {
+    options.RejectionStatusCode = 429;
+    options.AddPolicy("account-security", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true }));
+});
 var app = builder.Build();
 
 app.UseForwardedHeaders();
@@ -62,7 +71,7 @@ await using (var scope = app.Services.CreateAsyncScope())
         var bootstrapUser = await dbContext.Users.FirstOrDefaultAsync(user =>
             user.UserName.Trim().ToUpper() == normalizedUserName);
 
-        if (bootstrapUser is not null)
+        if (bootstrapUser is not null && builder.Configuration.GetValue<bool>("BootstrapAdmin:ResetExistingPassword"))
         {
             bootstrapUser.SetPassword(bootstrapPassword);
             bootstrapUser.Activate();
@@ -70,7 +79,7 @@ await using (var scope = app.Services.CreateAsyncScope())
             app.Logger.LogInformation(
                 "Bootstrap password reset was applied to the configured user.");
         }
-        else
+        else if (bootstrapUser is null && !await dbContext.Users.AnyAsync())
         {
             var administratorRole = await dbContext.Roles.FirstOrDefaultAsync(role =>
                 role.Name == "Administrator");
@@ -110,6 +119,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -1,0 +1,47 @@
+name: Personal account
+on:
+  push:
+    branches: [master, deploy-api, deploy-panel]
+    paths: ['TORSEPAN.Domain/**', 'TORSEPAN.Application/Auth/**', 'TORSEPAN.Infrastructure/**', 'TORSEPAN.API/**', 'TORSEPAN.Panel/**', 'tests/ProfileSmoke/**', 'tests/profile-layout.cjs', '.github/workflows/profile.yml']
+  pull_request:
+    paths: ['TORSEPAN.Domain/**', 'TORSEPAN.Application/Auth/**', 'TORSEPAN.Infrastructure/**', 'TORSEPAN.API/**', 'TORSEPAN.Panel/**', 'tests/ProfileSmoke/**', 'tests/profile-layout.cjs', '.github/workflows/profile.yml']
+jobs:
+  personal-account:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: profile_test
+          POSTGRES_PASSWORD: fixture-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PROFILE_TEST_DB: 'Host=localhost;Port=5432;Database=profile_test;Username=postgres;Password=fixture-only'
+      PROFILE_PREVIEW_DIR: ${{ github.workspace }}/profile-previews
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify account changes, session revocation, avatars and performance tabs
+        run: dotnet run --project tests/ProfileSmoke/ProfileSmoke.csproj -c Release
+      - name: Install browser for layout verification
+        run: |
+          npm install --prefix /tmp/profile-browser playwright bootstrap
+          /tmp/profile-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify responsive account layout
+        env:
+          PROFILE_PLAYWRIGHT: /tmp/profile-browser/node_modules/playwright
+          PROFILE_BOOTSTRAP: /tmp/profile-browser/node_modules/bootstrap/dist/css/bootstrap.rtl.min.css
+        run: node tests/profile-layout.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: profile-previews
+          path: ${{ github.workspace }}/profile-previews
