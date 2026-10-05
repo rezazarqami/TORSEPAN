@@ -63,7 +63,7 @@ public sealed class NotificationsController(TORSEPANDbContext db) : ControllerBa
         var items = await db.Users.AsNoTracking().Where(u => u.Id != me &&
             (u.IsActive || direct.Any(r => (r.Message.SenderId == me && r.RecipientId == u.Id) || (r.Message.SenderId == u.Id && r.RecipientId == me))))
             .Select(u => new {
-                u.Id, Name = u.FullName == "" ? u.UserName : u.FullName, u.IsActive,
+                u.Id, u.AvatarVersion, Name = u.FullName == "" ? u.UserName : u.FullName, u.IsActive,
                 UnreadCount = direct.Count(r => r.RecipientId == me && r.Message.SenderId == u.Id && r.ReadAt == null),
                 LastBody = direct.Where(r => (r.Message.SenderId == me && r.RecipientId == u.Id) || (r.Message.SenderId == u.Id && r.RecipientId == me))
                     .OrderByDescending(r => r.Message.CreatedAt).ThenByDescending(r => r.MessageId).Select(r => r.Message.Body).FirstOrDefault(),

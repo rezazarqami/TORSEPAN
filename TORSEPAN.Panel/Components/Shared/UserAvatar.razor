@@ -1,0 +1,24 @@
+@inject PersonalWorkspaceService Workspace
+<span class="user-avatar" aria-hidden="true">
+    @if (_image is not null) { <img src="@_image" alt="" /> }
+    else { <span>@Initial</span> }
+</span>
+@code {
+    [Parameter] public Guid UserId {get;set;}
+    [Parameter] public Guid? Version {get;set;}
+    [Parameter] public string Name {get;set;} = "";
+    private string? _image;
+    private int _request;
+    private Guid _loadedId;
+    private Guid? _loadedVersion;
+    private string Initial => string.IsNullOrWhiteSpace(Name) ? "•" : Name.Trim()[..1];
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == UserId && _loadedVersion == Version) return;
+        _loadedId = UserId; _loadedVersion = Version;
+        var request = ++_request; _image = null;
+        if (UserId == Guid.Empty || Version is null) return;
+        var image = await Workspace.AvatarAsync(UserId, Version.Value);
+        if (request == _request) _image = image;
+    }
+}
