@@ -23,7 +23,6 @@
  @if (!string.IsNullOrWhiteSpace(_error)) { <div class="inventory-notice error" role="alert">@_error <button class="btn btn-sm btn-outline-danger" @onclick="LoadAsync">تلاش دوباره</button></div> }
  @if (!_loading && Overview)
  {
-  <div class="inventory-totals"><span>کاسه رو <b>@BowlItems.Sum(x => x.TopBowlQuantity)</b></span><span>کاسه زیر <b>@BowlItems.Sum(x => x.BottomBowlQuantity)</b></span><span>سایر اقلام <b>@OtherItems.Sum(x => x.Quantity)</b></span></div>
   <div class="overview-grid">
    <section class="inventory-card"><header><h2>موجودی کاسه‌ها</h2><small>@BowlItems.Count() متریال</small></header>
     <table class="bowl-overview" aria-label="موجودی کاسه‌ها؛ رنگ قرمز نشان‌دهنده موجودی صفر یا کمتر از حد هشدار است"><thead><tr><th>متریال</th><th>رو</th><th>زیر</th></tr></thead><tbody>

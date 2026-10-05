@@ -6,7 +6,6 @@
 @inject MaterialService MaterialService
 @inject ScaleService ScaleService
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
 
 <PageTitle>مدیریت تولید | تورسپن</PageTitle>
 <section class="production-hero">
@@ -16,8 +15,8 @@
 </section>
 <div class="production-toolbar"><p>فهرست تولید را بررسی کنید یا کاسهٔ جدید ثبت کنید.</p><button type="button" class="btn btn-primary" @onclick="NewBowl">＋ ثبت کاسه</button></div>
 <nav class="production-tabs" aria-label="بخش‌های تولید">
-    <button type="button" class="@(_tab == "bowls" ? "active" : "")" aria-pressed="@(_tab == "bowls")" disabled="@_deleting" @onclick='() => _tab = "bowls"'><span aria-hidden="true">◒</span><div><strong>کاسه‌ها</strong><small>کاسه رو و کاسه زیر</small></div><b>@(_loading ? "…" : _bowlTotalItems.ToString())</b></button>
-    <button type="button" class="@(_tab == "handpans" ? "active" : "")" aria-pressed="@(_tab == "handpans")" disabled="@_deleting" @onclick='() => _tab = "handpans"'><span aria-hidden="true">◎</span><div><strong>سازها</strong><small>سازهای تشکیل‌شده</small></div><b>@(_loading ? "…" : _handpans.Count.ToString())</b></button>
+    <button type="button" class="@(_tab == "bowls" ? "active" : "")" aria-pressed="@(_tab == "bowls")" disabled="@(_deleting || _rollingBack)" @onclick='() => _tab = "bowls"'><span aria-hidden="true">◒</span><div><strong>کاسه‌ها</strong><small>کاسه رو و کاسه زیر</small></div><b>@(_loading ? "…" : _bowlTotalItems.ToString())</b></button>
+    <button type="button" class="@(_tab == "handpans" ? "active" : "")" aria-pressed="@(_tab == "handpans")" disabled="@(_deleting || _rollingBack)" @onclick='() => _tab = "handpans"'><span aria-hidden="true">◎</span><div><strong>سازها</strong><small>سازهای تشکیل‌شده</small></div><b>@(_loading ? "…" : _handpans.Count.ToString())</b></button>
 </nav>
 @if (_loading)
 {
@@ -57,7 +56,7 @@ else if (_tab == "bowls")
                         {
                             <div class="production-card-details">
                                 <dl><div><dt>متریال</dt><dd>@bowl.MaterialName</dd></div><div><dt>دارای نت</dt><dd>@(bowl.HasNotes ? "بله" : "خیر")</dd></div></dl>
-                                <div class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@_deleting" @onclick="() => RollbackBowlAsync(bowl)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@_deleting" @onclick="() => RequestDelete(bowl)">حذف</button></AuthorizeView></div>
+                                <div class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@(_deleting || _rollingBack)" @onclick="() => RequestRollback(bowl)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@(_deleting || _rollingBack)" @onclick="() => RequestDelete(bowl)">حذف</button></AuthorizeView></div>
                                 <div class="production-details"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی کاسه {bowl.ProductionCode}")" Operations="bowl.Operations" /></div>
                             </div>
                         }
@@ -102,7 +101,7 @@ else
                         {
                             <div class="production-card-details">
                                 <dl><div><dt>متریال</dt><dd>@handpan.MaterialName</dd></div><div><dt>کد کاسه رو</dt><dd><bdi dir="ltr">@handpan.TopBowlCode</bdi></dd></div><div><dt>کد کاسه زیر</dt><dd><bdi dir="ltr">@handpan.BottomBowlCode</bdi></dd></div></dl>
-                                <div class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@_deleting" @onclick="() => RollbackHandpanAsync(handpan)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@_deleting" @onclick="() => RequestDelete(handpan)">حذف</button></AuthorizeView></div>
+                                <div class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@(_deleting || _rollingBack)" @onclick="() => RequestRollback(handpan)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@(_deleting || _rollingBack)" @onclick="() => RequestDelete(handpan)">حذف</button></AuthorizeView></div>
                                 <div class="production-details"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی ساز {handpan.SerialNumber}")" Operations="handpan.Operations" /></div>
                             </div>
                         }
@@ -121,6 +120,19 @@ else
     </section>
 }
 
+<AppConfirmDialog IsOpen="@(_rollbackBowl is not null || _rollbackHandpan is not null)"
+                  Title="بازگشت به مرحله قبل"
+                  Message="@_rollbackMessage"
+                  ConfirmText="تأیید و بازگشت"
+                  Error="@_rollbackError"
+                  Busy="@_rollingBack"
+                  OnConfirm="ConfirmRollbackAsync"
+                  OnCancel="CancelRollback" />
+@if (_rollbackNotice is not null)
+{
+    <div class="production-delete-notice" role="status"><span>@_rollbackNotice</span><button type="button" aria-label="بستن پیام" @onclick="() => _rollbackNotice = null">×</button></div>
+}
+
 @if (_deleteBowl is not null || _deleteHandpan is not null)
 {
     <div class="production-delete-overlay"><section class="production-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="production-delete-title">
@@ -128,7 +140,7 @@ else
         <p>کد <strong>@(_deleteBowl?.ProductionCode ?? _deleteHandpan?.SerialNumber)</strong> برای همیشه حذف شود؟</p>
         <p class="delete-warning">@(_deleteBowl is not null ? "کاسه و سوابق مرتبط حذف می‌شوند. اگر کاسه به ساز متصل باشد، ساز و کاسهٔ دیگر آن هم حذف می‌شوند." : "ساز، کاسه‌های مرتبط و تمام سوابق آن حذف می‌شوند.")</p>
         @if (_deleteError is not null) { <div class="alert alert-danger" role="alert">@_deleteError</div> }
-        <div class="production-delete-actions"><button type="button" class="btn btn-danger" disabled="@_deleting" @onclick="ConfirmDeleteAsync">@(_deleting ? "در حال حذف…" : "تأیید و حذف")</button><button type="button" class="btn btn-light" disabled="@_deleting" @onclick="CancelDelete">انصراف</button></div>
+        <div class="production-delete-actions"><button type="button" class="btn btn-danger" disabled="@(_deleting || _rollingBack)" @onclick="ConfirmDeleteAsync">@(_deleting ? "در حال حذف…" : "تأیید و حذف")</button><button type="button" class="btn btn-light" disabled="@(_deleting || _rollingBack)" @onclick="CancelDelete">انصراف</button></div>
     </section></div>
 }
 @if (_deleteNotice is not null)
@@ -137,6 +149,12 @@ else
 }
 
 @code {
+    private BowlDto? _rollbackBowl;
+    private HandpanDto? _rollbackHandpan;
+    private bool _rollingBack;
+    private string? _rollbackError, _rollbackNotice;
+    private string _rollbackMessage = string.Empty;
+    private int? _rollbackTarget;
     private BowlDto? _deleteBowl;
     private HandpanDto? _deleteHandpan;
     private bool _deleting;
@@ -219,17 +237,17 @@ else
 
     private void RequestDelete(BowlDto bowl)
     {
-        if (_deleting) return;
+        if (_deleting || _rollingBack) return;
         _deleteBowl = bowl; _deleteHandpan = null; _deleteError = null; _deleteNotice = null;
     }
     private void RequestDelete(HandpanDto handpan)
     {
-        if (_deleting) return;
+        if (_deleting || _rollingBack) return;
         _deleteHandpan = handpan; _deleteBowl = null; _deleteError = null; _deleteNotice = null;
     }
     private void CancelDelete()
     {
-        if (_deleting) return;
+        if (_deleting || _rollingBack) return;
         _deleteBowl = null; _deleteHandpan = null; _deleteError = null;
     }
     private async Task ConfirmDeleteAsync()
@@ -273,8 +291,72 @@ else
         finally { _filtering = false; }
     }
     private async Task ClearFiltersAsync(){_bowlTypeFilter=_notesFilter=_materialFilter=_scaleFilter=_stageFilter="";await GoToBowlPageAsync(1);}
-    private async Task RollbackBowlAsync(BowlDto bowl){if(!await JS.InvokeAsync<bool>("confirm",$"کاسه {bowl.ProductionCode} به مرحله قبل برگردد؟ سابقه همان مرحله نیز برگردانده می‌شود."))return;try{await BowlService.RollbackAsync(bowl.Id);await LoadBowlPageAsync(_bowlPage);_handpans=(await HandpanService.GetAllAsync()).ToList();}catch{_error="بازگشت این کاسه در وضعیت فعلی امکان‌پذیر نیست.";}}
-    private async Task RollbackHandpanAsync(HandpanDto handpan){if(!await JS.InvokeAsync<bool>("confirm",$"ساز {handpan.SerialNumber} به مرحله قبل برگردد؟"))return;try{await HandpanService.RollbackAsync(handpan.Id);await LoadBowlPageAsync(_bowlPage);_handpans=(await HandpanService.GetAllAsync()).ToList();}catch{_error="بازگشت این ساز در وضعیت فعلی امکان‌پذیر نیست.";}}
+    private void RequestRollback(BowlDto bowl)
+    {
+        if (_deleting || _rollingBack) return;
+        var handpan = _handpans.FirstOrDefault(x => x.TopBowlCode == bowl.ProductionCode || x.BottomBowlCode == bowl.ProductionCode);
+        OpenRollback(bowl, handpan);
+    }
+    private void RequestRollback(HandpanDto handpan)
+    {
+        if (_deleting || _rollingBack) return;
+        OpenRollback(null, handpan);
+    }
+    private void OpenRollback(BowlDto? bowl, HandpanDto? handpan)
+    {
+        var stage = handpan?.Stage ?? bowl!.Stage;
+        var target = RollbackStage(stage, handpan is not null);
+        _rollbackError = null; _rollbackNotice = null;
+        if (target is null)
+        {
+            _rollbackNotice = $"برای وضعیت «{StageText(stage)}» بازگشت به مرحله قبل امکان‌پذیر نیست.";
+            return;
+        }
+        _rollbackBowl = bowl; _rollbackHandpan = handpan; _rollbackTarget = target;
+        var code = bowl?.ProductionCode ?? handpan!.SerialNumber;
+        _rollbackMessage = $"کد {code} از «{StageText(stage)}» به «{StageText(target.Value)}» برگردد؟ سابقهٔ عملیات همان مرحله نیز برگردانده می‌شود.";
+        if (handpan is not null)
+            _rollbackMessage += $" این تغییر برای ساز {handpan.SerialNumber} و هر دو کاسهٔ آن انجام می‌شود.";
+    }
+    private void CancelRollback()
+    {
+        if (_rollingBack) return;
+        _rollbackBowl = null; _rollbackHandpan = null; _rollbackError = null; _rollbackTarget = null;
+    }
+    private async Task ConfirmRollbackAsync()
+    {
+        if (_deleting || _rollingBack || _rollbackTarget is null || (_rollbackBowl is null && _rollbackHandpan is null)) return;
+        _rollingBack = true; _rollbackError = null;
+        var code = _rollbackBowl?.ProductionCode ?? _rollbackHandpan!.SerialNumber;
+        var target = _rollbackTarget.Value;
+        try
+        {
+            if (_rollbackHandpan is not null) await HandpanService.RollbackAsync(_rollbackHandpan.Id);
+            else await BowlService.RollbackAsync(_rollbackBowl!.Id);
+        }
+        catch
+        {
+            _rollbackError = "بازگشت انجام نشد. وضعیت رکورد و اتصال را بررسی کنید و دوباره تلاش کنید.";
+            _rollingBack = false;
+            return;
+        }
+        _rollbackBowl = null; _rollbackHandpan = null; _rollbackTarget = null;
+        _rollbackNotice = $"کد {code} به «{StageText(target)}» برگشت.";
+        try
+        {
+            await LoadBowlPageAsync(_bowlPage);
+            if (_bowls.Count == 0 && _bowlPage > 1) await LoadBowlPageAsync(_bowlPage - 1);
+            _handpans = (await HandpanService.GetAllAsync()).ToList();
+            _expandedHandpans.Clear();
+            if (_handpanPage > HandpanTotalPages && _handpanPage > 1) _handpanPage = Math.Max(1, HandpanTotalPages);
+        }
+        catch { _rollbackNotice += " برای دریافت فهرست جدید، صفحه را تازه کنید."; }
+        finally { _rollingBack = false; }
+    }
+    // Match the supported transitions in ProductionRollbackService.
+    private static int? RollbackStage(int stage, bool handpan) => handpan
+        ? stage switch { 11 => 10, 12 => 11, 14 => 12, 16 => 14, 18 => 16, 20 => 18, _ => null }
+        : stage switch { 4 => 2, 6 => 4, 8 => 6, 10 => 8, 21 => 8, 22 => 21, 20 => 22, _ => null };
     private static readonly (int Value,string Text)[] StageOptions=[(2,"در انتظار دیمپل"),(4,"در انتظار شیپ"),(6,"در انتظار پخت"),(8,"در انتظار تیون"),(10,"در انتظار چسب"),(11,"اتاق چسب"),(12,"در انتظار فاین تیون"),(14,"در انتظار QC"),(16,"در انتظار بسته‌بندی"),(21,"در انتظار بسته‌بندی صادراتی"),(22,"انبار صادراتی")];
     private static readonly (int Value,string Text)[] HandpanStageOptions=[(11,"اتاق چسب"),(12,"در انتظار فاین تیون"),(14,"در انتظار QC"),(16,"در انتظار بسته‌بندی")];
 
