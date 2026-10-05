@@ -1,141 +1,78 @@
 @page "/materials"
 @page "/warehouse/materials/manage"
-
 @using TORSEPAN.Panel.Models
 @using Microsoft.AspNetCore.Components.Authorization
 @using TORSEPAN.Panel.Services.Api
-
 @inject MaterialService MaterialService
-@inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>انبار مواد اولیه</PageTitle>
-
-<PageHeader Title="انبار مواد اولیه" SubTitle="مدیریت موجودی کاسه‌ها و اقلام مصرفی تولید و بسته‌بندی">
-    <Actions>
-        <button class="btn btn-outline-secondary" @onclick="BackToOverview">بازگشت به نمای موجودی</button>
-    </Actions>
-</PageHeader>
-
-<div class="inventory-actions">
-    <div>
-        <strong>مدیریت موجودی انبار</strong>
-        <small>موجودی، حد هشدار و قالب کدها را از کارت‌های زیر تنظیم کنید.</small>
-    </div>
-    <button type="button" class="btn btn-success add-material-button" @onclick="NewMaterial">
-        <span aria-hidden="true">＋</span> افزودن قلم جدید
-    </button>
+<PageTitle>انبار مواد اولیه | تورسپن</PageTitle>
+<section class="inventory-hero" aria-labelledby="inventory-title">
+ <span dir="ltr">MATERIAL INVENTORY</span>
+ <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
+ <h1 id="inventory-title">انبار مواد اولیه</h1>
+ <p>موجودی کاسه‌ها و اقلام کارگاه؛ مرتب و در یک نگاه</p>
+</section>
+<div class="inventory-workspace">
+ <nav class="inventory-tabs" aria-label="بخش‌های انبار مواد اولیه">
+  <a href="/warehouse/materials" class="@(Overview ? "active" : "")" aria-current="@(Overview ? "page" : null)">نمای کلی</a>
+  @if (_isAdministrator) { <a href="/warehouse/materials/manage" class="@(!Overview ? "active" : "")" aria-current="@(!Overview ? "page" : null)">مدیریت موجودی</a> }
+ </nav>
+ @if (_loading) { <div class="inventory-notice" role="status">در حال دریافت موجودی…</div> }
+ @if (!string.IsNullOrWhiteSpace(_message)) { <div class="inventory-notice success" role="status">@_message</div> }
+ @if (!string.IsNullOrWhiteSpace(_error)) { <div class="inventory-notice error" role="alert">@_error <button class="btn btn-sm btn-outline-danger" @onclick="LoadAsync">تلاش دوباره</button></div> }
+ @if (!_loading && Overview)
+ {
+  <div class="inventory-totals"><span>کاسه رو <b>@BowlItems.Sum(x => x.TopBowlQuantity)</b></span><span>کاسه زیر <b>@BowlItems.Sum(x => x.BottomBowlQuantity)</b></span><span>سایر اقلام <b>@OtherItems.Sum(x => x.Quantity)</b></span></div>
+  <div class="overview-grid">
+   <section class="inventory-card"><header><h2>موجودی کاسه‌ها</h2><small>@BowlItems.Count() متریال</small></header>
+    <table class="bowl-overview" aria-label="موجودی کاسه‌ها؛ رنگ قرمز نشان‌دهنده موجودی صفر یا کمتر از حد هشدار است"><thead><tr><th>متریال</th><th>رو</th><th>زیر</th></tr></thead><tbody>
+    @foreach (var item in BowlItems) { <tr><td>@item.Name</td><td class="@(IsLow(item.TopBowlQuantity, item.TopBowlLowStockThreshold) ? "low-stock" : "")">@item.TopBowlQuantity</td><td class="@(IsLow(item.BottomBowlQuantity, item.BottomBowlLowStockThreshold) ? "low-stock" : "")">@item.BottomBowlQuantity</td></tr> }
+    </tbody></table>
+    @if (!BowlItems.Any()) { <p class="inventory-empty">متریالی ثبت نشده است.</p> }
+   </section>
+   <section class="inventory-card"><header><h2>مواد مصرفی و بسته‌بندی</h2><small>@OtherItems.Count() قلم</small></header>
+    <div class="supplies-grid" aria-label="موجودی سایر اقلام؛ رنگ قرمز نشان‌دهنده موجودی صفر یا کمتر از حد هشدار است">@foreach (var item in OtherItems) { <div class="supply-item @(IsLow(item.Quantity, item.LowStockThreshold) ? "low-stock" : "")"><span>@item.Name</span><b>@item.Quantity</b></div> }</div>
+    @if (!OtherItems.Any()) { <p class="inventory-empty">قلمی ثبت نشده است.</p> }
+   </section>
+  </div>
+ }
+ else if (!_loading && !Overview && _isAdministrator)
+ {
+  <section class="inventory-card management-card">
+   <header><h2>@(_adding ? "افزودن قلم جدید" : "مدیریت موجودی")</h2><button type="button" class="btn btn-outline-primary" @onclick="() => { _adding = !_adding; _message = null; }">@(_adding ? "بازگشت به ویرایش" : "＋ افزودن قلم")</button></header>
+   @if (_adding) { <NewMaterial Embedded="true" OnCreated="MaterialCreated" /> }
+   else
+   {
+    <div class="inventory-categories"><button type="button" class="@(_category == 4 ? "active" : "")" @onclick="() => SelectCategory(4)">متریال کاسه</button><button type="button" class="@(_category == 3 ? "active" : "")" @onclick="() => SelectCategory(3)">مواد و بسته‌بندی</button></div>
+    <label class="inventory-field">جست‌وجوی قلم<input class="form-control" placeholder="نام متریال یا قلم…" @bind="_search" @bind:event="oninput" /></label>
+    <label class="inventory-field">انتخاب قلم<select class="form-select" @bind="_selectedId"><option value="@Guid.Empty">قلم را انتخاب کنید</option>@foreach (var item in FilteredItems) { <option value="@item.Id">@item.Name</option> }</select></label>
+    @if (SelectedItem is { } selected)
+    {
+     <div class="selected-stock"><strong>@selected.Name</strong>@if (selected.Category == 4) { <span>رو <b>@selected.TopBowlQuantity</b></span><span>زیر <b>@selected.BottomBowlQuantity</b></span> } else { <span>موجودی <b>@selected.Quantity</b></span> }</div>
+     @if (selected.Category == 4) { <BowlStockControls @key="selected.Id" Item="selected" OnSaved="StockSaved" /> } else { <StockControls @key="selected.Id" Item="selected" OnSaved="StockSaved" /> }
+    }
+    else { <p class="inventory-empty">یک قلم را برای تنظیم موجودی و حد هشدار انتخاب کنید.</p> }
+   }
+  </section>
+ }
+ else if (!_loading && !Overview) { <div class="inventory-notice">مدیریت موجودی فقط برای ادمین فعال است. <a href="/warehouse/materials">نمای کلی موجودی</a></div> }
 </div>
 
-@if (!string.IsNullOrWhiteSpace(_message))
-{
-    <div class="alert alert-success">@_message</div>
-}
-@if (!string.IsNullOrWhiteSpace(_error))
-{
-    <div class="alert alert-danger">@_error</div>
-}
-
-@if (_loading)
-{
-    <div class="text-center p-5"><div class="spinner-border"></div></div>
-}
-else
-{
-    <h5 class="inventory-section-title">موجودی کاسه‌ها</h5>
-    <div class="inventory-table-shell mb-4">
-        <table class="inventory-management-table">
-            <thead><tr><th>متریال</th><th>موجودی فعلی</th><th>مدیریت موجودی، هشدار و قالب کد</th></tr></thead>
-            <tbody>
-                @foreach (var item in BowlItems)
-                {
-                    <tr>
-                        <td class="material-name"><strong>@item.Name</strong></td>
-                        <td>
-                            <div class="stock-summary compact-stock-summary">
-                                <span><small>کاسه رو</small><strong>@item.TopBowlQuantity</strong></span>
-                                <span><small>کاسه زیر</small><strong>@item.BottomBowlQuantity</strong></span>
-                            </div>
-                        </td>
-                        <td><BowlStockControls Item="item" OnSaved="StockSaved" /></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <div class="inventory-list-heading">
-        <h5 class="mb-0">سایر مواد اولیه و اقلام بسته‌بندی</h5>
-        <input class="form-control" style="max-width:320px" placeholder="جست‌وجوی ماده اولیه..."
-               @bind="_search" @bind:event="oninput" />
-    </div>
-
-    <div class="inventory-table-shell">
-        <table class="inventory-management-table other-items-table">
-            <thead><tr><th>نام قلم</th><th>موجودی فعلی</th><th>افزایش یا ثبت موجودی</th><th>حد هشدار</th></tr></thead>
-            <tbody>
-                @foreach (var item in OtherItems)
-                {
-                    <tr>
-                        <td class="material-name"><strong>@item.Name</strong></td>
-                        <td><span class="current-quantity">@item.Quantity</span></td>
-                        <td colspan="2"><StockControls Item="item" OnSaved="StockSaved" /></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
-
 @code {
-    private readonly List<MaterialDto> _items = [];
-    private bool _loading = true;
-    private bool _isAdministrator;
-    private string _search = string.Empty;
-    private string? _error;
-    private string? _message;
-
-    private IEnumerable<MaterialDto> BowlItems => _items
-        .Where(x => x.Category == 4)
-        .OrderBy(x => x.Name);
-
-    private IEnumerable<MaterialDto> OtherItems => _items
-        .Where(x => x.Category == 3 &&
-            (string.IsNullOrWhiteSpace(_search) || x.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)))
-        .OrderBy(x => x.Name);
-
-    protected override async Task OnInitializedAsync()
-    {
-        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _isAdministrator = state.User.IsInRole("Administrator");
-        await LoadAsync();
-    }
-
-    private async Task LoadAsync()
-    {
-        _loading = true;
-        _error = null;
-        try
-        {
-            _items.Clear();
-            _items.AddRange(await MaterialService.GetAsync());
-        }
-        catch
-        {
-            _error = "دریافت موجودی انبار انجام نشد.";
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    private async Task StockSaved()
-    {
-        _message = "موجودی با موفقیت به‌روزرسانی شد.";
-        await LoadAsync();
-    }
-
-    private void NewMaterial() => Navigation.NavigateTo("/warehouse/materials/new");
-    private void BackToOverview() => Navigation.NavigateTo("/warehouse/materials");
+ [Parameter] public bool Overview { get; set; }
+ private readonly List<MaterialDto> _items = [];
+ private bool _loading = true, _isAdministrator, _adding;
+ private int _category = 4; private Guid _selectedId; private string _search = "";
+ private string? _error, _message;
+ private IEnumerable<MaterialDto> BowlItems => _items.Where(x => x.Category == 4).OrderBy(x => x.Name);
+ private IEnumerable<MaterialDto> OtherItems => _items.Where(x => x.Category == 3).OrderBy(x => x.Name);
+ private IEnumerable<MaterialDto> FilteredItems => _items.Where(x => x.Category == _category && (string.IsNullOrWhiteSpace(_search) || x.Name.Contains(_search, StringComparison.OrdinalIgnoreCase))).OrderBy(x => x.Name);
+ private MaterialDto? SelectedItem => FilteredItems.FirstOrDefault(x => x.Id == _selectedId);
+ private static bool IsLow(int quantity, int threshold) => quantity == 0 || (threshold > 0 && quantity < threshold);
+ protected override async Task OnInitializedAsync() { _isAdministrator = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User.IsInRole("Administrator"); await LoadAsync(); }
+ private async Task LoadAsync() { _loading = true; _error = null; try { var items = await MaterialService.GetAsync(); _items.Clear(); _items.AddRange(items); if (!_items.Any(x => x.Id == _selectedId && x.Category == _category)) _selectedId = _items.FirstOrDefault(x => x.Category == _category)?.Id ?? Guid.Empty; } catch { _error = "دریافت موجودی انبار انجام نشد."; } finally { _loading = false; } }
+ private void SelectCategory(int category) { _category = category; _search = ""; _selectedId = _items.FirstOrDefault(x => x.Category == category)?.Id ?? Guid.Empty; }
+ private async Task StockSaved() { await LoadAsync(); if (_error is null) _message = "موجودی با موفقیت به‌روزرسانی شد."; }
+ private async Task MaterialCreated() { _adding = false; await LoadAsync(); if (_error is null) _message = "قلم جدید به انبار اضافه شد."; }
 }

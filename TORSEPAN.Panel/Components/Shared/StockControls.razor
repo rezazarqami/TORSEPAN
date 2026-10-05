@@ -4,11 +4,11 @@
 
 <div class="other-stock-inline">
     <div class="input-group stock-adjust-group">
-        <input type="number" min="0" class="form-control" @bind="_quantity" />
+        <input type="number" min="0" class="form-control" @bind="_quantity" aria-label="تعداد برای افزایش یا ثبت دقیق" />
         <button class="btn btn-outline-primary" disabled="@_saving" @onclick="AddAsync">افزایش</button>
         <button class="btn btn-outline-secondary" disabled="@_saving" @onclick="SetAsync">ثبت دقیق</button>
     </div>
-    <div class="input-group threshold-group"><span class="input-group-text">حد هشدار</span><input type="number" min="0" class="form-control" @bind="_threshold" />
+    <div class="input-group threshold-group"><span class="input-group-text">حد هشدار</span><input type="number" min="0" class="form-control" @bind="_threshold" aria-label="حد هشدار موجودی" />
     <button class="btn btn-outline-danger" disabled="@_saving" @onclick="SaveThresholdAsync">ثبت</button>
     </div>
     @if (!string.IsNullOrWhiteSpace(_error)) { <small class="text-danger">@_error</small> }
@@ -24,7 +24,7 @@
     private string? _error;
     private Guid _loadedItemId;
     protected override void OnParametersSet(){if(_loadedItemId!=Item.Id){_loadedItemId=Item.Id;_threshold=Item.LowStockThreshold;}}
-    private async Task SaveThresholdAsync(){ _saving=true; try { await MaterialService.SetLowStockThresholdAsync(Item.Id,_threshold,0,0); await OnSaved.InvokeAsync(); } catch { _error="ثبت حد هشدار انجام نشد."; } finally {_saving=false;} }
+    private async Task SaveThresholdAsync(){ _error=null; _saving=true; try { await MaterialService.SetLowStockThresholdAsync(Item.Id,_threshold,0,0); await OnSaved.InvokeAsync(); } catch { _error="ثبت حد هشدار انجام نشد."; } finally {_saving=false;} }
 
     private async Task AddAsync() => await SaveAsync(false);
     private async Task SetAsync() => await SaveAsync(true);
