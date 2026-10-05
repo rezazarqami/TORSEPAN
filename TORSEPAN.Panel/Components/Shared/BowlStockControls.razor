@@ -3,16 +3,16 @@
 @inject MaterialService MaterialService
 
 <div class="bowl-stock-inline">
-    <div class="compact-field"><label class="form-label">تعداد رو</label><input type="number" min="0" class="form-control" @bind="_top" /></div>
-    <div class="compact-field"><label class="form-label">تعداد زیر</label><input type="number" min="0" class="form-control" @bind="_bottom" /></div>
+    <div class="compact-field"><label class="form-label">تعداد رو</label><input type="number" min="0" class="form-control" @bind="_top" aria-label="تعداد کاسه رو" /></div>
+    <div class="compact-field"><label class="form-label">تعداد زیر</label><input type="number" min="0" class="form-control" @bind="_bottom" aria-label="تعداد کاسه زیر" /></div>
     <div class="compact-actions"><button class="btn btn-outline-primary" disabled="@_saving" @onclick="AddAsync">افزایش</button><button class="btn btn-outline-secondary" disabled="@_saving" @onclick="SetAsync">ثبت دقیق</button></div>
     <div class="compact-separator"></div>
-    <div class="compact-field"><label class="form-label text-danger">هشدار رو</label><input type="number" min="0" class="form-control" @bind="_topThreshold" /></div>
-    <div class="compact-field"><label class="form-label text-danger">هشدار زیر</label><input type="number" min="0" class="form-control" @bind="_bottomThreshold" /></div>
+    <div class="compact-field"><label class="form-label text-danger">هشدار رو</label><input type="number" min="0" class="form-control" @bind="_topThreshold" aria-label="حد هشدار کاسه رو" /></div>
+    <div class="compact-field"><label class="form-label text-danger">هشدار زیر</label><input type="number" min="0" class="form-control" @bind="_bottomThreshold" aria-label="حد هشدار کاسه زیر" /></div>
     <button class="btn btn-outline-danger compact-save" disabled="@_saving" @onclick="SaveThresholdAsync">ثبت هشدار</button>
     <div class="compact-separator"></div>
-    <div class="compact-field template-field"><label class="form-label">قالب رو</label><input class="form-control" maxlength="8" placeholder="VT-00000" @bind="_topTemplate" /></div>
-    <div class="compact-field template-field"><label class="form-label">قالب زیر</label><input class="form-control" maxlength="8" placeholder="VB-00000" @bind="_bottomTemplate" /></div>
+    <div class="compact-field template-field"><label class="form-label">قالب رو</label><input class="form-control" maxlength="8" placeholder="VT-00000" @bind="_topTemplate" aria-label="قالب کد کاسه رو" /></div>
+    <div class="compact-field template-field"><label class="form-label">قالب زیر</label><input class="form-control" maxlength="8" placeholder="VB-00000" @bind="_bottomTemplate" aria-label="قالب کد کاسه زیر" /></div>
     <button class="btn btn-outline-success compact-save" disabled="@_saving" @onclick="SaveTemplatesAsync">ثبت قالب</button>
     @if (!string.IsNullOrWhiteSpace(_error)) { <small class="text-danger">@_error</small> }
 </div>
@@ -28,7 +28,7 @@
     private Guid _loadedItemId;
     protected override void OnParametersSet(){if(_loadedItemId!=Item.Id){_loadedItemId=Item.Id;_topThreshold=Item.TopBowlLowStockThreshold;_bottomThreshold=Item.BottomBowlLowStockThreshold;_topTemplate=Item.TopBowlCodeTemplate;_bottomTemplate=Item.BottomBowlCodeTemplate;}}
     private async Task SaveTemplatesAsync(){_saving=true;_error=null;try{await MaterialService.SetBowlCodeTemplatesAsync(Item.Id,_topTemplate,_bottomTemplate);await OnSaved.InvokeAsync();}catch{_error="قالب باید مانند AB-00000 باشد.";}finally{_saving=false;}}
-    private async Task SaveThresholdAsync(){_saving=true;try{await MaterialService.SetLowStockThresholdAsync(Item.Id,0,_topThreshold,_bottomThreshold);await OnSaved.InvokeAsync();}catch{_error="ثبت حد هشدار انجام نشد.";}finally{_saving=false;}}
+    private async Task SaveThresholdAsync(){_error=null;_saving=true;try{await MaterialService.SetLowStockThresholdAsync(Item.Id,0,_topThreshold,_bottomThreshold);await OnSaved.InvokeAsync();}catch{_error="ثبت حد هشدار انجام نشد.";}finally{_saving=false;}}
 
     private Task AddAsync() => SaveAsync(false);
     private Task SetAsync() => SaveAsync(true);
