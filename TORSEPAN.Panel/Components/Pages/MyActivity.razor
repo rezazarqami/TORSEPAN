@@ -108,7 +108,7 @@ else
     private async Task UploadAvatarAsync(InputFileChangeEventArgs args)
     {
         if(_busy||_profile is null)return;_busy=true;_profileError=_notice=null;
-        try{if(args.File.Size>5_000_000||args.File.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))throw new AccountActionException("یک عکس JPG، PNG یا WebP تا ۵ مگابایت انتخاب کنید.");var file=await args.File.RequestImageFileAsync("image/png",256,256);await using var stream=file.OpenReadStream(131_072);using var output=new MemoryStream();await stream.CopyToAsync(output);var result=await Workspace.SaveAvatarAsync(output.ToArray());_profile.AvatarVersion=result.AvatarVersion;_notice="عکس پروفایل ذخیره شد.";}
+        try{if(args.File.Size>5_000_000||args.File.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))throw new AccountActionException("یک عکس JPG، PNG یا WebP تا ۵ مگابایت انتخاب کنید.");var file=await args.File.RequestImageFileAsync("image/png",256,256);if(file.Size>131_072)file=await args.File.RequestImageFileAsync("image/png",160,160);await using var stream=file.OpenReadStream(131_072);using var output=new MemoryStream();await stream.CopyToAsync(output);var result=await Workspace.SaveAvatarAsync(output.ToArray());_profile.AvatarVersion=result.AvatarVersion;_notice="عکس پروفایل ذخیره شد.";}
         catch(AccountActionException e){_profileError=e.Message;}
         catch{_profileError="ذخیرهٔ عکس انجام نشد؛ یک عکس کوچک‌تر انتخاب کنید یا دوباره تلاش کنید.";}
         finally{_busy=false;}
