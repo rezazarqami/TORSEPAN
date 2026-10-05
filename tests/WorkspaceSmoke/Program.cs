@@ -18,7 +18,7 @@ var options=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127
 await using var db=new TORSEPANDbContext(options);
 Check(typeof(NotificationsController).GetCustomAttribute<AuthorizeAttribute>() is not null,"inbox requires authentication");
 foreach(var name in new[]{"Send","Recipients"})
-    Check(typeof(NotificationsController).GetMethod(name)!.GetCustomAttribute<AuthorizeAttribute>()?.Roles=="Administrator,ProductionManager",name+" restricted to manager/admin");
+    Check(typeof(NotificationsController).GetMethod(name)!.GetCustomAttribute<AuthorizeAttribute>()?.Roles is null,name+" available to authenticated workshop members");
 Check(typeof(MyActivityController).GetCustomAttribute<AuthorizeAttribute>() is not null,"personal activity requires authentication");
 Check(!typeof(MyActivityController).GetMethod("Get")!.GetParameters().Any(x=>x.Name=="userId"),"personal report exposes no user-selection parameter");
 var schema=db.GetService<IMigrator>().GenerateScript("20260829023000_LinkPayrollToAccounting","20260903010000_AddWorkshopMessages");
