@@ -1,0 +1,33 @@
+name: Inventory and packaging
+on:
+  push:
+    branches: [master, deploy-panel]
+    paths: ['TORSEPAN.Panel/**', 'tests/InventorySmoke/**', 'tests/inventory-layout.cjs', '.github/workflows/inventory-ui.yml']
+  pull_request:
+    paths: ['TORSEPAN.Panel/**', 'tests/InventorySmoke/**', 'tests/inventory-layout.cjs', '.github/workflows/inventory-ui.yml']
+jobs:
+  inventory-ui:
+    runs-on: ubuntu-latest
+    env:
+      INVENTORY_PREVIEW_DIR: ${{ runner.temp }}/inventory-previews
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify material UI, packaging selection and stock deduction
+        run: dotnet run --project tests/InventorySmoke/InventorySmoke.csproj -c Release
+      - name: Install browser for layout verification
+        run: |
+          npm install --prefix /tmp/inventory-browser playwright bootstrap
+          /tmp/inventory-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Check compact mobile layout and create previews
+        env:
+          INVENTORY_PLAYWRIGHT: /tmp/inventory-browser/node_modules/playwright
+          INVENTORY_BOOTSTRAP: /tmp/inventory-browser/node_modules/bootstrap/dist/css/bootstrap.rtl.min.css
+        run: node tests/inventory-layout.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: inventory-previews
+          path: ${{ runner.temp }}/inventory-previews

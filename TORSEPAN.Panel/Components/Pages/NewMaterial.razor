@@ -1,79 +1,34 @@
 @page "/materials/new"
 @page "/warehouse/materials/new"
-
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 @inject MaterialService MaterialService
 @inject NavigationManager Navigation
-
-<PageTitle>افزودن ماده اولیه</PageTitle>
-<PageHeader Title="افزودن ماده اولیه جدید" SubTitle="تعریف متریال کاسه یا سایر مواد اولیه و اقلام بسته‌بندی" />
-
-    <Card>
-        <EditForm Model="_model" OnValidSubmit="SaveAsync">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
-            @if (!string.IsNullOrWhiteSpace(_error))
-            {
-                <div class="alert alert-danger">@_error</div>
-            }
-            <div class="mb-3">
-                <label class="form-label">نوع قلم جدید</label>
-                <InputSelect class="form-select" @bind-Value="_model.Category">
-                    <option value="3">سایر مواد اولیه یا قلم بسته‌بندی</option>
-                    <option value="4">متریال کاسه</option>
-                </InputSelect>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">نام @(IsBowlMaterial ? "متریال کاسه" : "ماده اولیه یا قلم بسته‌بندی")</label>
-                <InputText class="form-control" placeholder="@(IsBowlMaterial ? "مثلاً NITRIDE" : "مثلاً جعبه هدیه")" @bind-Value="_model.Name" />
-                <ValidationMessage For="@(() => _model.Name)" />
-            </div>
-            @if (IsBowlMaterial)
-            {
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6"><label class="form-label">تعداد اولیه کاسه رو</label><InputNumber class="form-control" min="0" @bind-Value="_model.InitialTopBowlQuantity" /></div>
-                    <div class="col-md-6"><label class="form-label">تعداد اولیه کاسه زیر</label><InputNumber class="form-control" min="0" @bind-Value="_model.InitialBottomBowlQuantity" /></div>
-                </div>
-            }
-            else
-            {
-                <div class="mb-3">
-                    <label class="form-label">تعداد اولیه موجود در انبار</label>
-                    <InputNumber class="form-control" min="0" @bind-Value="_model.InitialQuantity" />
-                    <ValidationMessage For="@(() => _model.InitialQuantity)" />
-                </div>
-            }
-            <button class="btn btn-success" type="submit" disabled="@_saving">ثبت در انبار مواد اولیه</button>
-            <button class="btn btn-outline-secondary me-2" type="button" @onclick="BackToList">انصراف</button>
-        </EditForm>
-    </Card>
-
+@if (!Embedded) { <PageTitle>افزودن قلم | تورسپن</PageTitle> }
+<section class="material-create @(Embedded ? "embedded" : "")">
+ @if (!Embedded) { <h1>افزودن قلم جدید</h1> }
+ <EditForm Model="_model" FormName="CreateMaterial" OnValidSubmit="SaveAsync">
+  <DataAnnotationsValidator /><ValidationSummary />
+  @if (!string.IsNullOrWhiteSpace(_error)) { <div class="create-error" role="alert">@_error</div> }
+  <div class="create-grid">
+   <label class="full-field">نوع قلم<InputSelect class="form-select" @bind-Value="_model.Category"><option value="3">مواد مصرفی و بسته‌بندی</option><option value="4">متریال کاسه</option></InputSelect></label>
+   <label class="full-field">نام قلم<InputText class="form-control" @bind-Value="_model.Name" placeholder="@(IsBowlMaterial ? "مثلاً NITRIDE" : "مثلاً کارتون یا مثلثی")" /></label>
+   @if (IsBowlMaterial)
+   {
+    <label>تعداد اولیه رو<InputNumber class="form-control" min="0" @bind-Value="_model.InitialTopBowlQuantity" /></label><label>تعداد اولیه زیر<InputNumber class="form-control" min="0" @bind-Value="_model.InitialBottomBowlQuantity" /></label>
+   }
+   else { <label class="full-field">موجودی اولیه<InputNumber class="form-control" min="0" @bind-Value="_model.InitialQuantity" /></label><p class="create-hint full-field">این قلم در فهرست انتخاب اقلام بسته‌بندی هم نمایش داده می‌شود.</p> }
+   <button class="btn btn-primary full-field" type="submit" disabled="@_saving">@(_saving ? "در حال ثبت…" : "ثبت قلم در انبار")</button>
+   @if (!Embedded) { <button class="btn btn-outline-secondary full-field" type="button" @onclick="BackToList">بازگشت به مدیریت موجودی</button> }
+  </div>
+ </EditForm>
+</section>
 @code {
-    private readonly CreateMaterialRequest _model = new() { Category = 3 };
-    private bool _saving;
-    private string? _error;
-    private bool IsBowlMaterial => _model.Category == 4;
-
-    private async Task SaveAsync()
-    {
-        _saving = true;
-        _error = null;
-        try
-        {
-            if (await MaterialService.CreateMaterialAsync(_model) is null)
-            {
-                _error = "ثبت ماده اولیه انجام نشد.";
-                return;
-            }
-            Navigation.NavigateTo("/warehouse/materials/manage");
-        }
-        catch
-        {
-            _error = "ثبت انجام نشد؛ نام قلم نباید تکراری باشد.";
-        }
-        finally { _saving = false; }
-    }
-
-    private void BackToList() => Navigation.NavigateTo("/warehouse/materials/manage");
+ [Parameter] public bool Embedded { get; set; }
+ [Parameter] public EventCallback OnCreated { get; set; }
+ private readonly CreateMaterialRequest _model = new() { Category = 3 };
+ private bool _saving; private string? _error;
+ private bool IsBowlMaterial => _model.Category == 4;
+ private async Task SaveAsync() { if (_saving) return; _saving = true; _error = null; try { if (await MaterialService.CreateMaterialAsync(_model) is null) { _error = "ثبت قلم انجام نشد."; return; } if (Embedded) await OnCreated.InvokeAsync(); else BackToList(); } catch { _error = "ثبت انجام نشد؛ نام قلم نباید تکراری باشد."; } finally { _saving = false; } }
+ private void BackToList() => Navigation.NavigateTo("/warehouse/materials/manage");
 }

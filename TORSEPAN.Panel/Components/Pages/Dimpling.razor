@@ -386,12 +386,12 @@
             else if (_bowl.Stage == 16)
             {
                 <div class="packaging-picker mt-3">
-                    <div class="packaging-heading"><div><h5>اقلام بسته‌بندی عادی</h5><p>لوازم همراه ساز را انتخاب کنید.</p></div><span>@_selectedPackagingMaterialIds.Count انتخاب</span></div>
+                    <div class="packaging-heading"><div><h5>اقلام بسته‌بندی عادی</h5><p>از هر قلم انتخاب‌شده یک عدد از انبار کم می‌شود.</p></div><span>@_selectedPackagingMaterialIds.Count انتخاب</span><button type="button" class="btn btn-sm btn-outline-primary" disabled="@_loading" @onclick="ReloadPackagingMaterialsAsync">به‌روزرسانی اقلام</button></div>
                     <div class="packaging-accessories">
                         @foreach (var material in OtherPackagingMaterials)
                         {
-                            <label class="packaging-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity == 0?"disabled":"")">
-                                <input type="checkbox" disabled="@(material.Quantity == 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
+                            <label class="packaging-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity <= 0?"disabled":"")">
+                                <input type="checkbox" disabled="@(_loading || material.Quantity <= 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
                                 <span class="packaging-check">✓</span><strong>@material.Name</strong><small>موجودی @material.Quantity</small>
                             </label>
                         }
@@ -399,8 +399,8 @@
                     <div class="case-picker"><div class="case-picker-title"><strong>نوع کاور ساز</strong><small>فقط یک مورد انتخاب می‌شود</small></div><div class="case-options">
                         @foreach (var material in CasePackagingMaterials)
                         {
-                            <label class="case-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity == 0?"disabled":"")">
-                                <input type="radio" name="packaging-case" disabled="@(material.Quantity == 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="_ => TogglePackagingMaterial(material.Id, true)" />
+                            <label class="case-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity <= 0?"disabled":"")">
+                                <input type="radio" name="packaging-case" disabled="@(_loading || material.Quantity <= 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="_ => TogglePackagingMaterial(material.Id, true)" />
                                 <span>@material.Name</span><small>@material.Quantity موجود</small>
                             </label>
                         }
@@ -515,7 +515,7 @@
     protected override async Task OnInitializedAsync()
     {
         _scales.AddRange(await ScaleService.GetAsync());
-        _packagingMaterials.AddRange((await MaterialService.GetAsync()).Where(x => x.Category == 3));
+        await LoadPackagingMaterialsAsync();
         try { _shapers.AddRange(await BowlService.GetShapersAsync()); } catch { }
         if (_scales.Count > 0)
             _scaleId = _scales[0].Id;
@@ -553,7 +553,9 @@
             _instrumentNote = string.Empty;
             _sendToExportWarehouse = false;
             _exportWarehouseLocation = null;
+            _selectedPackagingMaterialIds.Clear();
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
+            if (_bowl?.Stage == 16) await LoadPackagingMaterialsAsync();
             if (_bowl?.Stage == 2)
                 _scaleId = DimpleScales.FirstOrDefault()?.Id ?? Guid.Empty;
             else if (_bowl?.Stage == 4 && _bowl.IsCustomScale)
@@ -824,6 +826,15 @@
 
     private void ToggleShapePart(string key, bool enabled) { var part = ShapeParts.First(x => x.Key == key); part.Enabled = enabled; if (!enabled) part.UserId = null; }
     private void SelectShapeUser(string key, string? value) => ShapeParts.First(x => x.Key == key).UserId = Guid.TryParse(value, out var id) ? id : null;
+
+    private async Task LoadPackagingMaterialsAsync()
+    {
+        var items = (await MaterialService.GetAsync()).Where(x => x.Category == 3).ToList();
+        _packagingMaterials.Clear();
+        _packagingMaterials.AddRange(items);
+        _selectedPackagingMaterialIds.RemoveWhere(id => !items.Any(x => x.Id == id && x.Quantity > 0));
+    }
+    private Task ReloadPackagingMaterialsAsync() => ExecuteAsync(LoadPackagingMaterialsAsync);
 
     private static bool IsExclusiveCase(string name)
     {
