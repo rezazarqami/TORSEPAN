@@ -16,3 +16,8 @@
 @media(max-width:650px){.overview-grid{grid-template-columns:1fr}.inventory-hero{padding:10px 12px;border-radius:20px}.inventory-hero h1{font-size:1.2rem}.inventory-hero p{font-size:.68rem}.inventory-card{padding:10px}.bowl-overview td{padding:4px}.inventory-totals{gap:4px}.inventory-totals span{font-size:.62rem}.supply-item{padding:6px 8px}.inventory-card header{margin-bottom:7px}}
 
 @media(max-width:650px){.inventory-card{padding:8px}.inventory-card header{margin-bottom:5px}.bowl-overview td{padding:3px 4px}.supplies-grid{gap:4px}.supply-item{padding:4px 8px}.overview-grid{gap:8px}.inventory-totals{margin-bottom:6px}.inventory-tabs{margin-bottom:8px}}
+
+/* Include padding in page widths even when the global CSS reset is unavailable. */
+.inventory-hero,.inventory-workspace,.inventory-hero *,.inventory-workspace *{box-sizing:border-box}
+.inventory-hero,.inventory-workspace{min-width:0}
+.inventory-hero>span,.inventory-hero p{max-width:100%;overflow-wrap:anywhere}

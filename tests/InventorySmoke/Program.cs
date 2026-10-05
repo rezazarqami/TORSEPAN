@@ -19,17 +19,18 @@ var output=Environment.GetEnvironmentVariable("INVENTORY_PREVIEW_DIR");if(output
 foreach(var role in new[]{"Administrator","Tuner"})
 {
  var services=new ServiceCollection();services.AddLogging();services.AddAuthorizationCore();services.AddCascadingAuthenticationState();services.AddSingleton<AuthenticationStateProvider>(new AuthFixture(role));services.AddSingleton<IJSRuntime,JsFixture>();services.AddSingleton<NavigationManager,NavigationFixture>();services.AddScoped<TokenStorage>();
- services.AddSingleton(new HttpClient(new ApiFixture()){BaseAddress=new Uri("https://fixture.invalid/api/")});services.AddScoped<ApiClient>();services.AddScoped<MaterialService>();services.AddScoped<BowlService>();services.AddScoped<ScaleService>();services.AddScoped<ProductionService>();services.AddScoped<HandpanPhotoService>();
+ services.AddSingleton(new HttpClient(new ApiFixture()){BaseAddress=new Uri("https://fixture.invalid/api/")});services.AddScoped<ApiClient>();services.AddScoped<DesignService>();services.AddScoped<MaterialService>();services.AddScoped<BowlService>();services.AddScoped<ScaleService>();services.AddScoped<ProductionService>();services.AddScoped<HandpanPhotoService>();
  await using var provider=services.BuildServiceProvider();await using var renderer=new HtmlRenderer(provider,provider.GetRequiredService<ILoggerFactory>());
  async Task<string> Render(Type type)=>await renderer.Dispatcher.InvokeAsync(async()=>WebUtility.HtmlDecode((await renderer.RenderComponentAsync(type,ParameterView.Empty)).ToHtmlString()));
  var overview=await Render(typeof(MaterialInventoryOverview));Check(overview.Contains("MATERIAL INVENTORY")&&overview.Contains("کارتون")&&overview.Contains("مثلثی"),role+" overview includes all inventory");
+ Check(!overview.Contains("inventory-totals"),role+" overview omits aggregate total cards");
  var management=await Render(typeof(Materials));Check(management.Contains("bowl-stock-inline")== (role=="Administrator"),role+" inventory controls follow existing administrator permissions");
  if(role=="Administrator")
  {
-  var supplies=await Render(typeof(SupplyPreview));var create=await Render(typeof(CreatePreview));
+  var supplies=await Render(typeof(SupplyPreview));var create=await Render(typeof(CreatePreview));var design=await Render(typeof(Designs));
   Check(supplies.Contains("other-stock-inline")&&supplies.Contains("حد هشدار"),"other items render compact stock and threshold controls");
   Check(create.Contains("material-create embedded")&&!create.Contains("bowl-stock-inline"),"create form is embedded in management rather than stacked below editors");
-  if(output is not null)foreach(var (name,html) in new[]{("overview",overview),("management",management),("supplies",supplies),("create",create)})await File.WriteAllTextAsync(Path.Combine(output,name+".html"),html);
+  if(output is not null)foreach(var (name,html) in new[]{("overview",overview),("management",management),("supplies",supplies),("create",create),("design",design)})await File.WriteAllTextAsync(Path.Combine(output,name+".html"),html);
  }
  var packaging=await Render(typeof(PackagingPreview));
  Check(packaging.Contains("کارتون")&&packaging.Contains("مثلثی")&&packaging.Contains("به‌روزرسانی اقلام"),"new other-category items are included in packaging checkboxes");
@@ -68,6 +69,7 @@ sealed class ApiFixture:HttpMessageHandler
    var items=new List<MaterialDto>();foreach(var (name,i) in new[]{"Ember Steel A","Ember Steel B","Mini Pan","NITRIDE","Stainless Steel","تیتانیوم"}.Select((x,i)=>(x,i)))items.Add(new(){Id=Guid.NewGuid(),Name=name,Category=4,TopBowlQuantity=20+i,BottomBowlQuantity=40+i,TopBowlCodeTemplate="ST-00000",BottomBowlCodeTemplate="SB-00000"});
    foreach(var name in new[]{"کارتون","مثلثی","روغن","دستمال","پایه","پن گارد","سافت کیس","هارد کیس"})items.Add(new(){Id=name=="کارتون"?CartonId:Guid.NewGuid(),Name=name,Category=3,Quantity=10,LowStockThreshold=3});data=items;
   }
+  if(request.RequestUri!.AbsolutePath.EndsWith("/designs/types")) data=new[]{"اسکاچی","اسیدی","پولیش نقره ای","دینگ پولیش","فول پولیش","سفارشی"}.Select(name=>new DesignTypeDto{Id=Guid.NewGuid(),Name=name,Rate=10,ExportRate=20}).ToArray();
   return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK){Content=JsonContent.Create(data)});
  }
 }
