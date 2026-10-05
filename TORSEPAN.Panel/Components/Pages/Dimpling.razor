@@ -2,6 +2,7 @@
 @page "/production/process"
 
 @using System.Net
+@using TORSEPAN.Application.Materials
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 
@@ -386,21 +387,21 @@
             else if (_bowl.Stage == 16)
             {
                 <div class="packaging-picker mt-3">
-                    <div class="packaging-heading"><div><h5>اقلام بسته‌بندی عادی</h5><p>از هر قلم انتخاب‌شده یک عدد از انبار کم می‌شود.</p></div><span>@_selectedPackagingMaterialIds.Count انتخاب</span><button type="button" class="btn btn-sm btn-outline-primary" disabled="@_loading" @onclick="ReloadPackagingMaterialsAsync">به‌روزرسانی اقلام</button></div>
+                    <div class="packaging-heading"><div><h5>اقلام بسته‌بندی عادی</h5><p>مثلثی: دو عدد؛ سایر اقلام: یک عدد از انبار کم می‌شود.</p></div><span>@_selectedPackagingMaterialIds.Count انتخاب</span><button type="button" class="btn btn-sm btn-outline-primary" disabled="@_loading" @onclick="ReloadPackagingMaterialsAsync">به‌روزرسانی اقلام</button></div>
                     <div class="packaging-accessories">
                         @foreach (var material in OtherPackagingMaterials)
                         {
-                            <label class="packaging-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity <= 0?"disabled":"")">
-                                <input type="checkbox" disabled="@(_loading || material.Quantity <= 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
-                                <span class="packaging-check">✓</span><strong>@material.Name</strong><small>موجودی @material.Quantity</small>
+                            <label class="packaging-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity < PackagingMaterialConsumption.RequiredQuantity(material.Name)?"disabled":"")">
+                                <input type="checkbox" disabled="@(_loading || material.Quantity < PackagingMaterialConsumption.RequiredQuantity(material.Name))" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
+                                <span class="packaging-check">✓</span><strong>@material.Name</strong><small>موجودی @material.Quantity · مصرف @PackagingMaterialConsumption.RequiredQuantity(material.Name)</small>
                             </label>
                         }
                     </div>
                     <div class="case-picker"><div class="case-picker-title"><strong>نوع کاور ساز</strong><small>فقط یک مورد انتخاب می‌شود</small></div><div class="case-options">
                         @foreach (var material in CasePackagingMaterials)
                         {
-                            <label class="case-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity <= 0?"disabled":"")">
-                                <input type="radio" name="packaging-case" disabled="@(_loading || material.Quantity <= 0)" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="_ => TogglePackagingMaterial(material.Id, true)" />
+                            <label class="case-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity < PackagingMaterialConsumption.RequiredQuantity(material.Name)?"disabled":"")">
+                                <input type="radio" name="packaging-case" disabled="@(_loading || material.Quantity < PackagingMaterialConsumption.RequiredQuantity(material.Name))" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="_ => TogglePackagingMaterial(material.Id, true)" />
                                 <span>@material.Name</span><small>@material.Quantity موجود</small>
                             </label>
                         }
@@ -832,7 +833,7 @@
         var items = (await MaterialService.GetAsync()).Where(x => x.Category == 3).ToList();
         _packagingMaterials.Clear();
         _packagingMaterials.AddRange(items);
-        _selectedPackagingMaterialIds.RemoveWhere(id => !items.Any(x => x.Id == id && x.Quantity > 0));
+        _selectedPackagingMaterialIds.RemoveWhere(id => !items.Any(x => x.Id == id && x.Quantity >= PackagingMaterialConsumption.RequiredQuantity(x.Name)));
     }
     private Task ReloadPackagingMaterialsAsync() => ExecuteAsync(LoadPackagingMaterialsAsync);
 

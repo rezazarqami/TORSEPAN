@@ -60,16 +60,17 @@ public sealed class CompleteHandpanPackagingCommandHandler
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
         if (selectedMaterials.Count != selectedMaterialIds.Length ||
-            selectedMaterials.Any(x => x.Category != MaterialCategory.Other || x.Quantity < 1))
+            selectedMaterials.Any(x => x.Category != MaterialCategory.Other || x.Quantity < PackagingMaterialConsumption.RequiredQuantity(x.Name)))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
         foreach (var material in selectedMaterials)
         {
-            material.TryConsume();
+            var quantity = PackagingMaterialConsumption.RequiredQuantity(material.Name);
+            material.TryConsume(quantity);
             _unitOfWork.Materials.Update(material);
             await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(handpan.Id,assembly.Id,null,userId,
                 ProductionAction.WarehouseEntry,EventResult.Completed,null,
-                MaterialStockMetadata.Encode(material.Id,material.Name,"general",-1,material.Quantity,"مصرف در بسته‌بندی")));
+                MaterialStockMetadata.Encode(material.Id,material.Name,"general",-quantity,material.Quantity,"مصرف در بسته‌بندی")));
         }
 
         if (request.ExportWarehouseLocation.HasValue)
