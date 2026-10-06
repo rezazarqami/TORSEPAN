@@ -19,12 +19,19 @@ let browser;
  const page=await browser.newPage();
  for(const width of [360,390,768,1280]){
   await page.setViewportSize({width,height:900});
-  for(const file of ['new-order.html','composition.html','drafts.html','order-list.html','assign-code.html']){
+  for(const file of ['new-order.html','simple-order.html','composition.html','drafts.html','order-list.html','assign-code.html']){
    await page.goto(`http://127.0.0.1:${port}/${file}`);await page.evaluate(()=>document.fonts.ready);
    assert(await page.locator('.orders-hero').count(),`Actual page not rendered: ${file}`);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`page overflow ${width} ${file}`);
    const escaped=await page.locator('.composition-line,.order-summary,.instrument-slot,.order-tabs button,.code-dialog').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.width>0&&(r.left < -1 || r.right>innerWidth+1 || n.scrollWidth>n.clientWidth+2);}).map(n=>n.className));
    assert.deepEqual(escaped,[],`control overflow ${width} ${file}: ${escaped}`);
+   if(file==='simple-order.html'){
+    assert.equal(await page.locator('.composition-line select').first().inputValue(),'');
+    assert.equal((await page.locator('.composition-line select').first().locator('option:checked').innerText()).trim(),'دیزاین ساده');
+    assert.equal(await page.locator('.composition-line select').first().locator('option').count(),1);
+    assert.equal(await page.locator('.summary-total strong').innerText(),'1');
+    assert.equal(await page.getByRole('button',{name:'ذخیرهٔ پیش‌سفارش',exact:true}).isEnabled(),true);
+   }
    if(file==='composition.html'){assert.equal(await page.locator('.composition-line').count(),3);assert.equal((await page.locator('.summary-total strong').innerText()).trim(),'15');}
    if(file==='order-list.html'){assert(await page.locator('.specification-row').count()>=3);assert(await page.locator('.instrument-slot').count()>12);}
    if(file==='assign-code.html'){assert.equal(await page.locator('[role=dialog]').count(),1);assert.match(await page.locator('#order-code-title').innerText(),/1.*5/);}

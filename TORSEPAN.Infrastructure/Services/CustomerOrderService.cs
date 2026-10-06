@@ -48,7 +48,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         }
         var order = new CustomerOrder(request.CustomerName, scale.Id, scale.Name, request.DurationDays,
             userId, startUtc);
-        order.Lines.Add(new CustomerOrderLine(order.Id, 1, scale.Id, scale.Name, null, "دیزاین مشخص نشده", 1));
+        order.Lines.Add(new CustomerOrderLine(order.Id, 1, scale.Id, scale.Name, null, "دیزاین ساده", 1));
         order.QueueRegistrationNotice(clock.GetUtcNow().UtcDateTime);
         db.CustomerOrders.Add(order);
         await db.SaveChangesAsync(ct);
@@ -82,13 +82,13 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         if (request.Lines.Any(x => x is null || x.Quantity is < 1 or > 10000) || request.Lines.Sum(x => (long)x.Quantity) > 10000)
             throw new OrderValidationException("تعداد هر ردیف و مجموع سفارش باید بین ۱ تا ۱۰۰۰۰ ساز باشد.");
         var scaleIds = request.Lines.Select(x => x.ScaleId).ToArray();
-        var designIds = request.Lines.Select(x => x.DesignTypeId).ToArray();
+        var designIds = request.Lines.Where(x => x.DesignTypeId.HasValue).Select(x => x.DesignTypeId!.Value).ToArray();
         var scales = await db.Scales.Where(x => scaleIds.Contains(x.Id) && x.IsActive && (x.Usage & ScaleUsage.CustomHandpan) != 0).ToDictionaryAsync(x => x.Id, ct);
         var designs = await db.DesignTypes.Where(x => designIds.Contains(x.Id) && x.IsActive).ToDictionaryAsync(x => x.Id, ct);
         if (request.Lines.Any(x => !scales.ContainsKey(x.ScaleId))) throw new OrderValidationException("اسکیل هر ردیف را از اسکیل‌های فعال کاستوم ساز انتخاب کنید.");
-        if (request.Lines.Any(x => !designs.ContainsKey(x.DesignTypeId))) throw new OrderValidationException("دیزاین هر ردیف را از فهرست دیزاین‌های فعال انتخاب کنید.");
+        if (request.Lines.Any(x => x.DesignTypeId.HasValue && !designs.ContainsKey(x.DesignTypeId.Value))) throw new OrderValidationException("دیزاین هر ردیف را از فهرست دیزاین‌های فعال انتخاب کنید.");
         return request.Lines.Select((x, i) => new CustomerOrderLine(id, i + 1, x.ScaleId, scales[x.ScaleId].Name,
-            x.DesignTypeId, designs[x.DesignTypeId].Name, x.Quantity)).ToList();
+            x.DesignTypeId, x.DesignTypeId.HasValue ? designs[x.DesignTypeId.Value].Name : "دیزاین ساده", x.Quantity)).ToList();
     }
     private async Task LockOrder(Guid id, CancellationToken ct)
     {
@@ -134,7 +134,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
             if (!order.IsDraft) return true; // Retry after a lost response must not duplicate reminders.
             if (order.Version != version) throw new OrderValidationException("پیش‌سفارش تغییر کرده است؛ ابتدا نسخهٔ جدید را بررسی کنید.");
             await ValidateDraft(id, new(order.CustomerName, order.DurationDays, null,
-                order.Lines.Select(x => new OrderLineRequest(x.ScaleId, x.DesignTypeId ?? Guid.Empty, x.Quantity)).ToArray()), ct);
+                order.Lines.Select(x => new OrderLineRequest(x.ScaleId, x.DesignTypeId, x.Quantity)).ToArray()), ct);
             order.FinalizeOrder(clock.GetUtcNow().UtcDateTime);
             await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
         }
