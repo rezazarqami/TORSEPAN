@@ -15,3 +15,7 @@ Before reporting publication:
 4. State explicitly what was done and what remains unverified. If Liara access is unavailable, say that the target branch was updated and live deployment remains unconfirmed; do not say “published” without proof.
 
 Incident reminder (2026-09-23): PR #53 was merged to `master`, but the live payroll page still showed old markup because `deploy-panel` had not received those two UI files. PR #54 synchronized the payroll Razor/CSS files to `deploy-panel` at `5d2a10d`; the live Liara release was not independently verified.
+
+## User release preference (2026-10-06)
+
+Prepare changes locally and validate them without pushing, opening a PR, merging, or deploying until the user explicitly requests publication. The pending message-sound/user-deletion changes are preparation-only while the user supplies more changes. For subsequent releases, run the complete change in a separate staging environment with isolated test accounts and data, and obtain the user's acceptance before production publication. An explicit per-release override can replace this staging requirement.

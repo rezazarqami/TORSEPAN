@@ -1,4 +1,4 @@
-﻿@page "/users/list"
+@page "/users/list"
 @attribute [Authorize(Roles = "Administrator,ProductionManager")]
 @using Microsoft.AspNetCore.Authorization
 
@@ -8,6 +8,7 @@
 @inject NavigationManager Navigation
 @inject IUserService UserService
 @inject PayrollService PayrollService
+@inject AuthenticationStateProvider AuthenticationState
 
 <PageTitle>Users</PageTitle>
 
@@ -70,6 +71,9 @@
                                 @onclick="() => EditUser(user.Id)">
                             ویرایش
                         </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger ms-1"
+                                disabled="@(user.Id == _currentUserId || _deleting)"
+                                @onclick="() => AskDelete(user)">حذف کاربر</button>
                     </td>
 
                 </tr>
@@ -94,8 +98,36 @@
     @if (!string.IsNullOrWhiteSpace(OrderMessage)) { <div class="alert alert-success mt-2 mb-0">@OrderMessage</div> }
 </Card>
 
+@if (!string.IsNullOrWhiteSpace(_deleteNotice)) { <div class="alert alert-success" role="status">@_deleteNotice</div> }
+<AppConfirmDialog IsOpen="@(_deleteUser is not null)" Title="حذف کاربر" Danger="true"
+                  Message="@DeleteMessage" ConfirmText="حذف حساب کاربر" Busy="@_deleting" Error="@_deleteError"
+                  OnConfirm="DeleteAsync" OnCancel="CancelDelete" />
+
 @code
 {
+    private Guid _currentUserId;
+    private UserDto? _deleteUser;
+    private bool _deleting;
+    private string? _deleteError, _deleteNotice;
+    private string DeleteMessage => $"حساب «{_deleteUser?.FullName}» با نام کاربری «{_deleteUser?.UserName}» از فهرست کاربران حذف و دسترسی آن قطع شود؟ سوابق تولید، پرداخت و پیام‌های قبلی حفظ می‌شوند.";
+    private void AskDelete(UserDto user) { _deleteUser = user; _deleteError = _deleteNotice = null; }
+    private void CancelDelete() { if (!_deleting) { _deleteUser = null; _deleteError = null; } }
+    private async Task DeleteAsync()
+    {
+        if (_deleting || _deleteUser is null) return;
+        var user = _deleteUser; _deleting = true; _deleteError = null;
+        try
+        {
+            await UserService.DeleteUserAsync(user.Id);
+            Users.RemoveAll(x => x.Id == user.Id);
+            DashboardUsers.RemoveAll(x => x.Id == user.Id);
+            _deleteNotice = $"حساب {user.FullName} حذف شد."; _deleteUser = null;
+        }
+        catch (AccountActionException ex) { _deleteError = ex.Message; }
+        catch { _deleteError = "حذف انجام نشد؛ دوباره تلاش کنید."; }
+        finally { _deleting = false; }
+    }
+
     private List<UserDto> Users = new();
     private List<PayrollUserDto> DashboardUsers = new();
     private bool SavingOrder;
@@ -103,8 +135,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthenticationState.GetAuthenticationStateAsync();
+        Guid.TryParse(state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _currentUserId);
         Users = await UserService.GetUsersAsync();
-        DashboardUsers = (await PayrollService.GetAsync())?.Users ?? [];
+        DashboardUsers = ((await PayrollService.GetAsync())?.Users ?? []).Where(x => Users.Any(u => u.Id == x.Id)).ToList();
     }
 
     private void NewUser()

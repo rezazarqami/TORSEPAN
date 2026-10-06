@@ -14,14 +14,21 @@ const server=http.createServer((req,res)=>{
 let browser;
 const watchdog=setTimeout(()=>{console.error("Profile browser layout verification timed out");process.exit(1);},90000);
 (async()=>{
- await new Promise(resolve=>server.listen(5193,'127.0.0.1',resolve));browser=await chromium.launch({headless:true});const page=await browser.newPage();page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(15000);
+ await new Promise(resolve=>server.listen(5193,'127.0.0.1',resolve));browser=await chromium.launch({headless:true,...(process.env.PROFILE_CHROMIUM?{executablePath:process.env.PROFILE_CHROMIUM,args:JSON.parse(process.env.PROFILE_CHROMIUM_ARGS||'[]')}:{})});const page=await browser.newPage();page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(15000);
  for(const width of [320,360,384,412,1024])for(const noReset of [false,true])for(const name of ['performance','payroll','security','security-error']){
   await page.setViewportSize({width,height:820});await page.goto(`http://127.0.0.1:5193/preview/${name}.html${noReset?'?no-reset=1':''}`);await page.evaluate(()=>document.fonts.ready);
   const bounds=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));assert(bounds.width<=bounds.viewport,`${name} ${width}: ${JSON.stringify(bounds)}`);
   const hero=await page.locator('.account-hero').boundingBox(),tabs=await page.locator('.account-tabs').boundingBox();
   assert(hero.x>=0&&hero.x+hero.width<=width&&Math.abs(hero.width-tabs.width)<=1&&Math.abs(hero.x-tabs.x)<=1,'account hero must fit and align with tabs');
   assert(await page.locator('.account-hero img').evaluate(e=>e.complete&&e.naturalWidth>0),'brand logo must load');
+  assert(await page.locator('.account-tabs button').count()===3,'account must have performance, payroll and security tabs');
   if(name.startsWith('security')){
+   const picker=page.locator('.avatar-picker input[type=file]');
+   assert(await picker.count()===1,'native photo input must exist');
+   const pickerId=await picker.getAttribute('id');
+   assert(await page.locator('.photo-upload').getAttribute('for')===pickerId,'photo label must be explicitly linked to the input');
+   const chooser=page.waitForEvent('filechooser');await page.locator('.photo-upload').click();await chooser;
+   console.log('PASS native photo picker opens',width,noReset);
    assert(await page.locator('.profile-photo img').evaluate(e=>e.complete&&e.naturalWidth>0),'profile image must load');
    assert(await page.locator('input[autocomplete="current-password"]').getAttribute('type')==='password','current password must be masked');
    assert(await page.locator('input[autocomplete="new-password"]').count()===2,'password confirmation field must be present');

@@ -11,10 +11,11 @@
     <p>@(_profile?.FullName ?? "همکار تورسپن") · عملکرد و تنظیمات حساب شما</p>
 </section>
 <nav class="account-tabs" aria-label="بخش‌های ناحیهٔ کاربری">
-    <button class="@(!_security ? "active" : "")" aria-pressed="@(!_security)" @onclick="()=>_security=false">عملکرد من</button>
-    <button class="@(_security ? "active" : "")" aria-pressed="@_security" @onclick="()=>_security=true">تنظیمات امنیتی</button>
+    <button class="@(_section == AccountSection.Performance ? "active" : "")" aria-pressed="@(_section == AccountSection.Performance)" @onclick="()=>_section=AccountSection.Performance">عملکرد من</button>
+    <button class="@(_section == AccountSection.Payroll ? "active" : "")" aria-pressed="@(_section == AccountSection.Payroll)" @onclick="()=>_section=AccountSection.Payroll">دستمزد من</button>
+    <button class="@(_section == AccountSection.Security ? "active" : "")" aria-pressed="@(_section == AccountSection.Security)" @onclick="()=>_section=AccountSection.Security">تنظیمات امنیتی</button>
 </nav>
-@if (_security)
+@if (_section == AccountSection.Security)
 {
     @if (_profileError is not null) { <div class="account-alert error" role="alert">@_profileError</div> }
     @if (_notice is not null) { <div class="account-alert success" role="status">@_notice</div> }
@@ -26,7 +27,7 @@
                 <div class="section-heading"><span class="section-icon">◉</span><div><h2>عکس پروفایل</h2><p>عکس شما کنار نامتان در گفتگوهای کارگاه</p></div></div>
                 <div class="profile-photo"><UserAvatar UserId="_profile.Id" Version="_profile.AvatarVersion" Name="_profile.FullName" /></div>
                 <strong>@_profile.FullName</strong><small class="profile-title">@_profile.Title</small>
-                <div class="photo-actions"><label class="photo-upload @(_busy ? "disabled" : "")">انتخاب عکس<InputFile OnChange="UploadAvatarAsync" accept="image/jpeg,image/png,image/webp" disabled="@_busy" /></label><button disabled="@(_busy || _profile.AvatarVersion is null)" @onclick="RemoveAvatarAsync">حذف عکس</button></div>
+                <div class="photo-actions"><span class="avatar-picker"><InputFile id="@_avatarInputId" OnChange="UploadAvatarAsync" accept="image/jpeg,image/png,image/webp" disabled="@_busy" aria-label="انتخاب عکس پروفایل" /><label for="@_avatarInputId" class="photo-upload @(_busy ? "disabled" : "")" aria-disabled="@_busy">انتخاب عکس</label></span><button disabled="@(_busy || _profile.AvatarVersion is null)" @onclick="RemoveAvatarAsync">حذف عکس</button></div>
                 <p class="help-text">JPG، PNG یا WebP تا ۵ مگابایت؛ عکس به‌صورت خودکار کوچک می‌شود.</p>
             </section>
             <section class="account-card credentials-card">
@@ -49,7 +50,19 @@ else
         <small class="help-text">یک روز یا بازه‌ای تا یک سال را انتخاب کنید.</small>
     </section>
     @if (_error is not null) { <div class="account-alert error" role="alert">@_error</div> }
-    @if (_loading) { <div class="account-empty" role="status">در حال دریافت فعالیت‌ها…</div> }
+    @if (_loading) { <div class="account-empty" role="status">@(_section == AccountSection.Payroll ? "در حال دریافت دستمزد…" : "در حال دریافت فعالیت‌ها…")</div> }
+    else if (_section == AccountSection.Payroll)
+    {
+        @if (_payrollError is not null) { <div class="account-alert error" role="alert">@_payrollError</div> }
+        else if (_payroll?.Enabled == true)
+        {
+            <section class="account-card"><div class="section-heading"><h2>دستمزد من</h2><strong class="payroll-total">@_payroll.Total.ToString("N0") <small>تومان</small></strong></div><p class="help-text">بر اساس آخرین نرخ‌ها در بازهٔ انتخاب‌شده</p>
+                @if (_payroll.Lines.Count == 0) { <p class="account-empty">در این بازه دستمزدی ثبت نشده است.</p> }
+                else { <div class="payroll-lines">@foreach (var line in _payroll.Lines) { <article><div><strong>@line.Operation</strong><small>@line.Description</small></div><span>@line.Count × @line.Rate.ToString("N0")</span><b>@line.Total.ToString("N0") <small>تومان</small></b></article> }</div> }
+            </section>
+        }
+        else { <section class="account-card account-empty">نمایش دستمزد برای حساب شما فعال نیست.</section> }
+    }
     else if (_data is not null)
     {
         <div class="activity-summary"><div><span>کل فعالیت‌ها</span><strong>@_data.Total</strong></div><div><span>تکمیل‌شده</span><strong>@_data.Completed</strong></div><div class="summary-range"><span>بازهٔ گزارش</span><strong>@PersianDatePicker.Format(_data.From) — @PersianDatePicker.Format(_data.To)</strong></div></div>
@@ -57,13 +70,6 @@ else
             @if (_data.Summary.Count == 0) { <p class="account-empty">خلاصه‌ای برای این بازه وجود ندارد.</p> }
             else { <div class="operation-grid">@foreach (var item in _data.Summary) { <div><span>@item.Operation</span><strong>@item.Count</strong></div> }</div> }
         </section>
-        @if (_payroll?.Enabled == true)
-        {
-            <section class="account-card"><div class="section-heading"><h2>دستمزد من</h2><strong class="payroll-total">@_payroll.Total.ToString("N0") <small>تومان</small></strong></div><p class="help-text">بر اساس آخرین نرخ‌ها در بازهٔ انتخاب‌شده</p>
-                @if (_payroll.Lines.Count == 0) { <p class="account-empty">در این بازه دستمزدی ثبت نشده است.</p> }
-                else { <div class="payroll-lines">@foreach (var line in _payroll.Lines) { <article><div><strong>@line.Operation</strong><small>@line.Description</small></div><span>@line.Count × @line.Rate.ToString("N0")</span><b>@line.Total.ToString("N0") <small>تومان</small></b></article> }</div> }
-            </section>
-        }
         <section class="account-card"><div class="section-heading"><h2>تاریخچهٔ فعالیت‌ها</h2><small>@_data.Total فعالیت</small></div>
             @if (_data.Items.Count == 0) { <p class="account-empty">در این بازه فعالیتی برای شما ثبت نشده است.</p> }
             else
@@ -86,14 +92,28 @@ else
     private MyActivityDto? _data;
     private MyPayrollDto? _payroll;
     private OwnProfileDto? _profile;
-    private bool _loading,_security,_busy;
-    private string? _error,_profileError,_notice;
+    private bool _loading,_busy;
+    private enum AccountSection { Performance, Payroll, Security }
+    private AccountSection _section = AccountSection.Performance;
+    private readonly string _avatarInputId = $"profile-photo-{Guid.NewGuid():N}";
+    private string? _error,_profileError,_notice,_payrollError;
     private string _userName="",_currentPassword="",_newPassword="",_confirmation="";
     protected override async Task OnInitializedAsync(){await Task.WhenAll(CurrentMonth(),LoadProfileAsync());}
     private async Task LoadProfileAsync(){try{_profile=await Workspace.ProfileAsync();_userName=_profile?.UserName??"";_profileError=null;}catch{_profileError="دریافت اطلاعات حساب انجام نشد؛ دوباره تلاش کنید.";}}
     private async Task CurrentMonth(){_appliedFrom=_appliedTo=null;await Load(1);if(_data is not null){_from=_data.From;_to=_data.To;_appliedFrom=_from;_appliedTo=_to;}}
     private async Task Apply(){if(!_from.HasValue||!_to.HasValue||_from>_to||_to.Value-_from.Value>TimeSpan.FromDays(366)){_error="تاریخ شروع و پایان معتبر تا حداکثر یک سال انتخاب کنید.";return;}_appliedFrom=_from;_appliedTo=_to;await Load(1);}
-    private async Task Load(int page){if(_loading)return;_loading=true;_error=null;try{_data=await Workspace.ActivityAsync(_appliedFrom,_appliedTo,page);try{_payroll=await Workspace.PayrollAsync(_appliedFrom,_appliedTo);}catch(System.Net.Http.HttpRequestException e)when(e.StatusCode==System.Net.HttpStatusCode.NotFound){_payroll=null;}}catch{_error="دریافت گزارش انجام نشد؛ اتصال و ورود به حساب را بررسی کنید.";}finally{_loading=false;}}
+    private async Task Load(int page)
+    {
+        if (_loading) return;
+        _loading = true; _error = _payrollError = null;
+        try { _data = await Workspace.ActivityAsync(_appliedFrom, _appliedTo, page); }
+        catch { _data = null; _error = "دریافت گزارش انجام نشد؛ اتصال و ورود به حساب را بررسی کنید."; }
+        try { _payroll = await Workspace.PayrollAsync(_appliedFrom, _appliedTo); }
+        catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+        { _payroll = null; _payrollError = "گزارش دستمزد در دسترس نیست؛ دوباره تلاش کنید."; }
+        catch { _payroll = null; _payrollError = "دریافت دستمزد انجام نشد؛ اتصال و ورود به حساب را بررسی کنید."; }
+        finally { _loading = false; }
+    }
     private async Task SaveCredentialsAsync()
     {
         if(_busy)return;_profileError=_notice=null;
