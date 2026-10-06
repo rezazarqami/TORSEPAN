@@ -17,6 +17,7 @@
 </nav>
 @if (_section == AccountSection.Security)
 {
+    <MessageAlertSettings />
     @if (_profileError is not null) { <div class="account-alert error" role="alert">@_profileError</div> }
     @if (_notice is not null) { <div class="account-alert success" role="status">@_notice</div> }
     @if (_profile is null) { <section class="account-card account-empty">اطلاعات حساب در دسترس نیست. <button @onclick="LoadProfileAsync">تلاش دوباره</button></section> }

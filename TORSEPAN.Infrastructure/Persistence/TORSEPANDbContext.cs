@@ -11,6 +11,9 @@ public class TORSEPANDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<MessagePushKeys> MessagePushKeys => Set<MessagePushKeys>();
+    public DbSet<MessagePushSubscription> MessagePushSubscriptions => Set<MessagePushSubscription>();
+    public DbSet<MessagePushDelivery> MessagePushDeliveries => Set<MessagePushDelivery>();
     public DbSet<WorkshopMessage> WorkshopMessages => Set<WorkshopMessage>();
     public DbSet<WorkshopMessageReceipt> WorkshopMessageReceipts => Set<WorkshopMessageReceipt>();
     public DbSet<Role> Roles => Set<Role>();
@@ -22,6 +25,8 @@ public class TORSEPANDbContext : DbContext
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<Scale> Scales => Set<Scale>();
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
+    public DbSet<CustomerOrderLine> CustomerOrderLines => Set<CustomerOrderLine>();
+    public DbSet<OrderInstrument> OrderInstruments => Set<OrderInstrument>();
     public DbSet<OrderReminder> OrderReminders => Set<OrderReminder>();
     public DbSet<ProductionEvent> ProductionEvents => Set<ProductionEvent>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();

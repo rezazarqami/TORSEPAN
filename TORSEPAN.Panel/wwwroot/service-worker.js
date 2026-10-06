@@ -32,3 +32,31 @@ self.addEventListener("fetch", event => {
     caches.match(event.request).then(cached => cached || fetch(event.request))
   );
 });
+
+self.addEventListener("push", event => {
+  event.waitUntil((async () => {
+    let data = {};
+    try { data = event.data?.json() || {}; } catch { }
+    await self.registration.showNotification("تورسپن · پیام جدید", {
+      body: "پیام جدیدی در کارگاه دارید. برای مشاهده لمس کنید.",
+      icon: "/icons/torsepan-logo-v3-192.png", badge: "/icons/torsepan-logo-v3-192.png",
+      tag: typeof data.tag === "string" ? data.tag : "workshop-message",
+      data: { url: "/notifications", userId: data.userId },
+    });
+    for (const client of await self.clients.matchAll({ type: "window", includeUncontrolled: true }))
+      client.postMessage({ type: "workshop-push", userId: data.userId, totalIncoming: data.totalIncoming });
+  })());
+});
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const url = new URL("/notifications", self.location.origin).href;
+    const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of clients) {
+      if (new URL(client.url).origin === self.location.origin) {
+        await client.navigate(url); await client.focus(); return;
+      }
+    }
+    await self.clients.openWindow(url);
+  })());
+});
