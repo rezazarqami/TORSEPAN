@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.Application.Auth.Commands.Login;
@@ -43,7 +43,7 @@ public sealed class LoginCommandHandler
             user.UserName,
             user.FullName,
             user.Title,
-            roles);
+            roles, user.CredentialVersion);
 
         // A separate refresh token is stored for every login/device.  Its
         // lifetime is renewed whenever it is used, so active devices remain
@@ -51,7 +51,7 @@ public sealed class LoginCommandHandler
         var refreshToken = new Domain.Entities.RefreshToken(
             user.Id,
             _jwtService.GenerateRefreshToken(),
-            DateTime.UtcNow.AddYears(10));
+            DateTime.UtcNow.AddYears(10), user.CredentialVersion);
 
         await _unitOfWork.RefreshTokens.AddAsync(refreshToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -32,6 +32,7 @@ public sealed class InboxDto
 }
 public sealed class InboxMessageDto
 {
+    public bool IsMine {get;set;}
     public Guid Id {get;set;}
     public string Title {get;set;} = "";
     public string Body {get;set;} = "";
@@ -41,3 +42,32 @@ public sealed class InboxMessageDto
 }
 public sealed class MessageRecipientDto { public Guid Id {get;set;} public string Name {get;set;} = ""; }
 public sealed class UnreadDto { public int Count {get;set;} }
+
+public sealed class ConversationListDto { public List<ConversationDto> Items {get;set;}=[]; }
+public sealed class ConversationDto
+{
+    public Guid? AvatarVersion {get;set;}
+    public Guid Id {get;set;}
+    public string Name {get;set;}="";
+    public bool IsActive {get;set;}=true;
+    public int UnreadCount {get;set;}
+    public string? LastBody {get;set;}
+    public DateTime? LastAt {get;set;}
+}
+public sealed class ChatHistoryDto
+{
+    public int Page {get;set;}=1;
+    public int PageSize {get;set;}=50;
+    public int Total {get;set;}
+    public List<ChatMessageDto> Items {get;set;}=[];
+}
+public sealed class ChatMessageDto
+{
+    public Guid Id {get;set;}
+    public string Title {get;set;}="";
+    public string Body {get;set;}="";
+    public DateTime CreatedAt {get;set;}
+    public DateTime? ReadAt {get;set;}
+    public bool IsMine {get;set;}
+}
+public sealed class ChatReadDto { public int Changed {get;set;} public DateTime ReadAt {get;set;} }

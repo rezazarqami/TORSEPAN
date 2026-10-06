@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TORSEPAN.Domain.Entities;
 
@@ -10,6 +10,8 @@ public sealed class RefreshTokenConfiguration
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
     {
         builder.ToTable("RefreshTokens");
+
+        builder.Property(x => x.CredentialVersion).HasDefaultValue(0).IsRequired();
 
         builder.HasKey(x => x.Id);
 
