@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TORSEPAN.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using TORSEPAN.Infrastructure.Persistence;
 namespace TORSEPAN.Infrastructure.Migrations
 {
     [DbContext(typeof(TORSEPANDbContext))]
-    partial class TORSEPANDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261006185746_AddOrderComposition")]
+    partial class AddOrderComposition
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1024,6 +1027,51 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("OrderReminders", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CodeAssignedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.Handpan", null)
+                        .WithMany()
+                        .HasForeignKey("HandpanId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TORSEPAN.Domain.Entities.Scale", null)
+                        .WithMany()
+                        .HasForeignKey("ScaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.Bowl", null)
+                        .WithMany()
+                        .HasForeignKey("TopBowlId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderReminder", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.CustomerOrder", "Order")
+                        .WithMany("Reminders")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
+                {
+                    b.Navigation("Reminders");
+                });
             modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushDelivery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1126,6 +1174,29 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("MessagePushSubscriptions", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushDelivery", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.WorkshopMessage", null)
+                        .WithMany()
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.MessagePushSubscription", null)
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushSubscription", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
             modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrderLine", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1169,6 +1240,26 @@ namespace TORSEPAN.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_OrderLine_Quantity", "\"Quantity\" >= 1 AND \"Quantity\" <= 10000");
                         });
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrderLine", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.DesignType", null)
+                        .WithMany()
+                        .HasForeignKey("DesignTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TORSEPAN.Domain.Entities.CustomerOrder", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.Scale", null)
+                        .WithMany()
+                        .HasForeignKey("ScaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderInstrument", b =>
@@ -1221,91 +1312,6 @@ namespace TORSEPAN.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("CodeAssignedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Handpan", null)
-                        .WithMany()
-                        .HasForeignKey("HandpanId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Scale", null)
-                        .WithMany()
-                        .HasForeignKey("ScaleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Bowl", null)
-                        .WithMany()
-                        .HasForeignKey("TopBowlId")
-                        .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderReminder", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.CustomerOrder", "Order")
-                        .WithMany("Reminders")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushDelivery", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.WorkshopMessage", null)
-                        .WithMany()
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.MessagePushSubscription", null)
-                        .WithMany()
-                        .HasForeignKey("SubscriptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushSubscription", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrderLine", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.DesignType", null)
-                        .WithMany()
-                        .HasForeignKey("DesignTypeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TORSEPAN.Domain.Entities.CustomerOrder", null)
-                        .WithMany("Lines")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Scale", null)
-                        .WithMany()
-                        .HasForeignKey("ScaleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderInstrument", b =>
                 {
                     b.HasOne("TORSEPAN.Domain.Entities.User", null)
@@ -1331,27 +1337,10 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
-                {
-                    b.Navigation("Reminders");
-                });
-
             modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b => { b.Navigation("Lines"); });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrderLine", b => { b.Navigation("Instruments"); });
 #pragma warning restore 612, 618
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.ProductionEvent", b => b.HasIndex("UserId","EventDate"));
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessage", b =>
-            {
-                b.HasOne("TORSEPAN.Domain.Entities.User","Sender").WithMany().HasForeignKey("SenderId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-                b.Navigation("Sender");
-            });
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessageReceipt", b =>
-            {
-                b.HasOne("TORSEPAN.Domain.Entities.WorkshopMessage","Message").WithMany().HasForeignKey("MessageId").OnDelete(DeleteBehavior.Cascade).IsRequired();
-                b.HasOne("TORSEPAN.Domain.Entities.User","Recipient").WithMany().HasForeignKey("RecipientId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-                b.Navigation("Message"); b.Navigation("Recipient");
-            });
         }
     }
 }
