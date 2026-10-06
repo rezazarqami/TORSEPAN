@@ -27,7 +27,7 @@ public sealed class MyProfileController(TORSEPANDbContext db) : ControllerBase
         var changePassword = !string.IsNullOrEmpty(request.NewPassword);
         if ((!changePassword && !string.IsNullOrEmpty(request.ConfirmPassword)) || changePassword && (request.NewPassword!.Length is < 10 or > 128 || request.NewPassword != request.ConfirmPassword))
             return BadRequest(new { Code = "new-password", Message = "رمز جدید باید ۱۰ تا ۱۲۸ کاراکتر باشد و با تکرارش یکسان باشد." });
-        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == Me && x.IsActive, ct);
+        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == Me && !x.IsDeleted && x.IsActive, ct);
         if (user is null) return Unauthorized();
         if (!user.VerifyPassword(request.CurrentPassword)) return BadRequest(new { Code = "current-password", Message = "رمز فعلی درست نیست." });
         if (await db.Users.AnyAsync(x => x.Id != Me && x.UserName.Trim().ToUpper() == name.ToUpper(), ct))
@@ -56,7 +56,7 @@ public sealed class MyProfileController(TORSEPANDbContext db) : ControllerBase
             catch (Exception e) when (e is FormatException or InvalidDataException or EndOfStreamException)
             { return BadRequest(new { Code = "avatar", Message = "عکس معتبر نیست؛ یک عکس دیگر انتخاب کنید." }); }
         }
-        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == Me && x.IsActive, ct);
+        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == Me && !x.IsDeleted && x.IsActive, ct);
         if (user is null) return Unauthorized();
         user.ChangeAvatar(image);
         try { await db.SaveChangesAsync(ct); }

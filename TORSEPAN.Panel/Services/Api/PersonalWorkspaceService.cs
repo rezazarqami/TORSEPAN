@@ -5,11 +5,29 @@ public sealed class PersonalWorkspaceService(ApiClient api)
 {
     public event Action? UnreadChanged;
     public int? UnreadCount {get;private set;}
+    public event Action<Guid, long>? IncomingMessagesChanged;
+    private readonly SemaphoreSlim _unreadLock = new(1, 1);
+    private Guid _incomingUser;
+    private long? _totalIncoming;
     public async Task RefreshUnreadAsync()
     {
-        try { UnreadCount=(await api.GetAsync<UnreadDto>("notifications/unread"))?.Count; }
-        catch { UnreadCount=null; }
+        Guid user = Guid.Empty; long? incoming = null;
+        await _unreadLock.WaitAsync();
+        try
+        {
+            var status = await api.GetAsync<UnreadDto>("notifications/unread");
+            UnreadCount = status?.Count;
+            if (status is { UserId: var id, TotalIncoming: long total } && id != Guid.Empty)
+            {
+                if (_incomingUser == id && _totalIncoming.HasValue && total > _totalIncoming)
+                { user = id; incoming = total; }
+                _incomingUser = id; _totalIncoming = total;
+            }
+        }
+        catch { UnreadCount = null; } // Keep the baseline during temporary connection failures.
+        finally { _unreadLock.Release(); }
         UnreadChanged?.Invoke();
+        if (incoming.HasValue) IncomingMessagesChanged?.Invoke(user, incoming.Value);
     }
     public async Task<MyActivityDto> ActivityAsync(DateTime? from,DateTime? to,int page=1)
     {
