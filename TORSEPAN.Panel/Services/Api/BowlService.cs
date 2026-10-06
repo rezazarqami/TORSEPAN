@@ -126,6 +126,20 @@ public sealed class BowlService
         return _api.PostAsync<object, bool>($"bowls/production/{code}/notes", new { Description = description, IsInstrumentNote = true });
     }
 
+    public Task<DimpleBowlDto?> SendGlueBowlToExportAsync(string productionCode)
+    {
+        var code = Uri.EscapeDataString(productionCode.Trim());
+        return _api.PostAsync<object, DimpleBowlDto>($"bowls/production/{code}/glue/send-to-export", new { });
+    }
+
+    public Task<object?> ShipExportItemsAsync(IEnumerable<ExportWarehouseItemDto> items, string? buyerName,
+        Guid? partyId, string? destination, string? shippingMethod, bool? isSettled)
+        => _api.PostAsync<object, object?>("export-warehouse/ship", new
+        {
+            Items = items.Select(x => new { x.Id, x.ItemType }).ToArray(), BuyerName = buyerName,
+            PartyId = partyId, Destination = destination, ShippingMethod = shippingMethod, IsSettled = isSettled
+        });
+
     public Task<DimpleBowlDto?> CompleteTuneForExportAsync(string productionCode, int duration)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());

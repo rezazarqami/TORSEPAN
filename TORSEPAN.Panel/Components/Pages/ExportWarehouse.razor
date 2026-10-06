@@ -23,7 +23,8 @@
 <div class="export-tools">
     <input class="form-control" placeholder="جست‌وجوی کد ساز، کاسه یا مشخصات..." @bind="_search" @bind:event="oninput" />
     <AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin">
-        <button class="btn ship-selected" disabled="@(_selected.Count == 0)" @onclick="OpenSelectedShipment">ثبت ارسال <span>@_selected.Count</span></button>
+        <label class="form-check d-flex align-items-center gap-2 text-nowrap"><input class="form-check-input" type="checkbox" checked="@AllVisibleSelected" disabled="@(_loading || !VisibleItems.Any())" @onchange="ToggleAll" /><span>انتخاب همه</span></label>
+        <button class="btn ship-selected" disabled="@(SelectedVisibleCount == 0)" @onclick="OpenSelectedShipment">ثبت ارسال <span>@SelectedVisibleCount</span></button>
     </AuthorizeView>
 </div>
 <div class="active-warehouse-banner" @ref="_inventorySection"><span class="warehouse-flag">@Warehouses.First(x=>x.Id==_activeLocation).Code</span><div><small>اکنون در حال مشاهده</small><strong>انبار @WarehouseName(_activeLocation)</strong></div><b>@WarehouseItems.Count() مورد</b></div>
@@ -40,8 +41,8 @@ else
     <section class="selected-inventory">
         <header class="selected-inventory-heading"><div><small>موجودی انتخاب‌شده</small><h2>انبار @WarehouseName(_activeLocation)</h2><p>فهرست زیر مربوط به مقصد انتخاب‌شده است.</p></div><span>@WarehouseItems.Count() مورد</span></header>
         <nav class="inventory-tabs" aria-label="نوع موجودی">
-            <button class="@(_activeInventoryTab=="bowls"?"active":null)" @onclick='()=>_activeInventoryTab="bowls"'><span>◉</span><strong>کاسه‌ها</strong><b>@WarehouseBowls.Count()</b></button>
-            <button class="@(_activeInventoryTab=="handpans"?"active":null)" @onclick='()=>_activeInventoryTab="handpans"'><span>♫</span><strong>سازها</strong><b>@WarehouseHandpans.Count()</b></button>
+            <button class="@(_activeInventoryTab=="bowls"?"active":null)" @onclick='()=>SelectInventoryTab("bowls")'><span>◉</span><strong>کاسه‌ها</strong><b>@WarehouseBowls.Count()</b></button>
+            <button class="@(_activeInventoryTab=="handpans"?"active":null)" @onclick='()=>SelectInventoryTab("handpans")'><span>♫</span><strong>سازها</strong><b>@WarehouseHandpans.Count()</b></button>
         </nav>
     @if (_activeInventoryTab == "bowls")
     {
@@ -65,7 +66,7 @@ else
             }
             else
             {
-                <div class="inventory-cards">@foreach (var item in WarehouseHandpans) { <article class="inventory-item handpan-card"><div class="item-symbol">♫</div><div class="item-main"><small>@item.ItemKind</small><strong dir="ltr">@item.ProductionCode</strong><p>@item.Detail</p></div><span class="location-badge">@WarehouseName(item.Location)</span><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView></div></article> }</div>
+                <div class="inventory-cards">@foreach (var item in WarehouseHandpans) { <article class="inventory-item handpan-card @(_selected.Contains(item.Id)?"selected":null)"><label class="item-select"><input type="checkbox" checked="@_selected.Contains(item.Id)" @onchange="e=>Toggle(item.Id,(bool)(e.Value??false))" /><span></span></label><div class="item-main"><small>@item.ItemKind</small><strong dir="ltr">@item.ProductionCode</strong><p>@item.Detail</p></div><span class="location-badge">@WarehouseName(item.Location)</span><div class="row-actions"><AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-outline-primary" @onclick="()=>OpenLocationEditor(item)">تغییر انبار</button></AuthorizeView><AuthorizeView Roles="Workshop,Administrator,ProductionManager,SalesAdmin"><button class="btn btn-sm btn-success" @onclick="()=>OpenShipment(item)">ثبت ارسال</button></AuthorizeView></div></article> }</div>
             }
         </div>
     }
@@ -75,7 +76,7 @@ else
 @if (_shipmentIds.Count > 0)
 {
     <div class="shipment-overlay" @onclick="CloseShipment"><section class="shipment-dialog" role="dialog" aria-modal="true" aria-labelledby="shipment-title" @onclick:stopPropagation="true">
-        <header><div><small>ثبت خروج از انبار صادراتی</small><h3 id="shipment-title">اطلاعات ارسال</h3><p>@_shipmentIds.Count کاسه انتخاب شده است</p></div><button @onclick="CloseShipment" aria-label="بستن">×</button></header>
+        <header><div><small>ثبت خروج از انبار صادراتی</small><h3 id="shipment-title">اطلاعات ارسال</h3><p>@_shipmentIds.Count کالا انتخاب شده است</p></div><button @onclick="CloseShipment" aria-label="بستن">×</button></header>
         <div class="shipment-codes">@foreach(var id in _shipmentIds){<span>@_items.First(x=>x.Id==id).ProductionCode</span>}</div>
         <div class="shipment-fields">
             <label><span>نام خریدار از حسابداری</span><select class="form-select" @bind="_partyId"><option value="">انتخاب نشده</option>@foreach(var party in _parties){<option value="@party.Id">@party.DisplayName</option>}</select></label>
@@ -116,7 +117,10 @@ else
     private IEnumerable<ExportWarehouseItemDto> WarehouseItems => _items.Where(x=>x.Location==_activeLocation && (string.IsNullOrWhiteSpace(_search) || x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase)));
     private IEnumerable<ExportWarehouseItemDto> WarehouseBowls => WarehouseItems.Where(x=>x.ItemType=="bowl");
     private IEnumerable<ExportWarehouseItemDto> WarehouseHandpans => WarehouseItems.Where(x=>x.ItemType=="handpan");
-    private bool AllVisibleSelected => WarehouseBowls.Any() && WarehouseBowls.All(x => _selected.Contains(x.Id));
+    private IEnumerable<ExportWarehouseItemDto> VisibleItems => _activeInventoryTab == "bowls" ? WarehouseBowls : WarehouseHandpans;
+    private int SelectedVisibleCount => VisibleItems.Count(x => _selected.Contains(x.Id));
+    private bool AllVisibleSelected => VisibleItems.Any() && VisibleItems.All(x => _selected.Contains(x.Id));
+    private void SelectInventoryTab(string tab){_activeInventoryTab=tab;_selected.Clear();}
     private string DeleteMessage => _deleteCandidate is null ? "" : $"کاسه صادراتی {_deleteCandidate.ProductionCode} برای همیشه حذف شود؟";
     protected override async Task OnInitializedAsync(){_loading=true;try{var bowls=BowlService.GetExportWarehouseAsync();var parties=AccountingService.PartiesAsync();await Task.WhenAll(bowls,parties);_items=(await bowls).ToList();_parties=await parties;}finally{_loading=false;}}
     private void Toggle(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
@@ -124,15 +128,15 @@ else
     private static string WarehouseName(int id)=>Warehouses.FirstOrDefault(x=>x.Id==id).Name??"نامشخص";
     private void OpenLocationEditor(ExportWarehouseItemDto item){_locationCandidate=item;_newLocation=item.Location;_locationError=null;}
     private void CloseLocationEditor(){if(!_savingLocation)_locationCandidate=null;}
-    private async Task SaveLocationAsync(){if(_locationCandidate is null)return;_savingLocation=true;_locationError=null;try{await BowlService.ChangeExportWarehouseLocationAsync(_locationCandidate.ItemType,_locationCandidate.Id,_newLocation);_locationCandidate.Location=_newLocation;_locationCandidate=null;}catch(Exception ex){_locationError=ex.Message;}finally{_savingLocation=false;}}
-    private void ToggleAll(ChangeEventArgs e){var selected=(bool)(e.Value??false);foreach(var item in WarehouseBowls){if(selected)_selected.Add(item.Id);else _selected.Remove(item.Id);}}
+    private async Task SaveLocationAsync(){if(_locationCandidate is null)return;_savingLocation=true;_locationError=null;try{await BowlService.ChangeExportWarehouseLocationAsync(_locationCandidate.ItemType,_locationCandidate.Id,_newLocation);_locationCandidate.Location=_newLocation;_selected.Remove(_locationCandidate.Id);_locationCandidate=null;}catch(Exception ex){_locationError=ex.Message;}finally{_savingLocation=false;}}
+    private void ToggleAll(ChangeEventArgs e){var selected=(bool)(e.Value??false);foreach(var item in VisibleItems){if(selected)_selected.Add(item.Id);else _selected.Remove(item.Id);}}
     private void OpenShipment(ExportWarehouseItemDto item){_shipmentIds.Clear();_shipmentIds.Add(item.Id);ResetShipment();}
-    private void OpenSelectedShipment(){_shipmentIds.Clear();_shipmentIds.AddRange(_selected.Where(id=>_items.Any(x=>x.Id==id&&x.ItemType=="bowl")));ResetShipment();}
+    private void OpenSelectedShipment(){_shipmentIds.Clear();_shipmentIds.AddRange(_selected.Where(id=>VisibleItems.Any(x=>x.Id==id)));ResetShipment();}
     private void ResetShipment(){_partyId=null;_buyerName="";_destination="";_shippingMethod=null;_isSettled=null;_error=null;}
     private void CloseShipment(){if(_saving)return;_shipmentIds.Clear();}
     private static string ChoiceClass(string? current,string? value)=>current==value?"choice active":"choice";
     private string SettledClass(bool? value)=>_isSettled==value?"choice active":"choice";
-    private async Task ConfirmShipmentAsync(){_saving=true;_error=null;try{var buyer=string.IsNullOrWhiteSpace(_buyerName)&&_partyId.HasValue?_parties.FirstOrDefault(x=>x.Id==_partyId)?.DisplayName:_buyerName;await BowlService.ShipExportBowlsAsync(_shipmentIds,buyer,_partyId,_destination,_shippingMethod,_isSettled);var shipped=_shipmentIds.ToHashSet();_items.RemoveAll(x=>shipped.Contains(x.Id));_selected.RemoveWhere(shipped.Contains);_shipmentIds.Clear();}catch(Exception ex){_error=ex.Message;}finally{_saving=false;}}
+    private async Task ConfirmShipmentAsync(){_saving=true;_error=null;try{var buyer=string.IsNullOrWhiteSpace(_buyerName)&&_partyId.HasValue?_parties.FirstOrDefault(x=>x.Id==_partyId)?.DisplayName:_buyerName;await BowlService.ShipExportItemsAsync(_items.Where(x=>_shipmentIds.Contains(x.Id)),buyer,_partyId,_destination,_shippingMethod,_isSettled);var shipped=_shipmentIds.ToHashSet();_items.RemoveAll(x=>shipped.Contains(x.Id));_selected.RemoveWhere(shipped.Contains);_shipmentIds.Clear();}catch(Exception ex){_error=ex.Message;}finally{_saving=false;}}
     private void RequestDelete(ExportWarehouseItemDto item){_deleteCandidate=item;_deleteError=null;}
     private void CancelDelete(){if(_deleting)return;_deleteCandidate=null;_deleteError=null;}
     private async Task ConfirmDeleteAsync(){if(_deleteCandidate is null)return;_deleting=true;try{await BowlService.DeleteAsync(_deleteCandidate.Id);_items.Remove(_deleteCandidate);_selected.Remove(_deleteCandidate.Id);_deleteCandidate=null;}catch(Exception ex){_deleteError=ex.Message;}finally{_deleting=false;}}

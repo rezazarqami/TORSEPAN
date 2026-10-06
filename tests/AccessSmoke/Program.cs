@@ -45,6 +45,9 @@ await Verify(typeof(BowlsController),"ShipExportBowl",r=>Sales(r)||r=="Workshop"
 await Verify(typeof(ProductionController),"Rollback",r=>r=="Administrator");
 await Verify(typeof(BowlsController),"Rollback",r=>r=="Administrator");
 await Verify(typeof(AuthController),"GetRoles",r=>r is "Administrator" or "ProductionManager");
+await Verify(typeof(AuthController),"DeleteUser",r=>r is "Administrator" or "ProductionManager");
+await Verify(typeof(ExportWarehouseController),"Ship",r=>Sales(r)||r=="Workshop");
+await Verify(typeof(BowlsController),"SendGlueBowlToExport",r=>r is "Administrator" or "ProductionManager" or "Workshop" or "Tuner");
 await Verify(typeof(TORSEPAN.Panel.Components.Pages.Sales),null,Sales);
 await Verify(typeof(TORSEPAN.Panel.Components.Pages.Accounting),null,Sales);
 await Verify(typeof(TORSEPAN.Panel.Components.Pages.Marketing),null,Marketing);
@@ -60,7 +63,7 @@ Check(await authState.RefreshAsync(), "authentication retry succeeds when browse
 var soldHandpan = new Handpan(Guid.NewGuid(), "ROLLBACK-TEST");
 soldHandpan.ChangeStage(ProductionStage.FinishedWarehouse);
 soldHandpan.ChangeStatus(ProductionStatus.Completed);
-soldHandpan.Sell("Test buyer", "09120000000", 100, "Test destination", Guid.NewGuid());
+soldHandpan.Sell("Test buyer", "09120000000", 100, "Test destination", false, Guid.NewGuid());
 soldHandpan.ReturnToWarehouse();
 Check(soldHandpan.Stage == ProductionStage.FinishedWarehouse &&
       soldHandpan.Status == ProductionStatus.Completed &&

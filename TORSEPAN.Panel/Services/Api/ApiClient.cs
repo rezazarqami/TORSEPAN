@@ -93,7 +93,14 @@ public class ApiClient
         string? message = null;
         if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Conflict or HttpStatusCode.NotFound)
         { try { message = (await response.Content.ReadFromJsonAsync<AccountError>())?.Message; } catch (JsonException) { } }
-        throw new AccountActionException(message ?? "حذف انجام نشد؛ اتصال و مجوز حساب را بررسی کنید.");
+        message ??= response.StatusCode switch
+        {
+            HttpStatusCode.Forbidden => "حذف کاربر فقط برای ادمین و مدیر تولید مجاز است. نقش فعلی حساب را بررسی کنید.",
+            HttpStatusCode.Unauthorized => "نشست ورود معتبر نیست؛ دوباره وارد حساب شوید.",
+            HttpStatusCode.MethodNotAllowed => "نسخه API هنوز از حذف حساب پشتیبانی نمی‌کند؛ نسخه سرور باید به‌روز شود.",
+            _ => $"حذف کاربر انجام نشد (خطای {(int)response.StatusCode}). دوباره تلاش کنید."
+        };
+        throw new AccountActionException(message);
     }
 
     public async Task DeleteAsync(string url)
