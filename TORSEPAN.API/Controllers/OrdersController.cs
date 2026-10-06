@@ -32,6 +32,9 @@ public sealed class OrdersController(CustomerOrderService orders) : ControllerBa
     public Task<IActionResult> UpdateDraft(Guid id, SaveOrderDraftRequest request, CancellationToken ct) => SaveDraft(id, request, ct);
     private Task<IActionResult> SaveDraft(Guid? id, SaveOrderDraftRequest request, CancellationToken ct) => Write(async userId =>
         Ok(await orders.SaveDraftAsync(id, request, userId, ct)));
+    [HttpPut("{id:guid}")]
+    public Task<IActionResult> Update(Guid id, SaveOrderDraftRequest request, CancellationToken ct) => Write(async _ =>
+        await orders.UpdateOrderAsync(id,request,ct) ? NoContent() : NotFound());
     [HttpPost("{id:guid}/finalize")]
     public Task<IActionResult> Finalize(Guid id, FinalizeOrderRequest request, CancellationToken ct) => Write(async _ =>
         await orders.FinalizeAsync(id, request.Version, ct) ? NoContent() : NotFound());
