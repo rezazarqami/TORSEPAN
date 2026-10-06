@@ -28,4 +28,5 @@ public class UserService : IUserService
 
     public Task UpdateUserAsync(UpdateUserCommand command) =>
         _api.UpdateUserAsync(command);
+    public Task DeleteUserAsync(Guid userId) => _api.DeleteUserAsync(userId);
 }

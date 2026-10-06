@@ -32,11 +32,16 @@ internal static class UiSmoke
    async Task Save(string name){if(output is not null)await File.WriteAllTextAsync(Path.Combine(output,name+".html"),rendered.ToHtmlString());}
    Check(Html().Contains("ناحیهٔ کاربری")&&Html().Contains("عملکرد من")&&Html().Contains("تنظیمات امنیتی"),"account hero and performance/security tabs render");
    Check(Html().Contains("activity-log")&&Html().Contains("کد بلند")&&!Html().Contains("<table"),"performance records use compact cards instead of a wide table");
-   Check(!Html().Contains("دستمزد من"),"disabled personal payroll remains hidden");await Save("performance");
-   api.PayrollEnabled=true;await page.Call("Load",1);page.Refresh();Check(Html().Contains("دستمزد من")&&Html().Contains("120,000"),"authorized personal payroll retains totals and lines");await Save("payroll");
-   api.PayrollMissing=true;await page.Call("Load",1);page.Refresh();Check(Html().Contains("activity-log")&&!Html().Contains("دستمزد من"),"missing optional payroll endpoint does not hide activity");api.PayrollMissing=false;
+   Check(Html().Contains("دستمزد من") && !Html().Contains("payroll-total"),"three account tabs remain visible without exposing disabled payroll");await Save("performance");
+   page.Section("Payroll");page.Refresh();Check(Html().Contains("نمایش دستمزد برای حساب شما فعال نیست")&&!Html().Contains("activity-log"),"disabled payroll tab gives a permission message without showing activity");
+   api.PayrollEnabled=true;await page.Call("Load",1);page.Refresh();Check(Html().Contains("payroll-total")&&Html().Contains("120,000")&&!Html().Contains("activity-log"),"payroll is a separate tab with totals and lines");await Save("payroll");
+   page.Section("Performance");page.Refresh();Check(Html().Contains("activity-log")&&!Html().Contains("payroll-total"),"performance tab no longer embeds payroll");
+   api.PayrollMissing=true;await page.Call("Load",1);page.Refresh();Check(Html().Contains("activity-log"),"missing optional payroll endpoint does not hide activity");
+   page.Section("Payroll");page.Refresh();Check(Html().Contains("گزارش دستمزد در دسترس نیست")&&!Html().Contains("payroll-total"),"missing payroll endpoint has its own visible error");api.PayrollMissing=false;page.Section("Performance");
    page.Set("_from",new DateTime(2026,10,5));page.Set("_to",new DateTime(2026,10,4));var requests=api.ActivityReads;await page.Call("Apply");page.Refresh();Check(api.ActivityReads==requests&&Html().Contains("تاریخ شروع و پایان معتبر"),"invalid reporting dates do not send a request");
-   page.Set("_security",true);page.Refresh();Check(Html().Contains("عکس پروفایل")&&Html().Contains("current-password")&&Html().Contains("new-password")&&!Html().Contains("activity-log"),"security tab separates photo and credential settings from performance");
+   page.Section("Security");page.Refresh();Check(Html().Contains("عکس پروفایل")&&Html().Contains("current-password")&&Html().Contains("new-password")&&!Html().Contains("activity-log"),"security tab separates photo and credential settings from performance");
+   var pickerId=(string)page.Get("_avatarInputId")!;
+   Check(Html().Contains($"for=\"{pickerId}\"")&&Html().Contains($"id=\"{pickerId}\"")&&Html().Contains("type=\"file\""),"photo selection uses an explicit native label/input association");
    Check(Html().Contains("data:image/png;base64"),"stored avatar is fetched with the authenticated API client and rendered");await Save("security");
    page.Set("_userName","profile-new");page.Set("_currentPassword","original-password");page.Set("_newPassword","new-password-123");page.Set("_confirmation","mismatch");await page.Call("SaveCredentialsAsync");Check(api.Credentials.Count==0,"mismatched password confirmation is caught before sending");
    page.Set("_confirmation","new-password-123");api.FailCredentials=true;await page.Call("SaveCredentialsAsync");page.Refresh();Check(Html().Contains("این نام کاربری قبلاً استفاده شده است")&&!auth.LoggedOut,"server duplicate username feedback is displayed without logging out");
@@ -52,6 +57,7 @@ public sealed class ProfilePreview:MyActivity
  public static ProfilePreview? Instance;
  protected override async Task OnInitializedAsync(){await base.OnInitializedAsync();Instance=this;}
  public void Refresh()=>StateHasChanged();
+ public void Section(string name){var field=typeof(MyActivity).GetField("_section",BindingFlags.Instance|BindingFlags.NonPublic)!;field.SetValue(this,Enum.Parse(field.FieldType,name));}
  public object? Get(string name)=>typeof(MyActivity).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(this);
  public void Set(string name,object value)=>typeof(MyActivity).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(this,value);
  public async Task Call(string name,params object[] args){var result=typeof(MyActivity).GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(this,args);if(result is Task task)await task;}
