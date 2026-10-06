@@ -117,6 +117,7 @@ internal static class OrderCompositionSmoke
         if(Environment.GetEnvironmentVariable("TORSEPAN_ORDER_MIGRATION_DIR") is { } directory)
         { Directory.CreateDirectory(directory); await File.WriteAllTextAsync(Path.Combine(directory,"up.sql"),script); await File.WriteAllTextAsync(Path.Combine(directory,"down.sql"),migrator.GenerateScript(target,"20261006133310_AddMessagePush")); }
         Check(script.Contains("CREATE TABLE \"CustomerOrderLines\"") && script.Contains("INSERT INTO \"OrderInstruments\"") && !script.Contains("Accounting") && !script.Contains("DROP INDEX"),"migration adds only order composition and backfills legacy codes");
+        await OrderEditingSmoke.RunAsync();
         await OrderCompositionPostgresSmoke.RunIfConfiguredAsync();
         await OrderPreviewFixtures.RenderAsync();
     }

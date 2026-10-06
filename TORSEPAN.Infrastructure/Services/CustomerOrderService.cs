@@ -72,8 +72,9 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         while (tehran.IsInvalidTime(local)) local = local.AddMinutes(1);
         return TimeZoneInfo.ConvertTimeToUtc(local, tehran);
     }
-    private async Task<List<CustomerOrderLine>> ValidateDraft(Guid id, SaveOrderDraftRequest request, CancellationToken ct)
+    private async Task<List<CustomerOrderLine>> ValidateDraft(Guid id, SaveOrderDraftRequest request, CancellationToken ct, ICollection<CustomerOrderLine>? existingLines = null)
     {
+        CustomerOrderLine? Existing(OrderLineRequest input) => existingLines?.SingleOrDefault(l=>l.Id==input.LineId);
         if (string.IsNullOrWhiteSpace(request.CustomerName) || request.CustomerName.Trim().Length > 200)
             throw new OrderValidationException("نام سفارش‌دهنده را حداکثر در ۲۰۰ حرف وارد کنید.");
         if (request.DurationDays is < 1 or > 36500) throw new OrderValidationException("مدت سفارش باید بین ۱ تا ۳۶۵۰۰ روز باشد.");
@@ -85,10 +86,10 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         var designIds = request.Lines.Where(x => x.DesignTypeId.HasValue).Select(x => x.DesignTypeId!.Value).ToArray();
         var scales = await db.Scales.Where(x => scaleIds.Contains(x.Id) && x.IsActive && (x.Usage & (ScaleUsage.Handpan | ScaleUsage.CustomHandpan)) != 0).ToDictionaryAsync(x => x.Id, ct);
         var designs = await db.DesignTypes.Where(x => designIds.Contains(x.Id) && x.IsActive).ToDictionaryAsync(x => x.Id, ct);
-        if (request.Lines.Any(x => !scales.ContainsKey(x.ScaleId))) throw new OrderValidationException("اسکیل هر ردیف را از اسکیل‌های فعال ساز انتخاب کنید.");
-        if (request.Lines.Any(x => x.DesignTypeId.HasValue && !designs.ContainsKey(x.DesignTypeId.Value))) throw new OrderValidationException("دیزاین هر ردیف را از فهرست دیزاین‌های فعال انتخاب کنید.");
-        return request.Lines.Select((x, i) => new CustomerOrderLine(id, i + 1, x.ScaleId, scales[x.ScaleId].Name,
-            x.DesignTypeId, x.DesignTypeId.HasValue ? designs[x.DesignTypeId.Value].Name : "دیزاین ساده", x.Quantity)).ToList();
+        if (request.Lines.Any(x => !scales.ContainsKey(x.ScaleId) && Existing(x)?.ScaleId != x.ScaleId)) throw new OrderValidationException("اسکیل هر ردیف را از اسکیل‌های فعال ساز انتخاب کنید.");
+        if (request.Lines.Any(x => x.DesignTypeId.HasValue && !designs.ContainsKey(x.DesignTypeId.Value) && Existing(x)?.DesignTypeId != x.DesignTypeId)) throw new OrderValidationException("دیزاین هر ردیف را از فهرست دیزاین‌های فعال انتخاب کنید.");
+        return request.Lines.Select((x, i) => new CustomerOrderLine(id, i + 1, x.ScaleId, Existing(x)?.ScaleId == x.ScaleId ? Existing(x)!.ScaleName : scales[x.ScaleId].Name,
+            x.DesignTypeId, Existing(x) is { } old && old.DesignTypeId == x.DesignTypeId ? old.DesignName : x.DesignTypeId.HasValue ? designs[x.DesignTypeId.Value].Name : "دیزاین ساده", x.Quantity)).ToList();
     }
     private async Task LockOrder(Guid id, CancellationToken ct)
     {
@@ -123,6 +124,45 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         }
         await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
         return order.Id;
+    }
+    public async Task<bool> UpdateOrderAsync(Guid id, SaveOrderDraftRequest request, CancellationToken ct)
+    {
+        var start=OrderStart(request.OrderDate);
+        await using var transaction=await db.Database.BeginTransactionAsync(ct);
+        if(db.Database.IsNpgsql())await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(730031, 1)",ct);
+        await LockOrder(id,ct);
+        var order=await db.CustomerOrders.Include(x=>x.Reminders).Include(x=>x.Lines).ThenInclude(x=>x.Instruments).SingleOrDefaultAsync(x=>x.Id==id,ct);
+        if(order is null)return false;
+        if(order.IsDraft || order.Version!=request.Version)throw new OrderValidationException("سفارش تغییر کرده است؛ فهرست را به‌روز کرده و دوباره ویرایش کنید.");
+        var proposed=await ValidateDraft(id,request,ct,order.Lines);
+        var retained=request.Lines.Where(x=>x.LineId.HasValue).Select(x=>x.LineId!.Value).ToArray();
+        if(retained.Distinct().Count()!=retained.Length || retained.Any(x=>order.Lines.All(l=>l.Id!=x)))
+            throw new OrderValidationException("شناسهٔ ردیف‌های سفارش معتبر نیست.");
+        var removed=order.Lines.Where(x=>!retained.Contains(x.Id)).ToArray();
+        if(removed.Any(x=>x.Instruments.Any()))throw new OrderValidationException("ردیفی که کد ساز دارد قابل حذف نیست.");
+        for(var i=0;i<request.Lines.Count;i++)
+        {
+            var input=request.Lines[i];
+            var existing=order.Lines.SingleOrDefault(x=>x.Id==input.LineId);
+            if(existing is not null && existing.Instruments.Any(x=>x.Slot>input.Quantity))
+                throw new OrderValidationException($"ردیف {i+1}: تعداد نباید کمتر از شمارهٔ آخرین ساز کدگذاری‌شده باشد.");
+        }
+        // Reserve unique positions before compacting rows; all changes stay in this transaction.
+        foreach(var line in order.Lines)line.SetPosition(-line.Position);
+        await db.SaveChangesAsync(ct);
+        foreach(var line in removed){db.CustomerOrderLines.Remove(line);order.Lines.Remove(line);}
+        await db.SaveChangesAsync(ct);
+        for(var i=0;i<request.Lines.Count;i++)
+        {
+            var input=request.Lines[i];var spec=proposed[i];
+            var existing=order.Lines.SingleOrDefault(x=>x.Id==input.LineId);
+            if(existing is null){order.Lines.Add(spec);db.CustomerOrderLines.Add(spec);}
+            else existing.ChangeSpecification(i+1,spec.ScaleId,spec.ScaleName,spec.DesignTypeId,spec.DesignName,spec.Quantity);
+        }
+        order.ChangeFinalOrder(request.CustomerName,request.DurationDays,start);
+        var first=order.Lines.OrderBy(x=>x.Position).First().Instruments.SingleOrDefault(x=>x.Slot==1);
+        order.SyncPrimaryInstrument(first);
+        await db.SaveChangesAsync(ct);await transaction.CommitAsync(ct);return true;
     }
     public async Task<bool> FinalizeAsync(Guid id, int version, CancellationToken ct)
     {
