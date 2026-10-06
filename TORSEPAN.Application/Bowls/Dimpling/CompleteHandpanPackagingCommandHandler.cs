@@ -73,12 +73,17 @@ public sealed class CompleteHandpanPackagingCommandHandler
                 MaterialStockMetadata.Encode(material.Id,material.Name,"general",-quantity,material.Quantity,"مصرف در بسته‌بندی")));
         }
 
-        handpan.ChangeStage(ProductionStage.FinishedWarehouse);
+        if (request.ExportWarehouseLocation.HasValue)
+            handpan.MoveToExportWarehouse(request.ExportWarehouseLocation.Value);
+        else
+            handpan.ChangeStage(ProductionStage.FinishedWarehouse);
         handpan.ChangeStatus(ProductionStatus.Completed);
         _unitOfWork.Handpans.Update(handpan);
 
         foreach (var item in bowls)
         {
+            // The assembled instrument is the export inventory item; its component bowls
+            // remain completed records and must not appear as separate warehouse stock.
             item.ChangeStage(ProductionStage.FinishedWarehouse);
             item.CompleteProduction();
             _unitOfWork.Bowls.Update(item);
@@ -87,7 +92,9 @@ public sealed class CompleteHandpanPackagingCommandHandler
         await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(
             handpan.Id, assembly.Id, null, userId, ProductionAction.Packaging,
             EventResult.Completed, null,
-            $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}"));
+            request.ExportWarehouseLocation.HasValue
+                ? $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}|EXPORT_WAREHOUSE:{(int)request.ExportWarehouseLocation.Value}"
+                : $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}"));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         foreach (var material in selectedMaterials.Where(x => x.LowStockThreshold > 0 && x.Quantity < x.LowStockThreshold))

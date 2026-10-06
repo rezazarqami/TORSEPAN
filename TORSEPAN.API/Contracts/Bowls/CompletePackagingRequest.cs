@@ -1,3 +1,3 @@
 namespace TORSEPAN.API.Contracts.Bowls;
 
-public sealed record CompletePackagingRequest(IReadOnlyCollection<Guid>? MaterialIds);
+public sealed record CompletePackagingRequest(IReadOnlyCollection<Guid>? MaterialIds, TORSEPAN.Domain.Enums.ExportWarehouseLocation? ExportWarehouseLocation);

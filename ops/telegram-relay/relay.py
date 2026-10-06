@@ -22,6 +22,17 @@ class RelayHandler(BaseHTTPRequestHandler):
         self._json(200, {"status": "healthy"})
 
     def do_POST(self):
+        try:
+            self._handle_post()
+        except subprocess.TimeoutExpired:
+            self._json(504, {"detail": "Telegram upload timed out."})
+        except (RuntimeError, OSError):
+            # Never return curl stderr: it can contain a Telegram URL with the bot token.
+            self._json(502, {"detail": "Relay could not deliver the file to Telegram."})
+        except (ValueError, KeyError):
+            self._json(400, {"detail": "Invalid relay upload."})
+
+    def _handle_post(self):
         if self.path not in ("/database-backup", "/inventory-alert", "/payroll-report"):
             self.send_error(404)
             return
@@ -78,6 +89,12 @@ class RelayHandler(BaseHTTPRequestHandler):
             )
         if result.returncode != 0:
             raise RuntimeError(result.stderr.strip() or "Telegram upload failed")
+        try:
+            delivered = json.loads(result.stdout)
+        except (ValueError, TypeError):
+            raise RuntimeError("Invalid Telegram response") from None
+        if delivered.get("ok") is not True:
+            raise RuntimeError("Telegram rejected the upload")
         self._json(200, {"status": "sent"})
 
     def _send_inventory_alert(self, raw):

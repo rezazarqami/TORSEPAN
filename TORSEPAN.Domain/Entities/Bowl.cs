@@ -14,6 +14,7 @@ public class Bowl : Entity
     public bool IsCustomScale { get; private set; }
     public ProductionStatus Status { get; private set; }
     public ProductionStage Stage { get; private set; }
+    public ExportWarehouseLocation? ExportWarehouseLocation { get; private set; }
 
     public Material Material { get; private set; } = null!;
     public Scale? Scale { get; private set; }
@@ -46,6 +47,18 @@ public class Bowl : Entity
     public void StartProduction()=> Status=ProductionStatus.InProgress;
     public void MarkAsWaiting()=> Status=ProductionStatus.Waiting;
     public void ChangeStage(ProductionStage stage)=> Stage=stage;
+    public void MoveToExportWarehouse(ExportWarehouseLocation location)
+    {
+        if (!Enum.IsDefined(location)) throw new ArgumentOutOfRangeException(nameof(location));
+        Stage = ProductionStage.ExportWarehouse;
+        ExportWarehouseLocation = location;
+    }
+    public void ChangeExportWarehouseLocation(ExportWarehouseLocation location)
+    {
+        if (Stage != ProductionStage.ExportWarehouse) throw new InvalidOperationException("Bowl is not in export warehouse.");
+        if (!Enum.IsDefined(location)) throw new ArgumentOutOfRangeException(nameof(location));
+        ExportWarehouseLocation = location;
+    }
     public void CompleteProduction()=> Status=ProductionStatus.Completed;
     public void Reject()=> Status=ProductionStatus.Rejected;
     public void SetScale(Guid scaleId)

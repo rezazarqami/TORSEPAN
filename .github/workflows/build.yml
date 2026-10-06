@@ -6,6 +6,17 @@ on:
   pull_request:
 
 jobs:
+  export-release-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify export endpoints, shipment transaction, account roles and backup retries
+        run: dotnet run --project tests/ReleaseExportSmoke/ReleaseExportSmoke.csproj -c Release
+      - name: Verify Telegram backup relay errors and acknowledgements
+        run: python3 -m unittest discover -s ops/telegram-relay -p test_backup_relay.py
   docker:
     runs-on: ubuntu-latest
     strategy:

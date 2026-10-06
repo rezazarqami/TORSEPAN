@@ -49,6 +49,36 @@ public class Handpan : Entity
     public decimal? SalePrice { get; private set; }
     public string? SaleDestination { get; private set; }
 
+    public ExportWarehouseLocation? ExportWarehouseLocation { get; private set; }
+
+    public void MoveToExportWarehouse(ExportWarehouseLocation location)
+    {
+        if (!Enum.IsDefined(location)) throw new ArgumentOutOfRangeException(nameof(location));
+        Stage = ProductionStage.ExportWarehouse;
+        ExportWarehouseLocation = location;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ChangeExportWarehouseLocation(ExportWarehouseLocation location)
+    {
+        if (Stage != ProductionStage.ExportWarehouse) throw new InvalidOperationException("Handpan is not in export warehouse.");
+        if (!Enum.IsDefined(location)) throw new ArgumentOutOfRangeException(nameof(location));
+        ExportWarehouseLocation = location;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ShipFromExportWarehouse(string? buyerName, string? destination, Guid soldByUserId)
+    {
+        if (Stage != ProductionStage.ExportWarehouse) throw new InvalidOperationException("Handpan is not in export warehouse.");
+        BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
+        SalePrice = null;
+        SaleDestination = string.IsNullOrWhiteSpace(destination) ? null : destination.Trim();
+        SoldByUserId = soldByUserId;
+        SoldAt = DateTime.UtcNow;
+        Stage = ProductionStage.Sold;
+        UpdatedAt = SoldAt;
+    }
+
     public void Sell(string? buyerName, decimal? price, string? destination, Guid soldByUserId)
     {
         if (Stage != ProductionStage.FinishedWarehouse) throw new InvalidOperationException("Handpan is not in warehouse.");
