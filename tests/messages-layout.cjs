@@ -14,7 +14,7 @@ const server=http.createServer((req,res)=>{
 let browser;
 const watchdog=setTimeout(()=>{console.error("Browser layout verification timed out");process.exit(1);},90000);
 (async()=>{
- await new Promise(resolve=>server.listen(5192,'127.0.0.1',resolve));browser=await chromium.launch({headless:true});const page=await browser.newPage();page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(15000);
+ await new Promise(resolve=>server.listen(5192,'127.0.0.1',resolve));browser=await chromium.launch({headless:true,...(process.env.MESSAGES_CHROMIUM?{executablePath:process.env.MESSAGES_CHROMIUM}:{}),...(process.env.MESSAGES_CHROMIUM_ARGS?{args:JSON.parse(fs.readFileSync(process.env.MESSAGES_CHROMIUM_ARGS,'utf8'))}:{})});const page=await browser.newPage();page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(15000);
  for(const width of [360,384,412,1024])for(const noReset of [false,true])for(const name of ['announcements','contacts','chat','broadcast']){
   await page.setViewportSize({width,height:820});await page.goto(`http://127.0.0.1:5192/preview/${name}.html${noReset?'?no-reset=1':''}`);await page.evaluate(()=>document.fonts.ready);
   const bounds=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));assert(bounds.width<=bounds.viewport,`${name} ${width}: ${JSON.stringify(bounds)}`);
@@ -25,11 +25,12 @@ const watchdog=setTimeout(()=>{console.error("Browser layout verification timed 
   await page.screenshot({path:path.join(out,`${name}-${width}${noReset?'-no-reset':''}.png`),fullPage:true});console.log('PASS message layout',name,width,noReset);
  }
  await page.setViewportSize({width:384,height:820});await page.goto('http://127.0.0.1:5192/preview/chat.html');
- const ids=await page.evaluate(()=>{
+ await page.evaluate(()=>{
   const el=document.querySelector('.chat-thread');for(let i=0;i<30;i++){const p=document.createElement('p');p.style.cssText='height:50px;flex:none';el.appendChild(p);}
   const visible=document.createElement('p');visible.style.cssText='height:50px;flex:none';visible.dataset.incomingId='visible-last';el.appendChild(visible);el.scrollTop=el.scrollHeight;
-  return workshopMessages.visibleIncoming(el);
  });
+ await page.locator(".chat-thread").scrollIntoViewIfNeeded();
+ const ids=await page.evaluate(()=>workshopMessages.visibleIncoming(document.querySelector(".chat-thread")));
  assert(ids.includes('visible-last')&&!ids.includes('11111111-1111-1111-1111-111111111111'),'read helper returns only viewport-visible incoming messages');
  const hidden=await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});return workshopMessages.visibleIncoming(document.querySelector('.chat-thread'));});
  assert.equal(hidden.length,0,'hidden browser tab must never mark incoming messages read');console.log('PASS actual browser visibility and read helper');

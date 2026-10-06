@@ -57,6 +57,20 @@ public class ApiClient
         return await ReadResponseAsync<TResult>(response);
     }
 
+    public async Task<TResult?> OrderActionAsync<TRequest, TResult>(string url, TRequest request, bool put = false)
+    {
+        using var response = await SendWithRefreshAsync(() => put ? _http.PutAsJsonAsync(url, request) : _http.PostAsJsonAsync(url, request));
+        if (!response.IsSuccessStatusCode)
+        {
+            string? message = null;
+            if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
+            { try { message = (await response.Content.ReadFromJsonAsync<AccountError>())?.Message; } catch (JsonException) { } }
+            throw new OrderActionException(message ?? (response.StatusCode == HttpStatusCode.NotFound
+                ? "این سفارش یا ردیف حذف شده است؛ فهرست را به‌روز کنید." : "ذخیره انجام نشد؛ اتصال و ورود به حساب را بررسی کنید."));
+        }
+        return await ReadResponseAsync<TResult>(response);
+    }
+
     public async Task<TResult?> PutAccountAsync<TRequest, TResult>(string url, TRequest request)
     {
         using var response = await SendWithRefreshAsync(() => _http.PutAsJsonAsync(url, request));
@@ -201,3 +215,5 @@ public class ApiClient
             new JsonSerializerOptions(JsonSerializerDefaults.Web));
     }
 }
+
+public sealed class OrderActionException(string message) : Exception(message);
