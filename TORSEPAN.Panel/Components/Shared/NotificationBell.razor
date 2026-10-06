@@ -13,7 +13,12 @@
     private string Label=>Workspace.UnreadCount.HasValue?$"پیام‌ها؛ {Workspace.UnreadCount} خوانده‌نشده":"پیام‌ها؛ شمارنده در دسترس نیست";
     protected override async Task OnInitializedAsync(){Workspace.UnreadChanged+=Changed;Workspace.IncomingMessagesChanged+=Incoming;Navigation.LocationChanged+=LocationChanged;await Load();}
     private async Task Load(){if(_loading||_disposed)return;_loading=true;try{await Workspace.RefreshUnreadAsync();}finally{_loading=false;}}
-    protected override void OnAfterRender(bool firstRender) { if (firstRender) _ = PollAsync(); }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _ = PollAsync();
+        try { await Workspace.ConfigureAlertsAsync(JS); } catch { }
+    }
     private async Task PollAsync()
     {
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
