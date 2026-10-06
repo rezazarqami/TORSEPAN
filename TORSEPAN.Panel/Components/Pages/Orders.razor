@@ -39,7 +39,8 @@ else if (_tab == "new")
             <section class="order-panel composition-panel">
                 <header><div><small class="section-kicker">۰۲ / ترکیب سازها</small><h2>دیزاین × اسکیل × تعداد</h2></div><button class="btn subtle" disabled="@(_saving || _catalogLoading)" @onclick="RefreshCatalogAsync">@(_catalogLoading ? "در حال دریافت…" : "↻ فهرست دیزاین و اسکیل")</button></header>
                 <p class="panel-caption">برای هر ترکیب، یک ردیف اضافه کن. مثلاً ۵ ساز ساده و ۵ ساز اسیدکاری، با اسکیل‌های متفاوت.</p>
-                @if(_designs.Count == 0 || _scales.Count == 0){<div class="form-hint warning">ابتدا دیزاین و اسکیل کاستوم ساز را در <a href="/designs">دیزاین‌ها</a> و <a href="/custom-scales">Scale Custom</a> ثبت کنید.</div>}
+                @if(_scales.Count == 0){<div class="form-hint warning">ابتدا اسکیل کاستوم ساز را در <a href="/custom-scales">Scale Custom</a> ثبت کنید.</div>}
+                <div class="form-hint">اگر دیزاین دیگری انتخاب نکنید، ساز با دیزاین ساده ثبت می‌شود.</div>
                 <div class="composition-lines">
                     @foreach(var item in _items)
                     {
@@ -47,7 +48,7 @@ else if (_tab == "new")
                         <article class="composition-line" @key="item.Key">
                             <div class="line-heading"><b>ردیف @position.ToString("00")</b><button class="remove-line" aria-label="حذف ردیف @position" disabled="@(_saving || _items.Count == 1)" @onclick="()=>_items.Remove(item)">حذف ×</button></div>
                             <div class="line-fields">
-                                <label for="design-@item.Key"><span>دیزاین</span><select id="design-@item.Key" class="form-select" @bind="item.DesignId" disabled="@_saving"><option value="">انتخاب دیزاین</option>@foreach(var design in _designs){<option value="@design.Id">@design.Name</option>}</select></label>
+                                <label for="design-@item.Key"><span>دیزاین</span><select id="design-@item.Key" class="form-select" @bind="item.DesignId" disabled="@_saving"><option value="">دیزاین ساده</option>@foreach(var design in _designs){<option value="@design.Id">@design.Name</option>}</select></label>
                                 <label for="scale-@item.Key"><span>اسکیل ساز</span><select id="scale-@item.Key" class="form-select" @bind="item.ScaleId" disabled="@_saving"><option value="">انتخاب اسکیل</option>@foreach(var scale in _scales){<option value="@scale.Id">@scale.Name</option>}</select></label>
                                 <label for="quantity-@item.Key"><span>تعداد ساز</span><input id="quantity-@item.Key" class="form-control quantity-input" inputmode="numeric" maxlength="5" @bind="item.Quantity" @bind:event="oninput" disabled="@_saving" /></label>
                             </div>
@@ -156,8 +157,8 @@ else
     private int DurationDays => int.TryParse(ProductionCodeNormalizer.Normalize(_duration), out var n) ? n : 0;
     private int TotalCount => _items.Sum(x => Math.Max(0,x.Count));
     private bool ValidDate => _orderDate.HasValue && _orderDate.Value.Year >= 1900 && _orderDate.Value.Date <= TehranToday;
-    private bool CanSave => !string.IsNullOrWhiteSpace(_customerName) && ValidDate && DurationDays is > 0 and <= 36500 && TotalCount is > 0 and <= 10000 && _items.Count is > 0 and <= 100 && _items.All(x => x.Count is > 0 and <= 10000 && _scales.Any(s=>s.Id==x.ScaleId) && _designs.Any(d=>d.Id==x.DesignId));
-    private string DesignName(Guid? id) => _designs.FirstOrDefault(x=>x.Id==id)?.Name ?? "انتخاب دیزاین";
+    private bool CanSave => !string.IsNullOrWhiteSpace(_customerName) && ValidDate && DurationDays is > 0 and <= 36500 && TotalCount is > 0 and <= 10000 && _items.Count is > 0 and <= 100 && _items.All(x => x.Count is > 0 and <= 10000 && _scales.Any(s=>s.Id==x.ScaleId) && (!x.DesignId.HasValue || _designs.Any(d=>d.Id==x.DesignId)));
+    private string DesignName(Guid? id) => !id.HasValue ? "دیزاین ساده" : _designs.FirstOrDefault(x=>x.Id==id)?.Name ?? "دیزاین غیرفعال";
     private string ScaleName(Guid? id) => _scales.FirstOrDefault(x=>x.Id==id)?.Name ?? "انتخاب اسکیل";
     private IEnumerable<OrderDto> VisibleOrders => _orders.Where(x => x.IsDraft == (_tab == "drafts") &&
         (string.IsNullOrWhiteSpace(_search) || x.CustomerName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || x.Lines.Any(l => l.DesignName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || l.ScaleName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || l.Instruments.Any(i=>i.Code.Contains(ProductionCodeNormalizer.Normalize(_search),StringComparison.OrdinalIgnoreCase)))) &&
@@ -184,7 +185,7 @@ else
         if(_saving || !CanSave)return;_saving=true;_message=null;
         try
         {
-            var request=new SaveOrderDraftRequest(_customerName.Trim(),DurationDays,DateOnly.FromDateTime(_orderDate!.Value),_items.Select(x=>new OrderLineRequest(x.ScaleId!.Value,x.DesignId!.Value,x.Count)).ToArray(),_draftVersion);
+            var request=new SaveOrderDraftRequest(_customerName.Trim(),DurationDays,DateOnly.FromDateTime(_orderDate!.Value),_items.Select(x=>new OrderLineRequest(x.ScaleId!.Value,x.DesignId,x.Count)).ToArray(),_draftVersion);
             var wasExisting=_draftId.HasValue;
             _draftId=await OrderService.SaveDraftAsync(_draftId,request);_draftVersion=wasExisting?_draftVersion+1:1;
             _orders=(await OrderService.GetAsync()).ToList();
