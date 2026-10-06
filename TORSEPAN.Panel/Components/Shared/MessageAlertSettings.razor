@@ -1,0 +1,46 @@
+@using System.Text.Json
+@inject PersonalWorkspaceService Workspace
+@inject IJSRuntime JS
+@implements IDisposable
+<section class="message-alert-settings" aria-label="صدای پیام و اعلان این دستگاه">
+    <h2>صدا و اعلان پیام‌ها</h2>
+    <p>اعلان روی این دستگاه فعال می‌شود. در آیفون، برنامه را از آیکون صفحهٔ اصلی باز کنید.</p>
+    <div class="alert-actions">
+        <button type="button" data-message-alerts-action="sound">فعال‌سازی و تست صدا</button>
+        <button type="button" data-message-alerts-action="mute">خاموش‌کردن صدای داخل برنامه</button>
+        <button type="button" data-message-alerts-action="push" disabled="@(!_ready)">فعال‌سازی اعلان این دستگاه</button>
+        <button type="button" @onclick="DisableAsync" disabled="@(!_ready)">قطع اعلان این دستگاه</button>
+    </div>
+    <p role="status">@_status</p>
+</section>
+@code {
+    private bool _ready;
+    private string _status = "در حال بررسی وضعیت اعلان…";
+    private DotNetObjectReference<MessageAlertSettings>? _reference;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _reference = DotNetObjectReference.Create(this);
+        try
+        {
+            await JS.InvokeVoidAsync("workshopMessages.bindAlertSettings", _reference);
+            var result = await Workspace.ConfigureAlertsAsync(JS, _reference);
+            _status = result; _ready = true;
+        }
+        catch { _status = "اتصال اعلان آماده نیست؛ برنامه را به‌روز کنید و دوباره تلاش کنید."; }
+        await InvokeAsync(StateHasChanged);
+    }
+    [JSInvokable] public Task AlertStatus(string message) { _status = message; return InvokeAsync(StateHasChanged); }
+    [JSInvokable] public async Task SavePushSubscription(MessagePushSubscriptionDto subscription)
+    {
+        try { await Workspace.SubscribePushAsync(subscription); _status = "اعلان این دستگاه فعال شد؛ پیام‌های جدید حتی با بسته‌بودن صفحه اعلان دارند."; }
+        catch { _status = "اجازهٔ مرورگر داده شد اما اتصال به سرور انجام نشد؛ دوباره فعال‌سازی را لمس کنید."; }
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task DisableAsync()
+    {
+        try { await Workspace.DisablePushAsync(JS); _status = "اعلان این دستگاه قطع شد."; }
+        catch { _status = "قطع اعلان انجام نشد؛ دوباره تلاش کنید."; }
+    }
+    public void Dispose() { _reference?.Dispose(); }
+}

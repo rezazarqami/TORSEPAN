@@ -84,6 +84,12 @@ public static class DependencyInjection
         services.AddSingleton<DatabaseBackupStatus>();
         services.AddHostedService<NightlyDatabaseBackupService>();
 
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<CustomerOrderService>();
+        services.AddSingleton<OrderReminderStatus>();
+        services.AddHttpClient<IOrderReminderSender, TelegramOrderReminderSender>();
+        services.AddScoped<OrderReminderProcessor>();
+        services.AddHostedService<OrderReminderService>();
         return services;
     }
 

@@ -140,6 +140,10 @@ public sealed class NotificationsController(TORSEPANDbContext db) : ControllerBa
         if (!request.Broadcast && recipients.Count == 0) return BadRequest("گیرنده فعالی یافت نشد.");
         db.WorkshopMessages.Add(new WorkshopMessage(request.Id, CurrentUserId, title, body, request.Broadcast));
         db.WorkshopMessageReceipts.AddRange(recipients.Select(x => new WorkshopMessageReceipt(request.Id, x)));
+        var subscriptions = await db.MessagePushSubscriptions.AsNoTracking().Where(x => recipients.Contains(x.UserId)).ToListAsync(ct);
+        db.MessagePushDeliveries.AddRange(subscriptions.Select(x => new MessagePushDelivery {
+            MessageId = request.Id, SubscriptionId = x.Id, UserId = x.UserId, CredentialVersion = x.CredentialVersion
+        }));
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateException)
         {

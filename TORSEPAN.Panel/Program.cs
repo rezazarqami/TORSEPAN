@@ -95,6 +95,7 @@ builder.Services.AddScoped<DesignService>();
 builder.Services.AddScoped<HandpanPhotoService>();
 builder.Services.AddScoped<AccountingService>();
 builder.Services.AddScoped<ScaleService>();
+builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<AdminProductionEditService>();
 builder.Services.AddScoped<PersonalWorkspaceService>();

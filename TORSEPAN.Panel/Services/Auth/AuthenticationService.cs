@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.JSInterop;
 using TORSEPAN.Application.Auth.Commands.Login;
 using TORSEPAN.Panel.Authentication;
 using TORSEPAN.Panel.Services.Api;
@@ -10,17 +11,23 @@ public sealed class AuthenticationService : IAuthService
     private readonly ApiClient _apiClient;
     private readonly TokenStorage _tokenStorage;
     private readonly AuthStateProvider _authStateProvider;
+    private readonly PersonalWorkspaceService _workspace;
+    private readonly IJSRuntime _js;
 
     private LoginResult? _currentUser;
 
     public AuthenticationService(
         ApiClient apiClient,
         TokenStorage tokenStorage,
-        AuthenticationStateProvider authenticationStateProvider)
+        AuthenticationStateProvider authenticationStateProvider,
+        PersonalWorkspaceService workspace,
+        IJSRuntime js)
     {
         _apiClient = apiClient;
         _tokenStorage = tokenStorage;
         _authStateProvider = (AuthStateProvider)authenticationStateProvider;
+        _workspace = workspace;
+        _js = js;
     }
 
     public bool IsAuthenticated =>
@@ -66,6 +73,7 @@ public sealed class AuthenticationService : IAuthService
 
     public async Task LogoutAsync()
     {
+        try { await _workspace.DisablePushAsync(_js); } catch { }
         _currentUser = null;
 
         await _tokenStorage.ClearAsync();

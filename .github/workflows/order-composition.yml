@@ -1,0 +1,50 @@
+name: Multi-instrument customer orders
+on:
+  pull_request:
+    paths: ['TORSEPAN.Application/Orders/**', 'TORSEPAN.Domain/**', 'TORSEPAN.Infrastructure/**', 'TORSEPAN.API/**', 'TORSEPAN.Panel/**', 'tests/WorkspaceSmoke/**', 'tests/OrderSmoke/**', 'tests/orders-layout.cjs', 'tests/orders-migration.cjs', '.github/workflows/order-composition.yml']
+jobs:
+  order-composition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: order_composition_test
+          POSTGRES_PASSWORD: fixture-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      ORDER_TEST_DB: 'Host=localhost;Port=5432;Database=order_composition_test;Username=postgres;Password=fixture-only'
+      TORSEPAN_ORDER_PREVIEW_DIR: ${{ github.workspace }}/order-previews
+      TORSEPAN_ORDER_MIGRATION_DIR: /tmp/order-migration
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify drafts, capacity, code ownership and PostgreSQL races
+        run: dotnet run --project tests/OrderSmoke/OrderSmoke.csproj -c Release -- --order-composition-only
+      - name: Verify historical orders, reminders and authenticated API routes
+        run: dotnet run --no-build --project tests/OrderSmoke/OrderSmoke.csproj -c Release -- --orders-only
+      - name: Install PostgreSQL migration engine and browser
+        run: |
+          npm install --prefix /tmp/order-tools @electric-sql/pglite@0.5.8 playwright
+          /tmp/order-tools/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify historical data migration and guarded rollback
+        env:
+          ORDER_PGLITE: /tmp/order-tools/node_modules/@electric-sql/pglite
+        run: node tests/orders-migration.cjs
+      - name: Verify responsive order and code-entry layout
+        env:
+          ORDER_PLAYWRIGHT: /tmp/order-tools/node_modules/playwright
+        run: node tests/orders-layout.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: order-composition-previews
+          path: ${{ github.workspace }}/order-previews

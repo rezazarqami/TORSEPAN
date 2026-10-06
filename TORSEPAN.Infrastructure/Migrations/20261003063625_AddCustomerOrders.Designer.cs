@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TORSEPAN.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using TORSEPAN.Infrastructure.Persistence;
 namespace TORSEPAN.Infrastructure.Migrations
 {
     [DbContext(typeof(TORSEPANDbContext))]
-    partial class TORSEPANDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261003063625_AddCustomerOrders")]
+    partial class AddCustomerOrders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,23 +25,104 @@ namespace TORSEPAN.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessage", b =>
-            {
-                b.Property<Guid>("Id").HasColumnType("uuid");
-                b.Property<Guid>("SenderId").HasColumnType("uuid");
-                b.Property<string>("Title").IsRequired().HasMaxLength(150).HasColumnType("character varying(150)");
-                b.Property<string>("Body").IsRequired().HasMaxLength(4000).HasColumnType("character varying(4000)");
-                b.Property<bool>("Broadcast").HasColumnType("boolean");
-                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
-                b.HasKey("Id"); b.HasIndex("SenderId"); b.HasIndex("CreatedAt"); b.ToTable("WorkshopMessages");
-            });
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessageReceipt", b =>
-            {
-                b.Property<Guid>("MessageId").HasColumnType("uuid");
-                b.Property<Guid>("RecipientId").HasColumnType("uuid");
-                b.Property<DateTime?>("ReadAt").HasColumnType("timestamp with time zone");
-                b.HasKey("MessageId","RecipientId"); b.HasIndex("RecipientId","ReadAt"); b.ToTable("WorkshopMessageReceipts");
-            });
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.AccountingDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("HandpanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1500)
+                        .HasColumnType("character varying(1500)");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("PartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollPaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DueDate");
+
+                    b.HasIndex("HandpanId");
+
+                    b.HasIndex("PartyId");
+
+                    b.HasIndex("PayrollPaymentId")
+                        .IsUnique();
+
+                    b.HasIndex("Type", "CreatedAt");
+
+                    b.ToTable("AccountingDocuments", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.AccountingParty", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Company")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("AccountingParties", (string)null);
+                });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.Bowl", b =>
                 {
@@ -46,6 +130,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<int>("BowlType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ExportWarehouseLocation")
                         .HasColumnType("integer");
 
                     b.Property<bool>("HasNotes")
@@ -70,9 +157,6 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid?>("ScaleId")
                         .HasColumnType("uuid");
 
-                    b.Property<int?>("ExportWarehouseLocation")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Stage")
                         .HasColumnType("integer");
 
@@ -91,6 +175,76 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("Bowls", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CodeAssignedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CodeAssignedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("DueAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("HandpanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InstrumentCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("ScaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ScaleName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("TopBowlId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeAssignedByUserId");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DueAtUtc");
+
+                    b.HasIndex("HandpanId")
+                        .IsUnique();
+
+                    b.HasIndex("InstrumentCode")
+                        .IsUnique();
+
+                    b.HasIndex("ScaleId");
+
+                    b.HasIndex("TopBowlId")
+                        .IsUnique();
+
+                    b.ToTable("CustomerOrders", (string)null);
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.DesignType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -98,6 +252,10 @@ namespace TORSEPAN.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ExportRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -131,16 +289,32 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("BuyerPhoneNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ExportWarehouseLocation")
+                        .HasColumnType("integer");
+
+                    b.Property<bool?>("IsExportSale")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("SaleDestination")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Guid?>("SaleLeadSourceId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal?>("SalePrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("SalesReferrerId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("ScaleId")
                         .HasColumnType("uuid");
@@ -156,9 +330,6 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid?>("SoldByUserId")
                         .HasColumnType("uuid");
 
-                    b.Property<int?>("ExportWarehouseLocation")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Stage")
                         .HasColumnType("integer");
 
@@ -168,10 +339,17 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("WarrantyActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssemblyId")
                         .IsUnique();
+
+                    b.HasIndex("SaleLeadSourceId");
+
+                    b.HasIndex("SalesReferrerId");
 
                     b.HasIndex("ScaleId");
 
@@ -204,6 +382,42 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("HandpanAssemblies", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.HandpanPhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("HandpanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Image")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("Thumbnail")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("HandpanId", "CreatedAt");
+
+                    b.ToTable("HandpanPhotos", (string)null);
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.MarketingActivity", b =>
@@ -394,6 +608,37 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("Materials", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderReminder", b =>
+                {
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Milestone")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("DueAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("NextAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SentAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("OrderId", "Milestone");
+
+                    b.HasIndex("SentAtUtc", "NextAttemptAtUtc");
+
+                    b.ToTable("OrderReminders", (string)null);
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.PayrollPayment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -451,12 +696,12 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<int?>("BowlType")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("IsExport")
+                    b.Property<bool>("IsCustom")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<bool>("IsCustom")
+                    b.Property<bool>("IsExport")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
@@ -504,6 +749,15 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid?>("HandpanId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsPayrollExcluded")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PayrollExcludedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PayrollExcludedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Result")
                         .HasColumnType("integer");
 
@@ -518,7 +772,7 @@ namespace TORSEPAN.Infrastructure.Migrations
 
                     b.HasIndex("HandpanId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "EventDate");
 
                     b.ToTable("ProductionEvents", (string)null);
                 });
@@ -528,8 +782,6 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<int>("CredentialVersion").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0);
 
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
@@ -578,6 +830,45 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("Roles", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.SaleLeadSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("RequiresReferrer")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SaleLeadSources");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.SalesReferrer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SalesReferrers");
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.Scale", b =>
                 {
                     b.Property<Guid>("Id")
@@ -612,11 +903,6 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("IsDeleted").ValueGeneratedOnAdd().HasColumnType("boolean").HasDefaultValue(false).IsConcurrencyToken();
-                    b.Property<int>("CredentialVersion").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0).IsConcurrencyToken();
-                    b.Property<byte[]>("AvatarPng").HasColumnType("bytea");
-                    b.Property<Guid?>("AvatarVersion").HasColumnType("uuid").IsConcurrencyToken();
-
                     b.Property<int>("DisplayOrder")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -637,6 +923,11 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("ShowMyPayroll")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -679,6 +970,89 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("UserRoles", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<bool>("Broadcast")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("WorkshopMessages", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessageReceipt", b =>
+                {
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RecipientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("MessageId", "RecipientId");
+
+                    b.HasIndex("RecipientId", "ReadAt");
+
+                    b.ToTable("WorkshopMessageReceipts", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.AccountingDocument", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.Handpan", "Handpan")
+                        .WithMany()
+                        .HasForeignKey("HandpanId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TORSEPAN.Domain.Entities.AccountingParty", "Party")
+                        .WithMany()
+                        .HasForeignKey("PartyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TORSEPAN.Domain.Entities.PayrollPayment", "PayrollPayment")
+                        .WithMany()
+                        .HasForeignKey("PayrollPaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Handpan");
+
+                    b.Navigation("Party");
+
+                    b.Navigation("PayrollPayment");
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.Bowl", b =>
                 {
                     b.HasOne("TORSEPAN.Domain.Entities.Material", "Material")
@@ -695,6 +1069,36 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Navigation("Material");
 
                     b.Navigation("Scale");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CodeAssignedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.Handpan", null)
+                        .WithMany()
+                        .HasForeignKey("HandpanId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TORSEPAN.Domain.Entities.Scale", null)
+                        .WithMany()
+                        .HasForeignKey("ScaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.Bowl", null)
+                        .WithMany()
+                        .HasForeignKey("TopBowlId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.Handpan", b =>
@@ -734,6 +1138,25 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Navigation("TopBowl");
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.HandpanPhoto", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.Handpan", "Handpan")
+                        .WithMany()
+                        .HasForeignKey("HandpanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Handpan");
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.MarketingActivity", b =>
                 {
                     b.HasOne("TORSEPAN.Domain.Entities.MarketingLead", "MarketingLead")
@@ -743,6 +1166,17 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("MarketingLead");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderReminder", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.CustomerOrder", "Order")
+                        .WithMany("Reminders")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.PayrollRate", b =>
@@ -824,6 +1258,36 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessage", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessageReceipt", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.WorkshopMessage", "Message")
+                        .WithMany()
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TORSEPAN.Domain.Entities.User", "Recipient")
+                        .WithMany()
+                        .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Message");
+
+                    b.Navigation("Recipient");
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.Bowl", b =>
                 {
                     b.Navigation("BottomAssemblies");
@@ -831,6 +1295,11 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Navigation("ProductionEvents");
 
                     b.Navigation("TopAssemblies");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
+                {
+                    b.Navigation("Reminders");
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.Handpan", b =>
@@ -869,442 +1338,7 @@ namespace TORSEPAN.Infrastructure.Migrations
 
                     b.Navigation("UserRoles");
                 });
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CodeAssignedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CodeAssignedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CustomerName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("DueAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DurationDays")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid?>("HandpanId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("InstrumentCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<bool>("IsDraft")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("ScaleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ScaleName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid?>("TopBowlId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CodeAssignedByUserId");
-
-                    b.HasIndex("CreatedAtUtc");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("DueAtUtc");
-
-                    b.HasIndex("HandpanId")
-                        .IsUnique();
-
-                    b.HasIndex("InstrumentCode")
-                        .IsUnique();
-
-                    b.HasIndex("ScaleId");
-
-                    b.HasIndex("TopBowlId")
-                        .IsUnique();
-
-                    b.ToTable("CustomerOrders", (string)null);
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderReminder", b =>
-                {
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Milestone")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Attempts")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("DueAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<DateTime>("NextAttemptAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("SentAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("OrderId", "Milestone");
-
-                    b.HasIndex("SentAtUtc", "NextAttemptAtUtc");
-
-                    b.ToTable("OrderReminders", (string)null);
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushDelivery", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Attempts")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CredentialVersion")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("MessageId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("NextAttemptAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("SubscriptionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NextAttemptAt");
-
-                    b.HasIndex("SubscriptionId");
-
-                    b.HasIndex("MessageId", "SubscriptionId")
-                        .IsUnique();
-
-                    b.ToTable("MessagePushDeliveries", (string)null);
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushKeys", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PrivateKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("PublicKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MessagePushKeys", (string)null);
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushSubscription", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Auth")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int>("CredentialVersion")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Endpoint")
-                        .IsRequired()
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)");
-
-                    b.Property<string>("EndpointHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("P256dh")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EndpointHash")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("MessagePushSubscriptions", (string)null);
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrderLine", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("DesignName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid?>("DesignTypeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Position")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ScaleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ScaleName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DesignTypeId");
-
-                    b.HasIndex("ScaleId");
-
-                    b.HasIndex("OrderId", "Position")
-                        .IsUnique();
-
-                    b.ToTable("CustomerOrderLines", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_OrderLine_Quantity", "\"Quantity\" >= 1 AND \"Quantity\" <= 10000");
-                        });
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderInstrument", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("AssignedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("AssignedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid?>("HandpanId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("LineId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Slot")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid?>("TopBowlId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedByUserId");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("HandpanId")
-                        .IsUnique();
-
-                    b.HasIndex("TopBowlId")
-                        .IsUnique();
-
-                    b.HasIndex("LineId", "Slot")
-                        .IsUnique();
-
-                    b.ToTable("OrderInstruments", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_OrderInstrument_Slot", "\"Slot\" >= 1");
-                        });
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("CodeAssignedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Handpan", null)
-                        .WithMany()
-                        .HasForeignKey("HandpanId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Scale", null)
-                        .WithMany()
-                        .HasForeignKey("ScaleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Bowl", null)
-                        .WithMany()
-                        .HasForeignKey("TopBowlId")
-                        .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderReminder", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.CustomerOrder", "Order")
-                        .WithMany("Reminders")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushDelivery", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.WorkshopMessage", null)
-                        .WithMany()
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.MessagePushSubscription", null)
-                        .WithMany()
-                        .HasForeignKey("SubscriptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.MessagePushSubscription", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrderLine", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.DesignType", null)
-                        .WithMany()
-                        .HasForeignKey("DesignTypeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("TORSEPAN.Domain.Entities.CustomerOrder", null)
-                        .WithMany("Lines")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Scale", null)
-                        .WithMany()
-                        .HasForeignKey("ScaleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.OrderInstrument", b =>
-                {
-                    b.HasOne("TORSEPAN.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("AssignedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Handpan", null)
-                        .WithMany()
-                        .HasForeignKey("HandpanId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TORSEPAN.Domain.Entities.CustomerOrderLine", null)
-                        .WithMany("Instruments")
-                        .HasForeignKey("LineId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TORSEPAN.Domain.Entities.Bowl", null)
-                        .WithMany()
-                        .HasForeignKey("TopBowlId")
-                        .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b =>
-                {
-                    b.Navigation("Reminders");
-                });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrder", b => { b.Navigation("Lines"); });
-
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.CustomerOrderLine", b => { b.Navigation("Instruments"); });
 #pragma warning restore 612, 618
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.ProductionEvent", b => b.HasIndex("UserId","EventDate"));
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessage", b =>
-            {
-                b.HasOne("TORSEPAN.Domain.Entities.User","Sender").WithMany().HasForeignKey("SenderId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-                b.Navigation("Sender");
-            });
-            modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkshopMessageReceipt", b =>
-            {
-                b.HasOne("TORSEPAN.Domain.Entities.WorkshopMessage","Message").WithMany().HasForeignKey("MessageId").OnDelete(DeleteBehavior.Cascade).IsRequired();
-                b.HasOne("TORSEPAN.Domain.Entities.User","Recipient").WithMany().HasForeignKey("RecipientId").OnDelete(DeleteBehavior.Restrict).IsRequired();
-                b.Navigation("Message"); b.Navigation("Recipient");
-            });
         }
     }
 }

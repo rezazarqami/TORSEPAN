@@ -1,8 +1,30 @@
 using System.Globalization;
+using System.Text.Json;
+using Microsoft.JSInterop;
 using TORSEPAN.Panel.Models;
 namespace TORSEPAN.Panel.Services.Api;
 public sealed class PersonalWorkspaceService(ApiClient api)
 {
+    public async Task<string> ConfigureAlertsAsync(IJSRuntime js, object? callback = null)
+    {
+        var settings = await api.GetAsync<MessagePushKeyDto>("notifications/push/key") ?? throw new InvalidOperationException();
+        var result = await js.InvokeAsync<JsonElement>("workshopMessages.configureAlerts", settings, callback);
+        if (result.ValueKind == JsonValueKind.Object && result.TryGetProperty("subscription", out var value))
+        {
+            var subscription = value.Deserialize<MessagePushSubscriptionDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+            await SubscribePushAsync(subscription);
+            return "اعلان این دستگاه فعال است.";
+        }
+        return result.ValueKind == JsonValueKind.String ? result.GetString()! : "وضعیت اعلان در دسترس نیست.";
+    }
+    public async Task SubscribePushAsync(MessagePushSubscriptionDto subscription) =>
+        await api.PutAccountAsync<MessagePushSubscriptionDto, object>("notifications/push", subscription);
+    public async Task DisablePushAsync(IJSRuntime js)
+    {
+        var subscription = await js.InvokeAsync<MessagePushSubscriptionDto?>("workshopMessages.pushSubscription");
+        try { if (subscription is not null) await api.PostAsync<object, object?>("notifications/push/unsubscribe", new { subscription.Endpoint }); }
+        finally { await js.InvokeVoidAsync("workshopMessages.clearAlerts"); }
+    }
     public event Action? UnreadChanged;
     public int? UnreadCount {get;private set;}
     public event Action<Guid, long>? IncomingMessagesChanged;

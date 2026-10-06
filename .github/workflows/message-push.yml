@@ -1,0 +1,27 @@
+name: Message sound and Web Push
+on:
+  pull_request:
+    paths: ['TORSEPAN.API/**', 'TORSEPAN.Domain/**', 'TORSEPAN.Infrastructure/**', 'TORSEPAN.Panel/**', 'tests/MessagePushSmoke/**', 'tests/message-alerts-browser.cjs', 'tests/message-push-worker.cjs', 'tests/message-sound.cjs', '.github/workflows/message-push.yml']
+jobs:
+  message-alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify device ownership, durable deliveries, retry and logout
+        run: dotnet run --project tests/MessagePushSmoke/MessagePushSmoke.csproj -c Release
+      - name: Verify sound and service worker notification handling
+        run: |
+          node tests/message-sound.cjs
+          node tests/message-push-worker.cjs
+      - name: Install browser
+        run: |
+          npm install --prefix /tmp/alerts-browser playwright
+          /tmp/alerts-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify trusted permission gesture and actual browser audio
+        env:
+          ALERTS_PLAYWRIGHT: /tmp/alerts-browser/node_modules/playwright
+        run: node tests/message-alerts-browser.cjs
