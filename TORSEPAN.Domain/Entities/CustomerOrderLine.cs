@@ -10,6 +10,13 @@ public sealed class CustomerOrderLine
         Id = Guid.NewGuid(); OrderId = orderId; Position = position; ScaleId = scaleId;
         ScaleName = scaleName; DesignTypeId = designTypeId; DesignName = designName; Quantity = quantity;
     }
+    public void ChangeSpecification(int position, Guid scaleId, string scaleName, Guid? designId, string designName, int quantity)
+    {
+        if (quantity is < 1 or > 10000 || Instruments.Any(x=>x.Slot>quantity))
+            throw new ArgumentException("تعداد جدید جایگاه کدهای ثبت‌شده را حذف می‌کند.");
+        Position=position;ScaleId=scaleId;ScaleName=scaleName;DesignTypeId=designId;DesignName=designName;Quantity=quantity;
+    }
+    public void SetPosition(int position) => Position=position;
     public Guid Id { get; private set; }
     public Guid OrderId { get; private set; }
     public int Position { get; private set; }

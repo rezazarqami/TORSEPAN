@@ -27,7 +27,7 @@ else if (_tab == "new")
     <div class="new-order-layout">
         <div class="order-editor">
             <section class="order-panel">
-                <header><div><small class="section-kicker">۰۱ / مشخصات مشترک</small><h2>@(_draftId.HasValue ? "ویرایش پیش‌سفارش" : "سفارش برای چه کسی است؟")</h2></div>@if(_draftId.HasValue){<button class="btn subtle" disabled="@_saving" @onclick="ResetEditor">سفارش تازه</button>}</header>
+                <header><div><small class="section-kicker">۰۱ / مشخصات مشترک</small><h2>@(_draftId.HasValue ? (_editingFinalized ? "ویرایش سفارش" : "ویرایش پیش‌سفارش") : "سفارش برای چه کسی است؟")</h2></div>@if(_draftId.HasValue){<button class="btn subtle" disabled="@_saving" @onclick="ResetEditor">سفارش تازه</button>}</header>
                 <div class="order-fields">
                     <label for="order-customer"><span>نام سفارش‌دهنده</span><input id="order-customer" class="form-control" maxlength="200" placeholder="نام و نام خانوادگی" @bind="_customerName" @bind:event="oninput" disabled="@_saving" /></label>
                     <label for="order-duration"><span>مدت آماده‌سازی</span><div class="duration-field"><input id="order-duration" class="form-control" inputmode="numeric" maxlength="5" placeholder="مثلاً ۳۰" @bind="_duration" @bind:event="oninput" disabled="@_saving" /><b>روز</b></div></label>
@@ -47,12 +47,14 @@ else if (_tab == "new")
                     {
                         var position = _items.IndexOf(item) + 1;
                         <article class="composition-line" @key="item.Key">
-                            <div class="line-heading"><b>ردیف @position.ToString("00")</b><button class="remove-line" aria-label="حذف ردیف @position" disabled="@(_saving || _items.Count == 1)" @onclick="()=>_items.Remove(item)">حذف ×</button></div>
+                            <div class="line-heading"><b>ردیف @position.ToString("00")</b><button class="remove-line" aria-label="حذف ردیف @position" disabled="@(_saving || _items.Count == 1 || item.MinimumQuantity>0)" @onclick="()=>_items.Remove(item)">حذف ×</button></div>
                             <div class="line-fields">
-                                <label for="design-@item.Key"><span>دیزاین</span><select id="design-@item.Key" class="form-select" @bind="item.DesignId" disabled="@_saving"><option value="">دیزاین ساده</option>@foreach(var design in _designs){<option value="@design.Id">@design.Name</option>}</select></label>
-                                <label for="scale-@item.Key"><span>اسکیل ساز</span><select id="scale-@item.Key" class="form-select" @bind="item.ScaleId" disabled="@_saving"><option value="">انتخاب اسکیل</option>@foreach(var scale in _scales){<option value="@scale.Id">@scale.Name</option>}</select></label>
+                                <label for="design-@item.Key"><span>دیزاین</span><select id="design-@item.Key" class="form-select" @bind="item.DesignId" disabled="@_saving"><option value="">دیزاین ساده</option>@if(item.DesignId.HasValue && !_designs.Any(x=>x.Id==item.DesignId) && ExistingLine(item) is { } oldDesign){<option value="@item.DesignId">@oldDesign.DesignName (ثبت‌شده)</option>}@foreach(var design in _designs){<option value="@design.Id">@design.Name</option>}</select></label>
+                                <label for="scale-@item.Key"><span>اسکیل ساز</span><select id="scale-@item.Key" class="form-select" @bind="item.ScaleId" disabled="@_saving"><option value="">انتخاب اسکیل</option>@if(!_scales.Any(x=>x.Id==item.ScaleId) && ExistingLine(item) is { } oldScale){<option value="@item.ScaleId">@oldScale.ScaleName (ثبت‌شده)</option>}@foreach(var scale in _scales){<option value="@scale.Id">@scale.Name</option>}</select></label>
                                 <label for="quantity-@item.Key"><span>تعداد ساز</span><input id="quantity-@item.Key" class="form-control quantity-input" inputmode="numeric" maxlength="5" @bind="item.Quantity" @bind:event="oninput" disabled="@_saving" /></label>
                             </div>
+                            @if(!IsScaleValid(item)){<small class="field-error">ردیف @position (@DesignName(item.DesignId)): اسکیل ساز را انتخاب کنید.</small>}
+                            @if(item.MinimumQuantity>0){<small class="form-hint">کدهای ثبت‌شده حفظ می‌شوند؛ حداقل تعداد این ردیف @item.MinimumQuantity ساز است.</small>}
                             @if(item.Count < 1 || item.Count > 10000){<small class="field-error">تعداد باید عدد صحیح بین ۱ تا ۱۰۰۰۰ باشد.</small>}
                         </article>
                     }
@@ -61,14 +63,15 @@ else if (_tab == "new")
             </section>
         </div>
         <aside class="order-summary">
-            <small class="section-kicker">۰۳ / مرور پیش‌سفارش</small><h2>ترکیب نهایی شما</h2><p>@(string.IsNullOrWhiteSpace(_customerName) ? "نام سفارش‌دهنده را وارد کن" : _customerName)</p>
+            <small class="section-kicker">۰۳ / @(_editingFinalized ? "مرور تغییرات سفارش" : "مرور پیش‌سفارش")</small><h2>ترکیب نهایی شما</h2><p>@(string.IsNullOrWhiteSpace(_customerName) ? "نام سفارش‌دهنده را وارد کن" : _customerName)</p>
             <div class="summary-total"><strong>@TotalCount</strong><span>ساز در @_items.Count ردیف</span></div>
-            <div class="summary-lines">@foreach(var item in _items){<div><b>@item.Count ×</b><span><strong>@DesignName(item.DesignId)</strong><small dir="auto">@ScaleName(item.ScaleId)</small></span></div>}</div>
-            <div class="summary-note">پیش‌سفارش را می‌توانی ذخیره کنی و بعداً ادامه بدهی. پس از تأیید نهایی، برای هر ساز یک جایگاه ثبت کد ایجاد می‌شود.</div>
+            <div class="summary-lines">@foreach(var item in _items){<div><b>@item.Count ×</b><span><strong>@(ExistingLine(item)?.DesignTypeId==item.DesignId && ExistingLine(item) is { } old ? old.DesignName : DesignName(item.DesignId))</strong><small dir="auto">@(ExistingLine(item)?.ScaleId==item.ScaleId && ExistingLine(item) is { } original ? original.ScaleName : ScaleName(item.ScaleId))</small></span></div>}</div>
+            <div class="summary-note">@(_editingFinalized ? "تعداد، ترکیب و تاریخ سفارش را ویرایش کن. کدها و سوابق ساخت سازهای ثبت‌شده حفظ می‌شوند." : "پیش‌سفارش را می‌توانی ذخیره کنی و بعداً ادامه بدهی. پس از تأیید نهایی، برای هر ساز یک جایگاه ثبت کد ایجاد می‌شود.")</div>
             @if(TotalCount > 10000){<p class="field-error">مجموع سفارش نمی‌تواند بیشتر از ۱۰۰۰۰ ساز باشد.</p>}
-            <button class="btn create-order" disabled="@(_saving || !CanSave)" @onclick="ReviewAsync">@(_saving ? "در حال ذخیره…" : "بررسی و ثبت نهایی") <span>←</span></button>
-            <button class="btn save-draft" disabled="@(_saving || !CanSave)" @onclick="()=>SaveDraftAsync(false)">ذخیرهٔ پیش‌سفارش</button>
-            <small class="summary-foot">یادآوری‌های زمان تحویل، پس از ثبت نهایی فعال می‌شوند.</small>
+            @if(!CanSave){<div class="order-notice error" role="status"><strong>برای فعال شدن ذخیره:</strong><ul>@foreach(var error in ValidationErrors){<li>@error</li>}</ul></div>}
+            <button class="btn create-order" disabled="@(_saving || !CanSave)" @onclick="ReviewAsync">@(_saving ? "در حال ذخیره…" : _editingFinalized ? "ذخیرهٔ تغییرات سفارش" : "بررسی و ثبت نهایی") <span>←</span></button>
+            @if(!_editingFinalized){<button class="btn save-draft" disabled="@(_saving || !CanSave)" @onclick="()=>SaveDraftAsync(false)">ذخیرهٔ پیش‌سفارش</button>}
+            <small class="summary-foot">@(_editingFinalized ? "یادآوری‌های ارسال‌نشده با موعد جدید تنظیم می‌شوند." : "یادآوری‌های زمان تحویل، پس از ثبت نهایی فعال می‌شوند.")</small>
         </aside>
     </div>
 }
@@ -87,12 +90,31 @@ else
                     <div class="order-card-head"><div><small>@(order.IsDraft ? "پیش‌سفارش / قابل ویرایش" : "سفارش نهایی")</small><h3>@order.CustomerName</h3><span>@order.TotalQuantity ساز · @order.Lines.Count ردیف</span></div><div class="time-badge"><strong>@(order.IsDraft ? "پیش‌سفارش" : TimeLabel(order))</strong><small>@(order.IsDraft ? "هنوز نهایی نشده" : order.DueAtUtc <= _now ? "از موعد گذشته" : "تا موعد تحویل")</small></div></div>
                     <div class="order-dates"><span>تاریخ سفارش: <b>@PersianDate(order.CreatedAtUtc)</b></span><span>مدت: <b>@order.DurationDays روز</b></span><span>موعد: <b>@PersianDate(order.DueAtUtc)</b></span></div>
                     @if(!order.IsDraft){<div class="order-progress" role="progressbar" aria-label="زمان سپری‌شده" aria-valuenow="@((int)Progress(order))" aria-valuemin="0" aria-valuemax="100"><i style="width:@(Progress(order).ToString("0.##", CultureInfo.InvariantCulture))%"></i></div><div class="progress-caption"><span>@((int)Progress(order))٪ زمان گذشته</span><span>@order.AssignedQuantity / @order.TotalQuantity کد ثبت شده</span></div>}
+                    @if(!order.IsDraft)
+                    {
+                        var overview=order.Lines.OrderBy(x=>x.Position).SelectMany(x=>x.Instruments.OrderBy(i=>i.Slot)).ToArray();
+                        var overviewPage=Math.Clamp(_overviewPages.GetValueOrDefault(order.Id),0,Math.Max(0,(overview.Length-1)/50));
+                        <section class="instrument-overview" aria-label="کد و وضعیت سازهای سفارش">
+                            <header><strong>وضعیت سازها در یک نگاه</strong><span>@overview.Length کد از @order.TotalQuantity ساز</span></header>
+                            @if(overview.Length==0){<p class="overview-empty">هنوز کدی ثبت نشده است؛ کد سازها را در ردیف‌های پایین وارد کن.</p>}
+                            else
+                            {
+                                <div class="overview-grid" tabindex="0" role="list" aria-label="فهرست کد و وضعیت" aria-live="polite">
+                                    @foreach(var instrument in overview.Skip(overviewPage*50).Take(50))
+                                    {
+                                        <div class="overview-item" role="listitem" @key="instrument.Code"><strong dir="ltr">@instrument.Code</strong><span>@instrument.ProductionStage</span></div>
+                                    }
+                                </div>
+                                @if(overview.Length>50){<nav class="overview-pages" aria-label="صفحات وضعیت سازها"><button type="button" class="btn subtle" disabled="@(overviewPage==0)" @onclick="()=>_overviewPages[order.Id]=overviewPage-1">قبلی</button><span>@(overviewPage*50+1) تا @Math.Min((overviewPage+1)*50,overview.Length) از @overview.Length کد</span><button type="button" class="btn subtle" disabled="@((overviewPage+1)*50>=overview.Length)" @onclick="()=>_overviewPages[order.Id]=overviewPage+1">بعدی</button></nav>}
+                            }
+                        </section>
+                    }
                     <div class="specification-list">
                         @foreach(var line in order.Lines)
                         {
                             var page = CodePage(line);
                             <section class="specification-row" @key="line.Id">
-                                <header><div><small>ردیف @line.Position</small><h4>@line.DesignName</h4><span dir="auto">@line.ScaleName</span></div><div class="line-count"><strong>@line.Quantity ساز</strong><small>@line.Instruments.Count کد ثبت شده</small></div></header>
+                                <header><div><small>ردیف @line.Position</small><h4>@line.DesignName</h4><strong class="specification-scale" dir="auto">@line.ScaleName</strong></div><div class="line-count"><strong>@line.Quantity ساز</strong><small>@line.Instruments.Count کد ثبت شده</small></div></header>
                                 @if(!order.IsDraft)
                                 {
                                     <div class="instrument-slots">
@@ -109,7 +131,7 @@ else
                             </section>
                         }
                     </div>
-                    <div class="order-card-actions">@if(order.IsDraft){<button class="btn create-order" disabled="@_saving" @onclick="()=>EditDraftAsync(order)">ادامه و بررسی سفارش ←</button>}<button class="btn delete-order" disabled="@_deleting" @onclick="()=>OpenDelete(order)">حذف @(order.IsDraft ? "پیش‌سفارش" : "سفارش")</button></div>
+                    <div class="order-card-actions">@if(!order.IsDraft){<button class="btn subtle" disabled="@_saving" @onclick="()=>EditDraftAsync(order)">ویرایش سفارش</button>}@if(order.IsDraft){<button class="btn create-order" disabled="@_saving" @onclick="()=>EditDraftAsync(order)">ادامه و بررسی سفارش ←</button>}<button class="btn delete-order" disabled="@_deleting" @onclick="()=>OpenDelete(order)">حذف @(order.IsDraft ? "پیش‌سفارش" : "سفارش")</button></div>
                     @if(!order.IsDraft){<div class="reminder-row"><small>یادآوری تلگرام</small>@foreach(var reminder in order.Reminders){<span class="@(reminder.SentAtUtc.HasValue ? "sent" : reminder.HasError ? "retry" : "")" title="@ReminderTitle(reminder)">@(reminder.Milestone==4 ? "پایان" : $"{reminder.Milestone*25}٪") @(reminder.SentAtUtc.HasValue ? "✓" : reminder.HasError ? "↻" : "")</span>}</div>}
                 </article>
             }
@@ -130,6 +152,8 @@ else
     private sealed class LineEditor
     {
         public Guid Key { get; } = Guid.NewGuid();
+        public Guid? LineId { get; set; }
+        public int MinimumQuantity { get; set; }
         public Guid? ScaleId { get; set; }
         public Guid? DesignId { get; set; }
         public string Quantity { get; set; } = "1";
@@ -140,6 +164,12 @@ else
     private List<DesignTypeDto> _designs = [];
     private List<LineEditor> _items = [new()];
     private Dictionary<Guid,int> _codePages = [];
+    private Dictionary<Guid,int> _overviewPages = [];
+    private OrderDto? _editedOrder;
+    private OrderLineDto? ExistingLine(LineEditor item) => _editingFinalized ? _editedOrder?.Lines.SingleOrDefault(x=>x.Id==item.LineId) : null;
+    private bool IsScaleValid(LineEditor item) => _scales.Any(x=>x.Id==item.ScaleId) || (ExistingLine(item) is { } old && old.ScaleId==item.ScaleId);
+    private bool IsDesignValid(LineEditor item) => !item.DesignId.HasValue || _designs.Any(x=>x.Id==item.DesignId) || (ExistingLine(item) is { } old && old.DesignTypeId==item.DesignId);
+    private bool _editingFinalized;
     private Guid? _draftId;
     private int _draftVersion = 1;
     private string _tab = "new", _customerName = "", _duration = "", _search = "", _filter = "all", _code = "";
@@ -159,13 +189,31 @@ else
     private int DurationDays => int.TryParse(ProductionCodeNormalizer.Normalize(_duration), out var n) ? n : 0;
     private int TotalCount => _items.Sum(x => Math.Max(0,x.Count));
     private bool ValidDate => _orderDate.HasValue && _orderDate.Value.Year >= 1900 && _orderDate.Value.Date <= TehranToday;
-    private bool CanSave => !string.IsNullOrWhiteSpace(_customerName) && ValidDate && DurationDays is > 0 and <= 36500 && TotalCount is > 0 and <= 10000 && _items.Count is > 0 and <= 100 && _items.All(x => x.Count is > 0 and <= 10000 && _scales.Any(s=>s.Id==x.ScaleId) && (!x.DesignId.HasValue || _designs.Any(d=>d.Id==x.DesignId)));
+    private IEnumerable<string> ValidationErrors
+    {
+        get
+        {
+            if(string.IsNullOrWhiteSpace(_customerName) || _customerName.Trim().Length>200)yield return "نام سفارش‌دهنده را حداکثر در ۲۰۰ حرف وارد کنید.";
+            if(!ValidDate)yield return "تاریخ سفارش معتبر و حداکثر امروز را انتخاب کنید.";
+            if(DurationDays is < 1 or >36500)yield return "مدت آماده‌سازی را بین ۱ تا ۳۶۵۰۰ روز وارد کنید.";
+            if(TotalCount is <1 or >10000 || _items.Count is <1 or >100)yield return "سفارش باید ۱ تا ۱۰۰ ردیف و در مجموع ۱ تا ۱۰۰۰۰ ساز داشته باشد.";
+            for(var i=0;i<_items.Count;i++)
+            {
+                var item=_items[i];var label=$"ردیف {i+1} ({DesignName(item.DesignId)})";
+                if(!IsScaleValid(item))yield return label+": اسکیل ساز را انتخاب کنید.";
+                if(!IsDesignValid(item))yield return label+": دیزاین فعال را انتخاب کنید.";
+                if(item.Count is <1 or >10000)yield return label+": تعداد معتبر وارد کنید.";
+                if(item.Count<item.MinimumQuantity)yield return label+$": تعداد کمتر از {item.MinimumQuantity} کدهای ثبت‌شده را حذف می‌کند.";
+            }
+        }
+    }
+    private bool CanSave => !ValidationErrors.Any();
     private string DesignName(Guid? id) => !id.HasValue ? "دیزاین ساده" : _designs.FirstOrDefault(x=>x.Id==id)?.Name ?? "دیزاین غیرفعال";
     private string ScaleName(Guid? id) => _scales.FirstOrDefault(x=>x.Id==id)?.Name ?? "انتخاب اسکیل";
     private IEnumerable<OrderDto> VisibleOrders => _orders.Where(x => x.IsDraft == (_tab == "drafts") &&
         (string.IsNullOrWhiteSpace(_search) || x.CustomerName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || x.Lines.Any(l => l.DesignName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || l.ScaleName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || l.Instruments.Any(i=>i.Code.Contains(ProductionCodeNormalizer.Normalize(_search),StringComparison.OrdinalIgnoreCase)))) &&
         (_tab=="drafts" || (_filter switch { "active"=>x.DueAtUtc>_now,"overdue"=>x.DueAtUtc<=_now,"near"=>x.DueAtUtc>_now && Remaining(x)<=x.DurationDays/4d,"no-code"=>x.AssignedQuantity<x.TotalQuantity,_=>true })));
-    private string FinalizeMessage => _finalizeOrder is null ? "" : $"سفارش {_finalizeOrder.CustomerName} با {_finalizeOrder.TotalQuantity} ساز نهایی شود؟ " + string.Join("؛ ",_finalizeOrder.Lines.Select(x=>$"{x.Quantity} × {x.DesignName} / {x.ScaleName}")) + $". موعد تحویل: {PersianDate(_finalizeOrder.DueAtUtc)}. پس از ثبت نهایی، ترکیب و تعداد سفارش ثابت خواهند بود.";
+    private string FinalizeMessage => _finalizeOrder is null ? "" : $"سفارش {_finalizeOrder.CustomerName} با {_finalizeOrder.TotalQuantity} ساز نهایی شود؟ " + string.Join("؛ ",_finalizeOrder.Lines.Select(x=>$"{x.Quantity} × {x.DesignName} / {x.ScaleName}")) + $". موعد تحویل: {PersianDate(_finalizeOrder.DueAtUtc)}. پس از ثبت نهایی، کد هر ساز را در ردیف خودش وارد کنید.";
     private string DeleteMessage => $"سفارش «{_deleteOrder?.CustomerName}» با {_deleteOrder?.TotalQuantity} ساز و یادآوری‌های آن حذف شود؟ سوابق تولید سازها باقی می‌مانند.";
     protected override async Task OnInitializedAsync(){await ReloadAsync();_polling=PollAsync();}
     private async Task ReloadAsync()
@@ -187,7 +235,13 @@ else
         if(_saving || !CanSave)return;_saving=true;_message=null;
         try
         {
-            var request=new SaveOrderDraftRequest(_customerName.Trim(),DurationDays,DateOnly.FromDateTime(_orderDate!.Value),_items.Select(x=>new OrderLineRequest(x.ScaleId!.Value,x.DesignId,x.Count)).ToArray(),_draftVersion);
+            var request=new SaveOrderDraftRequest(_customerName.Trim(),DurationDays,DateOnly.FromDateTime(_orderDate!.Value),_items.Select(x=>new OrderLineRequest(x.ScaleId!.Value,x.DesignId,x.Count,x.LineId)).ToArray(),_draftVersion);
+            if(_editingFinalized && _draftId.HasValue)
+            {
+                await OrderService.UpdateAsync(_draftId.Value,request);
+                ResetEditor();_tab="list";_isError=false;_message="تغییرات سفارش ذخیره شد؛ کدهای سازها حفظ شدند.";
+                await RefreshAsync();return;
+            }
             var wasExisting=_draftId.HasValue;
             _draftId=await OrderService.SaveDraftAsync(_draftId,request);_draftVersion=wasExisting?_draftVersion+1:1;
             _orders=(await OrderService.GetAsync()).ToList();
@@ -203,14 +257,14 @@ else
         catch(OrderActionException ex){_finalizeError=ex.Message;}catch{_finalizeError="ثبت نهایی انجام نشد؛ دوباره تلاش کنید.";}finally{_saving=false;}
     }
     private void CancelFinalize(){if(!_saving){_finalizeOrder=null;_finalizeError=null;}}
-    private void ResetEditor(){_draftId=null;_draftVersion=1;_customerName="";_duration="";_orderDate=TehranToday;_items=[new()];}
+    private void ResetEditor(){_editedOrder=null;_editingFinalized=false;_draftId=null;_draftVersion=1;_customerName="";_duration="";_orderDate=TehranToday;_items=[new()];}
     private async Task EditDraftAsync(OrderDto order)
     {
         if(_saving)return;
         await RefreshCatalogAsync();
-        _draftId=order.Id;_draftVersion=order.Version;_customerName=order.CustomerName;_duration=order.DurationDays.ToString();_orderDate=TimeZoneInfo.ConvertTimeFromUtc(order.CreatedAtUtc,Tehran).Date;
-        _items=order.Lines.Select(x=>new LineEditor{ScaleId=x.ScaleId,DesignId=x.DesignTypeId,Quantity=x.Quantity.ToString()}).ToList();_tab="new";
-        if(!CanSave)ShowError("یکی از دیزاین‌ها یا اسکیل‌های پیش‌سفارش غیرفعال شده است؛ جایگزین آن را انتخاب کنید.");
+        _editedOrder=order;_editingFinalized=!order.IsDraft;_draftId=order.Id;_draftVersion=order.Version;_customerName=order.CustomerName;_duration=order.DurationDays.ToString();_orderDate=TimeZoneInfo.ConvertTimeFromUtc(order.CreatedAtUtc,Tehran).Date;
+        _items=order.Lines.Select(x=>new LineEditor{LineId=x.Id,MinimumQuantity=x.Instruments.Select(i=>i.Slot).DefaultIfEmpty(0).Max(),ScaleId=x.ScaleId,DesignId=x.DesignTypeId,Quantity=x.Quantity.ToString()}).ToList();_tab="new";
+        if(!CanSave)ShowError("موارد ناقص یا نامعتبر را در فرم سفارش اصلاح کنید.");
     }
     private int CodePage(OrderLineDto line)=>Math.Clamp(_codePages.GetValueOrDefault(line.Id),0,(line.Quantity-1)/12);
     private static int NextSlot(OrderLineDto line)=>Enumerable.Range(1,line.Quantity).First(n=>line.Instruments.All(x=>x.Slot!=n));
