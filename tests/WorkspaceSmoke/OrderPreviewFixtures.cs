@@ -25,13 +25,15 @@ internal static class OrderPreviewFixtures
         services.AddLogging();
         services.AddSingleton<IJSRuntime, FixtureJs>();
         services.AddScoped<TokenStorage>();
-        services.AddScoped(_ => new HttpClient(new FixtureApi()) { BaseAddress = new Uri("https://fixture.invalid/api/") });
+        var fixtureApi = new FixtureApi();
+        services.AddScoped(_ => new HttpClient(fixtureApi) { BaseAddress = new Uri("https://fixture.invalid/api/") });
         services.AddScoped<ApiClient>(); services.AddScoped<OrderService>(); services.AddScoped<ScaleService>(); services.AddScoped<DesignService>();
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         await using var renderer = new HtmlRenderer(scope.ServiceProvider, provider.GetRequiredService<ILoggerFactory>());
-        foreach (var (type, name) in new[] { (typeof(Orders), "new-order.html"), (typeof(CompositionPreview), "composition.html"), (typeof(DraftPreview), "drafts.html"), (typeof(OrderListPreview), "order-list.html"), (typeof(OrderCodePreview), "assign-code.html") })
+        foreach (var (type, name) in new[] { (typeof(Orders), "new-order.html"), (typeof(SimplePreview), "simple-order.html"), (typeof(CompositionPreview), "composition.html"), (typeof(DraftPreview), "drafts.html"), (typeof(OrderListPreview), "order-list.html"), (typeof(OrderCodePreview), "assign-code.html") })
         {
+            fixtureApi.EmptyDesigns = type == typeof(SimplePreview);
             var markup = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync(type, ParameterView.Empty)).ToHtmlString());
             if (!WebUtility.HtmlDecode(markup).Contains("ساخت سفارش") || !markup.Contains("orders-hero")) throw new Exception("Orders preview failed");
             var styles = await File.ReadAllTextAsync(Path.Combine(root, $"TORSEPAN.Panel/obj/{buildConfiguration}/net10.0/scopedcss/projectbundle/TORSEPAN.Panel.bundle.scp.css"));
@@ -59,6 +61,20 @@ internal static class OrderPreviewFixtures
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken ct, object?[]? args) => ValueTask.FromResult(default(TValue)!);
     }
     private static readonly Guid _plain=Guid.NewGuid(), _acid=Guid.NewGuid(), _mill=Guid.NewGuid(), _scale9=Guid.NewGuid(), _scale12=Guid.NewGuid();
+    private sealed class SimplePreview : Orders
+    {
+        protected override async Task OnInitializedAsync()
+        {
+            await base.OnInitializedAsync();
+            var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+            typeof(Orders).GetField("_customerName",flags)!.SetValue(this,"مشتری دیزاین ساده");
+            typeof(Orders).GetField("_duration",flags)!.SetValue(this,"۳۰");
+            var list=(System.Collections.IList)typeof(Orders).GetField("_items",flags)!.GetValue(this)!;
+            list[0]!.GetType().GetProperty("ScaleId")!.SetValue(list[0],_scale9);
+            if (!(bool)typeof(Orders).GetProperty("CanSave",flags)!.GetValue(this)!)
+                throw new Exception("Simple order cannot be saved with an empty design catalog");
+        }
+    }
     private sealed class CompositionPreview : Orders
     {
         protected override async Task OnInitializedAsync()
@@ -79,10 +95,11 @@ internal static class OrderPreviewFixtures
     }
     private sealed class FixtureApi : HttpMessageHandler
     {
+        public bool EmptyDesigns { get; set; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             if (request.RequestUri!.AbsolutePath.EndsWith("designs/types"))
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new[] { new { Id = _plain, Name = "ساده" }, new { Id = _acid, Name = "اسیدکاری" }, new { Id = _mill, Name = "فرزکاری" } }) });
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(EmptyDesigns ? [] : new[] { new { Id = _plain, Name = "ساده" }, new { Id = _acid, Name = "اسیدکاری" }, new { Id = _mill, Name = "فرزکاری" } }) });
             if (request.RequestUri!.AbsolutePath.EndsWith("scales"))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new[] { new { Id = _scale9, Name = "D Kurd Custom 9", Usage = 32 }, new { Id = _scale12, Name = "F Pygmy 12", Usage = 32 } }) });
             var now = DateTime.UtcNow;
