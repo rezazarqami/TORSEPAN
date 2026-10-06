@@ -24,10 +24,29 @@ internal static class OrderCompositionSmoke
         var user = new User("composition", "کاربر آزمایشی");
         var scale9 = new Scale("D Kurd 9", ScaleUsage.CustomHandpan); var scale12 = new Scale("D Kurd 12", ScaleUsage.CustomHandpan);
         var plain = new DesignType("ساده"); var acid = new DesignType("اسیدکاری"); var milling = new DesignType("فرزکاری"); var inactive = new DesignType("غیرفعال"); inactive.Deactivate();
-        var material = new Material("آزمایش"); db.AddRange(user,scale9,scale12,plain,acid,milling,inactive,material);await db.SaveChangesAsync();
+        var material = new Material("آزمایش"); db.AddRange(user,scale9,scale12,material);await db.SaveChangesAsync();
         var clock = new OrdersSmoke.TestClock(new DateTimeOffset(2026,10,6,10,0,0,TimeSpan.Zero));
         var service = new CustomerOrderService(db,clock);
         SaveOrderDraftRequest Request(params OrderLineRequest[] lines) => new("مشتری چندساز",30,new DateOnly(2026,10,5),lines);
+        var omittedDesign = System.Text.Json.JsonSerializer.Deserialize<OrderLineRequest>(
+            $$"""{"scaleId":"{{scale9.Id}}","quantity":2}""", new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        Check(omittedDesign.DesignTypeId is null,"omitted design in API payload defaults to simple");
+        var simpleId = await service.SaveDraftAsync(null,Request(omittedDesign),user.Id,default);
+        var simpleDraft = (await service.GetAsync(default)).Single(x=>x.Id==simpleId);
+        Check(simpleDraft.Lines[0].DesignTypeId is null && simpleDraft.Lines[0].DesignName=="دیزاین ساده" && simpleDraft.TotalQuantity==2,
+            "simple draft is saved without any design catalog entries");
+        await service.SaveDraftAsync(simpleId,Request(new OrderLineRequest(scale9.Id,null,3)) with {Version=simpleDraft.Version},user.Id,default);
+        simpleDraft = (await service.GetAsync(default)).Single(x=>x.Id==simpleId);
+        await service.FinalizeAsync(simpleId,simpleDraft.Version,default);
+        var simpleOrder = (await service.GetAsync(default)).Single(x=>x.Id==simpleId);
+        Check(!simpleOrder.IsDraft && simpleOrder.TotalQuantity==3 && simpleOrder.Lines[0].DesignName=="دیزاین ساده",
+            "simple draft remains simple through editing and finalization");
+        db.AddRange(plain,acid,milling,inactive);await db.SaveChangesAsync();
+        var mixedId = await service.SaveDraftAsync(null,Request(new OrderLineRequest(scale9.Id,null,2),new OrderLineRequest(scale12.Id,acid.Id,4)),user.Id,default);
+        var mixedDraft = (await service.GetAsync(default)).Single(x=>x.Id==mixedId);
+        await service.FinalizeAsync(mixedId,mixedDraft.Version,default);
+        Check((await service.GetAsync(default)).Single(x=>x.Id==mixedId).Lines.Select(x=>x.DesignName).SequenceEqual(new[]{"دیزاین ساده","اسیدکاری"}),
+            "simple and catalog designs coexist in a finalized multi-line order");
         await Reject(()=>service.SaveDraftAsync(null,Request(),user.Id,default),"empty composition is rejected");
         foreach(var count in new[]{0,-1,10001})await Reject(()=>service.SaveDraftAsync(null,Request(new OrderLineRequest(scale9.Id,plain.Id,count)),user.Id,default),"invalid quantity rejected: "+count);
         await Reject(()=>service.SaveDraftAsync(null,Request(new OrderLineRequest(scale9.Id,plain.Id,6000),new OrderLineRequest(scale12.Id,acid.Id,5000)),user.Id,default),"total quantity overflow rejected");
