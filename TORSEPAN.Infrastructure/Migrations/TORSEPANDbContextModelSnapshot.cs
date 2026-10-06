@@ -70,6 +70,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid?>("ScaleId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("ExportWarehouseLocation")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Stage")
                         .HasColumnType("integer");
 
@@ -152,6 +155,9 @@ namespace TORSEPAN.Infrastructure.Migrations
 
                     b.Property<Guid?>("SoldByUserId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("ExportWarehouseLocation")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Stage")
                         .HasColumnType("integer");

@@ -151,21 +151,46 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             try
             {
                 var name = total == 1 ? Path.GetFileName(archive) : $"{Path.GetFileName(archive)}.part{index:D4}-of-{total:D4}";
-                using var form = new MultipartFormDataContent();
-                await using var stream = File.OpenRead(part);
-                form.Add(new StreamContent(stream), "backup", name);
-                using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = form };
-                request.Headers.Add("X-Relay-Secret", secret);
-                using var response = await client.SendAsync(request, ct);
-                if (!response.IsSuccessStatusCode)
+                // Reopen the part for each attempt so retries never send an exhausted stream.
+                for (var attempt = 1; ; attempt++)
                 {
-                    var reason = response.StatusCode switch
+                    try
                     {
-                        System.Net.HttpStatusCode.Unauthorized => "Relay secret was rejected (401).",
-                        System.Net.HttpStatusCode.NotFound => "Backup relay route was not found (404).",
-                        _ => await RelayFailureAsync(response, ct)
-                    };
-                    throw new HttpRequestException($"Telegram backup {name} failed: {reason}");
+                        using var form = new MultipartFormDataContent();
+                        await using var stream = File.OpenRead(part);
+                        var file = new StreamContent(stream);
+                        file.Headers.ContentLength = stream.Length;
+                        form.Add(file, "backup", name);
+                        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+                        {
+                            Content = form,
+                            Version = System.Net.HttpVersion.Version11,
+                            VersionPolicy = HttpVersionPolicy.RequestVersionExact
+                        };
+                        request.Headers.ExpectContinue = false;
+                        request.Headers.Add("X-Relay-Secret", secret);
+                        using var response = await client.SendAsync(request, ct);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            var reason = response.StatusCode switch
+                            {
+                                System.Net.HttpStatusCode.Unauthorized => "Relay secret was rejected (401).",
+                                System.Net.HttpStatusCode.NotFound => "Backup relay route was not found (404).",
+                                _ => await RelayFailureAsync(response, ct)
+                            };
+                            throw new HttpRequestException($"Telegram backup {name} failed: {reason}", null, response.StatusCode);
+                        }
+                        break;
+                    }
+                    catch (HttpRequestException ex) when (attempt < 3 &&
+                        (ex.StatusCode is null || ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests || (int)ex.StatusCode >= 500))
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(2 * attempt), ct);
+                    }
+                    catch (OperationCanceledException) when (!ct.IsCancellationRequested && attempt < 3)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(2 * attempt), ct);
+                    }
                 }
             }
             finally { File.Delete(part); }
