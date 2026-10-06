@@ -60,7 +60,7 @@ internal static class OrderPreviewFixtures
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args) => ValueTask.FromResult(default(TValue)!);
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken ct, object?[]? args) => ValueTask.FromResult(default(TValue)!);
     }
-    private static readonly Guid _plain=Guid.NewGuid(), _acid=Guid.NewGuid(), _mill=Guid.NewGuid(), _scale9=Guid.NewGuid(), _scale12=Guid.NewGuid();
+    private static readonly Guid _plain=Guid.NewGuid(), _acid=Guid.NewGuid(), _mill=Guid.NewGuid(), _scale9=Guid.NewGuid(), _scale12=Guid.NewGuid(), _standard=Guid.NewGuid(), _both=Guid.NewGuid();
     private sealed class SimplePreview : Orders
     {
         protected override async Task OnInitializedAsync()
@@ -70,9 +70,9 @@ internal static class OrderPreviewFixtures
             typeof(Orders).GetField("_customerName",flags)!.SetValue(this,"مشتری دیزاین ساده");
             typeof(Orders).GetField("_duration",flags)!.SetValue(this,"۳۰");
             var list=(System.Collections.IList)typeof(Orders).GetField("_items",flags)!.GetValue(this)!;
-            list[0]!.GetType().GetProperty("ScaleId")!.SetValue(list[0],_scale9);
+            list[0]!.GetType().GetProperty("ScaleId")!.SetValue(list[0],_standard);
             if (!(bool)typeof(Orders).GetProperty("CanSave",flags)!.GetValue(this)!)
-                throw new Exception("Simple order cannot be saved with an empty design catalog");
+                throw new Exception("Simple order with standard instrument scale cannot be saved with an empty design catalog");
         }
     }
     private sealed class CompositionPreview : Orders
@@ -101,7 +101,12 @@ internal static class OrderPreviewFixtures
             if (request.RequestUri!.AbsolutePath.EndsWith("designs/types"))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(EmptyDesigns ? [] : new[] { new { Id = _plain, Name = "ساده" }, new { Id = _acid, Name = "اسیدکاری" }, new { Id = _mill, Name = "فرزکاری" } }) });
             if (request.RequestUri!.AbsolutePath.EndsWith("scales"))
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new[] { new { Id = _scale9, Name = "D Kurd Custom 9", Usage = 32 }, new { Id = _scale12, Name = "F Pygmy 12", Usage = 32 } }) });
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new[] { new { Id = _scale9, Name = "D Kurd Custom 9", Usage = 32 }, new { Id = _scale12, Name = "F Pygmy 12", Usage = 32 },
+                    new { Id = _standard, Name = "E Sabye standard", Usage = 4 },
+                    new { Id = _both, Name = "Both instrument catalogs", Usage = 36 },
+                    new { Id = Guid.NewGuid(), Name = "Bowl top only", Usage = 1 },
+                    new { Id = Guid.NewGuid(), Name = "Bowl bottom only", Usage = 2 },
+                    new { Id = Guid.NewGuid(), Name = "Custom bowl only", Usage = 24 } }) });
             var now = DateTime.UtcNow;
             OrderDto Make(string name, string scale, int days, int ago, string? code, string stage, string[] completed) => new(Guid.NewGuid(), name, Guid.NewGuid(), scale, days, now.AddDays(-ago), now.AddDays(days - ago), code, stage, "در انتظار", completed,
                 Enumerable.Range(1, 4).Select(n => new OrderReminderDto(n, now.AddDays(-ago + days * n / 4d), n <= 2 ? now.AddDays(-1) : null, false)).ToArray());

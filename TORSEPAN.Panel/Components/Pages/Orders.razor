@@ -1,6 +1,7 @@
 @page "/orders"
 @using System.Globalization
 @using TORSEPAN.Application.Orders
+@using TORSEPAN.Domain.Enums
 @using TORSEPAN.Application
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject OrderService OrderService
@@ -39,7 +40,7 @@ else if (_tab == "new")
             <section class="order-panel composition-panel">
                 <header><div><small class="section-kicker">۰۲ / ترکیب سازها</small><h2>دیزاین × اسکیل × تعداد</h2></div><button class="btn subtle" disabled="@(_saving || _catalogLoading)" @onclick="RefreshCatalogAsync">@(_catalogLoading ? "در حال دریافت…" : "↻ فهرست دیزاین و اسکیل")</button></header>
                 <p class="panel-caption">برای هر ترکیب، یک ردیف اضافه کن. مثلاً ۵ ساز ساده و ۵ ساز اسیدکاری، با اسکیل‌های متفاوت.</p>
-                @if(_scales.Count == 0){<div class="form-hint warning">ابتدا اسکیل کاستوم ساز را در <a href="/custom-scales">Scale Custom</a> ثبت کنید.</div>}
+                @if(_scales.Count == 0){<div class="form-hint warning">ابتدا اسکیل ساز را در <a href="/scales">اسکیل‌ها</a> یا <a href="/custom-scales">اسکیل کاستوم</a> ثبت کنید.</div>}
                 <div class="form-hint">اگر دیزاین دیگری انتخاب نکنید، ساز با دیزاین ساده ثبت می‌شود.</div>
                 <div class="composition-lines">
                     @foreach(var item in _items)
@@ -125,6 +126,7 @@ else
 <AppConfirmDialog IsOpen="@(_deleteOrder is not null)" Title="حذف سفارش" Message="@DeleteMessage" ConfirmText="حذف سفارش" Danger="true" Busy="@_deleting" Error="@_deleteError" OnConfirm="DeleteAsync" OnCancel="CloseDelete" />
 
 @code {
+    private const int InstrumentScaleUsage = (int)(ScaleUsage.Handpan | ScaleUsage.CustomHandpan);
     private sealed class LineEditor
     {
         public Guid Key { get; } = Guid.NewGuid();
@@ -169,13 +171,13 @@ else
     private async Task ReloadAsync()
     {
         _loading=true;_loadFailed=false;
-        try {var orders=OrderService.GetAsync();var scales=ScaleService.GetAsync();var designs=DesignService.GetTypesAsync();await Task.WhenAll(orders,scales,designs);_orders=(await orders).ToList();_scales=(await scales).Where(x=>(x.Usage&32)!=0).OrderBy(x=>x.Name).ToList();_designs=(await designs).OrderBy(x=>x.Name).ToList();_now=DateTime.UtcNow;}
+        try {var orders=OrderService.GetAsync();var scales=ScaleService.GetAsync();var designs=DesignService.GetTypesAsync();await Task.WhenAll(orders,scales,designs);_orders=(await orders).ToList();_scales=(await scales).Where(x=>(x.Usage&InstrumentScaleUsage)!=0).OrderBy(x=>x.Name).ToList();_designs=(await designs).OrderBy(x=>x.Name).ToList();_now=DateTime.UtcNow;}
         catch{_loadFailed=true;ShowError("دریافت اطلاعات کامل نشد.");}finally{_loading=false;}
     }
     private async Task RefreshCatalogAsync()
     {
         if(_catalogLoading)return;_catalogLoading=true;
-        try {var scales=ScaleService.GetAsync();var designs=DesignService.GetTypesAsync();await Task.WhenAll(scales,designs);_scales=(await scales).Where(x=>(x.Usage&32)!=0).OrderBy(x=>x.Name).ToList();_designs=(await designs).OrderBy(x=>x.Name).ToList();}
+        try {var scales=ScaleService.GetAsync();var designs=DesignService.GetTypesAsync();await Task.WhenAll(scales,designs);_scales=(await scales).Where(x=>(x.Usage&InstrumentScaleUsage)!=0).OrderBy(x=>x.Name).ToList();_designs=(await designs).OrderBy(x=>x.Name).ToList();}
         catch{ShowError("فهرست دیزاین‌ها و اسکیل‌ها به‌روز نشد.");}finally{_catalogLoading=false;}
     }
     private async Task RefreshAsync(){if(_refreshing)return;_refreshing=true;try{_orders=(await OrderService.GetAsync()).ToList();_now=DateTime.UtcNow;}catch{ShowError("به‌روزرسانی انجام نشد؛ اطلاعات قبلی نمایش داده می‌شود.");}finally{_refreshing=false;}}

@@ -29,6 +29,11 @@ let browser;
     assert.equal(await page.locator('.composition-line select').first().inputValue(),'');
     assert.equal((await page.locator('.composition-line select').first().locator('option:checked').innerText()).trim(),'دیزاین ساده');
     assert.equal(await page.locator('.composition-line select').first().locator('option').count(),1);
+    const scaleSelect=page.locator('.composition-line select').nth(1);
+    const scaleNames=await scaleSelect.locator('option').allTextContents();
+    assert.deepEqual(scaleNames,['انتخاب اسکیل','Both instrument catalogs','D Kurd Custom 9','E Sabye standard','F Pygmy 12']);
+    assert.equal(await scaleSelect.locator('optgroup').count(),0);
+    assert.equal((await scaleSelect.locator('option:checked').innerText()).trim(),'E Sabye standard');
     assert.equal(await page.locator('.summary-total strong').innerText(),'1');
     assert.equal(await page.getByRole('button',{name:'ذخیرهٔ پیش‌سفارش',exact:true}).isEnabled(),true);
    }
