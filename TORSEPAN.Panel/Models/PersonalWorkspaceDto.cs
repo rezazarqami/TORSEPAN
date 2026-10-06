@@ -41,8 +41,7 @@ public sealed class InboxMessageDto
     public DateTime? ReadAt {get;set;}
 }
 public sealed class MessageRecipientDto { public Guid Id {get;set;} public string Name {get;set;} = ""; }
-public sealed class UnreadDto { public int Count {get;set;} }
-
+public sealed class UnreadDto { public int Count {get;set;} public Guid UserId {get;set;} public long? TotalIncoming {get;set;} }
 public sealed class ConversationListDto { public List<ConversationDto> Items {get;set;}=[]; }
 public sealed class ConversationDto
 {

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Entities;
 using TORSEPAN.Infrastructure.Persistence;
@@ -17,7 +17,8 @@ public class UserRepository : GenericRepository<User>, IUserRepository
         return await _dbSet
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .Include(x => x.RefreshTokens)
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
     }
 
     public async Task<User?> GetByUsernameAsync(string username)
@@ -29,7 +30,7 @@ public class UserRepository : GenericRepository<User>, IUserRepository
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
             .FirstOrDefaultAsync(x =>
-                x.UserName.Trim().ToUpper() == normalizedUsername);
+                !x.IsDeleted && x.UserName.Trim().ToUpper() == normalizedUsername);
     }
 
     public async Task<List<User>> GetAllAsync()
@@ -38,7 +39,10 @@ public class UserRepository : GenericRepository<User>, IUserRepository
             .AsNoTracking()
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
+            .Where(x => !x.IsDeleted)
             .OrderBy(x => x.UserName)
             .ToListAsync();
     }
+    public override Task<bool> ExistsAsync(Guid id) => _dbSet.AnyAsync(x => x.Id == id && !x.IsDeleted);
+
 }

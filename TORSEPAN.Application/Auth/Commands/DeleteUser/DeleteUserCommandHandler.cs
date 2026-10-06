@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.Application.Auth.Commands.DeleteUser;
@@ -17,12 +17,19 @@ public sealed class DeleteUserCommandHandler
         DeleteUserCommand request,
         CancellationToken cancellationToken)
     {
+        if (request.UserId == request.ActorId)
+            throw new InvalidOperationException("حذف حسابی که با آن وارد شده‌اید مجاز نیست.");
         var user = await _unitOfWork.Users.GetByIdAsync(request.UserId);
 
         if (user is null)
-            throw new InvalidOperationException("User not found.");
+            throw new KeyNotFoundException("کاربر یافت نشد.");
 
-        _unitOfWork.Users.Remove(user);
+        static bool IsAdmin(TORSEPAN.Domain.Entities.User u) =>
+            u.IsInRole("Administrator") || u.UserRoles.Any(r => r.Role.Name == "Administrator");
+        if (user.IsActive && IsAdmin(user) &&
+            !(await _unitOfWork.Users.GetAllAsync()).Any(u => u.Id != user.Id && u.IsActive && IsAdmin(u)))
+            throw new InvalidOperationException("حذف آخرین مدیر فعال سیستم مجاز نیست.");
+        user.DeleteAccount();
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }

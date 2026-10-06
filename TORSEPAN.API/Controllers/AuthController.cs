@@ -1,4 +1,9 @@
-﻿using MediatR;
+using MediatR;
+using System.Security.Claims;
+using System.Data;
+using Microsoft.EntityFrameworkCore;
+using TORSEPAN.Infrastructure.Persistence;
+using Npgsql;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.API.Contracts.Auth;
@@ -178,9 +183,20 @@ public sealed class AuthController : ControllerBase
 
     [HttpDelete("users/{id:guid}")]
     [Authorize(Roles = "Administrator,ProductionManager")]
-    public async Task<IActionResult> DeleteUser(Guid id)
+    public async Task<IActionResult> DeleteUser(Guid id, [FromServices] TORSEPANDbContext db, CancellationToken ct)
     {
-        await _mediator.Send(new DeleteUserCommand(id));
-        return NoContent();
+        if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actor)) return Unauthorized();
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        try
+        {
+            await _mediator.Send(new DeleteUserCommand(id, actor), ct);
+            await transaction.CommitAsync(ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException) { return NotFound(new { Message = "کاربر یافت نشد." }); }
+        catch (InvalidOperationException ex) { return Conflict(new { Message = ex.Message }); }
+        catch (DbUpdateConcurrencyException) { return Conflict(new { Message = "حساب تغییر کرده؛ فهرست را تازه کنید." }); }
+        catch (Exception ex) when (ex is PostgresException { SqlState: "40001" } || ex.InnerException is PostgresException { SqlState: "40001" })
+        { return Conflict(new { Message = "حساب هم‌زمان تغییر کرده؛ دوباره تلاش کنید." }); }
     }
 }

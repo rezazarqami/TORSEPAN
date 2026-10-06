@@ -606,6 +606,7 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsDeleted").ValueGeneratedOnAdd().HasColumnType("boolean").HasDefaultValue(false).IsConcurrencyToken();
                     b.Property<int>("CredentialVersion").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0).IsConcurrencyToken();
                     b.Property<byte[]>("AvatarPng").HasColumnType("bytea");
                     b.Property<Guid?>("AvatarVersion").HasColumnType("uuid").IsConcurrencyToken();

@@ -80,6 +80,16 @@ public class ApiClient
         return await ReadResponseAsync<TResult>(response);
     }
 
+    public async Task DeleteAccountAsync(string url)
+    {
+        using var response = await SendWithRefreshAsync(() => _http.DeleteAsync(url));
+        if (response.IsSuccessStatusCode) return;
+        string? message = null;
+        if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Conflict or HttpStatusCode.NotFound)
+        { try { message = (await response.Content.ReadFromJsonAsync<AccountError>())?.Message; } catch (JsonException) { } }
+        throw new AccountActionException(message ?? "حذف انجام نشد؛ اتصال و مجوز حساب را بررسی کنید.");
+    }
+
     public async Task DeleteAsync(string url)
     {
         var response = await SendWithRefreshAsync(() => _http.DeleteAsync(url));

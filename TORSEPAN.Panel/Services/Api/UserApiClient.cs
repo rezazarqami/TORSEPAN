@@ -42,4 +42,5 @@ public class UserApiClient
         await _apiClient.PutAsync<UpdateUserCommand, object?>(
             $"auth/users/{command.UserId}", command);
     }
+    public Task DeleteUserAsync(Guid userId) => _apiClient.DeleteAccountAsync($"auth/users/{userId}");
 }
