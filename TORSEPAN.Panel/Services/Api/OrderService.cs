@@ -6,6 +6,8 @@ public sealed class OrderService(ApiClient api)
 {
     public Task<Guid> SaveDraftAsync(Guid? id, SaveOrderDraftRequest request) => api.OrderActionAsync<SaveOrderDraftRequest, Guid>(
         id.HasValue ? $"orders/{id}/draft" : "orders/drafts", request, id.HasValue);
+    public Task UpdateAsync(Guid id, SaveOrderDraftRequest request) =>
+        api.OrderActionAsync<SaveOrderDraftRequest,object?>($"orders/{id}",request,true);
     public Task FinalizeAsync(Guid id, int version) => api.OrderActionAsync<FinalizeOrderRequest, object?>($"orders/{id}/finalize", new(version));
     public Task AssignLineCodeAsync(Guid id, Guid lineId, int slot, string code, string expectedCode) => api.OrderActionAsync<AssignOrderCodeRequest, object?>(
         $"orders/{id}/lines/{lineId}/codes/{slot}", new(code, expectedCode), true);

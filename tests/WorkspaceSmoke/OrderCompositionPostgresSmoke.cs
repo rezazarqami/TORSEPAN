@@ -47,5 +47,11 @@ internal static class OrderCompositionPostgresSmoke
         var edit=await Task.WhenAll(WithService(s=>s.SaveDraftAsync(draftId,request with {CustomerName="الف",Version=1},user.Id,default)),WithService(s=>s.SaveDraftAsync(draftId,request with {CustomerName="ب",Version=1},user.Id,default)));
         if(edit.Count(x=>x)!=1)throw new Exception("Concurrent draft edit did not reject stale version");
         Console.WriteLine("PASS real PostgreSQL draft version rejects concurrent stale edits");
+        var current=(await service.GetAsync(default)).Single(x=>x.Id==id);
+        var finalEdit=new SaveOrderDraftRequest("Edited",45,null,current.Lines.Select(x=>new OrderLineRequest(x.ScaleId,x.DesignTypeId,x.Quantity+1,x.Id)).ToArray(),current.Version);
+        var finalRace=await Task.WhenAll(WithService(s=>s.UpdateOrderAsync(id,finalEdit,default)),WithService(s=>s.UpdateOrderAsync(id,finalEdit with {CustomerName="Other editor"},default)));
+        if(finalRace.Count(x=>x)!=1||await db.OrderInstruments.CountAsync(x=>x.LineId==line.Id)!=30)
+            throw new Exception("Concurrent final order edits lost codes or accepted stale version");
+        Console.WriteLine("PASS real PostgreSQL final order edit serializes concurrent writers and preserves assigned codes");
     }
 }

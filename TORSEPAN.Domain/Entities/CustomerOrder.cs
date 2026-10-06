@@ -39,6 +39,15 @@ public sealed class CustomerOrder
         ScaleId = Lines.First().ScaleId; ScaleName = Lines.First().ScaleName;
         Touch();
     }
+    public void ChangeFinalOrder(string customerName, int durationDays, DateTime startUtc)
+    {
+        if(IsDraft)throw new InvalidOperationException("برای پیش‌سفارش از ویرایش پیش‌سفارش استفاده کنید.");
+        CustomerName=customerName.Trim();DurationDays=durationDays;CreatedAtUtc=startUtc;DueAtUtc=startUtc.AddDays(durationDays);
+        ScaleId=Lines.OrderBy(x=>x.Position).First().ScaleId;ScaleName=Lines.OrderBy(x=>x.Position).First().ScaleName;
+        foreach(var reminder in Reminders.Where(x=>x.Milestone>0))
+            reminder.Reschedule(startUtc.AddTicks((DueAtUtc-startUtc).Ticks*reminder.Milestone/4));
+        Touch();
+    }
     public void FinalizeOrder(DateTime nowUtc)
     {
         if (!IsDraft) throw new InvalidOperationException("سفارش قبلاً نهایی شده است.");
@@ -47,6 +56,11 @@ public sealed class CustomerOrder
         foreach (var n in Enumerable.Range(1, 4)) Reminders.Add(new OrderReminder(Id, n,
             CreatedAtUtc.AddTicks((DueAtUtc - CreatedAtUtc).Ticks * n / 4)));
         QueueRegistrationNotice(nowUtc);
+    }
+    public void SyncPrimaryInstrument(OrderInstrument? instrument)
+    {
+        InstrumentCode=instrument?.Code;TopBowlId=instrument?.TopBowlId;HandpanId=instrument?.HandpanId;
+        CodeAssignedByUserId=instrument?.AssignedByUserId;CodeAssignedAtUtc=instrument?.AssignedAtUtc;
     }
     public void Touch() => Version++;
 
@@ -101,6 +115,11 @@ public sealed class OrderReminder
     public string DeliveryKey => Milestone == 0
         ? $"order:{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"created:{OrderId:N}")))[..32].ToLowerInvariant()}:1"
         : $"order:{OrderId:N}:{Milestone}";
+    public void Reschedule(DateTime dueUtc)
+    {
+        if(SentAtUtc.HasValue)return;
+        DueAtUtc=dueUtc;NextAttemptAtUtc=dueUtc;LastError=null;
+    }
     public void Delivered(DateTime nowUtc) { SentAtUtc = nowUtc; Attempts++; LastError = null; }
     public void Failed(DateTime nowUtc, string reason)
     {
