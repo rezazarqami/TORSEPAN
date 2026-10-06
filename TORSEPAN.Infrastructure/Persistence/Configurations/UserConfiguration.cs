@@ -26,6 +26,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(x => x.IsDeleted).HasDefaultValue(false).IsConcurrencyToken();
+
         builder.Property(x => x.IsActive)
             .IsRequired();
         builder.Property(x => x.DisplayOrder).HasDefaultValue(0).IsRequired();

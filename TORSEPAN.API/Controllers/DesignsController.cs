@@ -15,7 +15,7 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
     public async Task<IActionResult> Types(CancellationToken ct) => Ok(await db.DesignTypes.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Rate, x.ExportRate }).ToListAsync(ct));
 
     [HttpGet("users")]
-    public async Task<IActionResult> Users(CancellationToken ct) => Ok(await db.Users.AsNoTracking().Where(x => x.IsActive)
+    public async Task<IActionResult> Users(CancellationToken ct) => Ok(await db.Users.AsNoTracking().Where(x => !x.IsDeleted && x.IsActive)
         .OrderBy(x => x.DisplayOrder).ThenBy(x => x.FullName).Select(x => new { x.Id, Name = x.FullName == "" ? x.UserName : x.FullName }).ToListAsync(ct));
 
     [HttpGet("bowls/{code}")]
@@ -92,7 +92,7 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
             return Conflict("این ساز وارد انبار شده و عملیات آن قفل است.");
         var currentUserId=Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??throw new UnauthorizedAccessException());
         var requestedUsers=request.Items.Where(x=>x.UserId.HasValue).Select(x=>x.UserId!.Value).Distinct().ToList();
-        var validUsers=(await db.Users.AsNoTracking().Where(x=>requestedUsers.Contains(x.Id)&&x.IsActive).Select(x=>x.Id).ToListAsync(ct)).ToHashSet();
+        var validUsers=(await db.Users.AsNoTracking().Where(x=>requestedUsers.Contains(x.Id)&&!x.IsDeleted&&x.IsActive).Select(x=>x.Id).ToListAsync(ct)).ToHashSet();
         if(validUsers.Count!=requestedUsers.Count)return BadRequest("مجری انتخاب‌شده معتبر نیست.");
         var existingDescriptions=await db.ProductionEvents.AsNoTracking().Where(x=>x.BowlId==bowl.Id&&x.Action==ProductionAction.Design).Select(x=>x.Description).ToListAsync(ct);
         var existingTypeIds=existingDescriptions.Select(ParseDesignTypeId).Where(x=>x.HasValue).Select(x=>x!.Value).ToHashSet();

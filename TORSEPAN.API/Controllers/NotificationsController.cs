@@ -20,8 +20,14 @@ public sealed class NotificationsController(TORSEPANDbContext db) : ControllerBa
     }
 
     [HttpGet("unread")]
-    public async Task<IActionResult> Unread(CancellationToken ct) =>
-        Ok(new { Count = await db.WorkshopMessageReceipts.CountAsync(x => x.RecipientId == CurrentUserId && x.Message.SenderId != CurrentUserId && x.ReadAt == null, ct) });
+    public async Task<IActionResult> Unread(CancellationToken ct)
+    {
+        var incoming = db.WorkshopMessageReceipts.AsNoTracking().Where(x => x.RecipientId == CurrentUserId && x.Message.SenderId != CurrentUserId);
+        // Receipt count never decreases when messages are read, including in an open chat.
+        return Ok(await incoming.GroupBy(x => x.RecipientId).Select(g => new {
+            UserId = g.Key, Count = g.Count(x => x.ReadAt == null), TotalIncoming = g.LongCount()
+        }).SingleOrDefaultAsync(ct) ?? (object)new { UserId = CurrentUserId, Count = 0, TotalIncoming = 0L });
+    }
 
     // Keep the original inbox route compatible with older clients.
     [HttpGet]
@@ -113,7 +119,7 @@ public sealed class NotificationsController(TORSEPANDbContext db) : ControllerBa
 
     [HttpGet("recipients")]
     public async Task<IActionResult> Recipients(CancellationToken ct) =>
-        Ok(await db.Users.AsNoTracking().Where(x => x.IsActive && x.Id != CurrentUserId).OrderBy(x => x.FullName)
+        Ok(await db.Users.AsNoTracking().Where(x => !x.IsDeleted && x.IsActive && x.Id != CurrentUserId).OrderBy(x => x.FullName)
             .Select(x => new { x.Id, Name = x.FullName == "" ? x.UserName : x.FullName }).ToListAsync(ct));
 
     [HttpPost]
@@ -128,8 +134,8 @@ public sealed class NotificationsController(TORSEPANDbContext db) : ControllerBa
         if (request.Broadcast && !User.IsInRole("Administrator") && !User.IsInRole("ProductionManager")) return Forbid();
         var previous = await db.WorkshopMessages.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.Id, ct);
         if (previous is not null) return await Existing(previous);
-        if (!await db.Users.AnyAsync(x => x.Id == CurrentUserId && x.IsActive, ct)) return Forbid();
-        var recipients = await db.Users.Where(x => x.IsActive && x.Id != CurrentUserId && (request.Broadcast || x.Id == request.RecipientId))
+        if (!await db.Users.AnyAsync(x => x.Id == CurrentUserId && !x.IsDeleted && x.IsActive, ct)) return Forbid();
+        var recipients = await db.Users.Where(x => !x.IsDeleted && x.IsActive && x.Id != CurrentUserId && (request.Broadcast || x.Id == request.RecipientId))
             .Select(x => x.Id).ToListAsync(ct);
         if (!request.Broadcast && recipients.Count == 0) return BadRequest("گیرنده فعالی یافت نشد.");
         db.WorkshopMessages.Add(new WorkshopMessage(request.Id, CurrentUserId, title, body, request.Broadcast));
