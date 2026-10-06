@@ -289,6 +289,12 @@
             }
             else if (_bowl.Stage == 10)
             {
+                <AuthorizeView Roles="Workshop,Tuner,Administrator,ProductionManager" Context="exportRouteAuth">
+                    <details class="mt-3 small text-muted">
+                        <summary style="cursor:pointer;width:fit-content">گزینه‌های بیشتر</summary>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" disabled="@_loading" @onclick="AskSendGlueBowlToExport">ارسال به انبار صادراتی</button>
+                    </details>
+                </AuthorizeView>
                 <div class="mt-3">
                     <label class="form-label">@PairedBowlLabel(_bowl.BowlType)</label>
                     <input class="form-control"
@@ -631,6 +637,23 @@
         {
             var result = await BowlService.CompleteTuneAsync(_productionCode, _duration);
             SetOperationResult(result, "تیون با موفقیت انجام شد.", "ثبت پایان تیون انجام نشد.");
+        });
+    }
+
+    private Task AskSendGlueBowlToExport()
+    {
+        ShowOperationConfirmation("ارسال به انبار صادراتی",
+            [("کد کاسه", _productionCode), ("مرحله بعد", "بسته‌بندی صادراتی")],
+            SendGlueBowlToExportConfirmedAsync);
+        return Task.CompletedTask;
+    }
+
+    private async Task SendGlueBowlToExportConfirmedAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            var result = await BowlService.SendGlueBowlToExportAsync(_productionCode);
+            SetOperationResult(result, "کاسه به مسیر بسته‌بندی صادراتی منتقل شد.", "انتقال به مسیر صادراتی انجام نشد.");
         });
     }
 

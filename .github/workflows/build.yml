@@ -6,6 +6,12 @@ on:
   pull_request:
 
 jobs:
+  startup-screen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify branded Loading screen stays until the initial page is ready
+        run: node tests/startup-splash.cjs
   docker:
     runs-on: ubuntu-latest
     strategy:

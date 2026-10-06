@@ -1,5 +1,6 @@
-const CACHE = "torsepan-static-v5";
+const CACHE = "torsepan-static-v6";
 const STATIC_ASSETS = new Set([
+  "/images/brand/torsepan-splash.png",
   "/icons/torsepan-logo-v3-192.png",
   "/icons/torsepan-logo-v3-512.png",
   "/icons/apple-touch-icon-v3.png"

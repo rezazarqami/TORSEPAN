@@ -18,12 +18,24 @@
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["TORSEPAN.Panel.styles.css"]" />
 
+    <style>
+        #torsepan-startup{position:fixed;inset:0;z-index:1900;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fafafa;color:#173956;direction:ltr}
+        #torsepan-startup img{display:block;width:min(80vw,380px);height:auto}
+        #torsepan-startup p{margin:-18px 0 0;font:500 16px/1.5 Arial,sans-serif;letter-spacing:2px}
+        body:has(#torsepan-startup){overflow:hidden}
+    </style>
+    <link rel="preload" as="image" href="/images/brand/torsepan-splash.png" />
     <ImportMap />
     <HeadOutlet />
 </head>
 
 <body>
 
+    <div id="torsepan-startup" role="status" aria-label="Loading" aria-live="polite">
+        <img src="/images/brand/torsepan-splash.png" alt="TORSEPAN" width="432" height="432" />
+        <p>Loading</p>
+    </div>
+    <script src="@Assets["startup.js"]"></script>
     <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
 
     <script src="@Assets["login.js"]"></script>
