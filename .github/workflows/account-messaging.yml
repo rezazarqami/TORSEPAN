@@ -1,0 +1,17 @@
+name: Account deletion and incoming message sound
+on:
+  pull_request:
+    paths: ['TORSEPAN.Domain/**', 'TORSEPAN.Application/Auth/**', 'TORSEPAN.Infrastructure/**', 'TORSEPAN.API/**', 'TORSEPAN.Panel/**', 'tests/AccountMessagingSmoke/**', 'tests/message-sound.cjs', '.github/workflows/account-messaging.yml']
+jobs:
+  account-messaging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify deletion safeguards and incoming message detection
+        run: dotnet run --project tests/AccountMessagingSmoke/AccountMessagingSmoke.csproj -c Release
+      - name: Verify audio unlock and duplicate suppression
+        run: node tests/message-sound.cjs

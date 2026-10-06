@@ -19,7 +19,19 @@ public sealed class User : Entity
     // موقتاً برای سازگاری با بخش‌های فعلی پروژه نگه داشته می‌شود.
     public string Role { get; private set; } = string.Empty;
 
+    public bool IsDeleted { get; private set; }
     public bool IsActive { get; private set; }
+    public void DeleteAccount()
+    {
+        IsDeleted = true;
+        IsActive = false;
+        CredentialVersion++;
+        if (string.IsNullOrWhiteSpace(FullName)) FullName = UserName;
+        UserName = $"deleted-{Id:N}";
+        PasswordHash = string.Empty;
+        ChangeAvatar(null);
+        foreach (var token in RefreshTokens) token.Revoke();
+    }
     public int DisplayOrder { get; private set; }
     public bool ShowMyPayroll { get; private set; }
     public void SetDisplayOrder(int order) => DisplayOrder = Math.Max(0, order);
@@ -47,7 +59,7 @@ public sealed class User : Entity
 
     public void Activate()
     {
-        IsActive = true;
+        if (!IsDeleted) IsActive = true;
     }
 
     public void Deactivate()
@@ -90,7 +102,7 @@ public sealed class User : Entity
 
     public bool VerifyPassword(string password)
     {
-        return TORSEPAN.Domain.Security.PasswordCredential.Verify(PasswordHash, password);
+        return !IsDeleted && TORSEPAN.Domain.Security.PasswordCredential.Verify(PasswordHash, password);
     }
 
     public bool IsInRole(string role)
