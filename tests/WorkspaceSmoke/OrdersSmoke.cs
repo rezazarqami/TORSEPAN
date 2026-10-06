@@ -198,6 +198,10 @@ internal static class OrdersSmoke
         Check((await http.PostAsJsonAsync("api/orders", new CreateOrderRequest("نام", Guid.NewGuid(), 30))).StatusCode == HttpStatusCode.Unauthorized, "anonymous order creation returns 401");
         Check((await http.PutAsJsonAsync($"api/orders/{Guid.NewGuid()}/code", new AssignOrderCodeRequest("CODE"))).StatusCode == HttpStatusCode.Unauthorized, "anonymous code assignment returns 401");
         Check((await http.DeleteAsync($"api/orders/{Guid.NewGuid()}")).StatusCode == HttpStatusCode.Unauthorized, "anonymous order deletion returns 401");
+        Check((await http.PostAsJsonAsync("api/orders/drafts", new SaveOrderDraftRequest("نام",30,null,[]))).StatusCode == HttpStatusCode.Unauthorized, "anonymous draft creation requires authentication");
+        Check((await http.PutAsJsonAsync($"api/orders/{Guid.NewGuid()}/draft", new SaveOrderDraftRequest("نام",30,null,[]))).StatusCode == HttpStatusCode.Unauthorized, "anonymous draft update requires authentication");
+        Check((await http.PostAsJsonAsync($"api/orders/{Guid.NewGuid()}/finalize", new FinalizeOrderRequest(1))).StatusCode == HttpStatusCode.Unauthorized, "anonymous finalization requires authentication");
+        Check((await http.PutAsJsonAsync($"api/orders/{Guid.NewGuid()}/lines/{Guid.NewGuid()}/codes/1", new AssignOrderCodeRequest("CODE"))).StatusCode == HttpStatusCode.Unauthorized, "anonymous numbered-code assignment requires authentication");
         foreach (var role in Enum.GetNames<SystemRole>().Append("AuthenticatedOnly"))
         {
             http.DefaultRequestHeaders.Remove("X-Fixture-Role"); http.DefaultRequestHeaders.Add("X-Fixture-Role", role);
@@ -207,6 +211,10 @@ internal static class OrdersSmoke
             Check((await http.DeleteAsync($"api/orders/{Guid.NewGuid()}")).StatusCode == HttpStatusCode.NotFound, "authenticated user reaches order deletion: " + role);
             var assignment = await http.PutAsJsonAsync($"api/orders/{Guid.NewGuid()}/code", new AssignOrderCodeRequest("MISSING"));
             Check(assignment.StatusCode == HttpStatusCode.NotFound, "authenticated user reaches code assignment: " + role);
+            Check((await http.PostAsJsonAsync("api/orders/drafts", new SaveOrderDraftRequest("نام",30,null,[]))).StatusCode == HttpStatusCode.BadRequest, "authenticated user reaches draft validation: " + role);
+            Check((await http.PostAsJsonAsync($"api/orders/{Guid.NewGuid()}/finalize", new FinalizeOrderRequest(1))).StatusCode == HttpStatusCode.NotFound, "authenticated user reaches finalization: " + role);
+            Check((await http.PutAsJsonAsync($"api/orders/{Guid.NewGuid()}/lines/{Guid.NewGuid()}/codes/1", new AssignOrderCodeRequest("CODE"))).StatusCode == HttpStatusCode.NotFound, "authenticated user reaches numbered-code assignment: " + role);
+
         }
         await app.StopAsync();
     }

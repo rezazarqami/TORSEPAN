@@ -34,6 +34,11 @@ if(args.Contains("--warranty-only"))
     WarrantySmoke.Run();
     return;
 }
+if(args.Contains("--order-composition-only"))
+{
+    await OrderCompositionSmoke.RunAsync();
+    return;
+}
 if(args.Contains("--orders-only"))
 {
     await OrdersSmoke.RunAsync();

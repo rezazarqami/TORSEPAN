@@ -23,6 +23,9 @@ await using (var vazirmatn = Assembly.GetExecutingAssembly()
 }
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<MessagePushKeyStore>();
+builder.Services.AddHostedService<MessagePushWorker>();
+builder.Services.AddHttpClient<IMessagePushTransport, WebMessagePushTransport>().ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddScoped<TORSEPAN.API.Controllers.ManagementReportsController>();
 builder.Services.AddHttpClient<GuaranteeServiceClient>((services, client) =>
 {

@@ -5,7 +5,7 @@ public sealed class CustomerOrder
     private CustomerOrder() { }
 
     public CustomerOrder(string customerName, Guid scaleId, string scaleName, int durationDays,
-        Guid createdByUserId, DateTime createdAtUtc)
+        Guid createdByUserId, DateTime createdAtUtc, bool isDraft = false)
     {
         if (string.IsNullOrWhiteSpace(customerName) || customerName.Trim().Length > 200)
             throw new ArgumentException("نام سفارش‌دهنده را حداکثر در ۲۰۰ حرف وارد کنید.");
@@ -22,9 +22,33 @@ public sealed class CustomerOrder
         CreatedByUserId = createdByUserId;
         CreatedAtUtc = createdAtUtc;
         DueAtUtc = createdAtUtc.AddDays(durationDays);
-        Reminders = Enumerable.Range(1, 4).Select(n => new OrderReminder(Id, n,
+        IsDraft = isDraft;
+        Reminders = isDraft ? new List<OrderReminder>() : Enumerable.Range(1, 4).Select(n => new OrderReminder(Id, n,
             createdAtUtc.AddTicks((DueAtUtc - createdAtUtc).Ticks * n / 4))).ToList();
     }
+
+    public bool IsDraft { get; private set; }
+    public int Version { get; private set; } = 1;
+    public ICollection<CustomerOrderLine> Lines { get; private set; } = new List<CustomerOrderLine>();
+    public void ChangeDraft(string customerName, int durationDays, DateTime startUtc, IEnumerable<CustomerOrderLine> lines)
+    {
+        if (!IsDraft) throw new InvalidOperationException("سفارش نهایی قابل ویرایش نیست.");
+        CustomerName = customerName.Trim(); DurationDays = durationDays;
+        CreatedAtUtc = startUtc; DueAtUtc = startUtc.AddDays(durationDays);
+        Lines = lines.ToList();
+        ScaleId = Lines.First().ScaleId; ScaleName = Lines.First().ScaleName;
+        Touch();
+    }
+    public void FinalizeOrder(DateTime nowUtc)
+    {
+        if (!IsDraft) throw new InvalidOperationException("سفارش قبلاً نهایی شده است.");
+        if (Lines.Count == 0) throw new InvalidOperationException("سفارش بدون ردیف قابل ثبت نیست.");
+        IsDraft = false; Touch();
+        foreach (var n in Enumerable.Range(1, 4)) Reminders.Add(new OrderReminder(Id, n,
+            CreatedAtUtc.AddTicks((DueAtUtc - CreatedAtUtc).Ticks * n / 4)));
+        QueueRegistrationNotice(nowUtc);
+    }
+    public void Touch() => Version++;
 
     public void QueueRegistrationNotice(DateTime nowUtc) => Reminders.Add(new OrderReminder(Id, 0, nowUtc));
 

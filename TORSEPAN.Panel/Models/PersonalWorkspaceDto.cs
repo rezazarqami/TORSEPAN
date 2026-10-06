@@ -1,4 +1,6 @@
 namespace TORSEPAN.Panel.Models;
+public sealed class MessagePushKeyDto { public string PublicKey { get; set; } = ""; public Guid UserId { get; set; } }
+public sealed class MessagePushSubscriptionDto { public string Endpoint { get; set; } = ""; public string P256dh { get; set; } = ""; public string Auth { get; set; } = ""; }
 public sealed class MyActivityDto
 {
     public DateTime From {get;set;}
