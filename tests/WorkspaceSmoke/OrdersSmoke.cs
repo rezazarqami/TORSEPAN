@@ -59,8 +59,12 @@ internal static class OrdersSmoke
         await Reject(() => orders.CreateAsync(new(" ", scale.Id, 30), user.Id, default), "empty customer is rejected");
         await Reject(() => orders.CreateAsync(new("نام", scale.Id, 0), user.Id, default), "zero duration is rejected");
         await Reject(() => orders.CreateAsync(new("نام", scale.Id, 36501), user.Id, default), "duration overflow is rejected");
-        foreach (var badScale in new[] { standard, customTop, inactive })
-            await Reject(() => orders.CreateAsync(new("نام", badScale.Id, 30), user.Id, default), "only active custom instrument scales can be ordered: " + badScale.Name);
+        foreach (var badScale in new[] { customTop, inactive })
+            await Reject(() => orders.CreateAsync(new("نام", badScale.Id, 30), user.Id, default), "only active instrument scales can be ordered: " + badScale.Name);
+        var standardOrderId = await orders.CreateAsync(new("سفارش اسکیل معمولی", standard.Id, 30), user.Id, default);
+        Check((await orders.GetAsync(default)).Single(x=>x.Id==standardOrderId).ScaleId==standard.Id,
+            "standard instrument scale is accepted by the single-order API");
+        await orders.DeleteAsync(standardOrderId, default);
         var tehran = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(clock.GetUtcNow().UtcDateTime, tehran));
         await Reject(() => orders.CreateAsync(new("آینده", scale.Id, 45, today.AddDays(1)), user.Id, default), "future order date is rejected");

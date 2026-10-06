@@ -32,8 +32,8 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         if (request.DurationDays is < 1 or > 36500)
             throw new OrderValidationException("مدت سفارش باید عدد صحیح بین ۱ تا ۳۶۵۰۰ روز باشد.");
         var scale = await db.Scales.SingleOrDefaultAsync(x => x.Id == request.ScaleId && x.IsActive &&
-            (x.Usage & ScaleUsage.CustomHandpan) != 0, ct);
-        if (scale is null) throw new OrderValidationException("اسکیل را از فهرست اسکیل‌های کاستوم ساز انتخاب کنید.");
+            (x.Usage & (ScaleUsage.Handpan | ScaleUsage.CustomHandpan)) != 0, ct);
+        if (scale is null) throw new OrderValidationException("اسکیل را از فهرست اسکیل‌های فعال ساز انتخاب کنید.");
         var startUtc = clock.GetUtcNow().UtcDateTime;
         if (request.OrderDate is { } date)
         {
@@ -83,9 +83,9 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
             throw new OrderValidationException("تعداد هر ردیف و مجموع سفارش باید بین ۱ تا ۱۰۰۰۰ ساز باشد.");
         var scaleIds = request.Lines.Select(x => x.ScaleId).ToArray();
         var designIds = request.Lines.Where(x => x.DesignTypeId.HasValue).Select(x => x.DesignTypeId!.Value).ToArray();
-        var scales = await db.Scales.Where(x => scaleIds.Contains(x.Id) && x.IsActive && (x.Usage & ScaleUsage.CustomHandpan) != 0).ToDictionaryAsync(x => x.Id, ct);
+        var scales = await db.Scales.Where(x => scaleIds.Contains(x.Id) && x.IsActive && (x.Usage & (ScaleUsage.Handpan | ScaleUsage.CustomHandpan)) != 0).ToDictionaryAsync(x => x.Id, ct);
         var designs = await db.DesignTypes.Where(x => designIds.Contains(x.Id) && x.IsActive).ToDictionaryAsync(x => x.Id, ct);
-        if (request.Lines.Any(x => !scales.ContainsKey(x.ScaleId))) throw new OrderValidationException("اسکیل هر ردیف را از اسکیل‌های فعال کاستوم ساز انتخاب کنید.");
+        if (request.Lines.Any(x => !scales.ContainsKey(x.ScaleId))) throw new OrderValidationException("اسکیل هر ردیف را از اسکیل‌های فعال ساز انتخاب کنید.");
         if (request.Lines.Any(x => x.DesignTypeId.HasValue && !designs.ContainsKey(x.DesignTypeId.Value))) throw new OrderValidationException("دیزاین هر ردیف را از فهرست دیزاین‌های فعال انتخاب کنید.");
         return request.Lines.Select((x, i) => new CustomerOrderLine(id, i + 1, x.ScaleId, scales[x.ScaleId].Name,
             x.DesignTypeId, x.DesignTypeId.HasValue ? designs[x.DesignTypeId.Value].Name : "دیزاین ساده", x.Quantity)).ToList();
