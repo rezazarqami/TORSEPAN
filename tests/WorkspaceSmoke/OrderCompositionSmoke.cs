@@ -23,8 +23,13 @@ internal static class OrderCompositionSmoke
         await using var db = new TORSEPANDbContext(options); await db.Database.EnsureCreatedAsync();
         var user = new User("composition", "کاربر آزمایشی");
         var scale9 = new Scale("D Kurd 9", ScaleUsage.CustomHandpan); var scale12 = new Scale("D Kurd 12", ScaleUsage.CustomHandpan);
+        var standard = new Scale("E Sabye standard", ScaleUsage.Handpan);
+        var both = new Scale("Both instrument catalogs", ScaleUsage.Handpan | ScaleUsage.CustomHandpan);
+        var bowlScales = new[]{ScaleUsage.TopBowl,ScaleUsage.BottomBowl,ScaleUsage.CustomTopBowl,ScaleUsage.CustomBottomBowl}
+            .Select(usage=>new Scale("Bowl "+usage,usage)).ToArray();
+        var inactiveScale = new Scale("Inactive instrument",ScaleUsage.Handpan);inactiveScale.Deactivate();
         var plain = new DesignType("ساده"); var acid = new DesignType("اسیدکاری"); var milling = new DesignType("فرزکاری"); var inactive = new DesignType("غیرفعال"); inactive.Deactivate();
-        var material = new Material("آزمایش"); db.AddRange(user,scale9,scale12,material);await db.SaveChangesAsync();
+        var material = new Material("آزمایش"); db.AddRange(user,scale9,scale12,material,standard,both,inactiveScale);db.AddRange(bowlScales);await db.SaveChangesAsync();
         var clock = new OrdersSmoke.TestClock(new DateTimeOffset(2026,10,6,10,0,0,TimeSpan.Zero));
         var service = new CustomerOrderService(db,clock);
         SaveOrderDraftRequest Request(params OrderLineRequest[] lines) => new("مشتری چندساز",30,new DateOnly(2026,10,5),lines);
@@ -42,11 +47,14 @@ internal static class OrderCompositionSmoke
         Check(!simpleOrder.IsDraft && simpleOrder.TotalQuantity==3 && simpleOrder.Lines[0].DesignName=="دیزاین ساده",
             "simple draft remains simple through editing and finalization");
         db.AddRange(plain,acid,milling,inactive);await db.SaveChangesAsync();
-        var mixedId = await service.SaveDraftAsync(null,Request(new OrderLineRequest(scale9.Id,null,2),new OrderLineRequest(scale12.Id,acid.Id,4)),user.Id,default);
+        var mixedId = await service.SaveDraftAsync(null,Request(new OrderLineRequest(standard.Id,null,2),new OrderLineRequest(scale12.Id,acid.Id,4),new OrderLineRequest(both.Id,null,1)),user.Id,default);
         var mixedDraft = (await service.GetAsync(default)).Single(x=>x.Id==mixedId);
         await service.FinalizeAsync(mixedId,mixedDraft.Version,default);
-        Check((await service.GetAsync(default)).Single(x=>x.Id==mixedId).Lines.Select(x=>x.DesignName).SequenceEqual(new[]{"دیزاین ساده","اسیدکاری"}),
-            "simple and catalog designs coexist in a finalized multi-line order");
+        Check((await service.GetAsync(default)).Single(x=>x.Id==mixedId).Lines.Select(x=>x.DesignName).SequenceEqual(new[]{"دیزاین ساده","اسیدکاری","دیزاین ساده"}),
+            "standard, custom and dual-usage instrument scales finalize together with simple and catalog designs");
+        foreach(var excludedScale in bowlScales.Append(inactiveScale))
+            await Reject(()=>service.SaveDraftAsync(null,Request(new OrderLineRequest(excludedScale.Id,null,1)),user.Id,default),
+                "bowl-only and inactive scales are rejected: "+excludedScale.Name);
         await Reject(()=>service.SaveDraftAsync(null,Request(),user.Id,default),"empty composition is rejected");
         foreach(var count in new[]{0,-1,10001})await Reject(()=>service.SaveDraftAsync(null,Request(new OrderLineRequest(scale9.Id,plain.Id,count)),user.Id,default),"invalid quantity rejected: "+count);
         await Reject(()=>service.SaveDraftAsync(null,Request(new OrderLineRequest(scale9.Id,plain.Id,6000),new OrderLineRequest(scale12.Id,acid.Id,5000)),user.Id,default),"total quantity overflow rejected");
