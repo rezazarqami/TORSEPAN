@@ -31,7 +31,7 @@ internal static class OrderPreviewFixtures
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         await using var renderer = new HtmlRenderer(scope.ServiceProvider, provider.GetRequiredService<ILoggerFactory>());
-        foreach (var (type, name) in new[] { (typeof(Orders), "new-order.html"), (typeof(SimplePreview), "simple-order.html"), (typeof(CompositionPreview), "composition.html"), (typeof(DraftPreview), "drafts.html"), (typeof(OrderListPreview), "order-list.html"), (typeof(OrderCodePreview), "assign-code.html") })
+        foreach (var (type, name) in new[] { (typeof(Orders), "new-order.html"), (typeof(SimplePreview), "simple-order.html"), (typeof(IncompletePreview), "incomplete-order.html"), (typeof(EditPreview), "edit-order.html"), (typeof(CompositionPreview), "composition.html"), (typeof(DraftPreview), "drafts.html"), (typeof(OrderListPreview), "order-list.html"), (typeof(OverviewPreview), "overview-50.html"), (typeof(OrderCodePreview), "assign-code.html") })
         {
             fixtureApi.EmptyDesigns = type == typeof(SimplePreview);
             var markup = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync(type, ParameterView.Empty)).ToHtmlString());
@@ -43,6 +43,13 @@ internal static class OrderPreviewFixtures
             var html = "<!doctype html><html lang='fa' dir='rtl'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>پیش‌نمایش سفارش‌ها</title><style>" + bootstrap + global + styles + "@font-face{font-family:Vazirmatn;src:url('Vazirmatn-Regular.woff2')}body{font-family:Vazirmatn,sans-serif;margin:0;background:#f4f7f9}main{max-width:1120px;padding:25px;margin:auto}*{box-sizing:border-box}</style></head><body><main>" + markup + "</main></body></html>";
             await File.WriteAllTextAsync(Path.Combine(output, name), html);
             Console.WriteLine("PASS actual Razor component renders " + name);
+            if(type==typeof(EditPreview))
+            {
+                await renderer.Dispatcher.InvokeAsync(async()=>await (Task)typeof(Orders).GetMethod("SaveDraftAsync",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(EditPreview.Instance,[true])!);
+                if(fixtureApi.LastUpdate is null || fixtureApi.LastUpdate.Lines.Any(x=>!x.LineId.HasValue))
+                    throw new Exception("Final edit must PUT stable line IDs to order API");
+                Console.WriteLine("PASS final order editor sends stable line IDs to update endpoint");
+            }
         }
         Directory.CreateDirectory(Path.Combine(output,"images/brand"));
         File.Copy(Path.Combine(root,"TORSEPAN.Panel/wwwroot/images/brand/torsepan-mark-new.webp"),Path.Combine(output,"images/brand/torsepan-mark-new.webp"),true);
@@ -75,6 +82,31 @@ internal static class OrderPreviewFixtures
                 throw new Exception("Simple order with standard instrument scale cannot be saved with an empty design catalog");
         }
     }
+    private sealed class IncompletePreview : Orders
+    {
+        protected override async Task OnInitializedAsync()
+        {
+            await base.OnInitializedAsync();
+            var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+            typeof(Orders).GetField("_customerName",flags)!.SetValue(this,"مشتری ترکیب ناقص");
+            typeof(Orders).GetField("_duration",flags)!.SetValue(this,"۳۰");
+            var list=(System.Collections.IList)typeof(Orders).GetField("_items",flags)!.GetValue(this)!;
+            list[0]!.GetType().GetProperty("DesignId")!.SetValue(list[0],_acid);
+        }
+    }
+    private sealed class EditPreview : Orders
+    {
+        public static EditPreview? Instance;
+        protected override async Task OnInitializedAsync()
+        {
+            await base.OnInitializedAsync();
+            var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+            Instance=this;
+            var order=((List<OrderDto>)typeof(Orders).GetField("_orders",flags)!.GetValue(this)!)[0];
+            await (Task)typeof(Orders).GetMethod("EditDraftAsync",flags)!.Invoke(this,[order])!;
+            if(!(bool)typeof(Orders).GetProperty("CanSave",flags)!.GetValue(this)!)throw new Exception("Final order edit is not saveable");
+        }
+    }
     private sealed class CompositionPreview : Orders
     {
         protected override async Task OnInitializedAsync()
@@ -96,17 +128,23 @@ internal static class OrderPreviewFixtures
     private sealed class FixtureApi : HttpMessageHandler
     {
         public bool EmptyDesigns { get; set; }
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        public SaveOrderDraftRequest? LastUpdate;
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
+            if(request.Method==HttpMethod.Put && request.RequestUri!.AbsolutePath.Contains("/orders/"))
+            {
+                LastUpdate=await request.Content!.ReadFromJsonAsync<SaveOrderDraftRequest>(cancellationToken:ct);
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
+            }
             if (request.RequestUri!.AbsolutePath.EndsWith("designs/types"))
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(EmptyDesigns ? [] : new[] { new { Id = _plain, Name = "ساده" }, new { Id = _acid, Name = "اسیدکاری" }, new { Id = _mill, Name = "فرزکاری" } }) });
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(EmptyDesigns ? [] : new[] { new { Id = _plain, Name = "ساده" }, new { Id = _acid, Name = "اسیدکاری" }, new { Id = _mill, Name = "فرزکاری" } }) };
             if (request.RequestUri!.AbsolutePath.EndsWith("scales"))
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new[] { new { Id = _scale9, Name = "D Kurd Custom 9", Usage = 32 }, new { Id = _scale12, Name = "F Pygmy 12", Usage = 32 },
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new[] { new { Id = _scale9, Name = "D Kurd Custom 9", Usage = 32 }, new { Id = _scale12, Name = "F Pygmy 12", Usage = 32 },
                     new { Id = _standard, Name = "E Sabye standard", Usage = 4 },
                     new { Id = _both, Name = "Both instrument catalogs", Usage = 36 },
                     new { Id = Guid.NewGuid(), Name = "Bowl top only", Usage = 1 },
                     new { Id = Guid.NewGuid(), Name = "Bowl bottom only", Usage = 2 },
-                    new { Id = Guid.NewGuid(), Name = "Custom bowl only", Usage = 24 } }) });
+                    new { Id = Guid.NewGuid(), Name = "Custom bowl only", Usage = 24 } }) };
             var now = DateTime.UtcNow;
             OrderDto Make(string name, string scale, int days, int ago, string? code, string stage, string[] completed) => new(Guid.NewGuid(), name, Guid.NewGuid(), scale, days, now.AddDays(-ago), now.AddDays(days - ago), code, stage, "در انتظار", completed,
                 Enumerable.Range(1, 4).Select(n => new OrderReminderDto(n, now.AddDays(-ago + days * n / 4d), n <= 2 ? now.AddDays(-1) : null, false)).ToArray());
@@ -119,7 +157,7 @@ internal static class OrderPreviewFixtures
             orders[0] = orders[0] with { Lines = lines };
             orders[1] = orders[1] with { IsDraft = true, Lines = lines.Select(x=>x with {Id=Guid.NewGuid(),Instruments=[]}).ToArray() };
             orders[2] = orders[2] with { Lines = [lines[0] with {Id=Guid.NewGuid(),Quantity=30,Instruments=[new(1,"TP-1018","در انتظار کنترل کیفیت","در انتظار",["تیون","چسب","فاین‌تیون"])]}] };
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(orders) });
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(orders) };
         }
     }
     private class OrderListPreview : Orders
@@ -128,6 +166,18 @@ internal static class OrderPreviewFixtures
         {
             await base.OnInitializedAsync();
             typeof(Orders).GetField("_tab", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(this, "list");
+        }
+    }
+    private sealed class OverviewPreview : OrderListPreview
+    {
+        protected override async Task OnInitializedAsync()
+        {
+            await base.OnInitializedAsync();
+            var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+            var orders=(List<OrderDto>)typeof(Orders).GetField("_orders",flags)!.GetValue(this)!;
+            var stages=new[]{"در انتظار دیمپل","در انتظار شیپ","در انتظار تیون","در انتظار فاین‌تیون","در اتاق چسب"};
+            orders[0]=orders[0] with {Lines=[orders[0].Lines[0] with {Quantity=50,Instruments=Enumerable.Range(1,50)
+                .Select(n=>new OrderInstrumentDto(n,$"TP-{n:0000}",stages[(n-1)%stages.Length],"در انتظار",[])).ToArray()}]};
         }
     }
     private sealed class OrderCodePreview : OrderListPreview

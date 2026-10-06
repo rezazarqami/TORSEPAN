@@ -13,7 +13,7 @@ public sealed record OrderDto(Guid Id, string CustomerName, Guid ScaleId, string
     public int TotalQuantity => Lines.Count == 0 ? 1 : Lines.Sum(x => x.Quantity);
     public int AssignedQuantity => Lines.Count == 0 ? (InstrumentCode is null ? 0 : 1) : Lines.Sum(x => x.Instruments.Count);
 }
-public sealed record OrderLineRequest(Guid ScaleId, Guid? DesignTypeId, int Quantity);
+public sealed record OrderLineRequest(Guid ScaleId, Guid? DesignTypeId, int Quantity, Guid? LineId = null);
 public sealed record SaveOrderDraftRequest(string CustomerName, int DurationDays, DateOnly? OrderDate,
     IReadOnlyList<OrderLineRequest> Lines, int Version = 1);
 public sealed record FinalizeOrderRequest(int Version);
