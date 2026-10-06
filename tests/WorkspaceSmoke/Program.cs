@@ -56,6 +56,11 @@ if(args.Contains("--pdf-preview-only"))
     Check(previews.ContainsKey("payroll-charts-preview.pdf")&&previews.ContainsKey("payroll-portrait-preview.pdf"),"portrait payroll PDF and charts render");
     return;
 }
+if(args.Contains("--export-workflow-only"))
+{
+    await ExportWorkflowSmoke.RunAsync();
+    return;
+}
 var options=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused;Password=unused").Options;
 await using var db=new TORSEPANDbContext(options);
 Check(typeof(NotificationsController).GetCustomAttribute<AuthorizeAttribute>() is not null,"inbox requires authentication");

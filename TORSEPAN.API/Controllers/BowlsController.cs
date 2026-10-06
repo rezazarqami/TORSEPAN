@@ -268,6 +268,11 @@ public sealed class BowlsController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("production/{productionCode}/glue/send-to-export")]
+    [Authorize(Roles = "Workshop,Tuner,Administrator,ProductionManager")]
+    public async Task<ActionResult> SendGlueBowlToExport(string productionCode, CancellationToken ct)
+        => this.ToActionResult(await _mediator.Send(new SendGlueBowlToExportCommand(productionCode), ct));
+
     [HttpPost("production/{productionCode}/glue/complete")]
     [Authorize(Roles = "Workshop,Administrator")]
     public async Task<ActionResult> CompleteGlue(

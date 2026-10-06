@@ -17,6 +17,7 @@
 }
 else
 {
+    <span data-torsepan-startup-ready hidden></span>
     @if (!string.IsNullOrWhiteSpace(_error))
     {
         <div class="alert alert-danger">@_error <button class="btn btn-sm btn-outline-danger me-2" @onclick="ReloadAsync">تلاش دوباره</button></div>

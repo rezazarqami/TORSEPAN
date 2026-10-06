@@ -91,6 +91,13 @@ public class ProductionEvent : Entity
         PayrollExcludedAtUtc = excluded ? DateTime.UtcNow : null;
     }
 
+    public bool ConvertNormalTuneToExportRoute()
+    {
+        if (Action != ProductionAction.Tune || Description != "Tune completed") return false;
+        Description = "Tune completed - export package";
+        return true;
+    }
+
     public bool ConvertExportTuneToNormalRoute()
     {
         if (Action != ProductionAction.Tune ||

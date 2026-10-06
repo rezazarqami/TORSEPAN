@@ -6,6 +6,21 @@ on:
   pull_request:
 
 jobs:
+  export-startup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify export routing, atomic shipping and current account roles
+        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --export-workflow-only
+      - name: Verify role policies
+        run: dotnet run --project tests/AccessSmoke/AccessSmoke.csproj -c Release
+      - name: Verify startup splash handoff
+        run: node tests/startup-splash.cjs
+      - name: Verify backup relay acknowledgements and failures
+        run: python3 -m unittest discover -s ops/telegram-relay -p test_backup_relay.py
   production-ui:
     runs-on: ubuntu-latest
     steps:
