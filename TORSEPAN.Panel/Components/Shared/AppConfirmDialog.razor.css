@@ -124,3 +124,6 @@
 @media (prefers-reduced-motion: reduce) {
     .app-confirm-dialog { animation: none; }
 }
+
+.app-confirm-mark.danger { background: #fff0f1; border-color: #ffd1d6; color: #ad2938; }
+.app-confirm-submit.danger { background: #ad2938; border-color: #ad2938; }
