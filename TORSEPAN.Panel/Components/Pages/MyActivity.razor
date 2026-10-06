@@ -1,55 +1,117 @@
 @page "/my-activity"
+@page "/my-account"
 @inject PersonalWorkspaceService Workspace
-<PageTitle>عملکرد من</PageTitle>
-<div class="personal-heading"><div><span class="eyebrow">دفتر فعالیت شخصی</span><h2>عملکرد من</h2><p>جزئیات کارهای ثبت‌شده به نام شما؛ از ابتدای ماه تا امروز</p></div><a href="/" class="btn btn-outline-primary">بازگشت به داشبورد</a></div>
-<section class="personal-card">
-    <div class="activity-filters">
-        <div><label>از تاریخ</label><PersianDatePicker @bind-Value="_from" /></div>
-        <div><label>تا تاریخ</label><PersianDatePicker @bind-Value="_to" /></div>
-        <button class="btn btn-primary" disabled="@_loading" @onclick="Apply">نمایش بازه</button>
-        <button class="btn btn-outline-secondary" disabled="@_loading" @onclick="CurrentMonth">ماه جاری</button>
-    </div>
-    <small class="text-muted">برای نمایش یک روز، تاریخ شروع و پایان را یکسان انتخاب کنید. حداکثر بازه: یک سال.</small>
+@inject IAuthService Auth
+@inject NavigationManager Navigation
+<PageTitle>ناحیهٔ کاربری | تورسپن</PageTitle>
+<section class="account-hero">
+    <span class="hero-label" dir="ltr">TORSEPAN · MY ACCOUNT</span>
+    <img src="/images/brand/torsepan-logo.webp" alt="تورسپن" />
+    <h1>ناحیهٔ کاربری</h1>
+    <p>@(_profile?.FullName ?? "همکار تورسپن") · عملکرد و تنظیمات حساب شما</p>
 </section>
-@if(_error is not null){<div class="alert alert-danger mt-3" role="alert">@_error</div>}
-@if(_loading){<div class="personal-empty" role="status">در حال دریافت فعالیت‌ها…</div>}
-else if(_data is not null){
-    <div class="activity-summary"><div><small>کل فعالیت‌ها</small><strong>@_data.Total</strong></div><div><small>تکمیل‌شده</small><strong>@_data.Completed</strong></div><div><small>بازه گزارش</small><strong class="range">@PersianDatePicker.Format(_data.From) — @PersianDatePicker.Format(_data.To)</strong></div></div>
-    <section class="personal-card operation-totals"><div class="operation-totals-heading"><div><span class="eyebrow">نمای کلی بازه</span><h3>خلاصه عملکرد من</h3></div><strong>@_data.Completed <small>عملیات تکمیل‌شده</small></strong></div>
-        @if(_data.Summary.Count==0){<div class="personal-empty compact">خلاصه‌ای برای این بازه وجود ندارد.</div>}
-        else{<div class="operation-total-grid">@foreach(var item in _data.Summary){<div><span>@item.Operation</span><strong>@item.Count</strong></div>}</div>}
-    </section>
-    <section class="personal-card activity-table">
-        @if(_data.Items.Count==0){<div class="personal-empty">در این بازه فعالیتی برای شما ثبت نشده است.</div>}
-        else{
-            <div class="table-responsive"><table class="table align-middle"><thead><tr><th>روز / ساعت</th><th>عملیات</th><th>کد کاسه / ساز</th><th>زمان کار</th><th>نتیجه</th><th>جزئیات</th></tr></thead><tbody>
-                @foreach(var day in _data.Items.GroupBy(x=>PersianDateTime.FormatDate(x.EventDate))){
-                    <tr class="day-divider"><td colspan="6">@day.Key <small>• @day.Count() فعالیت در این صفحه</small></td></tr>
-                    @foreach(var row in day){
-                        <tr @key="row.Id"><td class="activity-time">@PersianDateTime.FormatTime(row.EventDate)</td><td><strong>@row.Operation</strong></td><td><span class="activity-code" dir="ltr">@(string.IsNullOrWhiteSpace(row.Code)?"—":row.Code)</span></td><td>@row.Duration</td><td>@row.Result</td><td class="activity-detail">@(string.IsNullOrWhiteSpace(row.Details)?"—":row.Details)</td></tr>
-                    }
-                }
-            </tbody></table></div>
-        }
-        <div class="personal-pager"><button class="btn btn-outline-secondary" disabled="@(_data.Page<=1)" @onclick="()=>Load(_data.Page-1)">قبلی</button><span>صفحه @_data.Page از @Math.Max(1,(int)Math.Ceiling(_data.Total/50d))</span><button class="btn btn-outline-secondary" disabled="@(_data.Page*50>=_data.Total)" @onclick="()=>Load(_data.Page+1)">بعدی</button></div>
-    </section>
+<nav class="account-tabs" aria-label="بخش‌های ناحیهٔ کاربری">
+    <button class="@(!_security ? "active" : "")" aria-pressed="@(!_security)" @onclick="()=>_security=false">عملکرد من</button>
+    <button class="@(_security ? "active" : "")" aria-pressed="@_security" @onclick="()=>_security=true">تنظیمات امنیتی</button>
+</nav>
+@if (_security)
+{
+    @if (_profileError is not null) { <div class="account-alert error" role="alert">@_profileError</div> }
+    @if (_notice is not null) { <div class="account-alert success" role="status">@_notice</div> }
+    @if (_profile is null) { <section class="account-card account-empty">اطلاعات حساب در دسترس نیست. <button @onclick="LoadProfileAsync">تلاش دوباره</button></section> }
+    else
+    {
+        <div class="security-grid">
+            <section class="account-card photo-card">
+                <div class="section-heading"><span class="section-icon">◉</span><div><h2>عکس پروفایل</h2><p>عکس شما کنار نامتان در گفتگوهای کارگاه</p></div></div>
+                <div class="profile-photo"><UserAvatar UserId="_profile.Id" Version="_profile.AvatarVersion" Name="_profile.FullName" /></div>
+                <strong>@_profile.FullName</strong><small class="profile-title">@_profile.Title</small>
+                <div class="photo-actions"><label class="photo-upload @(_busy ? "disabled" : "")">انتخاب عکس<InputFile OnChange="UploadAvatarAsync" accept="image/jpeg,image/png,image/webp" disabled="@_busy" /></label><button disabled="@(_busy || _profile.AvatarVersion is null)" @onclick="RemoveAvatarAsync">حذف عکس</button></div>
+                <p class="help-text">JPG، PNG یا WebP تا ۵ مگابایت؛ عکس به‌صورت خودکار کوچک می‌شود.</p>
+            </section>
+            <section class="account-card credentials-card">
+                <div class="section-heading"><span class="section-icon">⌑</span><div><h2>نام کاربری و رمز عبور</h2><p>برای ذخیرهٔ تغییرات، رمز فعلی خود را وارد کنید.</p></div></div>
+                <form @onsubmit="SaveCredentialsAsync" @onsubmit:preventDefault>
+                    <label>نام کاربری<input autocomplete="username" dir="auto" minlength="3" maxlength="100" required disabled="@_busy" @bind="_userName" @bind:event="oninput" /></label>
+                    <label>رمز فعلی<input type="password" autocomplete="current-password" maxlength="1024" required disabled="@_busy" @bind="_currentPassword" @bind:event="oninput" /></label>
+                    <div class="new-password-fields"><label>رمز جدید <small>اختیاری</small><input type="password" autocomplete="new-password" minlength="10" maxlength="128" disabled="@_busy" @bind="_newPassword" @bind:event="oninput" /></label><label>تکرار رمز جدید<input type="password" autocomplete="new-password" maxlength="128" disabled="@_busy" @bind="_confirmation" @bind:event="oninput" /></label></div>
+                    <p class="help-text">رمز جدید حداقل ۱۰ کاراکتر است. برای تغییر فقط نام کاربری، رمز جدید را خالی بگذارید. پس از ذخیره دوباره وارد حساب می‌شوید.</p>
+                    <button class="primary-action" type="submit" disabled="@_busy">@(_busy ? "در حال ذخیره…" : "ذخیرهٔ تغییرات")</button>
+                </form>
+            </section>
+        </div>
+    }
 }
-@code{
-    private DateTime? _from,_to;
-    private DateTime? _appliedFrom,_appliedTo;
+else
+{
+    <section class="account-card filters-card">
+        <div class="activity-filters"><div><label>از تاریخ</label><PersianDatePicker @bind-Value="_from" /></div><div><label>تا تاریخ</label><PersianDatePicker @bind-Value="_to" /></div><button class="primary-action" disabled="@_loading" @onclick="Apply">نمایش بازه</button><button disabled="@_loading" @onclick="CurrentMonth">ماه جاری</button></div>
+        <small class="help-text">یک روز یا بازه‌ای تا یک سال را انتخاب کنید.</small>
+    </section>
+    @if (_error is not null) { <div class="account-alert error" role="alert">@_error</div> }
+    @if (_loading) { <div class="account-empty" role="status">در حال دریافت فعالیت‌ها…</div> }
+    else if (_data is not null)
+    {
+        <div class="activity-summary"><div><span>کل فعالیت‌ها</span><strong>@_data.Total</strong></div><div><span>تکمیل‌شده</span><strong>@_data.Completed</strong></div><div class="summary-range"><span>بازهٔ گزارش</span><strong>@PersianDatePicker.Format(_data.From) — @PersianDatePicker.Format(_data.To)</strong></div></div>
+        <section class="account-card"><div class="section-heading"><h2>خلاصه عملکرد من</h2><small>@_data.Completed عملیات تکمیل‌شده</small></div>
+            @if (_data.Summary.Count == 0) { <p class="account-empty">خلاصه‌ای برای این بازه وجود ندارد.</p> }
+            else { <div class="operation-grid">@foreach (var item in _data.Summary) { <div><span>@item.Operation</span><strong>@item.Count</strong></div> }</div> }
+        </section>
+        @if (_payroll?.Enabled == true)
+        {
+            <section class="account-card"><div class="section-heading"><h2>دستمزد من</h2><strong class="payroll-total">@_payroll.Total.ToString("N0") <small>تومان</small></strong></div><p class="help-text">بر اساس آخرین نرخ‌ها در بازهٔ انتخاب‌شده</p>
+                @if (_payroll.Lines.Count == 0) { <p class="account-empty">در این بازه دستمزدی ثبت نشده است.</p> }
+                else { <div class="payroll-lines">@foreach (var line in _payroll.Lines) { <article><div><strong>@line.Operation</strong><small>@line.Description</small></div><span>@line.Count × @line.Rate.ToString("N0")</span><b>@line.Total.ToString("N0") <small>تومان</small></b></article> }</div> }
+            </section>
+        }
+        <section class="account-card"><div class="section-heading"><h2>تاریخچهٔ فعالیت‌ها</h2><small>@_data.Total فعالیت</small></div>
+            @if (_data.Items.Count == 0) { <p class="account-empty">در این بازه فعالیتی برای شما ثبت نشده است.</p> }
+            else
+            {
+                <div class="activity-log">@foreach (var day in _data.Items.GroupBy(x=>PersianDateTime.FormatDate(x.EventDate)))
+                {
+                    <div class="day-heading">@day.Key <small>@day.Count() فعالیت در این صفحه</small></div>
+                    @foreach (var row in day)
+                    {
+                        <article @key="row.Id"><div class="log-heading"><strong>@row.Operation</strong><span class="result">@row.Result</span></div><div class="log-meta"><span class="activity-code" dir="ltr">@(string.IsNullOrWhiteSpace(row.Code)?"—":row.Code)</span><time>@PersianDateTime.FormatTime(row.EventDate)</time><span>@row.Duration</span></div>@if(!string.IsNullOrWhiteSpace(row.Details)){<p>@row.Details</p>}</article>
+                    }
+                }</div>
+            }
+            <div class="account-pager"><button disabled="@(_data.Page<=1)" @onclick="()=>Load(_data.Page-1)">قبلی</button><span>صفحه @_data.Page از @Math.Max(1,(int)Math.Ceiling(_data.Total/50d))</span><button disabled="@(_data.Page*50>=_data.Total)" @onclick="()=>Load(_data.Page+1)">بعدی</button></div>
+        </section>
+    }
+}
+@code {
+    private DateTime? _from,_to,_appliedFrom,_appliedTo;
     private MyActivityDto? _data;
-    private bool _loading;
-    private string? _error;
-    protected override async Task OnInitializedAsync()=>await CurrentMonth();
+    private MyPayrollDto? _payroll;
+    private OwnProfileDto? _profile;
+    private bool _loading,_security,_busy;
+    private string? _error,_profileError,_notice;
+    private string _userName="",_currentPassword="",_newPassword="",_confirmation="";
+    protected override async Task OnInitializedAsync(){await Task.WhenAll(CurrentMonth(),LoadProfileAsync());}
+    private async Task LoadProfileAsync(){try{_profile=await Workspace.ProfileAsync();_userName=_profile?.UserName??"";_profileError=null;}catch{_profileError="دریافت اطلاعات حساب انجام نشد؛ دوباره تلاش کنید.";}}
     private async Task CurrentMonth(){_appliedFrom=_appliedTo=null;await Load(1);if(_data is not null){_from=_data.From;_to=_data.To;_appliedFrom=_from;_appliedTo=_to;}}
-    private async Task Apply(){
-        if(!_from.HasValue||!_to.HasValue||_from>_to||_to.Value-_from.Value>TimeSpan.FromDays(366)){_error="تاریخ شروع و پایان معتبر تا حداکثر یک سال انتخاب کنید.";return;}
-        _appliedFrom=_from;_appliedTo=_to;await Load(1);
+    private async Task Apply(){if(!_from.HasValue||!_to.HasValue||_from>_to||_to.Value-_from.Value>TimeSpan.FromDays(366)){_error="تاریخ شروع و پایان معتبر تا حداکثر یک سال انتخاب کنید.";return;}_appliedFrom=_from;_appliedTo=_to;await Load(1);}
+    private async Task Load(int page){if(_loading)return;_loading=true;_error=null;try{_data=await Workspace.ActivityAsync(_appliedFrom,_appliedTo,page);try{_payroll=await Workspace.PayrollAsync(_appliedFrom,_appliedTo);}catch(System.Net.Http.HttpRequestException e)when(e.StatusCode==System.Net.HttpStatusCode.NotFound){_payroll=null;}}catch{_error="دریافت گزارش انجام نشد؛ اتصال و ورود به حساب را بررسی کنید.";}finally{_loading=false;}}
+    private async Task SaveCredentialsAsync()
+    {
+        if(_busy)return;_profileError=_notice=null;
+        if(string.IsNullOrWhiteSpace(_currentPassword)){_profileError="رمز فعلی را وارد کنید.";return;}
+        if((_newPassword.Length>0&&(_newPassword.Length<10||_newPassword!=_confirmation))||(_newPassword.Length==0&&_confirmation.Length>0)){_profileError="رمز جدید باید حداقل ۱۰ کاراکتر باشد و با تکرارش یکسان باشد.";return;}
+        _busy=true;
+        try{var result=await Workspace.SaveCredentialsAsync(new(_userName,_currentPassword,_newPassword,_confirmation));if(result.Changed){try{await Auth.LogoutAsync();}catch{ /* The server has already revoked this session; always return to sign-in. */ }Navigation.NavigateTo("/login?accountUpdated=1",forceLoad:true);}else{_notice="تغییری در اطلاعات حساب وجود ندارد.";}}
+        catch(AccountActionException e){_profileError=e.Message;}
+        catch{_profileError="ذخیره انجام نشد؛ اتصال و ورود به حساب را بررسی کنید.";}
+        finally{_currentPassword=_newPassword=_confirmation="";_busy=false;}
     }
-    private async Task Load(int page){
-        if(_loading)return;_loading=true;_error=null;
-        try{_data=await Workspace.ActivityAsync(_appliedFrom,_appliedTo,page);}
-        catch{_error="دریافت گزارش انجام نشد؛ اتصال و ورود به حساب را بررسی کنید.";}
-        finally{_loading=false;}
+    private async Task UploadAvatarAsync(InputFileChangeEventArgs args)
+    {
+        if(_busy||_profile is null)return;_busy=true;_profileError=_notice=null;
+        try{if(args.File.Size>5_000_000||args.File.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))throw new AccountActionException("یک عکس JPG، PNG یا WebP تا ۵ مگابایت انتخاب کنید.");var file=await args.File.RequestImageFileAsync("image/png",256,256);if(file.Size>131_072)file=await args.File.RequestImageFileAsync("image/png",160,160);await using var stream=file.OpenReadStream(131_072);using var output=new MemoryStream();await stream.CopyToAsync(output);var result=await Workspace.SaveAvatarAsync(output.ToArray());_profile.AvatarVersion=result.AvatarVersion;_notice="عکس پروفایل ذخیره شد.";}
+        catch(AccountActionException e){_profileError=e.Message;}
+        catch{_profileError="ذخیرهٔ عکس انجام نشد؛ یک عکس کوچک‌تر انتخاب کنید یا دوباره تلاش کنید.";}
+        finally{_busy=false;}
     }
+    private async Task RemoveAvatarAsync(){if(_busy||_profile is null)return;_busy=true;_profileError=_notice=null;try{var result=await Workspace.SaveAvatarAsync(null);_profile.AvatarVersion=result.AvatarVersion;_notice="عکس پروفایل حذف شد.";}catch(AccountActionException e){_profileError=e.Message;}catch{_profileError="حذف عکس انجام نشد؛ دوباره تلاش کنید.";}finally{_busy=false;}}
 }

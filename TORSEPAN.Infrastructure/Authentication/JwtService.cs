@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -23,6 +23,9 @@ public sealed class JwtService : IJwtService
         string fullName,
         string title,
         IEnumerable<string> roles)
+        => GenerateAccessToken(userId, userName, fullName, title, roles, 0);
+
+    public string GenerateAccessToken(Guid userId, string userName, string fullName, string title, IEnumerable<string> roles, int credentialVersion)
     {
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
@@ -33,6 +36,7 @@ public sealed class JwtService : IJwtService
 
         var claims = new List<Claim>
         {
+            new("credential_version", credentialVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)),
             new(ClaimTypes.NameIdentifier, userId.ToString()),
             new(ClaimTypes.Name, userName),
             new(ClaimTypes.GivenName, fullName),

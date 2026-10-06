@@ -31,6 +31,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.DisplayOrder).HasDefaultValue(0).IsRequired();
         builder.Property(x => x.Title).HasMaxLength(100).HasDefaultValue("").IsRequired();
 
+        builder.Property(x => x.CredentialVersion).HasDefaultValue(0).IsConcurrencyToken();
+        builder.Property(x => x.AvatarPng).HasColumnType("bytea");
+        builder.Property(x => x.AvatarVersion).IsConcurrencyToken();
+
         builder.HasMany(x => x.ProductionEvents)
             .WithOne(x => x.User)
             .HasForeignKey(x => x.UserId)

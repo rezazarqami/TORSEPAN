@@ -57,6 +57,23 @@ public class ApiClient
         return await ReadResponseAsync<TResult>(response);
     }
 
+    public async Task<TResult?> PutAccountAsync<TRequest, TResult>(string url, TRequest request)
+    {
+        using var response = await SendWithRefreshAsync(() => _http.PutAsJsonAsync(url, request));
+        if (!response.IsSuccessStatusCode)
+        {
+            string? message = null;
+            if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Conflict)
+            {
+                try { message = (await response.Content.ReadFromJsonAsync<AccountError>())?.Message; } catch (JsonException) { }
+            }
+            message ??= response.StatusCode == HttpStatusCode.TooManyRequests ? "تعداد تلاش‌ها زیاد است؛ یک دقیقه بعد دوباره امتحان کنید." : "ذخیره انجام نشد؛ اتصال و ورود به حساب را بررسی کنید.";
+            throw new AccountActionException(message);
+        }
+        return await ReadResponseAsync<TResult>(response);
+    }
+    private sealed class AccountError { public string? Message {get;set;} }
+
     public async Task<TResult?> PatchAsync<TRequest, TResult>(string url, TRequest request)
     {
         var response = await SendWithRefreshAsync(() => _http.PatchAsJsonAsync(url, request));

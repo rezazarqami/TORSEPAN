@@ -523,6 +523,8 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("CredentialVersion").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0);
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -603,6 +605,10 @@ namespace TORSEPAN.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("CredentialVersion").ValueGeneratedOnAdd().HasColumnType("integer").HasDefaultValue(0).IsConcurrencyToken();
+                    b.Property<byte[]>("AvatarPng").HasColumnType("bytea");
+                    b.Property<Guid?>("AvatarVersion").HasColumnType("uuid").IsConcurrencyToken();
 
                     b.Property<int>("DisplayOrder")
                         .ValueGeneratedOnAdd()

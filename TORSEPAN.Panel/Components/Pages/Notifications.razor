@@ -1,77 +1,257 @@
 @page "/notifications"
+@using Microsoft.AspNetCore.Components.Authorization
 @inject PersonalWorkspaceService Workspace
-<PageTitle>پیام‌های من</PageTitle>
-<header class="inbox-heading"><div><span>ارتباطات کارگاه</span><h2>پیام‌های من</h2><p>اطلاعیه‌ها و پیام‌های مدیریت؛ بدون نیاز به پاسخ</p></div><a class="btn btn-outline-primary" href="/">داشبورد</a></header>
-<AuthorizeView Roles="Administrator,ProductionManager">
-    <Authorized>
-        <section class="message-compose">
-            <button class="btn btn-primary" disabled="@_sending" @onclick="ToggleCompose">@(_compose?"بستن فرم":"＋ ارسال پیام جدید")</button>
-            @if(_compose){
-                <div class="compose-grid">
-                    <div><label for="message-recipient">گیرنده</label><select id="message-recipient" class="form-select" @bind="_recipient"><option value="">انتخاب کنید</option><option value="all">همه اعضای فعال کارگاه</option>@foreach(var u in _recipients){<option value="@u.Id">@u.Name</option>}</select></div>
-                    <div><label for="message-title">عنوان پیام</label><input id="message-title" class="form-control" maxlength="150" @bind="_title" /></div>
-                    <div class="compose-body"><label for="message-body">متن پیام</label><textarea id="message-body" class="form-control" maxlength="4000" rows="5" @bind="_body"></textarea></div>
-                </div>
-                <div class="compose-footer"><small>پیام به گیرنده انتخاب‌شده ارسال می‌شود و امکان پاسخ ندارد.</small><button class="btn btn-success" disabled="@_sending" @onclick="Send">@(_sending?"در حال ارسال…":"ارسال پیام")</button></div>
+@inject AuthenticationStateProvider Authentication
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>مدیریت پیام‌ها | تورسپن</PageTitle>
+<section class="messages-hero">
+    <span dir="ltr">WORKSHOP · MESSAGES</span>
+    <img src="/images/brand/torsepan-logo.webp" alt="تورسپن" />
+    <h1>مدیریت پیام‌ها</h1>
+    <p>اطلاعیه‌های کارگاه و گفتگوهای اعضا، در یک فضای مشترک</p>
+</section>
+<div class="messages-workspace">
+    <nav class="message-tabs" aria-label="بخش‌های پیام‌ها">
+        <button class="@(!_chatTab ? "active" : "")" aria-pressed="@(!_chatTab)" disabled="@_sending" @onclick="() => SwitchTab(false)">اطلاعیه‌های کارگاه</button>
+        <button class="@(_chatTab ? "active" : "")" aria-pressed="@_chatTab" disabled="@_sending" @onclick="() => SwitchTab(true)">چت و گفتگو @if (ChatUnread > 0) { <b>@ChatUnread</b> }</button>
+    </nav>
+    <div class="message-toolbar"><small>@(_refreshing ? "در حال دریافت…" : "پیام‌ها و وضعیت خواندن به‌روز می‌شوند")</small><button class="refresh-messages" disabled="@(_refreshing || _sending)" @onclick="() => RefreshAsync()">↻ به‌روزرسانی</button></div>
+    @if (_error is not null) { <div class="message-feedback error" role="alert">@_error</div> }
+    @if (_notice is not null) { <div class="message-feedback" role="status">@_notice</div> }
+    @if (!_chatTab)
+    {
+        <section class="announcement-panel" aria-label="اطلاعیه‌های کارگاه">
+            <header><h2>اطلاعیه‌های کارگاه</h2>@if (_canAnnounce) { <button class="small-action" disabled="@_sending" @onclick="OpenBroadcast">＋ انتشار اطلاعیه</button> }</header>
+            @if (_loading) { <p class="message-empty">در حال دریافت اطلاعیه‌ها…</p> }
+            else if (_announcements.Items.Count == 0) { <p class="message-empty">هنوز اطلاعیه‌ای منتشر نشده است.</p> }
+            @foreach (var item in _announcements.Items)
+            {
+                <article class="announcement @(!item.IsMine && item.ReadAt is null ? "unread" : "")" @key="item.Id">
+                    <button class="announcement-heading" aria-expanded="@(_openAnnouncement == item.Id)" @onclick="() => OpenAnnouncement(item.Id)">
+                        <span><strong>@item.Title</strong><small>@item.SenderName · @PersianDateTime.FormatDateTime(item.CreatedAt)</small></span><span class="announcement-status">@(!item.IsMine && item.ReadAt is null ? "جدید" : "⌄")</span>
+                    </button>
+                    @if (_openAnnouncement == item.Id) { <div class="announcement-body">@item.Body</div> }
+                </article>
+            }
+            @if (_announcements.Total > 20)
+            {
+                <footer class="message-pager"><button disabled="@(_refreshing || _announcementPage <= 1)" @onclick="() => LoadAnnouncementsAsync(_announcementPage - 1)">قبلی</button><small>صفحه @_announcementPage</small><button disabled="@(_refreshing || _announcementPage * 20 >= _announcements.Total)" @onclick="() => LoadAnnouncementsAsync(_announcementPage + 1)">بعدی</button></footer>
             }
         </section>
-    </Authorized>
-</AuthorizeView>
-@if(_error is not null){<div class="alert alert-danger" role="alert">@_error</div>}
-@if(_success is not null){<div class="alert alert-success" role="status">@_success</div>}
-<div class="inbox-toolbar"><strong>@(Workspace.UnreadCount?.ToString()??"—") پیام خوانده‌نشده</strong><button class="btn btn-outline-secondary" disabled="@_loading" @onclick="()=>Load(1)">به‌روزرسانی</button></div>
-@if(_loading){<div class="inbox-empty">در حال دریافت پیام‌ها…</div>}
-else if(_inbox.Items.Count==0){<div class="inbox-empty">هنوز پیامی برای شما ارسال نشده است.</div>}
-else{
-    @foreach(var item in _inbox.Items){
-        <article class="inbox-message @(item.ReadAt is null?"unread":"")" @key="item.Id">
-            <button class="message-header" @onclick="()=>Open(item)" aria-expanded="@(_open==item.Id)">
-                <div><strong>@item.Title</strong><small>از طرف @item.SenderName • @PersianDateTime.FormatDateTime(item.CreatedAt)</small></div>
-                <span>@(item.ReadAt is null?"خوانده‌نشده":"خوانده‌شده")</span>
-            </button>
-            @if(_open==item.Id){<div class="message-body">@item.Body</div>}
-        </article>
     }
-    <div class="inbox-pager"><button class="btn btn-outline-secondary" disabled="@(_inbox.Page<=1)" @onclick="()=>Load(_inbox.Page-1)">قبلی</button><span>صفحه @_inbox.Page از @Math.Max(1,(int)Math.Ceiling(_inbox.Total/20d))</span><button class="btn btn-outline-secondary" disabled="@(_inbox.Page*20>=_inbox.Total)" @onclick="()=>Load(_inbox.Page+1)">بعدی</button></div>
-}
-@code{
-    private InboxDto _inbox=new();
-    private List<MessageRecipientDto> _recipients=[];
-    private bool _loading,_sending,_compose;
-    private Guid? _open;
-    private Guid _sendId=Guid.NewGuid();
-    private string _recipient="",_title="",_body="";
-    private string? _error,_success;
-    protected override async Task OnInitializedAsync()=>await Load(1);
-    private async Task Load(int page){
-        if(_loading)return;_loading=true;_error=null;
-        try{_inbox=await Workspace.InboxAsync(page);await Workspace.RefreshUnreadAsync();}
-        catch{_error="دریافت پیام‌ها انجام نشد؛ دوباره تلاش کنید.";}
-        finally{_loading=false;}
+    else
+    {
+        <section class="chat-shell @(_peer is not null || _broadcast ? "chat-open" : "")" aria-label="چت و گفتگو">
+            <aside class="conversation-list">
+                <header><h2>گفتگوها</h2><small>@_members.Count(x => x.IsActive) عضو</small></header>
+                <label class="contact-search"><span class="visually-hidden">جست‌وجوی اعضا</span><input placeholder="جست‌وجوی نام…" @bind="_search" @bind:event="oninput" /></label>
+                <div class="contact-grid">
+                    @if (_canAnnounce)
+                    {
+                        <button class="contact broadcast-contact @(_broadcast ? "selected" : "")" disabled="@_sending" @onclick="OpenBroadcast"><span class="contact-avatar">◇</span><span class="contact-text"><strong>ارسال به اطلاعیه‌های کارگاه</strong><small>انتشار برای کل مجموعه</small></span></button>
+                    }
+                    @foreach (var member in FilteredMembers)
+                    {
+                        <button class="contact @(_peer?.Id == member.Id ? "selected" : "")" disabled="@_sending" @onclick="() => OpenChatAsync(member)" @key="member.Id">
+                            <UserAvatar UserId="member.Id" Version="member.AvatarVersion" Name="member.Name" /><span class="contact-text"><strong>@member.Name</strong><small>@(!member.IsActive ? "آرشیو · عضو غیرفعال" : member.LastBody ?? "شروع گفتگو")</small></span>@if (member.UnreadCount > 0) { <b class="contact-unread">@member.UnreadCount</b> }
+                        </button>
+                    }
+                </div>
+                @if (!_loading && !FilteredMembers.Any()) { <p class="message-empty">عضوی با این نام پیدا نشد.</p> }
+            </aside>
+            <div class="chat-content">
+                @if (_peer is null && !_broadcast)
+                {
+                    <div class="chat-placeholder"><span>✉</span><h2>یک گفتگو را انتخاب کنید</h2><p>برای هر عضو کارگاه، یک گفتگوی مستقل دارید.</p></div>
+                }
+                else
+                {
+                    <header class="chat-heading"><button class="back-to-chats" disabled="@_sending" aria-label="بازگشت به فهرست گفتگوها" @onclick="CloseChat">‹</button>@if (_broadcast) { <span class="contact-avatar">◇</span> } else { <UserAvatar UserId="_peer!.Id" Version="_peer.AvatarVersion" Name="_peer.Name" /> }<div><h2>@(_broadcast ? "اطلاعیه‌های کارگاه" : _peer!.Name)</h2><small>@(_broadcast ? "انتشار برای همهٔ اعضای فعال کارگاه" : _peer!.IsActive ? "گفتگوی خصوصی · پیام‌ها محفوظ می‌مانند" : "آرشیو گفتگو · ارسال غیرفعال است")</small></div></header>
+                    <div class="chat-thread" @ref="_thread" @onscroll="ReadVisibleAsync" aria-label="تاریخچه گفتگو">
+                        @if (_chatLoading) { <p class="message-empty">در حال دریافت گفتگو…</p> }
+                        else if (_broadcast)
+                        {
+                            @foreach (var item in _announcements.Items.OrderBy(x => x.CreatedAt)) { <article class="chat-bubble announcement-bubble"><strong>@item.Title</strong><p>@item.Body</p><footer>@item.SenderName · @PersianDateTime.FormatDateTime(item.CreatedAt)</footer></article> }
+                            @if (_announcements.Items.Count == 0) { <p class="message-empty">اولین اطلاعیهٔ کارگاه را منتشر کنید.</p> }
+                        }
+                        else
+                        {
+                            @if (_historyPage * 50 < _historyTotal) { <button class="older-messages" disabled="@_refreshing" @onclick="LoadOlderAsync">نمایش پیام‌های قدیمی‌تر</button> }
+                            @foreach (var item in _messages)
+                            {
+                                <article class="chat-bubble @(item.IsMine ? "mine" : "theirs")" data-incoming-id="@(!item.IsMine && item.ReadAt is null ? item.Id.ToString() : null)" @key="item.Id">
+                                    @if (!string.IsNullOrWhiteSpace(item.Title) && item.Title != "گفتگو") { <strong>@item.Title</strong> }
+                                    @if (!item.IsMine) { <div class="bubble-author"><UserAvatar UserId="_peer!.Id" Version="_peer.AvatarVersion" Name="_peer.Name" /><strong>@_peer.Name</strong></div> }
+                                    <p>@item.Body</p><footer><time>@PersianDateTime.FormatDateTime(item.CreatedAt)</time>@if (item.IsMine) { <span class="message-ticks @(item.ReadAt.HasValue ? "read" : "")" aria-label="@(item.ReadAt.HasValue ? "خوانده‌شده" : "ارسال‌شده")" title="@(item.ReadAt.HasValue ? "خوانده‌شده" : "ارسال‌شده")">@(item.ReadAt.HasValue ? "✓✓" : "✓")</span> }</footer>
+                                </article>
+                            }
+                            @if (_messages.Count == 0 && !_chatLoading) { <p class="message-empty">هنوز پیامی در این گفتگو نیست. اولین پیام را بفرستید.</p> }
+                        }
+                    </div>
+                    @if (_broadcast || _peer!.IsActive)
+                    {
+                        <form class="chat-composer" @onsubmit="SendAsync" @onsubmit:preventDefault>
+                            @if (_broadcast) { <label class="announcement-title">عنوان اطلاعیه<input maxlength="150" placeholder="عنوان کوتاه اطلاعیه" disabled="@_sending" @bind="Draft.Title" @bind:event="oninput" /></label> }
+                            <label class="composer-body"><span class="visually-hidden">متن پیام</span><textarea maxlength="4000" rows="2" placeholder="@(_broadcast ? "متن اطلاعیه…" : "پیام خود را بنویسید…")" disabled="@_sending" @bind="Draft.Body" @bind:event="oninput"></textarea></label><button class="send-message" type="submit" disabled="@(_sending || _chatLoading || string.IsNullOrWhiteSpace(Draft.Body))">@(_sending ? "در حال ارسال…" : _broadcast ? "انتشار اطلاعیه" : "ارسال ↑")</button>
+                            <small class="composer-hint">@(_broadcast ? "این پیام در سربرگ اطلاعیه‌ها منتشر می‌شود." : "✓ ارسال‌شده · ✓✓ خوانده‌شده")</small>
+                        </form>
+                    }
+                }
+            </div>
+        </section>
     }
-    private async Task Open(InboxMessageDto item){
-        _open=_open==item.Id?null:item.Id;
-        if(_open.HasValue&&item.ReadAt is null){
-            try{await Workspace.ReadAsync(item.Id);item.ReadAt=DateTime.UtcNow;}
-            catch{_error="پیام نمایش داده شد اما وضعیت خوانده‌شدن ثبت نشد؛ دوباره بازش کنید.";}
-        }
-    }
-    private async Task ToggleCompose(){
-        if(_compose){_compose=false;return;}
-        try{_recipients=await Workspace.RecipientsAsync();_compose=true;_error=null;}
-        catch{_error="ارسال پیام فقط برای مدیر و ادمین فعال است؛ اتصال را هم بررسی کنید.";}
-    }
-    private async Task Send(){
-        if(_sending)return;_error=_success=null;
-        var broadcast=_recipient=="all";Guid? recipient=Guid.TryParse(_recipient,out var id)?id:null;
-        if(string.IsNullOrWhiteSpace(_title)||string.IsNullOrWhiteSpace(_body)||(!broadcast&&!recipient.HasValue)){_error="عنوان، متن و گیرنده را تکمیل کنید.";return;}
-        _sending=true;
-        try{
-            await Workspace.SendAsync(_sendId,_title.Trim(),_body.Trim(),broadcast,recipient);
-            _sendId=Guid.NewGuid();_title=_body=_recipient="";_compose=false;
-            await Load(1);_success="پیام با موفقیت ارسال شد.";
-        }catch{_error="تأیید ارسال دریافت نشد؛ با تلاش دوباره همین پیام تکراری ثبت نمی‌شود.";}
-        finally{_sending=false;}
-    }
-}
+</div>
 
+@code {
+    private InboxDto _announcements = new();
+    private List<ConversationDto> _members = [];
+    private List<ChatMessageDto> _messages = [];
+    private readonly Dictionary<Guid, MessageDraft> _drafts = [];
+    private ConversationDto? _peer;
+    private bool _chatTab, _broadcast, _canAnnounce, _loading = true, _refreshing, _chatLoading, _sending, _reading, _disposed;
+    private bool _scrollBottom, _restoreScroll;
+    private Guid? _openAnnouncement;
+    private int _announcementPage = 1, _historyPage = 1, _historyTotal, _selectionVersion;
+    private string _search = "";
+    private string? _error, _notice;
+    private ElementReference _thread;
+    private readonly CancellationTokenSource _pollCancellation = new();
+    private Task? _pollTask;
+    private readonly Dictionary<Guid, PendingSend> _pendingSends = [];
+    private int ChatUnread => _members.Sum(x => x.UnreadCount);
+    private IEnumerable<ConversationDto> FilteredMembers => _members.Where(x => x.Name.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase));
+    private MessageDraft Draft { get { var key = _broadcast ? Guid.Empty : _peer!.Id; if (!_drafts.TryGetValue(key, out var draft)) _drafts[key] = draft = new(); return draft; } }
+    private static string Initial(string name) => string.IsNullOrWhiteSpace(name) ? "؟" : System.Globalization.StringInfo.GetNextTextElement(name.Trim());
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        _canAnnounce = user.IsInRole("Administrator") || user.IsInRole("ProductionManager");
+        await RefreshAsync(); _loading = false;
+    }
+    private void SwitchTab(bool chat) { if (_sending) return; _chatTab = chat; _error = _notice = null; _scrollBottom = chat && (_peer is not null || _broadcast); }
+    private void CloseChat() { if (_sending) return; _selectionVersion++; _peer = null; _broadcast = false; _chatLoading = false; _error = _notice = null; }
+    private void OpenBroadcast() { if (!_canAnnounce || _sending) return; _selectionVersion++; _chatTab = _broadcast = true; _peer = null; _chatLoading = false; _scrollBottom = true; _error = _notice = null; }
+    private async Task OpenChatAsync(ConversationDto peer)
+    {
+        if (_sending) return;
+        var version = ++_selectionVersion;
+        _peer = peer; _broadcast = false; _chatTab = true; _chatLoading = true; _messages = []; _historyPage = 1; _historyTotal = 0; _error = _notice = null;
+        try { var history = await Workspace.ChatAsync(peer.Id); if (version != _selectionVersion || _disposed) return; _messages = history.Items; _historyTotal = history.Total; _scrollBottom = true; }
+        catch { if (version == _selectionVersion) _error = "دریافت گفتگو انجام نشد؛ به‌روزرسانی را بزنید."; }
+        finally { if (version == _selectionVersion) _chatLoading = false; }
+    }
+    private void OpenAnnouncement(Guid id) { _openAnnouncement = _openAnnouncement == id ? null : id; }
+    private async Task LoadAnnouncementsAsync(int page)
+    {
+        if (_refreshing) return;
+        _refreshing = true; _error = null;
+        try { _announcements = await Workspace.AnnouncementsAsync(page); _announcementPage = page; _openAnnouncement = null; }
+        catch { _error = "دریافت اطلاعیه‌ها انجام نشد."; }
+        finally { _refreshing = false; }
+    }
+    private async Task RefreshAsync(bool quiet = false)
+    {
+        if (_refreshing || _disposed) return;
+        _refreshing = true;
+        var version = _selectionVersion; var peer = _peer;
+        try
+        {
+            var members = Workspace.ConversationsAsync(); var announcements = Workspace.AnnouncementsAsync(_announcementPage);
+            await Task.WhenAll(members, announcements);
+            if (_disposed) return;
+            _members = await members; _announcements = await announcements;
+            if (_chatTab && peer is not null)
+            {
+                var atBottom = quiet && await JS.InvokeAsync<bool>("workshopMessages.atBottom", _thread);
+                var history = await Workspace.ChatAsync(peer.Id);
+                if (version == _selectionVersion && !_disposed) { Merge(history.Items); _historyTotal = history.Total; _peer = _members.FirstOrDefault(x => x.Id == peer.Id) ?? peer; if (atBottom) _scrollBottom = true; }
+            }
+            await Workspace.RefreshUnreadAsync(); _error = null;
+        }
+        catch { if (!_disposed) _error = "ارتباط برقرار نشد؛ پیام‌های ذخیره‌شده باقی می‌مانند. دوباره تلاش کنید."; }
+        finally { _refreshing = false; }
+    }
+    private void Merge(IEnumerable<ChatMessageDto> items) { _messages = _messages.Concat(items).GroupBy(x => x.Id).Select(x => x.Last()).OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).ToList(); }
+    private async Task LoadOlderAsync()
+    {
+        if (_peer is null || _refreshing) return;
+        _refreshing = true; var peer = _peer; var version = _selectionVersion;
+        try { await JS.InvokeVoidAsync("workshopMessages.saveScroll", _thread); var history = await Workspace.ChatAsync(peer.Id, _historyPage + 1); if (version != _selectionVersion) return; Merge(history.Items); _historyPage++; _historyTotal = history.Total; _restoreScroll = true; }
+        catch { _error = "دریافت پیام‌های قدیمی انجام نشد."; }
+        finally { _refreshing = false; }
+    }
+    private async Task SendAsync()
+    {
+        if (_sending || _chatLoading || (!_broadcast && (_peer is null || !_peer.IsActive)) || (_broadcast && !_canAnnounce)) return;
+        var draft = Draft; var body = draft.Body.Trim(); var title = _broadcast ? draft.Title.Trim() : "گفتگو";
+        if (body.Length == 0 || body.Length > 4000 || title.Length == 0 || title.Length > 150) { _error = "متن پیام و عنوان اطلاعیه را تکمیل کنید."; return; }
+        var peerId = _broadcast ? (Guid?)null : _peer!.Id;
+        var key = peerId ?? Guid.Empty;
+        if (!_pendingSends.TryGetValue(key, out var pending) || pending.Body != body || pending.Title != title)
+            _pendingSends[key] = pending = new(Guid.NewGuid(), title, body, _broadcast, peerId);
+        _sending = true; _error = _notice = null;
+        try
+        {
+            await Workspace.SendAsync(pending.Id, pending.Title, pending.Body, pending.Broadcast, pending.Peer);
+            draft.Body = draft.Title = ""; _pendingSends.Remove(key);
+            if (!pending.Broadcast) Merge([new ChatMessageDto { Id = pending.Id, Title = title, Body = body, IsMine = true, CreatedAt = DateTime.UtcNow }]);
+            else { _announcementPage = 1; _announcements.Items.Insert(0, new InboxMessageDto { Id = pending.Id, Title = title, Body = body, IsMine = true, SenderName = "شما", CreatedAt = DateTime.UtcNow }); _notice = "اطلاعیه برای کارگاه منتشر شد."; }
+            _scrollBottom = true; await RefreshAsync();
+        }
+        catch { _error = "تأیید ارسال دریافت نشد. متن محفوظ است؛ با ارسال دوباره، همین پیام تکراری ثبت نمی‌شود."; }
+        finally { _sending = false; }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed) return;
+        if (firstRender) _pollTask = PollAsync();
+        try
+        {
+            if (_scrollBottom && _chatTab && (_peer is not null || _broadcast)) { _scrollBottom = false; await JS.InvokeVoidAsync("workshopMessages.scrollBottom", _thread); }
+            if (_restoreScroll) { _restoreScroll = false; await JS.InvokeVoidAsync("workshopMessages.restoreScroll", _thread); }
+            await ReadVisibleAsync();
+        }
+        catch (JSException) { }
+    }
+    private async Task ReadVisibleAsync()
+    {
+        if (_reading || _disposed || _chatLoading) return;
+        _reading = true; var version = _selectionVersion; var peer = _peer;
+        try
+        {
+            if (!await JS.InvokeAsync<bool>("workshopMessages.isVisible")) return;
+            if (_chatTab && peer is not null)
+            {
+                var visible = await JS.InvokeAsync<string[]>("workshopMessages.visibleIncoming", _thread);
+                var ids = _messages.Where(x => !x.IsMine && x.ReadAt is null && visible.Contains(x.Id.ToString())).Select(x => x.Id).Take(50).ToArray();
+                if (ids.Length == 0) return;
+                var read = await Workspace.ReadChatAsync(peer.Id, ids);
+                if (version != _selectionVersion || _disposed) return;
+                foreach (var item in _messages.Where(x => ids.Contains(x.Id))) item.ReadAt = read.ReadAt;
+                peer.UnreadCount = Math.Max(0, peer.UnreadCount - read.Changed); await InvokeAsync(StateHasChanged);
+            }
+            else if (!_chatTab && _openAnnouncement.HasValue)
+            {
+                var item = _announcements.Items.FirstOrDefault(x => x.Id == _openAnnouncement);
+                if (item is null || item.ReadAt.HasValue || item.IsMine) return;
+                await Workspace.ReadAsync(item.Id); item.ReadAt = DateTime.UtcNow; await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch { if (!_disposed) _error = "ثبت وضعیت خواندن انجام نشد؛ به‌روزرسانی را بزنید."; }
+        finally { _reading = false; }
+    }
+    private async Task PollAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        try { while (await timer.WaitForNextTickAsync(_pollCancellation.Token)) await InvokeAsync(async () => { if (!_disposed && !_refreshing && !_sending && !_chatLoading && await JS.InvokeAsync<bool>("workshopMessages.isVisible")) { await RefreshAsync(true); if (!_disposed) StateHasChanged(); } }); }
+        catch (OperationCanceledException) { }
+        catch (ObjectDisposedException) { }
+        catch (JSDisconnectedException) { }
+    }
+    public void Dispose() { if (_disposed) return; _disposed = true; _pollCancellation.Cancel(); _pollCancellation.Dispose(); }
+    private sealed class MessageDraft { public string Title { get; set; } = ""; public string Body { get; set; } = ""; }
+    private sealed record PendingSend(Guid Id, string Title, string Body, bool Broadcast, Guid? Peer);
+}
