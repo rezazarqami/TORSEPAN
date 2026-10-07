@@ -1,0 +1,32 @@
+name: Production hall stock and header
+on:
+  pull_request:
+    paths: ['TORSEPAN.Application/ProductionEvents/Queries/GetProductionDashboard/**', 'TORSEPAN.Domain/**', 'TORSEPAN.Panel/**', 'tests/HallStockSmoke/**', 'tests/hall-stock-layout.cjs', '.github/workflows/production-hall.yml']
+jobs:
+  hall-stock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TORSEPAN_HALL_PREVIEW_DIR: ${{ github.workspace }}/hall-previews
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build and verify current hall stock and rendered dashboard
+        run: |
+          dotnet build tests/HallStockSmoke/HallStockSmoke.csproj -c Release -m:1
+          dotnet run --no-build --project tests/HallStockSmoke/HallStockSmoke.csproj -c Release
+      - name: Install browser
+        run: |
+          npm install --prefix /tmp/hall-tools playwright
+          /tmp/hall-tools/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify mobile and desktop hall totals and header
+        env:
+          HALL_PLAYWRIGHT: /tmp/hall-tools/node_modules/playwright
+        run: node tests/hall-stock-layout.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-hall-previews
+          path: ${{ github.workspace }}/hall-previews
