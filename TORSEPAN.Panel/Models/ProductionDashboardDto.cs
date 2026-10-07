@@ -1,7 +1,9 @@
-﻿namespace TORSEPAN.Panel.Models;
+namespace TORSEPAN.Panel.Models;
 
 public sealed class ProductionDashboardDto
 {
+    public ProductionHallStockDto? HallStock { get; set; }
+
     public int TotalBowls { get; set; }
 
     public int TotalAssemblies { get; set; }
@@ -74,4 +76,11 @@ public sealed class ProductionQueueCodeDto
 {
     public string Code { get; set; } = string.Empty;
     public int DaysInStage { get; set; }
+}
+
+public sealed class ProductionHallStockDto
+{
+    public int TopBowls { get; set; }
+    public int BottomBowls { get; set; }
+    public int Handpans { get; set; }
 }
