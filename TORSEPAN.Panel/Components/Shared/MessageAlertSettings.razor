@@ -3,15 +3,19 @@
 @inject IJSRuntime JS
 @implements IDisposable
 <section class="message-alert-settings" aria-label="صدای پیام و اعلان این دستگاه">
-    <h2>صدا و اعلان پیام‌ها</h2>
-    <p>اعلان روی این دستگاه فعال می‌شود. در آیفون، برنامه را از آیکون صفحهٔ اصلی باز کنید.</p>
-    <div class="alert-actions">
-        <button type="button" data-message-alerts-action="sound">فعال‌سازی و تست صدا</button>
-        <button type="button" data-message-alerts-action="mute">خاموش‌کردن صدای داخل برنامه</button>
-        <button type="button" data-message-alerts-action="push" disabled="@(!_ready)">فعال‌سازی اعلان این دستگاه</button>
-        <button type="button" @onclick="DisableAsync" disabled="@(!_ready)">قطع اعلان این دستگاه</button>
+    <header><span class="alert-icon" aria-hidden="true">♫</span><div><h2>صدا و اعلان پیام‌ها</h2><p>تنظیمات مخصوص همین دستگاه</p></div></header>
+    <div class="alert-options">
+        <section class="alert-option"><h3>صدای داخل برنامه</h3><p>هنگام دریافت پیام در صفحهٔ باز</p><div class="alert-actions">
+            <button type="button" data-message-alerts-action="sound">فعال‌سازی و تست</button>
+            <button type="button" data-message-alerts-action="mute">خاموش‌کردن صدا</button>
+        </div></section>
+        <section class="alert-option"><h3>اعلان دستگاه</h3><p>دریافت اعلان بیرون از صفحهٔ گفتگو</p><div class="alert-actions">
+            <button type="button" data-message-alerts-action="push" disabled="@(!_ready)">فعال‌سازی اعلان</button>
+            <button type="button" @onclick="DisableAsync" disabled="@(!_ready)">قطع اعلان</button>
+        </div></section>
     </div>
-    <p role="status">@_status</p>
+    <p class="alert-help">در آیفون، برنامه را از آیکون صفحهٔ اصلی باز کنید.</p>
+    <p class="alert-status" role="status">@_status</p>
 </section>
 @code {
     private bool _ready;
@@ -44,3 +48,4 @@
     }
     public void Dispose() { _reference?.Dispose(); }
 }
+

@@ -17,7 +17,6 @@
 </nav>
 @if (_section == AccountSection.Security)
 {
-    <MessageAlertSettings />
     @if (_profileError is not null) { <div class="account-alert error" role="alert">@_profileError</div> }
     @if (_notice is not null) { <div class="account-alert success" role="status">@_notice</div> }
     @if (_profile is null) { <section class="account-card account-empty">اطلاعات حساب در دسترس نیست. <button @onclick="LoadProfileAsync">تلاش دوباره</button></section> }
@@ -28,7 +27,7 @@
                 <div class="section-heading"><span class="section-icon">◉</span><div><h2>عکس پروفایل</h2><p>عکس شما کنار نامتان در گفتگوهای کارگاه</p></div></div>
                 <div class="profile-photo"><UserAvatar UserId="_profile.Id" Version="_profile.AvatarVersion" Name="_profile.FullName" /></div>
                 <strong>@_profile.FullName</strong><small class="profile-title">@_profile.Title</small>
-                <div class="photo-actions"><span class="avatar-picker"><InputFile id="@_avatarInputId" OnChange="UploadAvatarAsync" accept="image/jpeg,image/png,image/webp" disabled="@_busy" aria-label="انتخاب عکس پروفایل" /><label for="@_avatarInputId" class="photo-upload @(_busy ? "disabled" : "")" aria-disabled="@_busy">انتخاب عکس</label></span><button disabled="@(_busy || _profile.AvatarVersion is null)" @onclick="RemoveAvatarAsync">حذف عکس</button></div>
+                <div class="photo-actions"><span class="avatar-picker"><InputFile id="@_avatarInputId" OnChange="UploadAvatarAsync" accept="image/jpeg,image/png,image/webp" disabled="@_busy" aria-label="انتخاب عکس پروفایل" /><span class="photo-upload @(_busy ? "disabled" : "")" aria-hidden="true">انتخاب عکس</span></span><button disabled="@(_busy || _profile.AvatarVersion is null)" @onclick="RemoveAvatarAsync">حذف عکس</button></div>
                 <p class="help-text">JPG، PNG یا WebP تا ۵ مگابایت؛ عکس به‌صورت خودکار کوچک می‌شود.</p>
             </section>
             <section class="account-card credentials-card">
@@ -36,8 +35,8 @@
                 <form @onsubmit="SaveCredentialsAsync" @onsubmit:preventDefault>
                     <label>نام کاربری<input autocomplete="username" dir="auto" minlength="3" maxlength="100" required disabled="@_busy" @bind="_userName" @bind:event="oninput" /></label>
                     <label>رمز فعلی<input type="password" autocomplete="current-password" maxlength="1024" required disabled="@_busy" @bind="_currentPassword" @bind:event="oninput" /></label>
-                    <div class="new-password-fields"><label>رمز جدید <small>اختیاری</small><input type="password" autocomplete="new-password" minlength="10" maxlength="128" disabled="@_busy" @bind="_newPassword" @bind:event="oninput" /></label><label>تکرار رمز جدید<input type="password" autocomplete="new-password" maxlength="128" disabled="@_busy" @bind="_confirmation" @bind:event="oninput" /></label></div>
-                    <p class="help-text">رمز جدید حداقل ۱۰ کاراکتر است. برای تغییر فقط نام کاربری، رمز جدید را خالی بگذارید. پس از ذخیره دوباره وارد حساب می‌شوید.</p>
+                    <div class="new-password-fields"><label>رمز جدید <small>اختیاری</small><input type="password" autocomplete="new-password" minlength="6" maxlength="128" disabled="@_busy" @bind="_newPassword" @bind:event="oninput" /></label><label>تکرار رمز جدید<input type="password" autocomplete="new-password" maxlength="128" disabled="@_busy" @bind="_confirmation" @bind:event="oninput" /></label></div>
+                    <p class="help-text">رمز جدید حداقل ۶ کاراکتر است. برای تغییر فقط نام کاربری، رمز جدید را خالی بگذارید. پس از ذخیره دوباره وارد حساب می‌شوید.</p>
                     <button class="primary-action" type="submit" disabled="@_busy">@(_busy ? "در حال ذخیره…" : "ذخیرهٔ تغییرات")</button>
                 </form>
             </section>
@@ -119,7 +118,7 @@ else
     {
         if(_busy)return;_profileError=_notice=null;
         if(string.IsNullOrWhiteSpace(_currentPassword)){_profileError="رمز فعلی را وارد کنید.";return;}
-        if((_newPassword.Length>0&&(_newPassword.Length<10||_newPassword!=_confirmation))||(_newPassword.Length==0&&_confirmation.Length>0)){_profileError="رمز جدید باید حداقل ۱۰ کاراکتر باشد و با تکرارش یکسان باشد.";return;}
+        if((_newPassword.Length>0&&(_newPassword.Length<6||_newPassword!=_confirmation))||(_newPassword.Length==0&&_confirmation.Length>0)){_profileError="رمز جدید باید حداقل ۶ کاراکتر باشد و با تکرارش یکسان باشد.";return;}
         _busy=true;
         try{var result=await Workspace.SaveCredentialsAsync(new(_userName,_currentPassword,_newPassword,_confirmation));if(result.Changed){try{await Auth.LogoutAsync();}catch{ /* The server has already revoked this session; always return to sign-in. */ }Navigation.NavigateTo("/login?accountUpdated=1",forceLoad:true);}else{_notice="تغییری در اطلاعات حساب وجود ندارد.";}}
         catch(AccountActionException e){_profileError=e.Message;}
@@ -136,3 +135,4 @@ else
     }
     private async Task RemoveAvatarAsync(){if(_busy||_profile is null)return;_busy=true;_profileError=_notice=null;try{var result=await Workspace.SaveAvatarAsync(null);_profile.AvatarVersion=result.AvatarVersion;_notice="عکس پروفایل حذف شد.";}catch(AccountActionException e){_profileError=e.Message;}catch{_profileError="حذف عکس انجام نشد؛ دوباره تلاش کنید.";}finally{_busy=false;}}
 }
+
