@@ -34,6 +34,11 @@ internal static class UiSmoke
     var html=Html();
     Check(html.Contains("WORKSHOP · MESSAGES")&&html.Contains("مدیریت پیام‌ها")&&!html.Contains("داشبورد")&&!html.Contains("پیام‌های من"),role+" sees the redesigned message center without old headings and dashboard action");
     Check(html.Contains("اطلاعیه‌های کارگاه")&&html.Contains("چت و گفتگو")&&!html.Contains("data-incoming-id"),role+" announcement and chat tabs keep private messages separate");await Save("announcements");
+    Check(!html.Contains("message-alert-settings"),role+" notification settings do not appear above message tabs");
+    await page.Call("OpenSettings");page.Refresh();html=Html();
+    Check(html.Contains("message-alert-settings")&&html.Contains("alert-options")&&!html.Contains("announcement-panel")&&!html.Contains("chat-shell"),role+" sound and device alerts have a separate settings tab");
+    Check(html.Contains("data-message-alerts-action=\"sound\"")&&html.Contains("data-message-alerts-action=\"mute\"")&&html.Contains("data-message-alerts-action=\"push\""),role+" notification actions retain their native gesture bindings");
+    await Save("settings");await page.Call("ReadVisibleAsync");Check(api.ReadIds.Count==0,role+" settings tab does not read hidden conversations");
     await page.Call("SwitchTab",true);page.Refresh();html=Html();
     Check(html.Contains("عضو ۹")&&html.Contains("contact-grid"),role+" has one conversation per other member");
     Check(html.Contains("ارسال به اطلاعیه‌های کارگاه")== (role!="Tuner"),role+" announcement publishing entry follows management permissions");await Save("contacts");
@@ -119,3 +124,4 @@ sealed class MessageFixtureApi:HttpMessageHandler
   return new(HttpStatusCode.OK){Content=JsonContent.Create(data)};
  }
 }
+

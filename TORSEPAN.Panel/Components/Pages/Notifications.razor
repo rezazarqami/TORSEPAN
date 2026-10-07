@@ -12,16 +12,23 @@
     <h1>مدیریت پیام‌ها</h1>
     <p>اطلاعیه‌های کارگاه و گفتگوهای اعضا، در یک فضای مشترک</p>
 </section>
-<MessageAlertSettings />
 <div class="messages-workspace">
     <nav class="message-tabs" aria-label="بخش‌های پیام‌ها">
-        <button class="@(!_chatTab ? "active" : "")" aria-pressed="@(!_chatTab)" disabled="@_sending" @onclick="() => SwitchTab(false)">اطلاعیه‌های کارگاه</button>
-        <button class="@(_chatTab ? "active" : "")" aria-pressed="@_chatTab" disabled="@_sending" @onclick="() => SwitchTab(true)">چت و گفتگو @if (ChatUnread > 0) { <b>@ChatUnread</b> }</button>
+        <button class="@(!_settingsTab && !_chatTab ? "active" : "")" aria-pressed="@(!_settingsTab && !_chatTab)" disabled="@_sending" @onclick="() => SwitchTab(false)">اطلاعیه‌های کارگاه</button>
+        <button class="@(!_settingsTab && _chatTab ? "active" : "")" aria-pressed="@(!_settingsTab && _chatTab)" disabled="@_sending" @onclick="() => SwitchTab(true)">چت و گفتگو @if (ChatUnread > 0) { <b>@ChatUnread</b> }</button>
+        <button class="@(_settingsTab ? "active" : "")" aria-pressed="@_settingsTab" disabled="@_sending" @onclick="OpenSettings">صدا و اعلان</button>
     </nav>
+    @if (!_settingsTab)
+    {
     <div class="message-toolbar"><small>@(_refreshing ? "در حال دریافت…" : "پیام‌ها و وضعیت خواندن به‌روز می‌شوند")</small><button class="refresh-messages" disabled="@(_refreshing || _sending)" @onclick="() => RefreshAsync()">↻ به‌روزرسانی</button></div>
+    }
     @if (_error is not null) { <div class="message-feedback error" role="alert">@_error</div> }
     @if (_notice is not null) { <div class="message-feedback" role="status">@_notice</div> }
-    @if (!_chatTab)
+    @if (_settingsTab)
+    {
+        <MessageAlertSettings />
+    }
+    else if (!_chatTab)
     {
         <section class="announcement-panel" aria-label="اطلاعیه‌های کارگاه">
             <header><h2>اطلاعیه‌های کارگاه</h2>@if (_canAnnounce) { <button class="small-action" disabled="@_sending" @onclick="OpenBroadcast">＋ انتشار اطلاعیه</button> }</header>
@@ -111,7 +118,7 @@
     private List<ChatMessageDto> _messages = [];
     private readonly Dictionary<Guid, MessageDraft> _drafts = [];
     private ConversationDto? _peer;
-    private bool _chatTab, _broadcast, _canAnnounce, _loading = true, _refreshing, _chatLoading, _sending, _reading, _disposed;
+    private bool _settingsTab, _chatTab, _broadcast, _canAnnounce, _loading = true, _refreshing, _chatLoading, _sending, _reading, _disposed;
     private bool _scrollBottom, _restoreScroll;
     private Guid? _openAnnouncement;
     private int _announcementPage = 1, _historyPage = 1, _historyTotal, _selectionVersion;
@@ -132,14 +139,15 @@
         _canAnnounce = user.IsInRole("Administrator") || user.IsInRole("ProductionManager");
         await RefreshAsync(); _loading = false;
     }
-    private void SwitchTab(bool chat) { if (_sending) return; _chatTab = chat; _error = _notice = null; _scrollBottom = chat && (_peer is not null || _broadcast); }
+    private void OpenSettings() { if (_sending) return; _settingsTab = true; _scrollBottom = _restoreScroll = false; _error = _notice = null; }
+    private void SwitchTab(bool chat) { if (_sending) return; _settingsTab = false; _chatTab = chat; _error = _notice = null; _scrollBottom = chat && (_peer is not null || _broadcast); }
     private void CloseChat() { if (_sending) return; _selectionVersion++; _peer = null; _broadcast = false; _chatLoading = false; _error = _notice = null; }
-    private void OpenBroadcast() { if (!_canAnnounce || _sending) return; _selectionVersion++; _chatTab = _broadcast = true; _peer = null; _chatLoading = false; _scrollBottom = true; _error = _notice = null; }
+    private void OpenBroadcast() { if (!_canAnnounce || _sending) return; _selectionVersion++; _settingsTab = false; _chatTab = _broadcast = true; _peer = null; _chatLoading = false; _scrollBottom = true; _error = _notice = null; }
     private async Task OpenChatAsync(ConversationDto peer)
     {
         if (_sending) return;
         var version = ++_selectionVersion;
-        _peer = peer; _broadcast = false; _chatTab = true; _chatLoading = true; _messages = []; _historyPage = 1; _historyTotal = 0; _error = _notice = null;
+        _settingsTab = false; _peer = peer; _broadcast = false; _chatTab = true; _chatLoading = true; _messages = []; _historyPage = 1; _historyTotal = 0; _error = _notice = null;
         try { var history = await Workspace.ChatAsync(peer.Id); if (version != _selectionVersion || _disposed) return; _messages = history.Items; _historyTotal = history.Total; _scrollBottom = true; }
         catch { if (version == _selectionVersion) _error = "دریافت گفتگو انجام نشد؛ به‌روزرسانی را بزنید."; }
         finally { if (version == _selectionVersion) _chatLoading = false; }
@@ -164,7 +172,7 @@
             await Task.WhenAll(members, announcements);
             if (_disposed) return;
             _members = await members; _announcements = await announcements;
-            if (_chatTab && peer is not null)
+            if (!_settingsTab && _chatTab && peer is not null)
             {
                 var atBottom = quiet && await JS.InvokeAsync<bool>("workshopMessages.atBottom", _thread);
                 var history = await Workspace.ChatAsync(peer.Id);
@@ -211,7 +219,7 @@
         if (firstRender) _pollTask = PollAsync();
         try
         {
-            if (_scrollBottom && _chatTab && (_peer is not null || _broadcast)) { _scrollBottom = false; await JS.InvokeVoidAsync("workshopMessages.scrollBottom", _thread); }
+            if (!_settingsTab && _scrollBottom && _chatTab && (_peer is not null || _broadcast)) { _scrollBottom = false; await JS.InvokeVoidAsync("workshopMessages.scrollBottom", _thread); }
             if (_restoreScroll) { _restoreScroll = false; await JS.InvokeVoidAsync("workshopMessages.restoreScroll", _thread); }
             await ReadVisibleAsync();
         }
@@ -219,12 +227,12 @@
     }
     private async Task ReadVisibleAsync()
     {
-        if (_reading || _disposed || _chatLoading) return;
+        if (_settingsTab || _reading || _disposed || _chatLoading) return;
         _reading = true; var version = _selectionVersion; var peer = _peer;
         try
         {
             if (!await JS.InvokeAsync<bool>("workshopMessages.isVisible")) return;
-            if (_chatTab && peer is not null)
+            if (!_settingsTab && _chatTab && peer is not null)
             {
                 var visible = await JS.InvokeAsync<string[]>("workshopMessages.visibleIncoming", _thread);
                 var ids = _messages.Where(x => !x.IsMine && x.ReadAt is null && visible.Contains(x.Id.ToString())).Select(x => x.Id).Take(50).ToArray();
@@ -256,3 +264,4 @@
     private sealed class MessageDraft { public string Title { get; set; } = ""; public string Body { get; set; } = ""; }
     private sealed record PendingSend(Guid Id, string Title, string Body, bool Broadcast, Guid? Peer);
 }
+
