@@ -8,7 +8,6 @@
 <PageTitle>TORSEPAN · WORKSHOP</PageTitle>
 <section class="dashboard-hero" aria-labelledby="dashboard-title">
     <h1 id="dashboard-title" class="dashboard-kicker">TORSEPAN · WORKSHOP</h1>
-    <img class="dashboard-hero-logo" src="/images/brand/torsepan-mark-new.webp" alt="" aria-hidden="true" />
     <p>نمای یکپارچهٔ ورود به عملیات، صف‌های آماده و عملکرد کارگاه</p>
     <div class="dashboard-hero-stats">
         <span><strong>@(_loading ? "—" : _dashboard.Queues.Count(x=>x.Codes.Count>0).ToString())</strong> صف فعال</span>
@@ -106,6 +105,26 @@ else
                 }
             </tbody>
         </DataTable></div>
+        <section class="hall-stock" aria-labelledby="hall-stock-title">
+            <div class="hall-stock-heading">
+                <span class="hall-stock-eyebrow">موجودی سالن تولید</span>
+                <h5 id="hall-stock-title">جمع کاسه‌ها و سازهای داخل سالن</h5>
+                <p>موجودی فعلی صف‌ها تا آماده بسته‌بندی؛ بدون موجودی انبار</p>
+            </div>
+            @if (_dashboard.HallStock is { } hallStock)
+            {
+            <dl class="hall-stock-grid">
+                <div><dt>کاسه رو</dt><dd>@hallStock.TopBowls.ToString("N0")</dd></div>
+                <div><dt>کاسه زیر</dt><dd>@hallStock.BottomBowls.ToString("N0")</dd></div>
+                <div class="hall-stock-handpans"><dt>ساز</dt><dd>@hallStock.Handpans.ToString("N0")</dd></div>
+            </dl>
+            }
+            else
+            {
+                <p class="hall-stock-note">آمار موجودی سالن هنوز دریافت نشده است؛ صف‌ها را به‌روزرسانی کنید.</p>
+            }
+            <p class="hall-stock-note">هر ساز از اتاق چسب تا آماده بسته‌بندی، یک بار شمرده می‌شود؛ کاسه‌های آن دوباره حساب نمی‌شوند.</p>
+        </section>
     </Card>
     </div>
     }
