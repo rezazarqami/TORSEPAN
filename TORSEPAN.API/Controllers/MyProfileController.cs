@@ -25,8 +25,8 @@ public sealed class MyProfileController(TORSEPANDbContext db) : ControllerBase
         if (name is null || name.Length is < 3 or > 100 || name.Any(c => !char.IsLetterOrDigit(c) && c != '_' && c != '-' && c != '.'))
             return BadRequest(new { Code = "username", Message = "نام کاربری باید ۳ تا ۱۰۰ حرف یا عدد باشد؛ نقطه، خط تیره و زیرخط هم مجازند." });
         var changePassword = !string.IsNullOrEmpty(request.NewPassword);
-        if ((!changePassword && !string.IsNullOrEmpty(request.ConfirmPassword)) || changePassword && (request.NewPassword!.Length is < 10 or > 128 || request.NewPassword != request.ConfirmPassword))
-            return BadRequest(new { Code = "new-password", Message = "رمز جدید باید ۱۰ تا ۱۲۸ کاراکتر باشد و با تکرارش یکسان باشد." });
+        if ((!changePassword && !string.IsNullOrEmpty(request.ConfirmPassword)) || changePassword && (request.NewPassword!.Length is < 6 or > 128 || request.NewPassword != request.ConfirmPassword))
+            return BadRequest(new { Code = "new-password", Message = "رمز جدید باید ۶ تا ۱۲۸ کاراکتر باشد و با تکرارش یکسان باشد." });
         var user = await db.Users.SingleOrDefaultAsync(x => x.Id == Me && !x.IsDeleted && x.IsActive, ct);
         if (user is null) return Unauthorized();
         if (!user.VerifyPassword(request.CurrentPassword)) return BadRequest(new { Code = "current-password", Message = "رمز فعلی درست نیست." });
@@ -74,3 +74,4 @@ public sealed class MyProfileController(TORSEPANDbContext db) : ControllerBase
 }
 public sealed record ChangeOwnCredentials(string UserName, string CurrentPassword, string? NewPassword, string? ConfirmPassword);
 public sealed record OwnAvatar(string? PngBase64);
+

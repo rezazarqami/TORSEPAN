@@ -81,6 +81,7 @@ internal static class ApiSmoke
   await using var parallel=new TORSEPANDbContext(options);var stale=await parallel.Users.SingleAsync(x=>x.Id==me.Id);
   await profile.Credentials(new(me.UserName,"new-password-123","last-password-123","last-password-123"),default);
   Check(await As(stale,parallel).Credentials(new("racing-edit","new-password-123",null,null),default) is ConflictObjectResult,"concurrent credential edits cannot overwrite newer account credentials");
+  var current="last-password-123";foreach(var password in new[]{"abcdef","123456","!!!!!!"}){Check(await profile.Credentials(new(me.UserName,current,password,password),default) is OkObjectResult&&me.VerifyPassword(password),"server accepts six-character passwords without composition requirements");current=password;}
   Check(typeof(MyProfileController).GetCustomAttribute<AuthorizeAttribute>() is not null&&typeof(MyProfileController).GetMethod("Credentials")!.GetCustomAttribute<EnableRateLimitingAttribute>() is not null,"profile requires authentication and credential changes are rate-limited");
  }
  private static ClaimsPrincipal Principal(Guid id,int? version=null)=>new(new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,id.ToString())}.Concat(version.HasValue?[new Claim("credential_version",version.ToString()!)]:[]),"fixture"));
@@ -93,3 +94,4 @@ internal static class ApiSmoke
  private static T Value<T>(IActionResult result)=>JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(((OkObjectResult)result).Value),new JsonSerializerOptions{PropertyNameCaseInsensitive=true})!;
  private static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
 }
+
