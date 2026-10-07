@@ -39,15 +39,18 @@ internal static class UiSmoke
    api.PayrollMissing=true;await page.Call("Load",1);page.Refresh();Check(Html().Contains("activity-log"),"missing optional payroll endpoint does not hide activity");
    page.Section("Payroll");page.Refresh();Check(Html().Contains("گزارش دستمزد در دسترس نیست")&&!Html().Contains("payroll-total"),"missing payroll endpoint has its own visible error");api.PayrollMissing=false;page.Section("Performance");
    page.Set("_from",new DateTime(2026,10,5));page.Set("_to",new DateTime(2026,10,4));var requests=api.ActivityReads;await page.Call("Apply");page.Refresh();Check(api.ActivityReads==requests&&Html().Contains("تاریخ شروع و پایان معتبر"),"invalid reporting dates do not send a request");
-   page.Section("Security");page.Refresh();Check(Html().Contains("عکس پروفایل")&&Html().Contains("current-password")&&Html().Contains("new-password")&&!Html().Contains("activity-log"),"security tab separates photo and credential settings from performance");
+   page.Section("Security");page.Refresh();Check(!Html().Contains("message-alert-settings"),"message alert settings are absent from the personal account");
+   Check(Html().Contains("minlength=\"6\"")&&!Html().Contains("minlength=\"10\""),"password form accepts six characters");
+   Check(Html().Contains("عکس پروفایل")&&Html().Contains("current-password")&&Html().Contains("new-password")&&!Html().Contains("activity-log"),"security tab separates photo and credential settings from performance");
    var pickerId=(string)page.Get("_avatarInputId")!;
-   Check(Html().Contains($"for=\"{pickerId}\"")&&Html().Contains($"id=\"{pickerId}\"")&&Html().Contains("type=\"file\""),"photo selection uses an explicit native label/input association");
+   Check(Html().Contains($"id=\"{pickerId}\"")&&Html().Contains("type=\"file\"")&&Html().Contains("aria-label=\"انتخاب عکس پروفایل\""),"photo selection has an accessible native file input");
    Check(Html().Contains("data:image/png;base64"),"stored avatar is fetched with the authenticated API client and rendered");await Save("security");
    page.Set("_userName","profile-new");page.Set("_currentPassword","original-password");page.Set("_newPassword","new-password-123");page.Set("_confirmation","mismatch");await page.Call("SaveCredentialsAsync");Check(api.Credentials.Count==0,"mismatched password confirmation is caught before sending");
    page.Set("_confirmation","new-password-123");api.FailCredentials=true;await page.Call("SaveCredentialsAsync");page.Refresh();Check(Html().Contains("این نام کاربری قبلاً استفاده شده است")&&!auth.LoggedOut,"server duplicate username feedback is displayed without logging out");
    Check((string)page.Get("_currentPassword")! ==""&&(string)page.Get("_newPassword")! =="","password fields are cleared after a submission");await Save("security-error");
    await page.Call("RemoveAvatarAsync");page.Refresh();Check(api.AvatarRemoved&&((OwnProfileDto)page.Get("_profile")!).AvatarVersion is null&&!Html().Contains("data:image/png;base64"),"avatar removal updates the image to initials");
    api.FailCredentials=false;auth.FailLogout=true;page.Set("_currentPassword","original-password");await page.Call("SaveCredentialsAsync");Check(auth.LoggedOut&&nav.Uri.Contains("/login?accountUpdated=1")&&api.Credentials.Last().NewPassword=="","acknowledged username-only save returns to login even if browser sign-out storage fails");
+   foreach(var password in new[]{"abcdef","123456","!!!!!!"}){page.Set("_currentPassword","original-password");page.Set("_newPassword",password);page.Set("_confirmation",password);await page.Call("SaveCredentialsAsync");Check(api.Credentials.Last().NewPassword==password,"six-character password is submitted without composition rules: "+password);}
   });
  }
  private static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
@@ -89,3 +92,4 @@ sealed class ProfileFixtureApi:HttpMessageHandler
  }
  private static HttpResponseMessage Json(object value)=>new(HttpStatusCode.OK){Content=JsonContent.Create(value)};
 }
+
