@@ -53,6 +53,7 @@ Check(empty.TopBowls == 0 && empty.BottomBowls == 0 && empty.Handpans == 0, "emp
 var services = new ServiceCollection(); services.AddLogging();
 services.AddScoped<AuthenticationStateProvider, FixtureAuth>();
 services.AddScoped<PersonalWorkspaceService>();
+services.AddScoped<IAuthService, FixtureAuthService>();
 services.AddSingleton<IJSRuntime, FixtureJs>(); services.AddSingleton<NavigationManager, FixtureNavigation>();
 services.AddScoped<TokenStorage>();
 services.AddScoped(_ => new HttpClient(new FixtureApi()) { BaseAddress = new Uri("https://fixture.invalid/api/") });
@@ -101,4 +102,15 @@ sealed class FixtureJs : IJSRuntime
 sealed class FixtureAuth : AuthenticationStateProvider
 {
     public override Task<AuthenticationState> GetAuthenticationStateAsync() => Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "رضا ضرغامی")], "fixture"))));
+}
+
+sealed class FixtureAuthService : IAuthService
+{
+    public bool IsAuthenticated => true;
+    public string? Token => null;
+    public string? UserName => "fixture";
+    public string? FullName => "رضا ضرغامی";
+    public IReadOnlyList<string> Roles => [];
+    public Task LogoutAsync() => Task.CompletedTask;
+    public Task<TORSEPAN.Application.Auth.Commands.Login.LoginResult> LoginAsync(TORSEPAN.Application.Auth.Commands.Login.LoginCommand command) => throw new NotSupportedException();
 }
