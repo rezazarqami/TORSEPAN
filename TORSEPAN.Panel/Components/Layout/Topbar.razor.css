@@ -126,3 +126,8 @@
 }
 
 .user-box-clean{text-decoration:none}.user-box-clean:focus-visible{outline:2px solid #94d9cd;outline-offset:3px}
+
+/* The dashboard silver mark now lives beside the application title. */
+.topbar-workshop-mark{display:block;flex:0 0 auto;width:58px;height:58px;object-fit:contain;filter:grayscale(1) invert(1) contrast(1.35);mix-blend-mode:screen}
+@media(max-width:768px){.topbar-workshop-mark{width:49px;height:49px}}
+@media(max-width:390px){.topbar-workshop-mark{width:44px;height:44px}}

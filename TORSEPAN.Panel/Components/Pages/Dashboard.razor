@@ -94,6 +94,26 @@ else
                 }
             </tbody>
         </DataTable></div>
+        <section class="hall-stock" aria-labelledby="hall-stock-title">
+            <div class="hall-stock-heading">
+                <span class="hall-stock-eyebrow">موجودی سالن تولید</span>
+                <h5 id="hall-stock-title">جمع کاسه‌ها و سازهای داخل سالن</h5>
+                <p>موجودی فعلی صف‌ها تا آماده بسته‌بندی؛ بدون موجودی انبار</p>
+            </div>
+            @if (_dashboard.HallStock is { } hallStock)
+            {
+            <dl class="hall-stock-grid">
+                <div><dt>کاسه رو</dt><dd>@hallStock.TopBowls.ToString("N0")</dd></div>
+                <div><dt>کاسه زیر</dt><dd>@hallStock.BottomBowls.ToString("N0")</dd></div>
+                <div class="hall-stock-handpans"><dt>ساز</dt><dd>@hallStock.Handpans.ToString("N0")</dd></div>
+            </dl>
+            }
+            else
+            {
+                <p class="hall-stock-note">آمار موجودی سالن هنوز دریافت نشده است؛ صف‌ها را به‌روزرسانی کنید.</p>
+            }
+            <p class="hall-stock-note">هر ساز از اتاق چسب تا آماده بسته‌بندی، یک بار شمرده می‌شود؛ کاسه‌های آن دوباره حساب نمی‌شوند.</p>
+        </section>
     </Card>
     </div>
     <div class="col-xl-3 order-2">

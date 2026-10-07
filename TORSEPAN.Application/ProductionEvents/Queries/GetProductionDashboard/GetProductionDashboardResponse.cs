@@ -1,7 +1,9 @@
-﻿namespace TORSEPAN.Application.ProductionEvents.Queries.GetProductionDashboard;
+namespace TORSEPAN.Application.ProductionEvents.Queries.GetProductionDashboard;
 
 public sealed class GetProductionDashboardResponse
 {
+    public ProductionHallStockResponse HallStock { get; set; } = new();
+
     public int TotalHandpans { get; set; }
 
     public int InProduction { get; set; }
