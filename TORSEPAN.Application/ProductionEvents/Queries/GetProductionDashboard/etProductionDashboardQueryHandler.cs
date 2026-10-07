@@ -18,6 +18,8 @@ public sealed class GetProductionDashboardQueryHandler
         var bowls = (await _unitOfWork.Bowls.GetAllAsync()).ToList();
         var allHandpans = (await _unitOfWork.Handpans.GetAllAsync()).ToList();
         var handpans = (await _unitOfWork.Handpans.GetAllWithAssemblyAsync()).ToList();
+        var assemblies = await _unitOfWork.HandpanAssemblies.GetAllAsync();
+        var hallStock = ProductionHallStockResponse.Calculate(bowls, allHandpans, assemblies);
         var finished = allHandpans.Count(x => x.Stage == ProductionStage.FinishedWarehouse);
         var rejected = allHandpans.Count(x => x.Stage == ProductionStage.Rejected);
         var tehranNow = DateTime.UtcNow.AddHours(3.5);
@@ -70,6 +72,7 @@ public sealed class GetProductionDashboardQueryHandler
 
         return new GetProductionDashboardResponse
         {
+            HallStock = hallStock,
             TotalHandpans = allHandpans.Count,
             Finished = finished,
             Rejected = rejected,
