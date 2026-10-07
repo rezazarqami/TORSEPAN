@@ -15,12 +15,22 @@ let browser;
 const watchdog=setTimeout(()=>{console.error("Browser layout verification timed out");process.exit(1);},90000);
 (async()=>{
  await new Promise(resolve=>server.listen(5192,'127.0.0.1',resolve));browser=await chromium.launch({headless:true,...(process.env.MESSAGES_CHROMIUM?{executablePath:process.env.MESSAGES_CHROMIUM}:{}),...(process.env.MESSAGES_CHROMIUM_ARGS?{args:JSON.parse(fs.readFileSync(process.env.MESSAGES_CHROMIUM_ARGS,'utf8'))}:{})});const page=await browser.newPage();page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(15000);
- for(const width of [360,384,412,1024])for(const noReset of [false,true])for(const name of ['announcements','contacts','chat','broadcast']){
+ for(const width of [320,360,384,412,1024])for(const noReset of [false,true])for(const name of ['announcements','contacts','chat','broadcast','settings']){
   await page.setViewportSize({width,height:820});await page.goto(`http://127.0.0.1:5192/preview/${name}.html${noReset?'?no-reset=1':''}`);await page.evaluate(()=>document.fonts.ready);
   const bounds=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth}));assert(bounds.width<=bounds.viewport,`${name} ${width}: ${JSON.stringify(bounds)}`);
   const hero=await page.locator('.messages-hero').boundingBox(),workspace=await page.locator('.messages-workspace').boundingBox();
   assert(hero.x>=0&&hero.x+hero.width<=width&&Math.abs(hero.width-workspace.width)<=1&&Math.abs(hero.x-workspace.x)<=1,'hero must fit and align with page');
   assert(await page.locator('.messages-hero img').evaluate(e=>e.complete&&e.naturalWidth>0),'logo must load');
+  assert(await page.locator('.message-tabs button').count()===3,'message tabs include dedicated sound and alert settings');
+  if(name==='settings'){
+   assert(await page.locator('.alert-option').count()===2,'sound and device notifications have separate groups');
+   for(const group of await page.locator('.alert-actions').all()){
+    const buttons=await group.locator('button').all();assert(buttons.length===2);
+    const first=await buttons[0].boundingBox(),second=await buttons[1].boundingBox();
+    assert(Math.abs(first.y-second.y)<1&&Math.abs(first.width-second.width)<1&&Math.abs(first.height-second.height)<1,'paired notification buttons must align and have equal sizes');
+   }
+   assert(await page.locator('.announcement-panel,.chat-shell').count()===0,'settings must not display messages behind the controls');
+  }else assert(await page.locator('.message-alert-settings').count()===0,'message views must not embed notification controls');
   if(width<650&&['chat','broadcast'].includes(name))assert(!(await page.locator('.conversation-list').isVisible()),'mobile open chat must hide contact list');
   await page.screenshot({path:path.join(out,`${name}-${width}${noReset?'-no-reset':''}.png`),fullPage:true});console.log('PASS message layout',name,width,noReset);
  }
@@ -35,3 +45,4 @@ const watchdog=setTimeout(()=>{console.error("Browser layout verification timed 
  const hidden=await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});return workshopMessages.visibleIncoming(document.querySelector('.chat-thread'));});
  assert.equal(hidden.length,0,'hidden browser tab must never mark incoming messages read');console.log('PASS actual browser visibility and read helper');
  })().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{clearTimeout(watchdog);if(browser)await browser.close();server.close();});
+

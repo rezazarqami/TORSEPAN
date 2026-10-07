@@ -25,9 +25,11 @@ const watchdog=setTimeout(()=>{console.error("Profile browser layout verificatio
   if(name.startsWith('security')){
    const picker=page.locator('.avatar-picker input[type=file]');
    assert(await picker.count()===1,'native photo input must exist');
-   const pickerId=await picker.getAttribute('id');
-   assert(await page.locator('.photo-upload').getAttribute('for')===pickerId,'photo label must be explicitly linked to the input');
-   const chooser=page.waitForEvent('filechooser');await page.locator('.photo-upload').click();await chooser;
+   await picker.scrollIntoViewIfNeeded();
+   const visual=await page.locator('.photo-upload').boundingBox(),native=await picker.boundingBox();
+   assert(Math.abs(visual.x-native.x)<1&&Math.abs(visual.y-native.y)<1&&Math.abs(visual.width-native.width)<1&&Math.abs(visual.height-native.height)<1,'native input must cover the entire photo button');
+   assert(await picker.evaluate(e=>{const r=e.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===e;}),'native input must receive the touch directly');
+   const chooser=page.waitForEvent('filechooser');await picker.click();await chooser;
    console.log('PASS native photo picker opens',width,noReset);
    assert(await page.locator('.profile-photo img').evaluate(e=>e.complete&&e.naturalWidth>0),'profile image must load');
    assert(await page.locator('input[autocomplete="current-password"]').getAttribute('type')==='password','current password must be masked');
@@ -40,4 +42,26 @@ const watchdog=setTimeout(()=>{console.error("Profile browser layout verificatio
   }
   await page.screenshot({path:path.join(out,`${name}-${width}${noReset?'-no-reset':''}.png`),fullPage:true});console.log('PASS account layout',name,width,noReset);
  }
+ for(const width of [360,384,412]){
+  const context=await browser.newContext({viewport:{width,height:820},isMobile:true,hasTouch:true});
+  try{
+   const touch=await context.newPage();touch.setDefaultTimeout(15000);
+   await touch.goto('http://127.0.0.1:5193/preview/security.html');
+   const input=touch.locator('.avatar-picker input[type=file]');
+   await input.scrollIntoViewIfNeeded();
+   const bounds=await touch.locator('.photo-upload').boundingBox();
+   for(let attempt=0;attempt<2;attempt++){
+    const opening=touch.waitForEvent('filechooser');
+    await touch.touchscreen.tap(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+    const chooser=await opening;
+    await chooser.setFiles({name:'profile.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64')});
+    assert(await input.evaluate(e=>e.files.length===1&&e.files[0].name==='profile.png'),'touch selection must populate the native file input');
+    await input.setInputFiles([]);
+   }
+   await input.evaluate(e=>e.disabled=true);
+   assert(await input.isDisabled(),'busy photo input can be disabled');
+   console.log('PASS touch photo chooser and repeat selection',width);
+  }finally{await context.close();}
+ }
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{clearTimeout(watchdog);if(browser)await browser.close();server.close();});
+
