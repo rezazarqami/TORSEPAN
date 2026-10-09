@@ -19,7 +19,7 @@ let browser;
  const page=await browser.newPage();
  for(const width of [360,390,768,1280]){
   await page.setViewportSize({width,height:900});
-  for(const file of ['new-order.html','simple-order.html','incomplete-order.html','edit-order.html','composition.html','drafts.html','order-list.html','overview-50.html','assign-code.html']){
+  for(const file of ['new-order.html','simple-order.html','incomplete-order.html','edit-order.html','composition.html','drafts.html','order-list.html','order-list-expanded.html','overview-50.html','assign-code.html']){
    await page.goto(`http://127.0.0.1:${port}/${file}`);await page.evaluate(()=>document.fonts.ready);
    assert(await page.locator('.orders-hero').count(),`Actual page not rendered: ${file}`);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`page overflow ${width} ${file}`);
@@ -46,12 +46,19 @@ let browser;
     assert.equal(await page.getByRole('button',{name:'ذخیرهٔ پیش‌سفارش',exact:true}).count(),0);
    }
    if(file==='composition.html'){assert.equal(await page.locator('.composition-line').count(),3);assert.equal((await page.locator('.summary-total strong').innerText()).trim(),'15');}
-   if(file==='order-list.html'){assert(await page.locator('.specification-row').count()>=3);assert(await page.locator('.instrument-slot').count()>12);}
-   if(['order-list.html','overview-50.html'].includes(file)){
+   if(file==='order-list-expanded.html'){assert(await page.locator('.specification-row').count()>=3);assert(await page.locator('.instrument-slot').count()>12);}
+   if(['order-list.html','order-list-expanded.html','overview-50.html'].includes(file)){
     const card=page.locator('.order-card').first();
     assert.equal(await card.locator('.instrument-overview').count(),1);
+    if(file==='order-list-expanded.html'){
     assert(await card.locator('.specification-scale').first().evaluate(n=>Number(getComputedStyle(n).fontWeight)>=700),'scale must be bold');
     assert(await card.evaluate(n=>n.querySelector('.instrument-overview').compareDocumentPosition(n.querySelector('.specification-list'))&Node.DOCUMENT_POSITION_FOLLOWING),'overview must precede code-entry sections');
+    assert.equal(await card.locator('.code-section-toggle').getAttribute('aria-expanded'),'true');
+    }else{
+     assert.equal(await page.locator('.instrument-slot').count(),0);
+     assert.equal(await card.locator('.code-section-toggle').getAttribute('aria-expanded'),'false');
+     assert(await card.locator('.order-card-head').isVisible());
+    }
     if(file==='overview-50.html'){
      const items=card.locator('.overview-item');
      assert.equal(await items.count(),50);
@@ -64,7 +71,7 @@ let browser;
     }
    }
    if(file==='assign-code.html'){assert.equal(await page.locator('[role=dialog]').count(),1);assert.match(await page.locator('#order-code-title').innerText(),/1.*5/);}
-   if([390,1280].includes(width)&&['composition.html','order-list.html','overview-50.html','assign-code.html'].includes(file))await page.screenshot({path:path.join(root,`${file.replace('.html','')}-${width}.png`),fullPage:true});
+   if([390,1280].includes(width)&&['composition.html','order-list.html','order-list-expanded.html','overview-50.html','assign-code.html'].includes(file))await page.screenshot({path:path.join(root,`${file.replace('.html','')}-${width}.png`),fullPage:true});
    console.log(`PASS ${file} at ${width}px; no page or control overflow`);
   }
  }

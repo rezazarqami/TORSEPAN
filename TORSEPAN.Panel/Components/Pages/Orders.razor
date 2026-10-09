@@ -96,7 +96,7 @@ else
                         var overviewPage=Math.Clamp(_overviewPages.GetValueOrDefault(order.Id),0,Math.Max(0,(overview.Length-1)/50));
                         <section class="instrument-overview" aria-label="کد و وضعیت سازهای سفارش">
                             <header><strong>وضعیت سازها در یک نگاه</strong><span>@overview.Length کد از @order.TotalQuantity ساز</span></header>
-                            @if(overview.Length==0){<p class="overview-empty">هنوز کدی ثبت نشده است؛ کد سازها را در ردیف‌های پایین وارد کن.</p>}
+                            @if(overview.Length==0){<p class="overview-empty">هنوز کدی ثبت نشده است؛ بخش «ثبت و ویرایش کد سازها» را باز کن.</p>}
                             else
                             {
                                 <div class="overview-grid" tabindex="0" role="list" aria-label="فهرست کد و وضعیت" aria-live="polite">
@@ -109,7 +109,16 @@ else
                             }
                         </section>
                     }
-                    <div class="specification-list">
+                    @if(!order.IsDraft)
+                    {
+                        <button type="button" class="code-section-toggle" aria-expanded="@(_expandedCodeOrders.Contains(order.Id) ? "true" : "false")" aria-controls="order-codes-@order.Id" @onclick="()=>ToggleCodeSection(order.Id)">
+                            <strong>ثبت و ویرایش کد سازها</strong>
+                            <span>@(_expandedCodeOrders.Contains(order.Id) ? "بستن بخش ⌃" : "باز کردن بخش ⌄")</span>
+                        </button>
+                    }
+                    @if(order.IsDraft || _expandedCodeOrders.Contains(order.Id))
+                    {
+                    <div class="specification-list" id="order-codes-@order.Id">
                         @foreach(var line in order.Lines)
                         {
                             var page = CodePage(line);
@@ -131,6 +140,7 @@ else
                             </section>
                         }
                     </div>
+                    }
                     <div class="order-card-actions">@if(!order.IsDraft){<button class="btn subtle" disabled="@_saving" @onclick="()=>EditDraftAsync(order)">ویرایش سفارش</button>}@if(order.IsDraft){<button class="btn create-order" disabled="@_saving" @onclick="()=>EditDraftAsync(order)">ادامه و بررسی سفارش ←</button>}<button class="btn delete-order" disabled="@_deleting" @onclick="()=>OpenDelete(order)">حذف @(order.IsDraft ? "پیش‌سفارش" : "سفارش")</button></div>
                     @if(!order.IsDraft){<div class="reminder-row"><small>یادآوری تلگرام</small>@foreach(var reminder in order.Reminders){<span class="@(reminder.SentAtUtc.HasValue ? "sent" : reminder.HasError ? "retry" : "")" title="@ReminderTitle(reminder)">@(reminder.Milestone==4 ? "پایان" : $"{reminder.Milestone*25}٪") @(reminder.SentAtUtc.HasValue ? "✓" : reminder.HasError ? "↻" : "")</span>}</div>}
                 </article>
@@ -165,6 +175,11 @@ else
     private List<LineEditor> _items = [new()];
     private Dictionary<Guid,int> _codePages = [];
     private Dictionary<Guid,int> _overviewPages = [];
+    private readonly HashSet<Guid> _expandedCodeOrders = [];
+    private void ToggleCodeSection(Guid orderId)
+    {
+        if (!_expandedCodeOrders.Add(orderId)) _expandedCodeOrders.Remove(orderId);
+    }
     private OrderDto? _editedOrder;
     private OrderLineDto? ExistingLine(LineEditor item) => _editingFinalized ? _editedOrder?.Lines.SingleOrDefault(x=>x.Id==item.LineId) : null;
     private bool IsScaleValid(LineEditor item) => _scales.Any(x=>x.Id==item.ScaleId) || (ExistingLine(item) is { } old && old.ScaleId==item.ScaleId);
