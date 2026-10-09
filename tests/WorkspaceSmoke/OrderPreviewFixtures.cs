@@ -31,7 +31,7 @@ internal static class OrderPreviewFixtures
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         await using var renderer = new HtmlRenderer(scope.ServiceProvider, provider.GetRequiredService<ILoggerFactory>());
-        foreach (var (type, name) in new[] { (typeof(Orders), "new-order.html"), (typeof(SimplePreview), "simple-order.html"), (typeof(IncompletePreview), "incomplete-order.html"), (typeof(EditPreview), "edit-order.html"), (typeof(CompositionPreview), "composition.html"), (typeof(DraftPreview), "drafts.html"), (typeof(OrderListPreview), "order-list.html"), (typeof(OverviewPreview), "overview-50.html"), (typeof(OrderCodePreview), "assign-code.html") })
+        foreach (var (type, name) in new[] { (typeof(Orders), "new-order.html"), (typeof(SimplePreview), "simple-order.html"), (typeof(IncompletePreview), "incomplete-order.html"), (typeof(EditPreview), "edit-order.html"), (typeof(CompositionPreview), "composition.html"), (typeof(DraftPreview), "drafts.html"), (typeof(OrderListPreview), "order-list.html"), (typeof(ExpandedOrderListPreview), "order-list-expanded.html"), (typeof(OverviewPreview), "overview-50.html"), (typeof(OrderCodePreview), "assign-code.html") })
         {
             fixtureApi.EmptyDesigns = type == typeof(SimplePreview);
             var markup = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync(type, ParameterView.Empty)).ToHtmlString());
@@ -166,6 +166,23 @@ internal static class OrderPreviewFixtures
         {
             await base.OnInitializedAsync();
             typeof(Orders).GetField("_tab", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(this, "list");
+        }
+    }
+    private sealed class ExpandedOrderListPreview : OrderListPreview
+    {
+        protected override async Task OnInitializedAsync()
+        {
+            await base.OnInitializedAsync();
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var orders = (List<OrderDto>)typeof(Orders).GetField("_orders", flags)!.GetValue(this)!;
+            var expanded = (HashSet<Guid>)typeof(Orders).GetField("_expandedCodeOrders", flags)!.GetValue(this)!;
+            var toggle = typeof(Orders).GetMethod("ToggleCodeSection", flags)!;
+            if (expanded.Count != 0) throw new Exception("Order code entry must start collapsed");
+            toggle.Invoke(this, [orders[0].Id]);
+            if (!expanded.SetEquals([orders[0].Id])) throw new Exception("Opening code entry must only affect the selected order");
+            toggle.Invoke(this, [orders[0].Id]);
+            if (expanded.Count != 0) throw new Exception("Order code entry must close again");
+            toggle.Invoke(this, [orders[0].Id]);
         }
     }
     private sealed class OverviewPreview : OrderListPreview
