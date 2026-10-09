@@ -111,7 +111,7 @@ else
                     }
                     @if(!order.IsDraft)
                     {
-                        <button type="button" class="code-section-toggle" aria-expanded="@_expandedCodeOrders.Contains(order.Id)" aria-controls="order-codes-@order.Id" @onclick="()=>ToggleCodeSection(order.Id)">
+                        <button type="button" class="code-section-toggle" aria-expanded="@(_expandedCodeOrders.Contains(order.Id) ? "true" : "false")" aria-controls="order-codes-@order.Id" @onclick="()=>ToggleCodeSection(order.Id)">
                             <strong>ثبت و ویرایش کد سازها</strong>
                             <span>@(_expandedCodeOrders.Contains(order.Id) ? "بستن بخش ⌃" : "باز کردن بخش ⌄")</span>
                         </button>
