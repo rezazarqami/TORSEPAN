@@ -97,33 +97,25 @@
 
     @if (_bowl is not null)
     {
-        <div class="instrument-passport @(string.IsNullOrWhiteSpace(_bowl.HandpanCode) ? "bowl-file" : "handpan-file")">
-            @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
-            {
-                <div class="passport-header"><span>TORSEPAN · INSTRUMENT ID</span><div class="passport-logo"><img src="/images/brand/torsepan-logo.webp" alt="لوگوی TORSEPAN" /></div></div>
-                <div class="passport-primary-info">
-                    <div class="passport-codes">
-                        <div><span>کد ساز</span><strong><bdi>@_bowl.HandpanCode</bdi></strong></div>
+        var isHandpan = !string.IsNullOrWhiteSpace(_bowl.HandpanCode);
+        <div class="instrument-passport @(isHandpan ? "handpan-file" : "bowl-file")">
+            <div class="passport-header"><span>TORSEPAN · @(isHandpan ? "INSTRUMENT ID" : "BOWL ID")</span><div class="passport-logo"><img src="/images/brand/torsepan-logo.webp" alt="لوگوی TORSEPAN" /></div></div>
+            <div class="passport-primary-info">
+                <div class="passport-codes">
+                    <div><span>@(isHandpan ? "کد ساز" : "کد کاسه")</span><strong><bdi>@(isHandpan ? _bowl.HandpanCode : _bowl.ProductionCode)</bdi></strong></div>
+                    @if (isHandpan)
+                    {
                         <div class="passport-bottom-code"><span>کد کاسه زیر</span><strong><bdi>@_bowl.BottomBowlCode</bdi> <span>(@_bowl.BottomDesignName)</span></strong></div>
-                    </div>
-                    <div class="passport-info-line passport-scale"><span lang="en">Scale</span><strong dir="auto">@_bowl.ScaleName</strong></div>
-                    <div class="passport-info-line"><span lang="en">Design</span><strong>@_bowl.DesignName</strong></div>
-                    <div class="passport-info-line passport-status"><span lang="en">Status</span><strong>@StageText(_bowl.Stage)</strong></div>
+                    }
+                    else
+                    {
+                        <div class="passport-bottom-code"><span>نوع کاسه</span><strong>@BowlTypeText(_bowl.BowlType)</strong></div>
+                    }
                 </div>
-            }
-            else
-            {
-                <div><strong>کد:</strong> @_bowl.ProductionCode</div>
-                <div><strong>نوع کاسه:</strong> @BowlTypeText(_bowl.BowlType)</div>
-                <div class="production-highlights">
-                    <div class="production-highlight status-highlight">
-                        <span>وضعیت</span><strong>@StageText(_bowl.Stage)</strong>
-                    </div>
-                    <div class="production-highlight scale-highlight">
-                        <span>Scale کاسه</span><strong>@_bowl.ScaleName</strong>
-                    </div>
-                </div>
-            }
+                <div class="passport-info-line passport-scale"><span lang="en">Scale:</span><strong dir="auto">@_bowl.ScaleName</strong></div>
+                <div class="passport-info-line"><span lang="en">Design:</span><strong dir="auto">@_bowl.DesignName</strong></div>
+                <div class="passport-info-line passport-status"><span lang="en">Status:</span><strong dir="auto">@StageText(_bowl.Stage)</strong></div>
+            </div>
             @if (_bowl.History.Count > 0)
             {
                 <div class="card bg-light border-0 mt-3 passport-history">
@@ -1004,7 +996,7 @@
     }
 
     private static string BowlTypeText(int value) =>
-        value == 1 ? "کاسه بالا" : "کاسه پایین";
+        value == 1 ? "کاسه رو" : "کاسه زیر";
 
     private static string StageText(int value) => value switch
     {
