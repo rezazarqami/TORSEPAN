@@ -127,6 +127,30 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.MapGet("/api/internal/backups/download/{token}", async (
+    string token, HttpContext context, IHttpClientFactory factory, CancellationToken ct) =>
+{
+    context.Response.Headers.CacheControl = "no-store";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    if (token.Length != 64 || token.Any(c => !Uri.IsHexDigit(c)))
+    { context.Response.StatusCode = 404; return; }
+    using var client = factory.CreateClient("Api");
+    client.Timeout = TimeSpan.FromMinutes(30);
+    using var request = new HttpRequestMessage(HttpMethod.Get, $"backups/download/{token}");
+    if (context.Request.Headers.TryGetValue("Range", out var range))
+        request.Headers.TryAddWithoutValidation("Range", range.ToString());
+    using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+    context.Response.StatusCode = (int)response.StatusCode;
+    if (!response.IsSuccessStatusCode) return;
+    context.Response.ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+    if (response.Content.Headers.ContentLength is { } length) context.Response.ContentLength = length;
+    foreach (var name in new[] { "Content-Disposition", "Content-Range" })
+        if (response.Content.Headers.TryGetValues(name, out var values)) context.Response.Headers[name] = string.Join(",", values);
+    context.Response.Headers["Accept-Ranges"] = "bytes";
+    await using var stream = await response.Content.ReadAsStreamAsync(ct);
+    await stream.CopyToAsync(context.Response.Body, ct);
+});
+
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 app.MapPost("/api/internal/handpans/{handpanId:guid}/photos", async (

@@ -1,0 +1,95 @@
+@page "/backups"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator")]
+@implements IDisposable
+@using TORSEPAN.Panel.Services
+@inject ApiClient Api
+@inject IJSRuntime JS
+
+<PageTitle>پشتیبان‌گیری | TORSEPAN</PageTitle>
+<section class="backup-hero"><small>TORSEPAN</small><h1>پشتیبان‌گیری و آرشیو</h1><p>یک نسخه از اطلاعات فعلی کارگاه را روی دستگاه خود نگه دارید.</p></section>
+<div class="backup-options">
+    <article><span class="backup-icon">↓</span><h2>بکاپ کامل همراه عکس‌ها</h2><p>تمام اطلاعات دیتابیس، عکس‌های ساز و پیش‌نمایش‌ها در یک فایل قابل بازیابی.</p><button class="btn btn-primary" disabled="@(_busy || _downloading)" @onclick='() => StartAsync("full")'>دریافت بکاپ کامل</button></article>
+    <article><span class="backup-icon">PDF</span><h2>آرشیو شناسنامه‌ها و موجودی</h2><p>ریز سوابق سازها و کاسه‌ها، مراحل تولید، آماده QC، بسته‌بندی، انبار و فروش؛ همراه موجودی فعلی مواد اولیه.</p><button class="btn btn-primary" disabled="@(_busy || _downloading)" @onclick='() => StartAsync("pdf")'>تهیه گزارش PDF</button></article>
+</div>
+@if (_job is not null)
+{
+    <section class="backup-status" role="status" aria-live="polite">
+        <h2>@(_job.Kind == "full" ? "بکاپ کامل" : "آرشیو PDF")</h2>
+        @if (_busy) { <p><span class="spinner-border spinner-border-sm"></span> در حال آماده‌سازی فایل… ممکن است چند دقیقه طول بکشد.</p> }
+        else if (_job.State == "ready")
+        {
+            <p>فایل آماده است. حجم: @((_job.Bytes.GetValueOrDefault() / 1048576d).ToString("0.00")) مگابایت</p>
+            <button class="btn btn-success" @onclick="DownloadAsync" disabled="@_downloading">@(_downloading ? "در حال آغاز دانلود…" : "دانلود فایل آماده‌شده")</button>
+            <p class="backup-note">فایل تا یک ساعت پس از آماده شدن قابل دریافت است. در اندروید در پوشهٔ Downloads ذخیره می‌شود.</p>
+        }
+        else { <p>@(_job.Error ?? "این فایل دیگر در دسترس نیست؛ دوباره آن را تهیه کنید.")</p> }
+    </section>
+}
+@if (_message is not null) { <p class="backup-error" role="alert">@_message</p> }
+<p class="backup-note">بکاپ شبانهٔ تلگرام مستقل است و همچنان بدون عکس ارسال می‌شود. PDF برای خواندن سوابق است؛ بازیابی نرم‌افزار با بکاپ کامل انجام می‌شود.</p>
+
+@code {
+    private Job? _job;
+    private bool _busy, _downloading;
+    private string? _message;
+    private readonly CancellationTokenSource _lifetime = new();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var saved = await JS.InvokeAsync<string?>("localStorage.getItem", "torsepan_backup_job");
+            if (Guid.TryParse(saved, out var id))
+            {
+                _job = await Api.GetAsync<Job>($"backups/{id}");
+                if (_job is not null && _job.State is "queued" or "running") { _busy = true; await PollAsync(); }
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            _busy = false;
+            StateHasChanged(); // A previous restart or interrupted poll must not block a new request.
+        }
+    }
+    private async Task StartAsync(string kind)
+    {
+        _busy = true; _message = null; _job = null;
+        try
+        {
+            _job = await Api.PostAsync<object, Job>("backups", new { kind });
+            if (_job is null) throw new InvalidOperationException();
+            await JS.InvokeVoidAsync("localStorage.setItem", "torsepan_backup_job", _job.Id.ToString());
+            await PollAsync();
+            if (_job?.State == "ready") await DownloadAsync();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch { _message = "درخواست انجام نشد؛ اتصال یا ورود به حساب را بررسی کنید. اگر فایل دیگری در حال ساخت است، کمی بعد تلاش کنید."; }
+        finally { _busy = false; }
+    }
+    private async Task PollAsync()
+    {
+        while (_job is not null && _job.State is "queued" or "running")
+        {
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(TimeSpan.FromSeconds(3), _lifetime.Token);
+            _job = await Api.GetAsync<Job>($"backups/{_job.Id}");
+        }
+        _busy = false;
+    }
+    private async Task DownloadAsync()
+    {
+        _downloading = true; _message = null;
+        try
+        {
+            var ticket = await Api.PostAsync<object, Ticket>($"backups/{_job!.Id}/ticket", new { });
+            if (ticket is null || ticket.Token.Length != 64) throw new InvalidOperationException();
+            await JS.InvokeVoidAsync("torsepanBackups.download", $"/api/internal/backups/download/{ticket.Token}");
+        }
+        catch { _message = "دانلود آغاز نشد؛ اگر یک ساعت گذشته، فایل را دوباره تهیه کنید."; }
+        finally { _downloading = false; }
+    }
+    public void Dispose() { _lifetime.Cancel(); _lifetime.Dispose(); }
+    private sealed record Job(Guid Id, string Kind, string State, long? Bytes, string? FileName, string? Error, DateTimeOffset Expires);
+    private sealed record Ticket(string Token);
+}
