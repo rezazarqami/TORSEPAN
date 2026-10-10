@@ -25,9 +25,17 @@ public sealed class DimpleBowlDto
 
 public sealed class BowlStageHistoryDto
 {
+    public List<BowlStagePerformerDto> BowlPerformers { get; set; } = [];
     public int Action { get; set; }
     public string ActionTitle { get; set; } = string.Empty;
     public string PerformedBy { get; set; } = string.Empty;
     public string Details { get; set; } = string.Empty;
     public DateTime PerformedAt { get; set; }
+}
+
+public sealed class BowlStagePerformerDto
+{
+    public string Label { get; set; } = string.Empty;
+    public string PerformedBy { get; set; } = string.Empty;
+    public string Details { get; set; } = string.Empty;
 }
