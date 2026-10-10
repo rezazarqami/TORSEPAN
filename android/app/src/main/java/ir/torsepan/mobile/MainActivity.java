@@ -17,6 +17,11 @@ import android.webkit.URLUtil;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebChromeClient;
+import android.webkit.ValueCallback;
+import android.content.ClipData;
+import android.content.ActivityNotFoundException;
+import java.util.ArrayList;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import java.io.OutputStream;
@@ -25,6 +30,9 @@ public final class MainActivity extends Activity {
     private static final String HOME = "https://torsepan.liara.run/";
     private static final String HOST = "torsepan.liara.run";
     private WebView browser;
+    private static final int PHOTO_CHOOSER = 1001;
+    private ValueCallback<Uri[]> photoCallback;
+    private Uri cameraPhoto;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -39,10 +47,50 @@ public final class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(false);
+        settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         CookieManager.getInstance().setAcceptCookie(true);
         browser.addJavascriptInterface(new PdfDownloads(), "TorsepanPdf");
+        browser.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
+                    FileChooserParams params) {
+                finishPhotoSelection(null);
+                photoCallback = callback;
+                Uri page = Uri.parse(view.getUrl() == null ? "" : view.getUrl());
+                if (!HOST.equalsIgnoreCase(page.getHost()) || !"https".equalsIgnoreCase(page.getScheme())) {
+                    finishPhotoSelection(null);
+                    return true;
+                }
+                Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                picker.addCategory(Intent.CATEGORY_OPENABLE);
+                picker.setType("image/*");
+                picker.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
+                picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                try {
+                    if (params.isCaptureEnabled()) {
+                        ContentValues values = new ContentValues();
+                        values.put(MediaStore.Images.Media.DISPLAY_NAME, "torsepan-" + System.currentTimeMillis() + ".jpg");
+                        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                        values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Torsepan");
+                        cameraPhoto = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                        if (cameraPhoto == null) throw new IllegalStateException("Camera output unavailable");
+                        Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                        camera.putExtra(MediaStore.EXTRA_OUTPUT, cameraPhoto);
+                        camera.setClipData(ClipData.newRawUri("photo", cameraPhoto));
+                        camera.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        try { startActivityForResult(camera, PHOTO_CHOOSER); }
+                        catch (ActivityNotFoundException missingCamera) {
+                            discardCameraPhoto();
+                            startActivityForResult(picker, PHOTO_CHOOSER);
+                        }
+                    } else startActivityForResult(picker, PHOTO_CHOOSER);
+                } catch (Exception error) {
+                    finishPhotoSelection(null);
+                    Toast.makeText(MainActivity.this, "انتخاب عکس باز نشد؛ دوباره امتحان کنید", Toast.LENGTH_LONG).show();
+                }
+                return true;
+            }
+        });
         browser.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
@@ -78,6 +126,47 @@ public final class MainActivity extends Activity {
         });
         if (state == null) browser.loadUrl(HOME);
         else browser.restoreState(state);
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PHOTO_CHOOSER) return;
+        if (resultCode != RESULT_OK || photoCallback == null) { finishPhotoSelection(null); return; }
+        ArrayList<Uri> selected = new ArrayList<>();
+        if (cameraPhoto != null) selected.add(cameraPhoto);
+        else if (data != null && data.getClipData() != null) {
+            ClipData clips = data.getClipData();
+            for (int i = 0; i < clips.getItemCount() && selected.size() < 8; i++) {
+                Uri uri = clips.getItemAt(i).getUri();
+                if (isImageContent(uri)) selected.add(uri);
+            }
+        } else if (data != null && isImageContent(data.getData())) selected.add(data.getData());
+        if (selected.isEmpty()) {
+            Toast.makeText(this, "فایل عکس معتبر انتخاب نشد", Toast.LENGTH_LONG).show();
+            finishPhotoSelection(null);
+        } else finishPhotoSelection(selected.toArray(new Uri[0]));
+    }
+
+    private boolean isImageContent(Uri uri) {
+        if (uri == null || !"content".equalsIgnoreCase(uri.getScheme())) return false;
+        try {
+            String type = getContentResolver().getType(uri);
+            return type != null && type.startsWith("image/");
+        } catch (Exception ignored) { return false; }
+    }
+
+    private void discardCameraPhoto() {
+        if (cameraPhoto != null) {
+            try { getContentResolver().delete(cameraPhoto, null, null); } catch (Exception ignored) { }
+            cameraPhoto = null;
+        }
+    }
+
+    private void finishPhotoSelection(Uri[] uris) {
+        ValueCallback<Uri[]> callback = photoCallback;
+        photoCallback = null;
+        if (uris == null) discardCameraPhoto(); else cameraPhoto = null;
+        if (callback != null) callback.onReceiveValue(uris);
     }
 
     private final class PdfDownloads {
@@ -118,6 +207,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        finishPhotoSelection(null);
         browser.destroy();
         super.onDestroy();
     }
