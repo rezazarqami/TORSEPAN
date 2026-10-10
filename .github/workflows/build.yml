@@ -68,6 +68,10 @@ jobs:
         env:
           TORSEPAN_PDF_PREVIEW_DIR: ${{ runner.temp }}/pdf-previews
         run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --pdf-preview-only
+      - name: Verify full backup access, archive completeness and passport pagination
+        env:
+          TORSEPAN_BACKUP_PREVIEW: ${{ runner.temp }}/pdf-previews/passport-backup-preview.pdf
+        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --manual-backup-only
       - uses: actions/upload-artifact@v4
         with:
           name: report-pdf-previews
