@@ -23,6 +23,8 @@ await using (var vazirmatn = Assembly.GetExecutingAssembly()
 }
 
 builder.Services.AddControllers();
+builder.Services.AddSingleton<ManualBackupJobs>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ManualBackupJobs>());
 builder.Services.AddScoped<MessagePushKeyStore>();
 builder.Services.AddHostedService<MessagePushWorker>();
 builder.Services.AddHttpClient<IMessagePushTransport, WebMessagePushTransport>().ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
