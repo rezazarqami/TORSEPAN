@@ -219,18 +219,10 @@ app.MapPost("/api/internal/telegram-payroll-report", async (HttpRequest request,
 app.MapPost("/api/internal/telegram-database-backup", async (HttpRequest request,
     IConfiguration configuration, IHttpClientFactory httpClientFactory, CancellationToken cancellationToken) =>
 {
-    var expectedSecret=configuration["TelegramRelay:Secret"];
-    if(string.IsNullOrWhiteSpace(expectedSecret)||request.Headers["X-Relay-Secret"]!=expectedSecret) return Results.Unauthorized();
-    var token=configuration["TelegramRelay:BotToken"]; var chatId=configuration["TelegramRelay:ChatId"];
-    if(string.IsNullOrWhiteSpace(token)||string.IsNullOrWhiteSpace(chatId)) return Results.Problem("Telegram relay is not configured.");
-    var form=await request.ReadFormAsync(cancellationToken); var file=form.Files.GetFile("backup");
-    if(file is null) return Results.BadRequest();
-    using var content=new MultipartFormDataContent(); content.Add(new StringContent(chatId),"chat_id");
-    content.Add(new StringContent("پشتیبان شبانه دیتابیس TORSEPAN"),"caption");
-    await using var stream=file.OpenReadStream(); content.Add(new StreamContent(stream),"document",file.FileName);
-    var response=await httpClientFactory.CreateClient().PostAsync($"https://api.telegram.org/bot{token}/sendDocument",content,CancellationToken.None);
-    return response.IsSuccessStatusCode?Results.Ok():Results.StatusCode((int)response.StatusCode);
-}).DisableAntiforgery();
+    using var client = httpClientFactory.CreateClient();
+    client.Timeout = TimeSpan.FromMinutes(6);
+    return await DatabaseBackupRelay.ForwardAsync(request, configuration, client, cancellationToken);
+}).DisableAntiforgery().WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(DatabaseBackupRelay.MaxRequestBytes));
 
 app.Run();
 
