@@ -39,6 +39,9 @@ public class ApiClient
         return await TryRefreshAsync(current, force: true);
     }
 
+    public Task<bool> RefreshAfterUnauthorizedAsync(string? failedAccessToken) =>
+        TryRefreshAsync(failedAccessToken);
+
     public async Task<T?> GetAsync<T>(string url)
     {
         var response = await SendWithRefreshAsync(() => _http.GetAsync(url));

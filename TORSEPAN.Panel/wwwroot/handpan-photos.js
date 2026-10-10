@@ -2,6 +2,45 @@ window.handpanPhotos = (() => {
     const refs = new Map(), pending = new Map(), notifying = new Set(), busy = new Set();
     const retryCounts = new Map(), retryTimers = new Map();
     const status = (id, text) => { const el = document.getElementById(id+"-status"); if (el) el.textContent = text; };
+    async function sendPhoto(id, handpanId, form, signal) {
+        let token = localStorage.getItem("access_token") || "";
+        const send = () => fetch("/api/internal/handpans/" + encodeURIComponent(handpanId) + "/photos", {
+            method:"POST", headers:{Authorization:"Bearer " + token}, body:form, signal
+        });
+        let response = await send();
+        // A 401 is rejected before saving. Never retry a timeout or server error automatically.
+        if (response.status === 401) {
+            const current = localStorage.getItem("access_token") || "";
+            let renewed = current && current !== token;
+            if (!renewed && refs.has(id) && window.torsepanConnection?.connected !== false) {
+                try { renewed = await refs.get(id).invokeMethodAsync("RenewPhotoSession", token); } catch { }
+            }
+            if (renewed) { token = localStorage.getItem("access_token") || ""; response = await send(); }
+        }
+        return response;
+    }
+    async function uploadError(response) {
+        const defaults = {
+            401:"نشست ورود پایان یافته؛ دوباره وارد حساب شوید.",
+            403:"حساب شما اجازه ثبت عکس ندارد.",
+            404:"ساز یا مسیر ثبت عکس پیدا نشد؛ صفحه را تازه کنید.",
+            413:"حجم عکس از محدودیت سرور بیشتر است؛ عکس کوچک‌تری انتخاب کنید.",
+            415:"فرمت عکس در سرور پشتیبانی نمی‌شود.",
+            429:"تعداد درخواست‌ها زیاد است؛ کمی بعد دوباره امتحان کنید.",
+            500:"سرور نتوانست عکس را ذخیره کند.",
+            502:"پنل به سرور عکس دسترسی ندارد.",
+            504:"پاسخ سرور عکس به‌موقع دریافت نشد؛ قبل از ارسال دوباره گالری را بررسی کنید."
+        };
+        let message;
+        const text = await response.text();
+        try {
+            const data = JSON.parse(text);
+            if (typeof data === "string") message = data;
+            else if (response.status < 500 && response.status !== 401)
+                message = data.detail || data.message || Object.values(data.errors || {}).flat().join(" ");
+        } catch { if (response.status < 500 && text.length < 250 && !text.includes("<")) message = text; }
+        return (response.status === 401 ? defaults[401] : message?.slice(0,250) || defaults[response.status] || "ثبت عکس انجام نشد.") + " (" + response.status + ")";
+    }
     async function decode(file) {
         if (typeof createImageBitmap === "function") {
             try { return await createImageBitmap(file, {imageOrientation:"from-image"}); } catch { }
@@ -79,14 +118,8 @@ window.handpanPhotos = (() => {
                 const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),120000);
                 try {
                     status(id,"در حال ارسال عکس "+(completed+1)+" از "+files.length+"…");
-                    const response=await fetch("/api/internal/handpans/"+encodeURIComponent(handpanId)+"/photos",{
-                        method:"POST",headers:{Authorization:"Bearer "+(localStorage.getItem("access_token")||"")},body:form,signal:controller.signal
-                    });
-                    if(!response.ok){
-                        const text=await response.text();let message;
-                        try{const data=JSON.parse(text);if(typeof data==="string")message=data;}catch{if(text.length<250&&!text.includes("<"))message=text;}
-                        throw new Error(response.status===401?"نشست ورود پایان یافته؛ دوباره وارد حساب شوید.":message||"ثبت عکس انجام نشد ("+response.status+").");
-                    }
+                    const response=await sendPhoto(id,handpanId,form,controller.signal);
+                    if(!response.ok)throw new Error(await uploadError(response));
                     const result=await response.json();completed++;pending.set(id,result.id);
                     status(id,"عکس ثبت شد؛ در حال تازه‌کردن گالری…");await notify(id);
                 } finally {clearTimeout(timeout);}

@@ -1,6 +1,7 @@
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 @inject HandpanPhotoService PhotoService
+@inject TORSEPAN.Panel.Services.ApiClient Api
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -67,6 +68,9 @@
         await JS.InvokeVoidAsync("handpanPhotos.register", GalleryInputId, _cameraReference);
         _registeredInput = CameraInputId;
     }
+    [JSInvokable]
+    public Task<bool> RenewPhotoSession(string? failedAccessToken) =>
+        Api.RefreshAfterUnauthorizedAsync(failedAccessToken);
     [JSInvokable]
     public async Task CameraUploaded(Guid photoId)
     {
