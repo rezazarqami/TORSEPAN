@@ -15,7 +15,7 @@ function photoEnv() {
     const input={id:"camera",files:[new File(["image"],"capture.jpg",{type:"image/jpeg"})],value:"capture.jpg",disabled:false,closest(){return label;}};
     elements.set("camera",input);elements.set("camera-status",{textContent:""});
     doc.hidden=false;doc.getElementById=id=>elements.get(id);
-    doc.createElement=()=>({getContext:()=>({drawImage(){}}),toBlob(cb,type){cb(new Blob(["webp"],{type}));}});
+    doc.createElement=()=>({getContext:()=>({fillRect(){},drawImage(){}}),toBlob(cb,type){cb(new Blob(["webp"],{type}));}});
     const context={window:win,document:doc,Blob,File,FormData,Uint8Array,AbortController,
         createImageBitmap:async()=>({width:4000,height:3000,close(){state.closed++;}}),
         setTimeout(fn){timers.set(++n,fn);return n;},clearTimeout(id){timers.delete(id);},
