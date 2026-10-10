@@ -15,6 +15,8 @@ jobs:
           dotnet-version: 10.0.x
       - name: Verify export endpoints, shipment transaction, account roles and backup retries
         run: dotnet run --project tests/ReleaseExportSmoke/ReleaseExportSmoke.csproj -c Release
+      - name: Verify complete photo backups and passport PDF archive
+        run: dotnet run --project tests/ReleaseExportSmoke/ReleaseExportSmoke.csproj -c Release -- --manual-backup-only
       - name: Verify Telegram backup relay errors and acknowledgements
         run: python3 -m unittest discover -s ops/telegram-relay -p test_backup_relay.py
   docker:
