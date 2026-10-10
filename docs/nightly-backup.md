@@ -14,7 +14,7 @@ Each run sends only `TORSEPAN-DATA-<timestamp>.dump`: a PostgreSQL custom-format
 
 `databaseBackup.mode` is `data-only`; `stage` distinguishes configuration, database dump and Telegram delivery. The dump has a 30-second connection timeout and a 10-minute execution limit so a stalled dump cannot permanently stop subsequent attempts. SSL delivery failures require checking the configured relay URL, its certificate and connectivity from the API container.
 
-Archives exceeding Telegram's per-document limit are sent in 45 MiB pieces named `.dump.part0001-of-000N`. Download every piece and concatenate them in numerical order before restoring:
+Archives larger than 8 MiB are sent in 8 MiB pieces named `.dump.part0001-of-000N`. The multipart body is buffered one part at a time with a known Content-Length. Smaller pieces also stay below the panel's default HTTP request limit. Download every piece and concatenate them in numerical order before restoring:
 
 ```bash
 cat TORSEPAN-DATA-2026-10-03-0200.dump.part????-of-???? > data.dump
@@ -23,3 +23,9 @@ pg_restore --no-owner --no-acl -d torsepan_restored data.dump
 ```
 
 If an archive arrived as a single `.dump`, use that file directly. Periodically verify a restore into an isolated database.
+
+The panel's backup endpoint explicitly permits a bounded 49 MiB request (45 MiB file) for compatibility with older API senders. Its Telegram request has a five-minute deadline and requires a JSON `ok: true` confirmation before returning `{ "status": "sent" }`. Existing relay credentials and the destination chat are unchanged. The API validates nonempty delivery receipts; empty success responses remain compatible with older panel versions.
+
+`databaseBackup.archiveBytes` and `partCount` report the generated archive size. `transportError` reports only HTTP/TLS/socket error codes from nested exceptions, without relay URLs or credentials. A generic stream-copy error alone does not distinguish an upload-size rejection from a network interruption.
+
+Preparation on 2026-10-10: the live API reported a failed backup at `telegram-delivery`, while inventory alerts succeeded. Local Kestrel tests reproduced the same stream-copy failure when a 31 MB file exceeded the legacy default request limit; the bounded endpoint accepts that file and confirms delivery through a fixture transport. This establishes a code defect, but the live archive size and relay logs are unavailable, so the exact live root cause remains unconfirmed. Authenticated production delivery must be checked after deployment. No database archive was sent to Telegram during these local tests.
