@@ -1,4 +1,3 @@
-@using Microsoft.AspNetCore.Components.Forms
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 @inject HandpanPhotoService PhotoService
@@ -22,16 +21,18 @@
         </div>
     }
     <div class="gallery-upload-actions">
-        <label class="gallery-action @(Uploading?"disabled":"")" title="گرفتن عکس با دوربین">
+        <label class="gallery-action" title="گرفتن عکس با دوربین">
             <span>📷</span> <span data-camera-label>دوربین</span>
-            <input id="@CameraInputId" class="d-none" type="file" accept="image/*" capture="environment"
-                   onchange="handpanPhotos.uploadCamera(this, '@HandpanId')" disabled="@Uploading" />
+            <input id="@CameraInputId" class="gallery-file-input" type="file" accept="image/*" capture="environment"
+                   onchange="handpanPhotos.uploadCamera(this, '@HandpanId')" />
         </label>
-        <label class="gallery-action @(Uploading?"disabled":"")" title="انتخاب از گالری">
-            <span>🖼️</span> گالری
-            <InputFile id="@GalleryInputId" class="d-none" OnChange="UploadGalleryAsync" multiple accept="image/jpeg,image/png,image/webp" disabled="@Uploading" />
+        <label class="gallery-action" title="انتخاب از گالری">
+            <span>🖼️</span> <span data-gallery-label>گالری</span>
+            <input id="@GalleryInputId" class="gallery-file-input" type="file" multiple accept="image/*"
+                   onchange="handpanPhotos.uploadGallery(this, '@HandpanId')" />
         </label>
     </div>
+    <div id="@(GalleryInputId + "-status")" class="small mt-2" role="status" aria-live="polite"></div>
     <div id="@(CameraInputId + "-status")" class="small mt-2" role="status" aria-live="polite"></div>
     @if(!string.IsNullOrWhiteSpace(_error)){<div class="text-danger small mt-2">@_error</div>}
 </section>
@@ -48,7 +49,7 @@
 @code {
     [Parameter, EditorRequired] public Guid HandpanId { get; set; }
     private readonly Dictionary<Guid,string> _thumbs=[]; private List<HandpanPhotoDto> _photos=[];
-    private Guid _loadedId,_selectedId; private string? _mainUrl,_error; private bool _loading,Uploading,_showPreview;
+    private Guid _loadedId,_selectedId; private string? _mainUrl,_error; private bool _loading,_showPreview;
     private string GalleryInputId => $"handpan-photo-gallery-{HandpanId:N}";
     private string CameraInputId => $"handpan-photo-camera-{HandpanId:N}";
     private DotNetObjectReference<HandpanPhotoGallery>? _cameraReference;
@@ -56,9 +57,14 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_registeredInput == CameraInputId) return;
-        if (_registeredInput is not null) await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput);
+        if (_registeredInput is not null)
+        {
+            await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput);
+            await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput.Replace("camera", "gallery"));
+        }
         _cameraReference ??= DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("handpanPhotos.register", CameraInputId, _cameraReference);
+        await JS.InvokeVoidAsync("handpanPhotos.register", GalleryInputId, _cameraReference);
         _registeredInput = CameraInputId;
     }
     [JSInvokable]
@@ -72,7 +78,14 @@
     }
     public async ValueTask DisposeAsync()
     {
-        try { if (_registeredInput is not null) await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput); }
+        try
+        {
+            if (_registeredInput is not null)
+            {
+                await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput);
+                await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput.Replace("camera", "gallery"));
+            }
+        }
         catch (JSDisconnectedException) { }
         _cameraReference?.Dispose();
     }
@@ -81,8 +94,5 @@
     private async Task SelectAsync(Guid id){_selectedId=id;_mainUrl=await PhotoService.DataUrlAsync(HandpanId,id,false);}
     private void OpenPreview()=>_showPreview=true;
     private void ClosePreview()=>_showPreview=false;
-    private Task UploadGalleryAsync(InputFileChangeEventArgs _) => OptimizeAndUploadAsync(GalleryInputId,8);
-    private async Task OptimizeAndUploadAsync(string inputId,int limit){Uploading=true;_error=null;try{var files=await JS.InvokeAsync<List<OptimizedPhoto>>("handpanPhotos.optimize",inputId);foreach(var file in files.Take(limit))await PhotoService.UploadAsync(HandpanId,file.Image,file.Thumbnail,file.Name);await LoadAsync();if(_photos.Count>0)await SelectAsync(_photos[^1].Id);}catch(Exception){_error="ثبت عکس انجام نشد؛ لطفاً دوباره امتحان کنید.";}finally{Uploading=false;}}
     private async Task DeleteAsync(HandpanPhotoDto photo){if(!await JS.InvokeAsync<bool>("confirm","این عکس حذف شود؟"))return;await PhotoService.DeleteAsync(HandpanId,photo.Id);_photos.Remove(photo);_thumbs.Remove(photo.Id);if(_selectedId==photo.Id){_mainUrl=null;if(_photos.Count>0)await SelectAsync(_photos[0].Id);}}
-    private sealed class OptimizedPhoto { public string Name { get; set; }="photo"; public byte[] Image { get; set; }=[]; public byte[] Thumbnail { get; set; }=[]; }
 }

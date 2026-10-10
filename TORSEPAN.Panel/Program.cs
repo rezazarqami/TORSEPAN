@@ -25,8 +25,7 @@ builder.Services.AddRazorComponents()
         options.HandshakeTimeout = TimeSpan.FromSeconds(30);
         options.KeepAliveInterval = TimeSpan.FromSeconds(15);
         options.MaximumParallelInvocationsPerClient = 2;
-        // Instrument photos are optimized in the browser, then transferred to the
-        // Blazor Server circuit before they are posted to the API.
+        // Instrument photos use direct HTTP uploads; other interop messages retain this limit.
         options.MaximumReceiveMessageSize = 8 * 1024 * 1024;
     });
 
@@ -138,14 +137,16 @@ app.MapPost("/api/internal/handpans/{handpanId:guid}/photos", async (
     var image = incomingForm.Files.GetFile("file");
     var thumbnail = incomingForm.Files.GetFile("thumbnail");
     if (image is null || thumbnail is null) return Results.BadRequest("فایل عکس کامل دریافت نشد.");
+    if (image.ContentType is not ("image/webp" or "image/jpeg") || thumbnail.ContentType != image.ContentType)
+        return Results.BadRequest("فرمت عکس و پیش‌نمایش باید WebP یا JPEG یکسان باشد.");
 
     using var content = new MultipartFormDataContent();
     await using var imageStream = image.OpenReadStream();
     await using var thumbnailStream = thumbnail.OpenReadStream();
     var imageContent = new StreamContent(imageStream);
-    imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/webp");
+    imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(image.ContentType);
     var thumbnailContent = new StreamContent(thumbnailStream);
-    thumbnailContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/webp");
+    thumbnailContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(thumbnail.ContentType);
     content.Add(imageContent, "file", image.FileName);
     content.Add(thumbnailContent, "thumbnail", thumbnail.FileName);
 
