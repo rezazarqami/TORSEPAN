@@ -30,12 +30,13 @@ public sealed class HandpanPhotosController(TORSEPANDbContext db) : ControllerBa
         if (handpan is null) return NotFound();
         if (handpan.Stage < ProductionStage.WaitingForFinalTune) return Conflict("آپلود عکس پس از خروج ساز از اتاق چسب فعال می‌شود.");
         if (file.Length is <= 0 or > 5_000_000 || thumbnail.Length is <= 0 or > 500_000) return BadRequest("حجم عکس بهینه‌شده معتبر نیست.");
-        if (file.ContentType != "image/webp" || thumbnail.ContentType != "image/webp") return BadRequest("فرمت عکس باید WebP باشد.");
+        if (file.ContentType is not ("image/webp" or "image/jpeg") || thumbnail.ContentType != file.ContentType)
+            return BadRequest("فرمت عکس و پیش‌نمایش باید WebP یا JPEG یکسان باشد.");
         await using var imageStream = new MemoryStream(); await using var thumbStream = new MemoryStream();
         await file.CopyToAsync(imageStream, ct); await thumbnail.CopyToAsync(thumbStream, ct);
-        if (!IsWebp(imageStream.GetBuffer(), imageStream.Length) || !IsWebp(thumbStream.GetBuffer(), thumbStream.Length)) return BadRequest("محتوای عکس معتبر نیست.");
+        if (!IsImage(imageStream.GetBuffer(), imageStream.Length, file.ContentType) || !IsImage(thumbStream.GetBuffer(), thumbStream.Length, file.ContentType)) return BadRequest("محتوای عکس معتبر نیست.");
         var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-        var item = new HandpanPhoto(handpanId, imageStream.ToArray(), thumbStream.ToArray(), "image/webp", userId);
+        var item = new HandpanPhoto(handpanId, imageStream.ToArray(), thumbStream.ToArray(), file.ContentType, userId);
         db.HandpanPhotos.Add(item); await db.SaveChangesAsync(ct);
         return Ok(new { item.Id, item.CreatedAt });
     }
@@ -46,5 +47,11 @@ public sealed class HandpanPhotosController(TORSEPANDbContext db) : ControllerBa
         var item = await db.HandpanPhotos.SingleOrDefaultAsync(x => x.HandpanId == handpanId && x.Id == id, ct);
         if (item is null) return NotFound(); db.HandpanPhotos.Remove(item); await db.SaveChangesAsync(ct); return NoContent();
     }
+    private static bool IsImage(byte[] data, long length, string type) => type switch
+    {
+        "image/webp" => IsWebp(data, length),
+        "image/jpeg" => length >= 4 && data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff && data[length - 2] == 0xff && data[length - 1] == 0xd9,
+        _ => false
+    };
     private static bool IsWebp(byte[] data, long length) => length >= 12 && data[0] == (byte)'R' && data[1] == (byte)'I' && data[2] == (byte)'F' && data[3] == (byte)'F' && data[8] == (byte)'W' && data[9] == (byte)'E' && data[10] == (byte)'B' && data[11] == (byte)'P';
 }
