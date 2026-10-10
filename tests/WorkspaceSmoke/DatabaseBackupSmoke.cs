@@ -42,6 +42,7 @@ internal static class DatabaseBackupSmoke
             Check(await Run(service), "data-only backup completes without a photo dump");
             Check(deliveries == 1 && status.LastSuccessUtc.HasValue && status.Stage == "completed" && status.Mode == "data-only",
                 "one archive is confirmed and recorded in health");
+            Check(status.ArchiveBytes > 0 && status.PartCount == 1, "health records the archive size and delivery part count");
             var retries = 0;
             using var retryHandler = new Handler(async (request, ct) =>
             {
@@ -58,12 +59,29 @@ internal static class DatabaseBackupSmoke
             using var rejectedHandler = new Handler((_, _) => { rejected++; return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized)); });
             using var rejection = new NightlyDatabaseBackupService(config, new Factory(rejectedHandler), new DatabaseBackupStatus(), NullLogger<NightlyDatabaseBackupService>.Instance);
             Check(!await Run(rejection) && rejected == 1, "invalid relay secret is not retried as a transport outage");
-            using var failedHandler = new Handler((_, _) => throw new HttpRequestException("SSL connection failed"));
+            using var failedHandler = new Handler((_, _) => throw new HttpRequestException("Error while copying content to a stream.",
+                new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionReset)));
             var failedStatus = new DatabaseBackupStatus();
             using var failed = new NightlyDatabaseBackupService(config, new Factory(failedHandler), failedStatus,
                 NullLogger<NightlyDatabaseBackupService>.Instance);
             Check(!await Run(failed) && failedStatus.State == "failed" && failedStatus.Stage == "telegram-delivery" &&
                 failedStatus.LastSuccessUtc is null, "SSL failure records delivery stage without false success");
+            Check(failedStatus.TransportError!.Contains("ConnectionReset"), "inner transport failure is available without private URLs or credentials");
+            await File.AppendAllTextAsync(dump, "truncate -s 9000000 \"$destination\"\n");
+            var sizes = new List<int>();
+            using var splitHandler = new Handler(async (request, ct) => {
+                Check(request.Content!.Headers.ContentLength is > 0, "multipart backup has a known total Content-Length");
+                sizes.Add((await request.Content.ReadAsByteArrayAsync(ct)).Length);
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content=new StringContent("{\"status\":\"sent\"}") };
+            });
+            var splitStatus = new DatabaseBackupStatus();
+            using var split = new NightlyDatabaseBackupService(config,new Factory(splitHandler),splitStatus,NullLogger<NightlyDatabaseBackupService>.Instance);
+            Check(await Run(split) && sizes.Count == 2 && sizes.All(x=>x<9_000_000) && splitStatus.PartCount==2,
+                "large archives are split into bounded parts below the legacy panel limit");
+            using var badReceiptHandler = new Handler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content=new StringContent("<html>redirected page</html>") }));
+            var receiptStatus = new DatabaseBackupStatus();
+            using var badReceipt = new NightlyDatabaseBackupService(config,new Factory(badReceiptHandler),receiptStatus,NullLogger<NightlyDatabaseBackupService>.Instance);
+            Check(!await Run(badReceipt) && receiptStatus.LastSuccessUtc is null,"a successful HTTP page without a delivery receipt is not a confirmed backup");
         }
         finally
         {

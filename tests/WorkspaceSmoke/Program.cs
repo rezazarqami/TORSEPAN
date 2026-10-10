@@ -48,6 +48,7 @@ if(args.Contains("--telegram-alert-only"))
 {
     await TelegramDeliverySmoke.RunAsync();
     await DatabaseBackupSmoke.RunAsync();
+    await BackupRelaySmoke.RunAsync();
     return;
 }
 if(args.Contains("--pdf-preview-only"))

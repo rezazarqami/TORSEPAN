@@ -145,6 +145,9 @@ app.MapGet("/health", (DatabaseBackupStatus backup, TelegramAlertStatus alerts, 
         backup.Mode,
         backup.LastAttemptUtc,
         backup.LastSuccessUtc,
+        backup.ArchiveBytes,
+        backup.PartCount,
+        backup.TransportError,
         backup.Error
     },
     orderReminders = orderReminders.Snapshot()

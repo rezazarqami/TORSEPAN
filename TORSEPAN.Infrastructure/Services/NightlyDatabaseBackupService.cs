@@ -15,13 +15,16 @@ public sealed class DatabaseBackupStatus
     public string? Error { get; internal set; }
     public string Stage { get; internal set; } = "idle";
     public string Mode => "data-only";
+    public long? ArchiveBytes { get; internal set; }
+    public int? PartCount { get; internal set; }
+    public string? TransportError { get; internal set; }
 }
 
 public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpClientFactory clients,
     DatabaseBackupStatus status, ILogger<NightlyDatabaseBackupService> logger) : BackgroundService
 {
-    // Both the relay (49 MiB) and Telegram (50 MB) must accept each multipart request.
-    private const int PartSize = 45 * 1024 * 1024;
+    // Stay below the panel's default request limit and common proxy upload limits.
+    private const int PartSize = 8 * 1024 * 1024;
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
@@ -43,6 +46,9 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
         status.LastAttemptUtc = DateTimeOffset.UtcNow;
         status.State = "running";
         status.Error = null;
+        status.TransportError = null;
+        status.ArchiveBytes = null;
+        status.PartCount = null;
         try
         {
             await BackupAsync(ct);
@@ -56,6 +62,7 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
         {
             status.State = "failed";
             status.Error = $"{ex.GetType().Name}: {ex.Message}";
+            status.TransportError = TransportFailure(ex);
             logger.LogError(ex, "{RunType} database backup failed.", runType);
             return false;
         }
@@ -86,6 +93,8 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             // Keep the photo table schema, but never dump or send its binary rows.
             status.Stage = "database-dump";
             await DumpAsync(connection, data, "--exclude-table-data=public.\"HandpanPhotos\"", ct);
+            status.ArchiveBytes = new FileInfo(data).Length;
+            status.PartCount = Math.Max(1, (int)((status.ArchiveBytes.Value + PartSize - 1) / PartSize));
             using var client = clients.CreateClient();
             client.Timeout = TimeSpan.FromMinutes(10);
             status.Stage = "telegram-delivery";
@@ -161,6 +170,9 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
                         var file = new StreamContent(stream);
                         file.Headers.ContentLength = stream.Length;
                         form.Add(file, "backup", name);
+                        // Buffer one bounded part, so proxies receive a known Content-Length
+                        // and retries never depend on a partially consumed file stream.
+                        await form.LoadIntoBufferAsync(PartSize + 64 * 1024L, ct);
                         using var request = new HttpRequestMessage(HttpMethod.Post, url)
                         {
                             Content = form,
@@ -180,6 +192,18 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
                             };
                             throw new HttpRequestException($"Telegram backup {name} failed: {reason}", null, response.StatusCode);
                         }
+                        var receipt = await response.Content.ReadAsStringAsync(ct);
+                        if (!string.IsNullOrWhiteSpace(receipt))
+                        {
+                            try
+                            {
+                                using var json = JsonDocument.Parse(receipt);
+                                if (!json.RootElement.TryGetProperty("status", out var value) || value.GetString() != "sent")
+                                    throw new InvalidOperationException("Backup relay did not confirm Telegram delivery.");
+                            }
+                            catch (JsonException) { throw new InvalidOperationException("Backup relay returned an invalid delivery receipt."); }
+                        }
+                        // Empty success bodies remain compatible with the older panel relay.
                         break;
                     }
                     catch (HttpRequestException ex) when (attempt < 3 &&
@@ -195,6 +219,20 @@ public sealed class NightlyDatabaseBackupService(IConfiguration config, IHttpCli
             }
             finally { File.Delete(part); }
         }
+    }
+
+    private static string? TransportFailure(Exception error)
+    {
+        var details = new List<string>();
+        for (Exception? current = error; current is not null; current = current.InnerException)
+        {
+            if (current is HttpRequestException http) details.Add($"HTTP:{http.HttpRequestError}");
+            else if (current is System.Net.Sockets.SocketException socket) details.Add($"Socket:{socket.SocketErrorCode}");
+            else if (current is System.Security.Authentication.AuthenticationException) details.Add("TLS:AuthenticationFailed");
+            else if (current is IOException) details.Add("IO:TransferInterrupted");
+        }
+        // Types/codes only: exception text can contain credentials or relay URLs.
+        return details.Count == 0 ? null : string.Join(" / ", details);
     }
 
     private static async Task<string> RelayFailureAsync(HttpResponseMessage response, CancellationToken ct)
