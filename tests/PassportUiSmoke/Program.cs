@@ -44,13 +44,29 @@ await renderer.Dispatcher.InvokeAsync(async () =>
     navigation.Set("/sales");
     Check((await renderer.RenderComponentAsync<GlobalProductionSearch>()).ToHtmlString().Contains("بررسی مرحله"), "global search retained on other pages");
     if (Environment.GetEnvironmentVariable("PASSPORT_PREVIEW_PATH") is { } path) await File.WriteAllTextAsync(path, view.ToHtmlString());
+    foreach (var type in new[] { 1, 2 })
+    {
+        var bowlView = await renderer.RenderComponentAsync<PassportPreview>(ParameterView.FromDictionary(new Dictionary<string,object?> { [nameof(PassportPreview.BowlType)] = type }));
+        var bowlHtml = WebUtility.HtmlDecode(bowlView.ToHtmlString());
+        Check(bowlHtml.Contains("BOWL ID") && bowlHtml.Contains("passport-primary-info") && bowlHtml.Contains("کد کاسه") && bowlHtml.Contains("SS-00090"), "loose bowl uses the same branded blue passport card");
+        Check(bowlHtml.Contains(type == 1 ? "کاسه رو" : "کاسه زیر") && !bowlHtml.Contains("کاسه بالا") && !bowlHtml.Contains("production-highlights"), "bowl type labels are explicit and legacy highlights removed");
+        Check(bowlHtml.Contains("Scale:") && bowlHtml.Contains("Design:") && bowlHtml.Contains("Status:"), "shared information rows include label separators");
+        if (Environment.GetEnvironmentVariable("PASSPORT_PREVIEW_PATH") is { } bowlPath) await File.WriteAllTextAsync(bowlPath + ".bowl-" + type + ".html", bowlView.ToHtmlString());
+    }
+
 });
 static void Check(bool value, string message) { if (!value) throw new Exception(message); Console.WriteLine("PASS " + message); }
 public sealed class PassportPreview : Dimpling
 {
+    [Parameter] public int BowlType { get; set; }
     protected override Task OnInitializedAsync()
     {
         var record = new DimpleBowlDto { HandpanId = Guid.NewGuid(), HandpanCode = "855", BottomBowlCode = "196", BottomDesignName = "اسیدی", DesignName = "ساده", ScaleName = "D Kurd 14", Stage = 18 };
+        if (BowlType != 0)
+        {
+            record.HandpanId = null; record.HandpanCode = ""; record.ProductionCode = "SS-00090";
+            record.BowlType = BowlType; record.Stage = 8; record.ScaleName = "D Kurd 9";
+        }
         record.History.Add(new() { ActionTitle = "شیپ", PerformedAt = new DateTime(2026,10,4,9,30,0,DateTimeKind.Utc), BowlPerformers = [new() { Label = "شیپ کاسه رو", PerformedBy = "شایان نجفی" }, new() { Label = "شیپ کاسه زیر", PerformedBy = "محمدرضا رنجبر", Details = "کشش توسط شاهین" }] });
         record.History.Add(new() { ActionTitle = "فاین تیون", PerformedBy = "رضا ضرغامی", PerformedAt = DateTime.UtcNow });
         typeof(Dimpling).GetField("_bowl",BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(this, record);
