@@ -22,6 +22,8 @@ await using (var vazirmatn = Assembly.GetExecutingAssembly()
     FontManager.RegisterFont(vazirmatn);
 }
 
+builder.Services.AddSingleton<ManualBackupJobs>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ManualBackupJobs>());
 builder.Services.AddControllers();
 builder.Services.AddScoped<MessagePushKeyStore>();
 builder.Services.AddHostedService<MessagePushWorker>();
