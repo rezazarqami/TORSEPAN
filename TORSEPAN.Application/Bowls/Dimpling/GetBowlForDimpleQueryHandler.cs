@@ -84,6 +84,8 @@ public sealed class GetBowlForDimpleQueryHandler
         }
 
         var users = (await _unitOfWork.Users.GetAllAsync()).ToDictionary(x => x.Id);
+        Guid? topBowlId = assembly?.TopBowlId ?? (bowl.BowlType == BowlType.Top ? bowl.Id : null);
+        Guid? bottomBowlId = assembly?.BottomBowlId ?? (bowl.BowlType == BowlType.Bottom ? bowl.Id : null);
 
         dto.History.AddRange(events
             .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
@@ -93,6 +95,9 @@ public sealed class GetBowlForDimpleQueryHandler
             .GroupBy(x => new { x.Action, PackagingKind = x.Action == ProductionAction.Packaging ? (x.BowlId.HasValue ? 2 : 1) : 0 })
             .Select(group => new BowlStageHistoryDto
             {
+                BowlPerformers = group.Key.Action is ProductionAction.Shape or ProductionAction.Tune
+                    ? BowlPerformers(group, group.Key.Action, topBowlId, bottomBowlId, users)
+                    : [],
                 Action = (int)group.Key.Action,
                 ActionTitle = ActionTitle(group.Key.Action, group.Key.PackagingKind),
                 PerformedBy = string.Join("، ", group.Select(x =>
@@ -105,6 +110,23 @@ public sealed class GetBowlForDimpleQueryHandler
             }).OrderBy(x => x.PerformedAt));
         return Result<BowlDimpleDto>.Success(dto);
     }
+
+    private static List<BowlStagePerformerDto> BowlPerformers(
+        IEnumerable<TORSEPAN.Domain.Entities.ProductionEvent> events, ProductionAction action,
+        Guid? topBowlId, Guid? bottomBowlId,
+        IReadOnlyDictionary<Guid, TORSEPAN.Domain.Entities.User> users) =>
+        events.GroupBy(x => x.BowlId)
+            .OrderBy(part => part.Key.HasValue && part.Key == topBowlId ? 0 : 1)
+            .Select(part => new BowlStagePerformerDto
+            {
+                Label = ActionTitle(action, 0) + (part.Key.HasValue && part.Key == topBowlId
+                    ? " کاسه رو"
+                    : part.Key.HasValue && part.Key == bottomBowlId ? " کاسه زیر" : ""),
+                PerformedBy = string.Join("، ", part.Select(x => string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)
+                    .Where(name => !string.IsNullOrWhiteSpace(name)).Distinct()),
+                Details = action == ProductionAction.Shape
+                    ? ShapeContributionDetails(part.Select(x => x.Description), users) : string.Empty
+            }).ToList();
 
     private static string InstrumentNoteText(string description)
     {

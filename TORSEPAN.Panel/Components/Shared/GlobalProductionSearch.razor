@@ -1,5 +1,5 @@
 @inject NavigationManager Navigation
-@if (!IsMessages && !IsDashboard && !IsBowlRegistration && !IsDesignRegistration && !IsMaterialInventory)
+@if (!IsMessages && !IsDashboard && !IsBowlRegistration && !IsDesignRegistration && !IsMaterialInventory && !IsProductionPassport)
 {
 <div class="card border-0 shadow-sm mb-4"><div class="card-body py-3"><div class="input-group">
 <input class="form-control" placeholder="کد کاسه یا ساز را وارد کنید" @bind="_code" @bind:event="oninput" @onkeydown="OnKeyDown" />
@@ -7,6 +7,7 @@
 </div></div></div>
 }
 @code {
+ private bool IsProductionPassport => new[] { "/dimpling", "/production/process" }.Contains(new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/'), StringComparer.OrdinalIgnoreCase);
  private string _code=""; private bool IsDashboard => new Uri(Navigation.Uri).AbsolutePath == "/";
  private bool IsBowlRegistration => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/bowls/new", StringComparison.OrdinalIgnoreCase);
  private bool IsDesignRegistration => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/designs", StringComparison.OrdinalIgnoreCase);

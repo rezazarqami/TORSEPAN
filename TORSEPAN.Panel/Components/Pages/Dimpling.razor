@@ -15,12 +15,6 @@
 
 <PageTitle>تولید</PageTitle>
 
-<h3 class="mb-4">تولید</h3>
-
-<div class="alert alert-light border mb-4">
-    دیمپل ← شیپ ← پخت ← تیون ← چسب ← فاین تیون ← QC
-</div>
-
 @if (!string.IsNullOrWhiteSpace(_successMessage))
 {
     <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
@@ -83,10 +77,10 @@
     </div>
 }
 
-<div class="card p-4">
-    <label class="form-label">کد ساز را وارد کنید</label>
-    <div class="input-group mb-3">
-        <input class="form-control"
+<div class="card production-passport-page">
+    <label class="form-label passport-search-label" for="passport-code">کد ساز را وارد کنید</label>
+    <div class="input-group passport-search mb-3">
+        <input id="passport-code" class="form-control"
                placeholder="کد ساز را وارد کنید"
                @bind="_productionCode"
                @bind:event="oninput"
@@ -106,11 +100,15 @@
         <div class="instrument-passport @(string.IsNullOrWhiteSpace(_bowl.HandpanCode) ? "bowl-file" : "handpan-file")">
             @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
             {
-                <div class="passport-header"><div><small>TORSEPAN · INSTRUMENT ID</small><h3>شناسنامه ساز</h3></div><div class="passport-logo"><img src="/images/brand/torsepan-logo.webp" alt="لوگوی TORSEPAN" /></div></div>
+                <div class="passport-header"><span>TORSEPAN · INSTRUMENT ID</span><div class="passport-logo"><img src="/images/brand/torsepan-logo.webp" alt="لوگوی TORSEPAN" /></div></div>
                 <div class="passport-primary-info">
-                    <div><span>کد ساز</span><strong>@_bowl.HandpanCode</strong></div>
-                    <div><span>Scale</span><strong>@_bowl.ScaleName</strong></div>
-                    <div><span>وضعیت</span><strong>@StageText(_bowl.Stage)</strong></div>
+                    <div class="passport-codes">
+                        <div><span>کد ساز</span><strong><bdi>@_bowl.HandpanCode</bdi></strong></div>
+                        <div class="passport-bottom-code"><span>کد کاسه زیر</span><strong><bdi>@_bowl.BottomBowlCode</bdi> <span>(@_bowl.BottomDesignName)</span></strong></div>
+                    </div>
+                    <div class="passport-info-line passport-scale"><span lang="en">Scale</span><strong dir="auto">@_bowl.ScaleName</strong></div>
+                    <div class="passport-info-line"><span lang="en">Design</span><strong>@_bowl.DesignName</strong></div>
+                    <div class="passport-info-line passport-status"><span lang="en">Status</span><strong>@StageText(_bowl.Stage)</strong></div>
                 </div>
             }
             else
@@ -126,26 +124,32 @@
                     </div>
                 </div>
             }
-            @if (!string.IsNullOrWhiteSpace(_bowl.HandpanCode))
-            {
-                <div class="passport-secondary-info">
-                    <div><span>کد کاسه زیر</span><strong>@_bowl.BottomBowlCode (@_bowl.BottomDesignName)</strong></div>
-                    <div><span>دیزاین</span><strong>@_bowl.DesignName</strong><small>برگرفته از دیزاین کاسه رو</small></div>
-                </div>
-            }
-
             @if (_bowl.History.Count > 0)
             {
-                <div class="card bg-light border-0 mt-3">
+                <div class="card bg-light border-0 mt-3 passport-history">
                     <div class="card-body py-3">
                         <strong>مراحل انجام‌شده تا این لحظه</strong>
-                        <div class="table-responsive mt-2">
-                            <table class="table table-sm align-middle mb-0">
-                                <thead><tr><th>مرحله</th><th>انجام‌دهنده</th><th>زمان انجام</th></tr></thead>
+                        <div class="passport-history-wrap mt-2">
+                            <table class="table table-sm align-middle mb-0 passport-history-table">
+                                <colgroup><col class="history-stage" /><col class="history-worker" /><col class="history-date" /></colgroup>
+                                <thead><tr><th scope="col">مرحله</th><th scope="col">انجام‌دهنده</th><th scope="col">تاریخ</th></tr></thead>
                                 <tbody>
                                 @foreach (var item in _bowl.History)
                                 {
-                                    <tr><td>@item.ActionTitle</td><td><div class="passport-performers">@foreach(var performer in PerformerNames(item.PerformedBy)){<span>@performer</span>}</div>@if(!string.IsNullOrWhiteSpace(item.Details)){<small class="d-block text-muted mt-1">@item.Details</small>}</td><td>@PersianDateTime.FormatDateTime(item.PerformedAt)</td></tr>
+                                    <tr><td>@item.ActionTitle</td><td>
+                                        @if (item.BowlPerformers.Count > 0)
+                                        {
+                                            @foreach (var part in item.BowlPerformers)
+                                            {
+                                                <div class="mb-2"><div class="passport-performers">@foreach (var performer in PerformerNames(part.PerformedBy)){<span>@part.Label: @performer</span>}</div>
+                                                @if (!string.IsNullOrWhiteSpace(part.Details)){<small class="d-block text-muted mt-1">@part.Details</small>}</div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <div class="passport-performers">@foreach(var performer in PerformerNames(item.PerformedBy)){<span>@performer</span>}</div>@if(!string.IsNullOrWhiteSpace(item.Details)){<small class="d-block text-muted mt-1">@item.Details</small>}
+                                        }
+                                    </td><td><time class="passport-event-date" datetime="@item.PerformedAt.ToString("O")"><span>@PersianDateTime.FormatDate(item.PerformedAt)</span><small>@PersianDateTime.FormatTime(item.PerformedAt)</small></time></td></tr>
                                 }
                                 </tbody>
                             </table>
@@ -160,7 +164,7 @@
             }
             @if (_bowl.HandpanId.HasValue && _bowl.Stage >= 12)
             {
-                <section class="passport-photo-panel"><header><div><small>تصاویر ساز</small><strong>عکس‌های شناسنامه</strong></div><span>اختیاری</span></header><div class="passport-photo-body"><HandpanPhotoGallery HandpanId="@_bowl.HandpanId.Value" /></div></section>
+                <section class="passport-photo-panel"><header><strong>تصاویر ساز</strong></header><div class="passport-photo-body"><HandpanPhotoGallery HandpanId="@_bowl.HandpanId.Value" /></div></section>
             }
             @if (_bowl.Stage is >= 4 and <= 11)
             {
