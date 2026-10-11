@@ -9,7 +9,7 @@ namespace TORSEPAN.API.Reporting;
 public sealed record PassportSnapshot(DateTime CapturedUtc, IReadOnlyList<PassportRecord> Records, IReadOnlyList<MaterialStock> Materials);
 public sealed record MaterialStock(string Name, int Quantity, int Top, int Bottom);
 public sealed record PassportRecord(string Code, string Kind, string Group, string Stage, string Scale, string Design,
-    string Details, IReadOnlyList<PassportOperation> Operations);
+    string Details, IReadOnlyList<PassportOperation> Operations, string BottomCode = "", string BottomDesign = "");
 public sealed record PassportOperation(Guid Id, DateTime Date, string Action, string Actor, string Bowl,
     string Result, string Duration, string Description);
 
@@ -53,7 +53,7 @@ public static class PassportBackupSnapshot
                 details += $" | فروش: {PassportBackupPdf.Date(h.SoldAt.Value)} | خریدار: {h.BuyerName ?? "—"} | تلفن: {h.BuyerPhoneNumber ?? "—"} | مبلغ: {h.SalePrice?.ToString("N0") ?? "—"} | مقصد: {h.SaleDestination ?? "داخلی"}";
             if (h.WarrantyActivatedAt.HasValue) details += $" | فعال شدن ضمانت: {PassportBackupPdf.Date(h.WarrantyActivatedAt.Value)}";
             if (h.ExportWarehouseLocation.HasValue) details += $" | محل انبار صادراتی: {h.ExportWarehouseLocation}";
-            records.Add(new(h.SerialNumber, "ساز", h.Status == ProductionStatus.Rejected ? "ردشده" : Group(h.Stage), Stage(h.Stage), h.Scale?.Name ?? top.Scale?.Name ?? "ثبت نشده", Design(bowlEvents[top.Id]), details, Operations(related)));
+            records.Add(new(h.SerialNumber, "ساز", h.Status == ProductionStatus.Rejected ? "ردشده" : Group(h.Stage), Stage(h.Stage), h.Scale?.Name ?? top.Scale?.Name ?? "ثبت نشده", Design(bowlEvents[top.Id]), details, Operations(related), bottom.ProductionCode, Design(bowlEvents[bottom.Id])));
         }
         foreach (var b in bowls.Where(x => !used.Contains(x.Id)))
         {
