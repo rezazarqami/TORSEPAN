@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TORSEPAN.Domain.Entities;
 
 namespace TORSEPAN.Infrastructure.Persistence;
@@ -9,6 +9,9 @@ public class TORSEPANDbContext : DbContext
         : base(options)
     {
     }
+
+    public DbSet<OfflineDevice> OfflineDevices => Set<OfflineDevice>();
+    public DbSet<OfflineReceipt> OfflineReceipts => Set<OfflineReceipt>();
 
     public DbSet<User> Users => Set<User>();
     public DbSet<MessagePushKeys> MessagePushKeys => Set<MessagePushKeys>();
@@ -39,10 +42,45 @@ public class TORSEPANDbContext : DbContext
     public DbSet<AccountingParty> AccountingParties => Set<AccountingParty>();
     public DbSet<AccountingDocument> AccountingDocuments => Set<AccountingDocument>();
 
+    private void StampProductionVersions()
+    {
+        ChangeTracker.DetectChanges();
+        foreach (var entry in ChangeTracker.Entries().Where(e => e.Entity is Bowl or Handpan or HandpanAssembly or Material
+            && e.State is EntityState.Added or EntityState.Modified))
+            entry.Property("OfflineVersion").CurrentValue = Guid.NewGuid();
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        StampProductionVersions();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        StampProductionVersions();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    public DbSet<SaleLeadSource> SaleLeadSources => Set<SaleLeadSource>();
+    public DbSet<SalesReferrer> SalesReferrers => Set<SalesReferrer>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<OfflineDevice>().ToTable("OfflineDevices", t => t.HasCheckConstraint("CK_OfflineDevices_Singleton", "\"Id\" = 1"));
+        modelBuilder.Entity<OfflineDevice>().HasKey(x => x.Id);
+        modelBuilder.Entity<OfflineDevice>().Property(x => x.Id).ValueGeneratedNever();
+        modelBuilder.Entity<OfflineReceipt>().HasKey(x => x.OperationId);
+        modelBuilder.Entity<OfflineReceipt>().HasIndex(x => x.WarrantyPending);
+        modelBuilder.Entity<OfflineReceipt>().Property(x => x.PayloadJson).HasMaxLength(16384);
+        modelBuilder.Entity<OfflineReceipt>().Property(x => x.PayloadHash).HasMaxLength(64);
+        modelBuilder.Entity<OfflineReceipt>().HasIndex(x => new { x.DeviceId, x.AcceptedUtc });
+        modelBuilder.Entity<Material>().Property(x => x.OfflineVersion).IsConcurrencyToken();
+        modelBuilder.Entity<Bowl>().Property<Guid>("OfflineVersion").IsConcurrencyToken();
+        modelBuilder.Entity<Handpan>().Property<Guid>("OfflineVersion").IsConcurrencyToken();
+        modelBuilder.Entity<HandpanAssembly>().Property<Guid>("OfflineVersion").IsConcurrencyToken();
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TORSEPANDbContext).Assembly);
     }
 }

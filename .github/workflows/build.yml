@@ -17,6 +17,8 @@ jobs:
         run: dotnet run --project tests/ReleaseExportSmoke/ReleaseExportSmoke.csproj -c Release
       - name: Verify complete photo backups and passport PDF archive
         run: dotnet run --project tests/ReleaseExportSmoke/ReleaseExportSmoke.csproj -c Release -- --manual-backup-only
+      - name: Verify single-phone offline operations and migration model
+        run: dotnet run --project tests/ReleaseExportSmoke/ReleaseExportSmoke.csproj -c Release -- --offline-only
       - name: Verify Telegram backup relay errors and acknowledgements
         run: python3 -m unittest discover -s ops/telegram-relay -p test_backup_relay.py
   docker:
