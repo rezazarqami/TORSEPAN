@@ -15,9 +15,9 @@
     <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
 </section>
 <nav class="order-tabs" aria-label="بخش‌های سفارش">
+    <button class="@(_tab == "list" ? "active" : "")" aria-pressed="@(_tab == "list")" @onclick='() => _tab = "list"'><strong>سفارش‌های نهایی</strong><b>@_orders.Count(x => !x.IsDraft)</b></button>
     <button class="@(_tab == "new" ? "active" : "")" aria-pressed="@(_tab == "new")" @onclick='() => _tab = "new"'><span>+</span><strong>ساخت سفارش</strong></button>
     <button class="@(_tab == "drafts" ? "active" : "")" aria-pressed="@(_tab == "drafts")" @onclick='() => _tab = "drafts"'><strong>پیش‌سفارش‌ها</strong><b>@_orders.Count(x => x.IsDraft)</b></button>
-    <button class="@(_tab == "list" ? "active" : "")" aria-pressed="@(_tab == "list")" @onclick='() => _tab = "list"'><strong>سفارش‌های نهایی</strong><b>@_orders.Count(x => !x.IsDraft)</b></button>
 </nav>
 @if (_message is not null){<div class="order-notice @(_isError ? "error" : "success")" role="@(_isError ? "alert" : "status")">@_message<button aria-label="بستن پیام" @onclick="()=>_message=null">×</button></div>}
 @if (_loading){<div class="orders-loading" role="status">در حال دریافت سفارش‌ها و فهرست دیزاین‌ها…</div>}
@@ -84,15 +84,25 @@ else
         <div class="order-filters"><label for="order-search"><span class="visually-hidden">جست‌وجوی سفارش</span><input id="order-search" class="form-control" placeholder="نام، دیزاین، اسکیل یا کد ساز…" @bind="_search" @bind:event="oninput" /></label>@if(_tab == "list"){<select aria-label="فیلتر سفارش" class="form-select" @bind="_filter"><option value="all">همه سفارش‌ها</option><option value="active">دارای مهلت</option><option value="near">یک‌چهارم پایانی</option><option value="overdue">مهلت پایان‌یافته</option><option value="no-code">کدهای ناقص</option></select>}</div>
         @if(!VisibleOrders.Any()){<div class="empty-orders"><span>☷</span><h3>سفارشی برای نمایش نیست</h3><p>یک سفارش تازه بساز یا عبارت جست‌وجو را تغییر بده.</p><button class="btn create-order" @onclick='()=>_tab="new"'>ساخت سفارش</button></div>}
         <div class="orders-list">
-            @foreach(var order in VisibleOrders)
+            @foreach(var entry in VisibleOrders.Select((order, index) => (Order: order, Number: index + 1)))
             {
+                var order = entry.Order;
                 <article class="order-card @(!order.IsDraft && order.DueAtUtc <= _now ? "late" : "")" @key="order.Id">
+                    <button type="button" class="order-list-toggle" aria-expanded="@(_selectedOrderId == order.Id ? "true" : "false")" aria-controls="order-details-@order.Id" @onclick="()=>ToggleOrder(order.Id)">
+                        <span class="order-list-number">@entry.Number</span>
+                        <span class="order-list-name"><strong>@order.CustomerName</strong><small>@order.TotalQuantity ساز · @(order.IsDraft ? "پیش‌سفارش" : "سفارش نهایی")</small></span>
+                        <span class="order-list-date">@PersianDate(order.CreatedAtUtc)</span>
+                        <span class="order-list-chevron">@(_selectedOrderId == order.Id ? "⌃" : "⌄")</span>
+                    </button>
+                    @if(_selectedOrderId == order.Id)
+                    {
+                    <div class="order-details" id="order-details-@order.Id">
                     <div class="order-card-head"><div><small>@(order.IsDraft ? "پیش‌سفارش / قابل ویرایش" : "سفارش نهایی")</small><h3>@order.CustomerName</h3><span>@order.TotalQuantity ساز · @order.Lines.Count ردیف</span></div><div class="time-badge"><strong>@(order.IsDraft ? "پیش‌سفارش" : TimeLabel(order))</strong><small>@(order.IsDraft ? "هنوز نهایی نشده" : order.DueAtUtc <= _now ? "از موعد گذشته" : "تا موعد تحویل")</small></div></div>
                     <div class="order-dates"><span>تاریخ سفارش: <b>@PersianDate(order.CreatedAtUtc)</b></span><span>مدت: <b>@order.DurationDays روز</b></span><span>موعد: <b>@PersianDate(order.DueAtUtc)</b></span></div>
                     @if(!order.IsDraft){<div class="order-progress" role="progressbar" aria-label="زمان سپری‌شده" aria-valuenow="@((int)Progress(order))" aria-valuemin="0" aria-valuemax="100"><i style="width:@(Progress(order).ToString("0.##", CultureInfo.InvariantCulture))%"></i></div><div class="progress-caption"><span>@((int)Progress(order))٪ زمان گذشته</span><span>@order.AssignedQuantity / @order.TotalQuantity کد ثبت شده</span></div>}
                     @if(!order.IsDraft)
                     {
-                        var overview=order.Lines.OrderBy(x=>x.Position).SelectMany(x=>x.Instruments.OrderBy(i=>i.Slot)).ToArray();
+                        var overview=order.Lines.OrderBy(x=>x.Position).SelectMany(x=>x.Instruments.OrderBy(i=>i.Slot).Select(i=>(Instrument: i, Scale: i.ScaleName ?? x.ScaleName))).ToArray();
                         var overviewPage=Math.Clamp(_overviewPages.GetValueOrDefault(order.Id),0,Math.Max(0,(overview.Length-1)/50));
                         <section class="instrument-overview" aria-label="کد و وضعیت سازهای سفارش">
                             <header><strong>وضعیت سازها در یک نگاه</strong><span>@overview.Length کد از @order.TotalQuantity ساز</span></header>
@@ -100,9 +110,9 @@ else
                             else
                             {
                                 <div class="overview-grid" tabindex="0" role="list" aria-label="فهرست کد و وضعیت" aria-live="polite">
-                                    @foreach(var instrument in overview.Skip(overviewPage*50).Take(50))
+                                    @foreach(var item in overview.Skip(overviewPage*50).Take(50))
                                     {
-                                        <div class="overview-item" role="listitem" @key="instrument.Code"><strong dir="ltr">@instrument.Code</strong><span>@instrument.ProductionStage</span></div>
+                                        <div class="overview-item" role="listitem" @key="item.Instrument.Code"><strong dir="ltr">@item.Instrument.Code</strong><span class="overview-scale" dir="auto">@item.Scale</span><span>@item.Instrument.ProductionStage</span></div>
                                     }
                                 </div>
                                 @if(overview.Length>50){<nav class="overview-pages" aria-label="صفحات وضعیت سازها"><button type="button" class="btn subtle" disabled="@(overviewPage==0)" @onclick="()=>_overviewPages[order.Id]=overviewPage-1">قبلی</button><span>@(overviewPage*50+1) تا @Math.Min((overviewPage+1)*50,overview.Length) از @overview.Length کد</span><button type="button" class="btn subtle" disabled="@((overviewPage+1)*50>=overview.Length)" @onclick="()=>_overviewPages[order.Id]=overviewPage+1">بعدی</button></nav>}
@@ -130,7 +140,7 @@ else
                                         @foreach(var slot in Enumerable.Range(page * 12 + 1, Math.Min(12, line.Quantity - page * 12)))
                                         {
                                             var instrument = line.Instruments.FirstOrDefault(x => x.Slot == slot);
-                                            <button class="instrument-slot @(instrument is null ? "empty" : "assigned")" @onclick="()=>OpenLineCode(order,line,slot)"><span class="slot-number">ساز @slot</span><strong dir="ltr">@(instrument?.Code ?? "+")</strong><small>@(instrument?.ProductionStage ?? "ثبت کد ساز")</small>@if(!string.IsNullOrEmpty(instrument?.ProductionStatus)){<small>@instrument.ProductionStatus</small>}</button>
+                                            <button class="instrument-slot @(instrument is null ? "empty" : "assigned")" @onclick="()=>OpenLineCode(order,line,slot)"><span class="slot-number">ساز @slot</span><strong dir="ltr">@(instrument?.Code ?? "+")</strong><small dir="auto">@(instrument?.ScaleName ?? line.ScaleName)</small><small>@(instrument?.ProductionStage ?? "ثبت کد ساز")</small>@if(!string.IsNullOrEmpty(instrument?.ProductionStatus)){<small>@instrument.ProductionStatus</small>}</button>
                                         }
                                     </div>
                                     @if(line.Quantity > 12){<div class="slot-pages"><button class="btn subtle" disabled="@(page==0)" @onclick="()=>_codePages[line.Id]=page-1">قبلی</button><small>ساز @(page*12+1) تا @Math.Min((page+1)*12,line.Quantity) از @line.Quantity</small><button class="btn subtle" disabled="@((page+1)*12>=line.Quantity)" @onclick="()=>_codePages[line.Id]=page+1">بعدی</button></div>}
@@ -143,6 +153,8 @@ else
                     }
                     <div class="order-card-actions">@if(!order.IsDraft){<button class="btn subtle" disabled="@_saving" @onclick="()=>EditDraftAsync(order)">ویرایش سفارش</button>}@if(order.IsDraft){<button class="btn create-order" disabled="@_saving" @onclick="()=>EditDraftAsync(order)">ادامه و بررسی سفارش ←</button>}<button class="btn delete-order" disabled="@_deleting" @onclick="()=>OpenDelete(order)">حذف @(order.IsDraft ? "پیش‌سفارش" : "سفارش")</button></div>
                     @if(!order.IsDraft){<div class="reminder-row"><small>یادآوری تلگرام</small>@foreach(var reminder in order.Reminders){<span class="@(reminder.SentAtUtc.HasValue ? "sent" : reminder.HasError ? "retry" : "")" title="@ReminderTitle(reminder)">@(reminder.Milestone==4 ? "پایان" : $"{reminder.Milestone*25}٪") @(reminder.SentAtUtc.HasValue ? "✓" : reminder.HasError ? "↻" : "")</span>}</div>}
+                    </div>
+                    }
                 </article>
             }
         </div>
@@ -180,6 +192,8 @@ else
     {
         if (!_expandedCodeOrders.Add(orderId)) _expandedCodeOrders.Remove(orderId);
     }
+    private Guid? _selectedOrderId;
+    private void ToggleOrder(Guid id) => _selectedOrderId = _selectedOrderId == id ? null : id;
     private OrderDto? _editedOrder;
     private OrderLineDto? ExistingLine(LineEditor item) => _editingFinalized ? _editedOrder?.Lines.SingleOrDefault(x=>x.Id==item.LineId) : null;
     private bool IsScaleValid(LineEditor item) => _scales.Any(x=>x.Id==item.ScaleId) || (ExistingLine(item) is { } old && old.ScaleId==item.ScaleId);
@@ -187,7 +201,7 @@ else
     private bool _editingFinalized;
     private Guid? _draftId;
     private int _draftVersion = 1;
-    private string _tab = "new", _customerName = "", _duration = "", _search = "", _filter = "all", _code = "";
+    private string _tab = "list", _customerName = "", _duration = "", _search = "", _filter = "all", _code = "";
     private DateTime? _orderDate = TehranToday;
     private DateTime _now = DateTime.UtcNow;
     private static TimeZoneInfo Tehran => TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
@@ -227,7 +241,7 @@ else
     private string ScaleName(Guid? id) => _scales.FirstOrDefault(x=>x.Id==id)?.Name ?? "انتخاب اسکیل";
     private IEnumerable<OrderDto> VisibleOrders => _orders.Where(x => x.IsDraft == (_tab == "drafts") &&
         (string.IsNullOrWhiteSpace(_search) || x.CustomerName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || x.Lines.Any(l => l.DesignName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || l.ScaleName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || l.Instruments.Any(i=>i.Code.Contains(ProductionCodeNormalizer.Normalize(_search),StringComparison.OrdinalIgnoreCase)))) &&
-        (_tab=="drafts" || (_filter switch { "active"=>x.DueAtUtc>_now,"overdue"=>x.DueAtUtc<=_now,"near"=>x.DueAtUtc>_now && Remaining(x)<=x.DurationDays/4d,"no-code"=>x.AssignedQuantity<x.TotalQuantity,_=>true })));
+        (_tab=="drafts" || (_filter switch { "active"=>x.DueAtUtc>_now,"overdue"=>x.DueAtUtc<=_now,"near"=>x.DueAtUtc>_now && Remaining(x)<=x.DurationDays/4d,"no-code"=>x.AssignedQuantity<x.TotalQuantity,_=>true }))).OrderByDescending(x => x.CreatedAtUtc).ThenBy(x => x.Id);
     private string FinalizeMessage => _finalizeOrder is null ? "" : $"سفارش {_finalizeOrder.CustomerName} با {_finalizeOrder.TotalQuantity} ساز نهایی شود؟ " + string.Join("؛ ",_finalizeOrder.Lines.Select(x=>$"{x.Quantity} × {x.DesignName} / {x.ScaleName}")) + $". موعد تحویل: {PersianDate(_finalizeOrder.DueAtUtc)}. پس از ثبت نهایی، کد هر ساز را در ردیف خودش وارد کنید.";
     private string DeleteMessage => $"سفارش «{_deleteOrder?.CustomerName}» با {_deleteOrder?.TotalQuantity} ساز و یادآوری‌های آن حذف شود؟ سوابق تولید سازها باقی می‌مانند.";
     protected override async Task OnInitializedAsync(){await ReloadAsync();_polling=PollAsync();}

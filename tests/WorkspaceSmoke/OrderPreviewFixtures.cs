@@ -31,7 +31,7 @@ internal static class OrderPreviewFixtures
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         await using var renderer = new HtmlRenderer(scope.ServiceProvider, provider.GetRequiredService<ILoggerFactory>());
-        foreach (var (type, name) in new[] { (typeof(Orders), "new-order.html"), (typeof(SimplePreview), "simple-order.html"), (typeof(IncompletePreview), "incomplete-order.html"), (typeof(EditPreview), "edit-order.html"), (typeof(CompositionPreview), "composition.html"), (typeof(DraftPreview), "drafts.html"), (typeof(OrderListPreview), "order-list.html"), (typeof(ExpandedOrderListPreview), "order-list-expanded.html"), (typeof(OverviewPreview), "overview-50.html"), (typeof(OrderCodePreview), "assign-code.html") })
+        foreach (var (type, name) in new[] { (typeof(Orders), "directory-default.html"), (typeof(NewOrderPreview), "new-order.html"), (typeof(SimplePreview), "simple-order.html"), (typeof(IncompletePreview), "incomplete-order.html"), (typeof(EditPreview), "edit-order.html"), (typeof(CompositionPreview), "composition.html"), (typeof(DraftPreview), "drafts.html"), (typeof(OrderListPreview), "order-list.html"), (typeof(ExpandedOrderListPreview), "order-list-expanded.html"), (typeof(OverviewPreview), "overview-50.html"), (typeof(OrderCodePreview), "assign-code.html") })
         {
             fixtureApi.EmptyDesigns = type == typeof(SimplePreview);
             var markup = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync(type, ParameterView.Empty)).ToHtmlString());
@@ -68,7 +68,15 @@ internal static class OrderPreviewFixtures
         public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken ct, object?[]? args) => ValueTask.FromResult(default(TValue)!);
     }
     private static readonly Guid _plain=Guid.NewGuid(), _acid=Guid.NewGuid(), _mill=Guid.NewGuid(), _scale9=Guid.NewGuid(), _scale12=Guid.NewGuid(), _standard=Guid.NewGuid(), _both=Guid.NewGuid();
-    private sealed class SimplePreview : Orders
+    private class NewOrderPreview : Orders
+    {
+        protected override async Task OnInitializedAsync()
+        {
+            await base.OnInitializedAsync();
+            typeof(Orders).GetField("_tab",BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(this,"new");
+        }
+    }
+    private sealed class SimplePreview : NewOrderPreview
     {
         protected override async Task OnInitializedAsync()
         {
@@ -82,7 +90,7 @@ internal static class OrderPreviewFixtures
                 throw new Exception("Simple order with standard instrument scale cannot be saved with an empty design catalog");
         }
     }
-    private sealed class IncompletePreview : Orders
+    private sealed class IncompletePreview : NewOrderPreview
     {
         protected override async Task OnInitializedAsync()
         {
@@ -107,7 +115,7 @@ internal static class OrderPreviewFixtures
             if(!(bool)typeof(Orders).GetProperty("CanSave",flags)!.GetValue(this)!)throw new Exception("Final order edit is not saveable");
         }
     }
-    private sealed class CompositionPreview : Orders
+    private sealed class CompositionPreview : NewOrderPreview
     {
         protected override async Task OnInitializedAsync()
         {
@@ -148,7 +156,7 @@ internal static class OrderPreviewFixtures
             var now = DateTime.UtcNow;
             OrderDto Make(string name, string scale, int days, int ago, string? code, string stage, string[] completed) => new(Guid.NewGuid(), name, Guid.NewGuid(), scale, days, now.AddDays(-ago), now.AddDays(days - ago), code, stage, "در انتظار", completed,
                 Enumerable.Range(1, 4).Select(n => new OrderReminderDto(n, now.AddDays(-ago + days * n / 4d), n <= 2 ? now.AddDays(-1) : null, false)).ToArray());
-            var orders = new[] { Make("آقای رضایی", "D Kurd Custom", 30, 24, "TP-1042", "در انتظار فاین‌تیون", ["دیمپل کاسه رو", "شیپ کاسه رو", "پخت کاسه رو", "تیون"]), Make("خانم موسوی", "F Pygmy", 60, 8, null, "در انتظار ثبت کد ساز", []), Make("آقای کریمی", "E Sabye", 15, 17, "TP-1018", "در انتظار کنترل کیفیت", ["تیون", "چسب", "فاین‌تیون"]) };
+            var orders = new[] { Make("آقای رضایی", "D Kurd Custom", 30, 8, "TP-1042", "در انتظار فاین‌تیون", ["دیمپل کاسه رو", "شیپ کاسه رو", "پخت کاسه رو", "تیون"]), Make("خانم موسوی", "F Pygmy", 60, 8, null, "در انتظار ثبت کد ساز", []), Make("آقای کریمی", "E Sabye", 15, 17, "TP-1018", "در انتظار کنترل کیفیت", ["تیون", "چسب", "فاین‌تیون"]) };
             var lines = new[] {
                 new OrderLineDto(Guid.NewGuid(),1,_scale9,"D Kurd Custom 9",_plain,"ساده",5,[new(1,"TP-1042","در انتظار فاین‌تیون","در انتظار",["دیمپل کاسه رو","شیپ کاسه رو","تیون","چسب"])]),
                 new OrderLineDto(Guid.NewGuid(),2,_scale12,"D Kurd Custom 12",_acid,"اسیدکاری",5,[]),
@@ -166,6 +174,8 @@ internal static class OrderPreviewFixtures
         {
             await base.OnInitializedAsync();
             typeof(Orders).GetField("_tab", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(this, "list");
+            if(GetType()==typeof(OrderListPreview))
+                ((List<OrderDto>)typeof(Orders).GetField("_orders", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(this)!).Reverse();
         }
     }
     private sealed class ExpandedOrderListPreview : OrderListPreview
@@ -175,6 +185,15 @@ internal static class OrderPreviewFixtures
             await base.OnInitializedAsync();
             var flags = BindingFlags.Instance | BindingFlags.NonPublic;
             var orders = (List<OrderDto>)typeof(Orders).GetField("_orders", flags)!.GetValue(this)!;
+            var select = typeof(Orders).GetMethod("ToggleOrder", flags)!;
+            var selection = typeof(Orders).GetField("_selectedOrderId", flags)!;
+            if (selection.GetValue(this) is not null) throw new Exception("Order directory must start collapsed");
+            select.Invoke(this, [orders[0].Id]);
+            select.Invoke(this, [orders[2].Id]);
+            if (!Equals(selection.GetValue(this), orders[2].Id)) throw new Exception("Selecting another customer must close the previous order");
+            select.Invoke(this, [orders[2].Id]);
+            if (selection.GetValue(this) is not null) throw new Exception("Clicking the same customer must collapse details");
+            select.Invoke(this, [orders[0].Id]);
             var expanded = (HashSet<Guid>)typeof(Orders).GetField("_expandedCodeOrders", flags)!.GetValue(this)!;
             var toggle = typeof(Orders).GetMethod("ToggleCodeSection", flags)!;
             if (expanded.Count != 0) throw new Exception("Order code entry must start collapsed");
@@ -192,6 +211,7 @@ internal static class OrderPreviewFixtures
             await base.OnInitializedAsync();
             var flags=BindingFlags.Instance|BindingFlags.NonPublic;
             var orders=(List<OrderDto>)typeof(Orders).GetField("_orders",flags)!.GetValue(this)!;
+            typeof(Orders).GetMethod("ToggleOrder",flags)!.Invoke(this,[orders[0].Id]);
             var stages=new[]{"در انتظار دیمپل","در انتظار شیپ","در انتظار تیون","در انتظار فاین‌تیون","در اتاق چسب"};
             orders[0]=orders[0] with {Lines=[orders[0].Lines[0] with {Quantity=50,Instruments=Enumerable.Range(1,50)
                 .Select(n=>new OrderInstrumentDto(n,$"TP-{n:0000}",stages[(n-1)%stages.Length],"در انتظار",[])).ToArray()}]};

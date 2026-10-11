@@ -19,11 +19,11 @@ let browser;
  const page=await browser.newPage();
  for(const width of [360,390,768,1280]){
   await page.setViewportSize({width,height:900});
-  for(const file of ['new-order.html','simple-order.html','incomplete-order.html','edit-order.html','composition.html','drafts.html','order-list.html','order-list-expanded.html','overview-50.html','assign-code.html']){
+  for(const file of ['directory-default.html','new-order.html','simple-order.html','incomplete-order.html','edit-order.html','composition.html','drafts.html','order-list.html','order-list-expanded.html','overview-50.html','assign-code.html']){
    await page.goto(`http://127.0.0.1:${port}/${file}`);await page.evaluate(()=>document.fonts.ready);
    assert(await page.locator('.orders-hero').count(),`Actual page not rendered: ${file}`);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`page overflow ${width} ${file}`);
-   const escaped=await page.locator('.composition-line,.order-summary,.instrument-slot,.instrument-overview,.overview-item,.order-tabs button,.code-dialog').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.width>0&&(r.left < -1 || r.right>innerWidth+1 || n.scrollWidth>n.clientWidth+2);}).map(n=>n.className));
+   const escaped=await page.locator('.composition-line,.order-summary,.instrument-slot,.instrument-overview,.overview-item,.order-tabs button,.code-dialog,.order-list-toggle').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect();return r.width>0&&(r.left < -1 || r.right>innerWidth+1 || n.scrollWidth>n.clientWidth+2);}).map(n=>n.className));
    assert.deepEqual(escaped,[],`control overflow ${width} ${file}: ${escaped}`);
    if(file==='simple-order.html'){
     assert.equal(await page.locator('.composition-line select').first().inputValue(),'');
@@ -47,7 +47,13 @@ let browser;
    }
    if(file==='composition.html'){assert.equal(await page.locator('.composition-line').count(),3);assert.equal((await page.locator('.summary-total strong').innerText()).trim(),'15');}
    if(file==='order-list-expanded.html'){assert(await page.locator('.specification-row').count()>=3);assert(await page.locator('.instrument-slot').count()>12);}
-   if(['order-list.html','order-list-expanded.html','overview-50.html'].includes(file)){
+   if(['directory-default.html','order-list.html'].includes(file)){
+    assert.equal(await page.locator('.order-list-toggle').count(),2);
+    assert.equal(await page.locator('.order-details,.instrument-overview').count(),0);
+    assert.match(await page.locator('.order-list-toggle').first().innerText(),/1.*آقای رضایی/s);
+    assert.equal(await page.locator('.order-list-toggle[aria-expanded=true]').count(),0);
+   }
+   if(['order-list-expanded.html','overview-50.html'].includes(file)){
     const card=page.locator('.order-card').first();
     assert.equal(await card.locator('.instrument-overview').count(),1);
     if(file==='order-list-expanded.html'){
@@ -62,7 +68,8 @@ let browser;
     if(file==='overview-50.html'){
      const items=card.locator('.overview-item');
      assert.equal(await items.count(),50);
-     assert.equal(await items.first().innerText(),'TP-0001\nدر انتظار دیمپل');
+     assert.equal(await items.first().innerText(),'TP-0001\nD Kurd Custom 9\nدر انتظار دیمپل');
+     assert.equal(await card.locator('.overview-scale').count(),50);
      assert.match(await items.nth(3).innerText(),/فاین/);
      assert.match(await items.nth(4).innerText(),/اتاق چسب/);
      const metrics=await card.locator('.overview-grid').evaluate(n=>({columns:getComputedStyle(n).gridTemplateColumns.split(' ').length,height:n.clientHeight,limit:innerHeight*.55,scroll:n.scrollHeight}));
