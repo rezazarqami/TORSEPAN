@@ -119,14 +119,14 @@ public sealed class OrderReminderProcessor(TORSEPANDbContext db, IOrderReminderS
     {
         var title = milestone == 0 ? "✅ سفارش جدید ثبت شد" : milestone == 4 ? "⏰ پایان مهلت سفارش" : $"🔔 یادآوری سفارش — {milestone * 25}٪ زمان";
         var culture = CultureInfo.GetCultureInfo("fa-IR");
-        var elapsed = OrderTiming.ElapsedDays(order.CreatedAtUtc, now).ToString("0.##", culture);
-        var remaining = OrderTiming.RemainingDays(order.DueAtUtc, now).ToString("0.##", culture);
+        var elapsed = Math.Floor(OrderTiming.ElapsedDays(order.CreatedAtUtc, now)).ToString("0", culture);
+        var remaining = Math.Ceiling(OrderTiming.RemainingDays(order.DueAtUtc, now)).ToString("0", culture);
         var due = TimeZoneInfo.ConvertTimeFromUtc(order.DueAtUtc, TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran"))
             .ToString("yyyy/MM/dd HH:mm", culture);
         var specifications = order.Lines.Count == 0 ? $"اسکیل: {order.ScaleName}" : string.Join("\n",
             order.Lines.OrderBy(x => x.Position).Take(8).Select(x => $"{x.Quantity} ساز • دیزاین: {Short(x.DesignName)} • اسکیل: {Short(x.ScaleName)}")) +
                 (order.Lines.Count > 8 ? $"\nو {order.Lines.Count - 8} ردیف دیگر؛ ترکیب کامل در پنل سفارش‌ها." : "");
-        var codes = production?.Lines.SelectMany(x => x.Instruments.Select(i => $"#{i.Slot} {i.Code} — {x.DesignName} / {x.ScaleName}: {i.ProductionStage}")).ToArray() ?? [];
+        var codes = production?.Lines.SelectMany(x => x.Instruments.Select(i => $"#{i.Slot} {i.Code} — {x.DesignName} / {i.ScaleName ?? x.ScaleName}: {i.ProductionStage}")).ToArray() ?? [];
         var codeSummary = codes.Length > 0 ? "\n" + string.Join("\n", codes.Take(15)) + (codes.Length > 15 ? $"\nو {codes.Length - 15} ساز دیگر؛ جزئیات در پنل سفارش‌ها." : "")
             : order.InstrumentCode is null ? "\nکد ساز ثبت نشده است." : $"\nکد ساز: {order.InstrumentCode}\nمرحلهٔ فعلی: {production?.ProductionStage ?? "وضعیت تولید در دسترس نیست"}";
         var message = $"{title}\nسفارش‌دهنده: {order.CustomerName}\n" +
