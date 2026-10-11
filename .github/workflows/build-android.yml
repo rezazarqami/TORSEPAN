@@ -1,0 +1,41 @@
+name: Build Torsepan Android APK
+
+on:
+  push:
+    paths: ["android/**", ".github/workflows/build-android.yml"]
+  pull_request:
+    paths: ["android/**", ".github/workflows/build-android.yml"]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install local UI test dependencies
+        run: npm ci --prefix tests/OfflineUi
+      - name: Verify local offline page and form state
+        run: npm test --prefix tests/OfflineUi
+      - name: Verify offline projection
+        run: node android/tests-offline.cjs
+      - name: Verify durable native outbox and lost-response retry
+        working-directory: android
+        run: gradle :app:testDebugUnitTest --no-daemon
+      - name: Build installable APK
+        working-directory: android
+        run: gradle :app:assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: torsepan-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
