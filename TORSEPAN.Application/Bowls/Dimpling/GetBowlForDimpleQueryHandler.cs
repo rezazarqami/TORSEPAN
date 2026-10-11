@@ -9,10 +9,12 @@ public sealed class GetBowlForDimpleQueryHandler
     : IRequestHandler<GetBowlForDimpleQuery, Result<BowlDimpleDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IOrderCustomerLookup? _orderCustomers;
 
-    public GetBowlForDimpleQueryHandler(IUnitOfWork unitOfWork)
+    public GetBowlForDimpleQueryHandler(IUnitOfWork unitOfWork, IOrderCustomerLookup? orderCustomers = null)
     {
         _unitOfWork = unitOfWork;
+        _orderCustomers = orderCustomers;
     }
 
     public async Task<Result<BowlDimpleDto>> Handle(
@@ -64,6 +66,9 @@ public sealed class GetBowlForDimpleQueryHandler
                 }
             }
         }
+
+        if (_orderCustomers is not null)
+            dto.OrderCustomerName = await _orderCustomers.GetCustomerNameAsync(assembly?.TopBowlId ?? bowl.Id, handpanId, cancellationToken);
 
         dto.InstrumentNotes.AddRange(events.Where(x => x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value) &&
                                                         x.Description.StartsWith("NOTE:INSTRUMENT:"))

@@ -20,7 +20,10 @@ public sealed record FinalizeOrderRequest(int Version);
 public sealed record OrderLineDto(Guid Id, int Position, Guid ScaleId, string ScaleName,
     Guid? DesignTypeId, string DesignName, int Quantity, IReadOnlyList<OrderInstrumentDto> Instruments);
 public sealed record OrderInstrumentDto(int Slot, string Code, string ProductionStage,
-    string ProductionStatus, IReadOnlyList<string> CompletedOperations);
+    string ProductionStatus, IReadOnlyList<string> CompletedOperations)
+{
+    public string? ScaleName { get; init; }
+}
 public sealed record OrderReminderDto(int Milestone, DateTime DueAtUtc, DateTime? SentAtUtc, bool HasError);
 
 public static class OrderTiming

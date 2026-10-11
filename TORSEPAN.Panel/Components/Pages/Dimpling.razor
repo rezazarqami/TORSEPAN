@@ -113,6 +113,10 @@
                     }
                 </div>
                 <div class="passport-info-line passport-scale"><span lang="en">Scale:</span><strong dir="auto">@_bowl.ScaleName</strong></div>
+                @if(!string.IsNullOrWhiteSpace(_bowl.OrderCustomerName))
+                {
+                    <div class="passport-info-line passport-order"><strong>سفارش @_bowl.OrderCustomerName</strong></div>
+                }
                 <div class="passport-info-line"><span lang="en">Design:</span><strong dir="auto">@_bowl.DesignName</strong></div>
                 <div class="passport-info-line passport-status"><span lang="en">Status:</span><strong dir="auto">@StageText(_bowl.Stage)</strong></div>
             </div>

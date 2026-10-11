@@ -26,3 +26,14 @@ button:focus-visible{outline:3px solid #68bca7;outline-offset:3px}
 .overview-pages>span{font-size:.64rem;color:#65857b}
 @media(max-width:650px){.instrument-overview{padding:11px}.overview-grid{gap:0 10px}.overview-item{font-size:.62rem}.overview-item strong{font-size:.66rem}.specification-scale{font-size:.81rem}}
 .code-section-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin-top:20px;padding:14px;border:1px solid #d7e4e1;border-radius:12px;background:#f3f8f6;color:#35796c;font:inherit;text-align:right;cursor:pointer}.code-section-toggle strong{font-size:.78rem}.code-section-toggle span{font-size:.68rem;flex-shrink:0}.code-section-toggle:hover{background:#e6f3ed;border-color:#258c78}.code-section-toggle:focus-visible{outline:3px solid #258c78;outline-offset:3px}
+
+/* Compact customer directory: details are rendered only for the selected order. */
+.orders-list{gap:10px}.orders-list>.order-card{padding:0;overflow:hidden}
+.order-list-toggle{display:flex;align-items:center;gap:12px;width:100%;min-width:0;border:0;background:#fff;padding:16px 18px;text-align:right;font:inherit;color:#254b59;cursor:pointer}
+.order-list-toggle:hover,.order-list-toggle[aria-expanded=true]{background:#eff7f4}
+.order-list-toggle:focus-visible{outline:2px solid #278674;outline-offset:-3px}
+.order-list-number{display:grid;place-items:center;min-width:30px;height:30px;border-radius:9px;background:#e6f1ed;color:#2c7767;font-size:.78rem}
+.order-list-name{flex:1;min-width:0;overflow-wrap:anywhere}.order-list-name strong{display:block;font-size:.9rem}.order-list-name small{display:block;font-size:.68rem;color:#6d8790;margin-top:5px}
+.order-list-date{font-size:.74rem;color:#53737e;white-space:nowrap;direction:ltr}.order-list-chevron{color:#4b8c7c}
+.order-details{padding:20px;border-top:1px solid #dce8e3;min-width:0}.overview-item .overview-scale{flex-basis:100%;font-size:.66rem;font-weight:700;color:#325b63}
+@media(max-width:480px){.order-list-toggle{gap:8px;padding:13px 10px}.order-list-name strong{font-size:.8rem}.order-list-date{font-size:.65rem}.order-details{padding:14px 10px}.overview-item .overview-scale{font-size:.62rem}}

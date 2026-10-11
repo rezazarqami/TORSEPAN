@@ -29,6 +29,7 @@ await renderer.Dispatcher.InvokeAsync(async () =>
     var view = await renderer.RenderComponentAsync<PassportPreview>();
     var html = WebUtility.HtmlDecode(view.ToHtmlString());
     Check(!System.Text.RegularExpressions.Regex.IsMatch(html, "<h3[^>]*>شناسنامه ساز</h3>") && !html.Contains("برگرفته از") && !html.Contains("دیمپل ←"), "redundant headings and stage strip removed");
+    Check(!html.Contains("passport-order"), "unlinked instrument has no order row");
     Check(html.Contains("passport-codes") && html.Contains("196") && html.Contains("(اسیدی)") && html.Contains("D Kurd 14") && html.Contains("Design") && html.Contains("Status"), "passport has both codes, bottom design, scale, design and status");
     Check(html.Contains("شیپ کاسه رو: شایان نجفی") && html.Contains("شیپ کاسه زیر: محمدرضا رنجبر"), "separate bowl attribution is preserved");
     Check(html.Contains("passport-event-date") && html.Contains("تاریخ</th>"), "history retains dates and times in its dedicated column");
@@ -40,6 +41,14 @@ await renderer.Dispatcher.InvokeAsync(async () =>
         navigation.Set(route);
         var search = await renderer.RenderComponentAsync<GlobalProductionSearch>();
         Check(!search.ToHtmlString().Contains("بررسی مرحله"), "duplicate search hidden at " + route);
+    }
+    foreach (var type in new[] {0, 1, 2})
+    {
+        var linked = await renderer.RenderComponentAsync<PassportPreview>(ParameterView.FromDictionary(new Dictionary<string,object?> {
+            [nameof(PassportPreview.BowlType)] = type, [nameof(PassportPreview.CustomerName)] = "امید همدانی" }));
+        var linkedHtml = WebUtility.HtmlDecode(linked.ToHtmlString());
+        Check(linkedHtml.Contains("سفارش امید همدانی") && linkedHtml.IndexOf("passport-order") > linkedHtml.IndexOf("passport-scale") &&
+            linkedHtml.IndexOf("passport-order") < linkedHtml.IndexOf("Design:"), "linked passport shows customer directly below scale for type " + type);
     }
     navigation.Set("/sales");
     Check((await renderer.RenderComponentAsync<GlobalProductionSearch>()).ToHtmlString().Contains("بررسی مرحله"), "global search retained on other pages");
@@ -59,9 +68,10 @@ static void Check(bool value, string message) { if (!value) throw new Exception(
 public sealed class PassportPreview : Dimpling
 {
     [Parameter] public int BowlType { get; set; }
+    [Parameter] public string? CustomerName { get; set; }
     protected override Task OnInitializedAsync()
     {
-        var record = new DimpleBowlDto { HandpanId = Guid.NewGuid(), HandpanCode = "855", BottomBowlCode = "196", BottomDesignName = "اسیدی", DesignName = "ساده", ScaleName = "D Kurd 14", Stage = 18 };
+        var record = new DimpleBowlDto { OrderCustomerName = CustomerName, HandpanId = Guid.NewGuid(), HandpanCode = "855", BottomBowlCode = "196", BottomDesignName = "اسیدی", DesignName = "ساده", ScaleName = "D Kurd 14", Stage = 18 };
         if (BowlType != 0)
         {
             record.HandpanId = null; record.HandpanCode = ""; record.ProductionCode = "SS-00090";
