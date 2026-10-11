@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const model=require('./app/src/main/assets/offline/model.js');
+const snapshot={bowls:[{code:'855',type:1,hasNotes:true,stage:2,version:'top'},{code:'196',type:2,hasNotes:false,stage:2,version:'bottom'}],users:[{id:'a',roles:['Administrator']},{id:'t',roles:['Tuner']},{id:'s',roles:['Shaper']}],scales:[{id:'normal',usage:7},{id:'custom',usage:56}]};
+const row=(code,action,extra={})=>({state:'pending',body:{code,action,approved:true,...extra}});
+let queue=[row('855','dimple',{scaleId:'normal'}),row('855','shape'),row('855','bake'),row('855','tune'),row('196','dimple',{scaleId:'normal'}),row('196','shape'),row('196','bake')];
+let projected=model.project(snapshot,queue);assert.equal(projected[1].stage,10);assert.equal(projected[0].stage,10);assert.equal(snapshot.bowls[0].stage,2);
+queue.push(row('855','glue',{pairCode:'196',scaleId:'normal'}),row('196','release'),row('855','finalTune'),row('196','qc'));
+projected=model.project(snapshot,queue);assert.equal(projected[0].stage,16);assert.equal(projected[1].stage,16);assert.equal(projected[1].instrumentCode,'855');assert.equal(projected[0].localHistory.length,8);
+queue.push(row('855','qc',{approved:false}));projected=model.project(snapshot,queue);assert.equal(projected[0].stage,12);assert.equal(projected[1].stage,12);
+assert.deepEqual(model.performers(snapshot,'tune').map(x=>x.id),['a','t']);assert.deepEqual(model.performers(snapshot,'dimple').map(x=>x.id),['a','s']);
+assert.deepEqual(model.scales(snapshot,{type:1,isCustom:true},'shape',false).map(x=>x.id),['custom']);assert.equal(model.scales(snapshot,{type:1},'dimple',true).length,0);
+assert.equal(model.normalize(' ss-۰۰۹۰ '),'SS-0090');
+console.log('PASS offline projection, paired stage chain, QC rejection, roles, scale flags and Persian code lookup');

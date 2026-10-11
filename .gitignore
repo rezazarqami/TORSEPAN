@@ -365,3 +365,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Android build outputs
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
