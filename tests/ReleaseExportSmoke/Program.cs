@@ -1,3 +1,4 @@
+if(args.Contains("--offline-only")) { await OfflineProductionSmoke.RunAsync(); return; }
 if(args.Contains("--manual-backup-only"))
 {
     await ManualBackupSmoke.RunAsync();

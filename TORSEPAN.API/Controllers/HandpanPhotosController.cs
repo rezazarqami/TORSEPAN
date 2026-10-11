@@ -37,7 +37,7 @@ public sealed class HandpanPhotosController(TORSEPANDbContext db) : ControllerBa
         if (!IsImage(imageStream.GetBuffer(), imageStream.Length, file.ContentType) || !IsImage(thumbStream.GetBuffer(), thumbStream.Length, file.ContentType)) return BadRequest("محتوای عکس معتبر نیست.");
         var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var item = new HandpanPhoto(handpanId, imageStream.ToArray(), thumbStream.ToArray(), file.ContentType, userId);
-        db.HandpanPhotos.Add(item); await db.SaveChangesAsync(ct);
+        db.HandpanPhotos.Add(item); db.Entry(handpan).Property(x => x.OfflineVersion).IsModified = true; await db.SaveChangesAsync(ct);
         return Ok(new { item.Id, item.CreatedAt });
     }
 
@@ -45,9 +45,11 @@ public sealed class HandpanPhotosController(TORSEPANDbContext db) : ControllerBa
     public async Task<IActionResult> Delete(Guid handpanId, Guid id, CancellationToken ct)
     {
         var item = await db.HandpanPhotos.SingleOrDefaultAsync(x => x.HandpanId == handpanId && x.Id == id, ct);
-        if (item is null) return NotFound(); db.HandpanPhotos.Remove(item); await db.SaveChangesAsync(ct); return NoContent();
+        if (item is null) return NotFound();
+        var handpan = await db.Handpans.SingleAsync(x => x.Id == handpanId, ct);
+        db.Entry(handpan).Property(x => x.OfflineVersion).IsModified = true; db.HandpanPhotos.Remove(item); await db.SaveChangesAsync(ct); return NoContent();
     }
-    private static bool IsImage(byte[] data, long length, string type) => type switch
+    internal static bool IsImage(byte[] data, long length, string type) => type switch
     {
         "image/webp" => IsWebp(data, length),
         "image/jpeg" => length >= 4 && data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff && data[length - 2] == 0xff && data[length - 1] == 0xd9,

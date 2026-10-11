@@ -22,6 +22,9 @@ await using (var vazirmatn = Assembly.GetExecutingAssembly()
     FontManager.RegisterFont(vazirmatn);
 }
 
+
+builder.Services.AddScoped<TORSEPAN.API.Offline.OfflineProductionService>();
+builder.Services.AddHostedService<TORSEPAN.API.Offline.OfflineWarrantySyncWorker>();
 builder.Services.AddSingleton<ManualBackupJobs>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ManualBackupJobs>());
 builder.Services.AddControllers();

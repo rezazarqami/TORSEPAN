@@ -1,4 +1,4 @@
-﻿using TORSEPAN.Domain.Common;
+using TORSEPAN.Domain.Common;
 using TORSEPAN.Domain.Enums;
 using TORSEPAN.Domain.Production;
 
@@ -6,6 +6,8 @@ namespace TORSEPAN.Domain.Entities;
 
 public class Handpan : Entity
 {
+    public Guid OfflineVersion { get; private set; }
+
     private readonly List<ProductionEvent> _productionEvents = new();
 
     private Handpan()
@@ -44,6 +46,20 @@ public class Handpan : Entity
 
     public DateTime? UpdatedAt { get; private set; }
     public string? BuyerName { get; private set; }
+    public string? BuyerPhoneNumber { get; private set; }
+    public DateTime? WarrantyActivatedAt { get; private set; }
+    public bool? IsExportSale { get; private set; }
+    public Guid? SaleLeadSourceId { get; private set; }
+    public Guid? SalesReferrerId { get; private set; }
+    public void SetSaleAttribution(Guid? source, Guid? referrer) { SaleLeadSourceId=source;SalesReferrerId=referrer; }
+    public void Sell(string? name,string? phone,decimal? price,string? destination,bool export,Guid actor)
+    {
+        if(Stage==ProductionStage.ExportWarehouse && export) {
+            ShipFromExportWarehouse(name,destination,actor);SalePrice=price;
+        } else Sell(name,price,destination,actor);
+        BuyerPhoneNumber=phone;IsExportSale=export;WarrantyActivatedAt=DateTime.UtcNow;
+    }
+
     public DateTime? SoldAt { get; private set; }
     public Guid? SoldByUserId { get; private set; }
     public decimal? SalePrice { get; private set; }
@@ -105,6 +121,7 @@ public class Handpan : Entity
         if (Stage != ProductionStage.Sold)
             throw new InvalidOperationException("Handpan is not sold.");
 
+        BuyerPhoneNumber=null;IsExportSale=null;WarrantyActivatedAt=null;SaleLeadSourceId=null;SalesReferrerId=null;
         BuyerName = null;
         SalePrice = null;
         SaleDestination = null;

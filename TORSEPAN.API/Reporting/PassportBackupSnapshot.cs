@@ -18,7 +18,7 @@ public static class PassportBackupSnapshot
     public static async Task<PassportSnapshot> LoadAsync(TORSEPANDbContext db, CancellationToken ct)
     {
         // Every query sees the same database state while users continue working.
-        await using var transaction = await db.Database.BeginTransactionAsync(db.Database.IsNpgsql() ? IsolationLevel.RepeatableRead : IsolationLevel.Serializable, ct);
+        await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(db.Database.IsNpgsql() ? IsolationLevel.RepeatableRead : IsolationLevel.Serializable, ct) : null;
         var captured = DateTime.UtcNow;
         var bowls = await db.Bowls.AsNoTracking().Include(x => x.Scale).Include(x => x.Material).ToListAsync(ct);
         var handpans = await db.Handpans.AsNoTracking().Include(x => x.Scale).ToListAsync(ct);
@@ -29,7 +29,7 @@ public static class PassportBackupSnapshot
         var users = await db.Users.AsNoTracking().Select(x => new { x.Id, x.FullName }).ToDictionaryAsync(x => x.Id, x => x.FullName, ct);
         var materials = await db.Materials.AsNoTracking().OrderBy(x => x.Name)
             .Select(x => new MaterialStock(x.Name, x.Quantity, x.TopBowlQuantity, x.BottomBowlQuantity)).ToListAsync(ct);
-        await transaction.CommitAsync(ct);
+        if (transaction is not null) await transaction.CommitAsync(ct);
         var bowlMap = bowls.ToDictionary(x => x.Id);
         var assemblyMap = assemblies.ToDictionary(x => x.Id);
         var bowlEvents = events.Where(x => x.BowlId.HasValue).ToLookup(x => x.BowlId!.Value);
@@ -50,7 +50,8 @@ public static class PassportBackupSnapshot
             var related = handpanEvents[h.Id].Concat(assemblyEvents[a.Id]).Concat(bowlEvents[top.Id]).Concat(bowlEvents[bottom.Id]);
             var details = $"کاسه رو: {top.ProductionCode} ({top.Material.Name}) | کاسه زیر: {bottom.ProductionCode} ({bottom.Material.Name}، {Design(bowlEvents[bottom.Id])}) | ثبت ساز: {PassportBackupPdf.Date(h.CreatedAt)}";
             if (h.SoldAt.HasValue)
-                details += $" | فروش: {PassportBackupPdf.Date(h.SoldAt.Value)} | خریدار: {h.BuyerName ?? "—"} | مبلغ: {h.SalePrice?.ToString("N0") ?? "—"} | مقصد: {h.SaleDestination ?? "داخلی"}";
+                details += $" | فروش: {PassportBackupPdf.Date(h.SoldAt.Value)} | خریدار: {h.BuyerName ?? "—"} | تلفن: {h.BuyerPhoneNumber ?? "—"} | مبلغ: {h.SalePrice?.ToString("N0") ?? "—"} | مقصد: {h.SaleDestination ?? "داخلی"}";
+            if (h.WarrantyActivatedAt.HasValue) details += $" | فعال شدن ضمانت: {PassportBackupPdf.Date(h.WarrantyActivatedAt.Value)}";
             if (h.ExportWarehouseLocation.HasValue) details += $" | محل انبار صادراتی: {h.ExportWarehouseLocation}";
             records.Add(new(h.SerialNumber, "ساز", h.Status == ProductionStatus.Rejected ? "ردشده" : Group(h.Stage), Stage(h.Stage), h.Scale?.Name ?? top.Scale?.Name ?? "ثبت نشده", Design(bowlEvents[top.Id]), details, Operations(related)));
         }
