@@ -28,6 +28,8 @@ public sealed class TelegramInventoryAlertService(HttpClient http, IConfiguratio
 {
     public async Task SendLowStockAsync(string itemName, string stockType, int quantity, int threshold, CancellationToken cancellationToken)
     {
+        if (TORSEPAN.Application.Materials.InventoryAlertBatch.TryQueue(
+            () => SendLowStockAsync(itemName, stockType, quantity, threshold, CancellationToken.None))) return;
         status.Attempt();
         var token = configuration["Telegram:BotToken"]; var chatId = configuration["Telegram:ChatId"];
         var text = $"⚠️ هشدار موجودی انبار مواد اولیه\n{itemName} - {stockType}\nموجودی فعلی: {quantity}\nحد هشدار: {threshold}";

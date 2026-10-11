@@ -4,6 +4,8 @@ namespace TORSEPAN.Domain.Entities;
 
 public sealed class HandpanAssembly : Entity
 {
+    public Guid OfflineVersion { get; private set; }
+
     public Guid TopBowlId { get; private set; }
 
     public Guid BottomBowlId { get; private set; }

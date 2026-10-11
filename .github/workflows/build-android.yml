@@ -19,6 +19,18 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install local UI test dependencies
+        run: npm ci --prefix tests/OfflineUi
+      - name: Verify local offline page and form state
+        run: npm test --prefix tests/OfflineUi
+      - name: Verify offline projection
+        run: node android/tests-offline.cjs
+      - name: Verify durable native outbox and lost-response retry
+        working-directory: android
+        run: gradle :app:testDebugUnitTest --no-daemon
       - name: Build installable APK
         working-directory: android
         run: gradle :app:assembleDebug --no-daemon
