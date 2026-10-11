@@ -5,6 +5,8 @@ namespace TORSEPAN.Domain.Entities;
 
 public class Bowl : Entity
 {
+    public Guid OfflineVersion { get; private set; }
+
     public string ProductionCode { get; private set; } = string.Empty;
     public BowlType BowlType { get; private set; }
     public bool HasNotes { get; private set; }

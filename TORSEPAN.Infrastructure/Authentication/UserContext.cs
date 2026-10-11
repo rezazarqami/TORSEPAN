@@ -6,6 +6,8 @@ namespace TORSEPAN.Infrastructure.Authentication;
 
 public sealed class UserContext : IUserContext
 {
+    // Only the authorized offline service sets this in-process key after checking current roles.
+    public static readonly object OfflinePerformerKey = new();
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public UserContext(IHttpContextAccessor httpContextAccessor)
@@ -19,6 +21,7 @@ public sealed class UserContext : IUserContext
     {
         get
         {
+            if (_httpContextAccessor.HttpContext?.Items[OfflinePerformerKey] is Guid performer) return performer;
             var value = User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
             return Guid.TryParse(value, out var id)

@@ -6,6 +6,8 @@ namespace TORSEPAN.Domain.Entities;
 
 public class Handpan : Entity
 {
+    public Guid OfflineVersion { get; private set; }
+
     private readonly List<ProductionEvent> _productionEvents = new();
 
     private Handpan()

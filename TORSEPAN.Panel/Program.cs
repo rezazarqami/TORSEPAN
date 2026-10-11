@@ -151,6 +151,36 @@ app.MapGet("/api/internal/backups/download/{token}", async (
     await stream.CopyToAsync(context.Response.Body, ct);
 });
 
+// Native APK uses this allowlisted same-origin transport; API validates JWT, role and device.
+app.MapMethods("/api/internal/mobile-offline/{**path}", new[] { "GET", "POST" }, async (
+    string path, HttpContext context, IHttpClientFactory factory, CancellationToken ct) =>
+{
+    var permitted = context.Request.Method == "POST" ? path is "enroll" or "operations" or "photos"
+        : path.StartsWith("snapshot/", StringComparison.Ordinal) && Guid.TryParse(path[9..], out _);
+    if (!permitted) { context.Response.StatusCode = 404; return; }
+    if (!System.Net.Http.Headers.AuthenticationHeaderValue.TryParse(context.Request.Headers.Authorization, out var auth)
+        || auth.Scheme != "Bearer" || string.IsNullOrWhiteSpace(auth.Parameter))
+    { context.Response.StatusCode = 401; return; }
+    var limit = path == "photos" ? 7_500_000 : 16384;
+    if (context.Request.ContentLength > limit) { context.Response.StatusCode = 413; return; }
+    using var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), "offline/" + path);
+    request.Headers.Authorization = auth;
+    if (context.Request.Method == "POST")
+    {
+        // Limit chunked bodies as well as Content-Length before sending anything upstream.
+        using var reader = new StreamReader(context.Request.Body);
+        var buffer = new char[limit+1]; var count = 0;
+        while (count < buffer.Length) { var n = await reader.ReadAsync(buffer.AsMemory(count), ct); if (n == 0) break; count += n; }
+        if (count == buffer.Length) { context.Response.StatusCode = 413; return; }
+        request.Content = new StringContent(new string(buffer, 0, count), System.Text.Encoding.UTF8, "application/json");
+    }
+    using var response = await factory.CreateClient("Api").SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+    context.Response.StatusCode = (int)response.StatusCode;
+    context.Response.ContentType = "application/json";
+    context.Response.Headers.CacheControl = "no-store";
+    await response.Content.CopyToAsync(context.Response.Body, ct);
+});
+
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 app.MapPost("/api/internal/handpans/{handpanId:guid}/photos", async (
