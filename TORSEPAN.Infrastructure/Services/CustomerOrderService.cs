@@ -232,11 +232,11 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         var topIds = instruments.Where(x => x.TopBowlId.HasValue).Select(x => x.TopBowlId!.Value).Concat(orders.Where(x => x.TopBowlId.HasValue).Select(x => x.TopBowlId!.Value)).Distinct().ToList();
         var handpanIds = instruments.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId!.Value).Concat(orders.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId!.Value)).Distinct().ToList();
         // A code assigned before assembly follows the same top bowl into the finished instrument.
-        var handpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly)
+        var handpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly).Include(x => x.Scale)
             .Where(x => handpanIds.Contains(x.Id) || topIds.Contains(x.Assembly.TopBowlId)).ToListAsync(ct);
         var bowlIds = topIds.Concat(handpans.SelectMany(x => new[] { x.Assembly.TopBowlId, x.Assembly.BottomBowlId }))
             .Distinct().ToList();
-        var bowls = await db.Bowls.AsNoTracking().Where(x => bowlIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, ct);
+        var bowls = await db.Bowls.AsNoTracking().Include(x => x.Scale).Where(x => bowlIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, ct);
         var liveHandpanIds = handpans.Select(x => x.Id).ToList();
         var assemblyIds = handpans.Select(x => x.AssemblyId).ToList();
         var events = await db.ProductionEvents.AsNoTracking().Where(x => x.Result == EventResult.Completed &&
@@ -260,7 +260,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
                         ? source.BowlType == BowlType.Top ? " کاسه رو" : " کاسه زیر" : "") : null).Where(x => x is not null)
                 .Cast<string>().Distinct().ToArray();
             return new(slot, code, stage.HasValue ? StageTitle(stage.Value) : "کد تولید در دسترس نیست",
-                status.HasValue ? StatusTitle(status.Value) : "", completed);
+                status.HasValue ? StatusTitle(status.Value) : "", completed) { ScaleName = handpan?.Scale?.Name ?? bowl?.Scale?.Name };
         }
         return orders.Select(order =>
         {
@@ -289,7 +289,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         ProductionStage.FinalTune => "فاین‌تیون", ProductionStage.WaitingForQualityControl => "در انتظار کنترل کیفیت",
         ProductionStage.QualityControl => "کنترل کیفیت", ProductionStage.WaitingForPackaging => "در انتظار بسته‌بندی",
         ProductionStage.Packaging => "بسته‌بندی", ProductionStage.FinishedWarehouse => "انبار سازها",
-        ProductionStage.Rejected => "ردشده", ProductionStage.Sold => "فروخته‌شده",
+        ProductionStage.Rejected => "ردشده", ProductionStage.Sold => "ارسال‌شده",
         ProductionStage.WaitingForExportPackaging => "در انتظار بسته‌بندی صادراتی",
         ProductionStage.ExportWarehouse => "انبار صادراتی", _ => "نامشخص"
     };

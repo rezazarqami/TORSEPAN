@@ -86,6 +86,7 @@ public static class DependencyInjection
 
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<CustomerOrderService>();
+        services.AddScoped<IOrderCustomerLookup, OrderCustomerLookup>();
         services.AddSingleton<OrderReminderStatus>();
         services.AddHttpClient<IOrderReminderSender, TelegramOrderReminderSender>();
         services.AddScoped<OrderReminderProcessor>();
