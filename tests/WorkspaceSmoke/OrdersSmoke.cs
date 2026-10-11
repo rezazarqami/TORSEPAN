@@ -101,21 +101,42 @@ internal static class OrdersSmoke
         db.AddRange(top, bottom); await db.SaveChangesAsync();
         await Reject(() => orders.AssignCodeAsync(id, bottom.ProductionCode, user.Id, default), "unassembled bottom bowl cannot be assigned as an instrument");
         Check(await orders.AssignCodeAsync(id, "order-۱۲۳", user.Id, default), "code accepts Persian digits and case-insensitive lookup");
+        top.SetScale(scale.Id);
         top.ChangeStage(ProductionStage.WaitingForShape);
         db.ProductionEvents.Add(new ProductionEvent(null, null, top.Id, user.Id, ProductionAction.Dimple, EventResult.Completed, null, "completed"));
         db.ProductionEvents.Add(new ProductionEvent(null, null, top.Id, user.Id, ProductionAction.Shape, EventResult.Failed, null, "failed"));
         await db.SaveChangesAsync();
+        var lookup = new OrderCustomerLookup(db);
+        var passportUnit = new UnitOfWork(db, new TORSEPAN.Infrastructure.Persistence.Repositories.UserRepository(db), null!, null!, null!,
+            new TORSEPAN.Infrastructure.Persistence.Repositories.HandpanRepository(db), new TORSEPAN.Infrastructure.Persistence.Repositories.HandpanAssemblyRepository(db),
+            new TORSEPAN.Infrastructure.Persistence.Repositories.BowlRepository(db), null!, new TORSEPAN.Infrastructure.Persistence.Repositories.ScaleRepository(db),
+            new TORSEPAN.Infrastructure.Persistence.Repositories.ProductionEventRepository(db));
+        var passport = new TORSEPAN.Application.Bowls.Dimpling.GetBowlForDimpleQueryHandler(passportUnit, lookup);
+        Check((await passport.Handle(new(top.ProductionCode), default)).Value.OrderCustomerName == order.CustomerName,
+            "linked loose bowl passport shows order customer");
+        Check((await passport.Handle(new(bottom.ProductionCode), default)).Value.OrderCustomerName is null,
+            "unlinked loose bowl has no customer label");
         var early = (await orders.GetAsync(default)).Single();
         Check(early.ProductionStage == "در انتظار شیپ" && early.CompletedOperations.Contains("دیمپل کاسه رو") && !early.CompletedOperations.Contains("شیپ کاسه رو"), "live bowl stage and only successful operations are displayed");
+        Check(early.Lines[0].Instruments[0].ScaleName == scale.Name, "overview exposes the assigned bowl actual scale");
         var second = await orders.CreateAsync(new("خانم موسوی", scale.Id, 60), user.Id, default);
         await Reject(() => orders.AssignCodeAsync(second, top.ProductionCode, user.Id, default), "one instrument cannot be assigned to two orders");
         var assembly = new HandpanAssembly(top.Id, bottom.Id);
         var handpan = assembly.CreateHandpan(top.ProductionCode);
+        handpan.SetScale(scale.Id);
         handpan.ChangeStage(ProductionStage.WaitingForFinalTune);
         handpan.ChangeStatus(ProductionStatus.Waiting);
         db.Add(assembly); db.Add(handpan); await db.SaveChangesAsync();
         var afterAssembly = (await orders.GetAsync(default)).Single(x => x.Id == id);
         Check(afterAssembly.ProductionStage == "در انتظار فاین‌تیون" && order.HandpanId is null, "pre-assembly code automatically follows the resulting handpan");
+        Check(afterAssembly.Lines[0].Instruments[0].ScaleName == scale.Name, "overview keeps actual instrument scale after assembly");
+        Check(CustomerOrderService.StageTitle(ProductionStage.Sold) == "ارسال‌شده", "sold instruments are labelled dispatched only in order presentation");
+        var fractionalMessage = OrderReminderProcessor.BuildMessage(order, 1, order.DueAtUtc.AddDays(-4.35));
+        Check(fractionalMessage.Contains("زمان باقی‌مانده: 5 روز") && !System.Text.RegularExpressions.Regex.IsMatch(fractionalMessage, @"\d+[.,]\d+ روز"), "Telegram days are whole numbers and a partial remaining day rounds up");
+        Check(OrderReminderProcessor.BuildMessage(order, 4, order.DueAtUtc.AddDays(2)).Contains("زمان باقی‌مانده: 0 روز"), "overdue reminder remaining days stay zero");
+        Check((await passport.Handle(new(top.ProductionCode), default)).Value.OrderCustomerName == order.CustomerName &&
+            (await passport.Handle(new(bottom.ProductionCode), default)).Value.OrderCustomerName == order.CustomerName,
+            "assembled top and bottom passports follow the same order customer");
         Check(!await orders.AssignCodeAsync(Guid.NewGuid(), top.ProductionCode, user.Id, default), "missing order returns not-found");
         Check(OrderTiming.RemainingDays(order.DueAtUtc, order.DueAtUtc.AddDays(2)) == 0 && OrderTiming.Progress(order.CreatedAtUtc, order.DueAtUtc, order.DueAtUtc.AddDays(2)) == 100, "overdue order timing stays bounded");
 
@@ -165,7 +186,12 @@ internal static class OrdersSmoke
             Check(!await deleteDb.CustomerOrders.AnyAsync(x => x.Id == id) && !await deleteDb.OrderReminders.AnyAsync(x => x.OrderId == id), "deleting an order removes every reminder");
             Check(await deleteDb.Bowls.CountAsync() == 2 && await deleteDb.Handpans.AnyAsync(x => x.Id == handpan.Id) && await deleteDb.HandpanAssemblies.AnyAsync(x => x.Id == assembly.Id) && await deleteDb.ProductionEvents.AnyAsync(), "deleting an order preserves bowls, assembled instrument and production history");
             Check(!await deletion.DeleteAsync(id, default), "repeated deletion returns not-found");
+            var deletedLookup = new OrderCustomerLookup(deleteDb);
+            Check(await deletedLookup.GetCustomerNameAsync(top.Id, handpan.Id, default) is null,
+                "deleting the order removes the customer label without deleting production");
             Check(await deletion.AssignCodeAsync(second, top.ProductionCode, user.Id, default), "deleted order releases its instrument for another order");
+            Check(await deletedLookup.GetCustomerNameAsync(top.Id, handpan.Id, default) == "خانم موسوی",
+                "reassigning an instrument updates the customer label");
             var sentBefore = sender.Keys.Count(x => x.Contains(id.ToString("N")));
             var afterDeleteProcessor = new OrderReminderProcessor(deleteDb, sender, clock, status, Microsoft.Extensions.Logging.Abstractions.NullLogger<OrderReminderProcessor>.Instance);
             await afterDeleteProcessor.DispatchDueAsync(default);

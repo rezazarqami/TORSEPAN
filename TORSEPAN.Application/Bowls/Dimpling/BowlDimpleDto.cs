@@ -10,6 +10,7 @@ public sealed class BowlDimpleDto
     public int InstrumentType { get; init; }
     public int Status { get; init; }
     public int Stage { get; init; }
+    public string? OrderCustomerName { get; set; }
     public string ScaleName { get; set; } = "نامشخص";
     public bool IsCustomScale { get; set; }
     public bool IsHandpanScale { get; set; }
