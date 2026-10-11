@@ -69,6 +69,7 @@ internal static class ManualBackupSmoke
         Check(first.Operations.Count == 3 && first.Operations.Select(x => x.Id).Distinct().Count() == 3, "event linked by handpan assembly and bowl appears exactly once");
         Check(first.Operations.Any(x => x.Bowl.StartsWith("کاسه زیر") && x.Actor == helper.FullName), "bottom bowl performer is retained");
         Check(first.Operations.Any(x => x.Description.Contains("کشش توسط محمدرضا رنجبر") && x.Duration == "20 دقیقه"), "contributions resolve to names and durations remain readable");
+        Check(first.BottomCode == "BOTTOM-0" && first.BottomDesign == "ساده", "compact archive has separate bottom bowl code and design");
         Check(first.Design == "اسیدی" && first.Scale == "D Kurd 14", "passport design and scale are included");
         Check(snapshot.Records.Single(x => x.Group == "فروش").Details.Contains("مشتری نمونه") && snapshot.Materials.Single().Quantity == 17, "sales and current stock included");
         QuestPDF.Settings.License = LicenseType.Community;
