@@ -1084,3 +1084,21 @@ body .layout>.main>.topbar{position:sticky;top:0;z-index:1050;flex:0 0 70px;heig
         z-index: 1038;
     }
 }
+
+/* Android mode controls belong to the left of the brand/title, within the existing header row. */
+.topbar-left:has(.app-mode-controls){min-width:0;gap:8px}
+.topbar-left .topbar-title-block:has(.app-mode-controls){display:contents}
+.topbar-left .page-title{flex-shrink:0}
+.topbar-left .app-mode-controls{display:flex;flex:0 0 auto;align-items:center;justify-content:center;gap:7px;margin:0 0 0 0;padding:0;border:0;font-size:10px;line-height:1.5;direction:rtl}
+.topbar-left .app-mode-controls span{color:#9be1c2;white-space:nowrap;font-size:10px}
+.topbar-left .app-mode-controls a{display:block;color:#e3eff8;text-decoration:none;border:1px solid #ffffff30;border-radius:9px;padding:5px 8px;background:#ffffff0d;line-height:1.45;text-align:center;font-size:10px}
+@media(max-width:768px){
+ body .layout>.main>.topbar:has(.app-mode-controls) .topbar-left{grid-column:1/-1;grid-row:1;width:100%;min-width:0;gap:8px}
+ body .layout>.main>.topbar:has(.app-mode-controls) .topbar-right{grid-column:1;grid-row:2}
+ body .layout>.main>.topbar:has(.app-mode-controls) .mobile-menu-toggle{grid-column:2;grid-row:2}
+ .topbar-left .app-mode-controls{flex-direction:column;gap:3px;width:105px;margin-inline-start:auto}
+ .topbar-left .app-mode-controls span{font-size:9px;line-height:1.2}
+ .topbar-left .app-mode-controls a{width:105px;max-width:100%;padding:4px 5px;font-size:9px;white-space:normal}
+ .topbar-left .page-title-main{white-space:nowrap}
+}
+@media(max-width:350px){.topbar-left .app-mode-controls,.topbar-left .app-mode-controls a{width:94px}.topbar-left .app-mode-controls a{font-size:8.5px}}

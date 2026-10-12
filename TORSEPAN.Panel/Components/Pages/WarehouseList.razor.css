@@ -78,3 +78,30 @@
 .stock-operation strong,.stock-operation span{white-space:normal;word-break:normal;overflow-wrap:break-word;line-height:1.8}
 .stock-operation time{grid-column:1/-1;font-size:.68rem;color:#8195a5}
 @media(max-width:640px){.stock-list{padding:0}.stock-item{padding:6px 2px}.stock-summary{gap:5px}.stock-code{font-size:.73rem}.stock-material,.stock-scale{font-size:clamp(.5rem,2.5vw,.65rem)}.stock-entry{font-size:.58rem}.stock-details{padding:8px}.stock-operation{font-size:.73rem}.stock-operation time{font-size:.64rem}}
+
+/* Instrument inventory shares the export inventory's hero and destination-card language. */
+.instrument-hero{background:radial-gradient(circle at 18% 15%,rgba(103,192,174,.34),transparent 28%),linear-gradient(135deg,#071d39 0%,#153f68 58%,#176e68 130%);padding:28px 24px;border-radius:28px}
+.instrument-hero .hero-icon svg{width:29px;height:29px;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.instrument-hero .hero-stats{margin-top:18px}.instrument-hero .hero-stats strong{font-size:1.25rem}
+.hero-menu{position:absolute;top:17px;left:17px;z-index:3}.hero-menu summary{background:#ffffff18;border:1px solid #ffffff35;color:#fff;box-shadow:none}.hero-menu>div{min-width:150px;right:auto;left:0;color:#24485f}
+.warehouse-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.warehouse-tab{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;min-height:94px;padding:16px;border:1px solid #dce5eb;border-radius:20px;background:linear-gradient(145deg,#fff,#f4f7f9);box-shadow:0 8px 24px #163a5612;color:#183e5e;text-align:right}
+.warehouse-tier-mark{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:#173f62;color:#fff;font:850 .75rem Arial,sans-serif}
+.warehouse-tier-text{min-width:0}.warehouse-tier-text small{display:block;color:#78909f;font-size:.7rem}.warehouse-tier-text strong{display:block;margin-top:3px;font-size:1.05rem;font-weight:850;overflow-wrap:normal;word-break:normal}
+.warehouse-tier-count{display:grid;place-items:center;min-width:36px;height:36px;padding:0 6px;border-radius:12px;background:#e8eef2;font:800 1.05rem Arial,sans-serif}
+.warehouse-tab.active,.warehouse-tab.tier-2.active,.warehouse-tab.tier-3.active{border-color:#258269;background:linear-gradient(145deg,#f5fffb,#e4f4ee);box-shadow:0 12px 30px #1b775924;color:#183e5e}
+.warehouse-tab.active::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(#50b796,#167259)}
+.warehouse-tab.active .warehouse-tier-count{background:#1e8162;color:#fff}.warehouse-tab:hover{border-color:#75a898;box-shadow:0 12px 28px #163a561a}
+.warehouse-collection{padding:0;border:0;background:transparent;box-shadow:none;margin-bottom:12px}
+.warehouse-collection-heading{padding:10px 13px;margin-bottom:12px;border:1px solid #b9ddd0;border-radius:16px;background:linear-gradient(135deg,#f5fcf9,#eaf6f1);box-shadow:0 8px 22px #18695014}
+.warehouse-collection-heading h2{font-size:1rem;color:#155d49}.collection-label{color:#679080}.collection-count{background:#d8eee5;color:#17664f}
+.warehouse-tools{gap:8px}.warehouse-search{background:#fff;border-color:#d8e3eb}.warehouse-filter-toggle,.gallery-open{box-shadow:none;border-color:#d8e3eb}
+.warehouse-selection-bar{margin-top:12px;padding:10px 0 0;gap:8px;border-color:#d8e3eb}.warehouse-selection-bar .bulk-sale-button{background:linear-gradient(135deg,#167254,#249474);border:0}.warehouse-selection-bar .transfer-selected{background:#fff;border-color:#c9dce7;color:#315b78}
+@media(max-width:900px){.warehouse-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.warehouse-tab:last-child{grid-column:1/-1}}
+@media(max-width:600px){
+ .instrument-hero{padding:22px 15px;border-radius:21px}.hero-menu{top:12px;left:12px}.hero-menu summary{width:30px;height:30px;border-radius:9px}.instrument-hero .hero-stats{margin-top:15px;font-size:.72rem}
+ .warehouse-tabs{gap:8px;margin-bottom:16px}.warehouse-tab{min-height:82px;padding:12px 10px;border-radius:18px;gap:8px;grid-template-columns:auto minmax(0,1fr)}
+ .warehouse-tier-mark{width:37px;height:37px;border-radius:11px;font-size:.63rem}.warehouse-tier-text{padding-top:16px}.warehouse-tier-text small{font-size:.61rem}.warehouse-tier-text strong{font-size:.85rem}.warehouse-tier-count{position:absolute;top:8px;left:8px;min-width:29px;height:25px;border-radius:8px;font-size:.72rem}
+ .warehouse-tab:last-child{min-height:72px;grid-template-columns:auto minmax(0,1fr) auto}.warehouse-tab:last-child .warehouse-tier-text{padding-top:0}.warehouse-tab:last-child .warehouse-tier-count{position:static}
+ .warehouse-collection{padding:0;border-radius:0}.warehouse-collection-heading{padding:9px 12px}.warehouse-collection-heading h2{font-size:.96rem}.warehouse-selection-bar{gap:8px}.warehouse-selection-bar .btn{min-height:36px}
+}
