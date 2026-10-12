@@ -120,4 +120,30 @@ public class ProductionEvent : Entity
         if(userId==Guid.Empty)throw new ArgumentException("User is required.",nameof(userId));
         UserId=userId;
     }
+
+    public Dictionary<string, Guid> ShapeContributors()
+    {
+        var result=new Dictionary<string,Guid>(StringComparer.OrdinalIgnoreCase);
+        var start=Description.IndexOf("|CONTRIB:",StringComparison.Ordinal);
+        if(start<0)return result;
+        foreach(var part in Description[(start+9)..].Split(';'))
+        {
+            var pair=part.Split('=',2);
+            if(pair.Length==2&&(pair[0] is "Stretch" or "NoteArea" or "Edit")&&Guid.TryParse(pair[1],out var id))result[pair[0]]=id;
+        }
+        return result;
+    }
+    public void AddShapeContributors(IReadOnlyDictionary<string,Guid> additions)
+    {
+        if(Action!=ProductionAction.Shape||Result!=EventResult.Completed)throw new InvalidOperationException("شیپ تکمیل‌شده لازم است.");
+        var values=ShapeContributors();
+        foreach(var part in additions)
+        {
+            if(part.Key is not ("Stretch" or "NoteArea" or "Edit")||part.Value==Guid.Empty)throw new InvalidOperationException("عملیات یا انجام‌دهنده معتبر نیست.");
+            if(values.ContainsKey(part.Key))throw new InvalidOperationException("برای این بخش قبلاً انجام‌دهنده ثبت شده است.");
+        }
+        foreach(var part in additions)values[part.Key]=part.Value;
+        var start=Description.IndexOf("|CONTRIB:",StringComparison.Ordinal);
+        Description=(start<0?Description:Description[..start])+"|CONTRIB:"+string.Join(';',values.Select(x=>$"{x.Key}={x.Value}"));
+    }
 }
