@@ -131,6 +131,15 @@ public sealed partial class OfflineProductionService
                     .Register(new RegisterDesignRequest(op.Code,[new RegisterDesignItem(op.DesignTypeId!.Value,op.PerformerId)]),ct);
                 Require(response is OkObjectResult,"دیزاین معتبر نیست، تکراری است یا ساز در انبار قفل شده است.");
                 break;
+            case "warehouseTransfer":
+                Require(op.QualityWarehouseId.HasValue && InstrumentWarehouse.IsValidId(op.QualityWarehouseId.Value),"انبار مقصد معتبر نیست.");
+                var stockInstrument=await InstrumentAsync(bowl!,ct);
+                Require(stockInstrument.Stage is ProductionStage.FinishedWarehouse or ProductionStage.ExportWarehouse,"فقط سازهای موجود در انبار قابل انتقال‌اند.");
+                var warehouseNames=await db.InstrumentWarehouses.AsNoTracking().ToDictionaryAsync(x=>x.Id,x=>x.Name,ct);
+                var sourceWarehouse=stockInstrument.QualityWarehouseId;
+                if(sourceWarehouse!=op.QualityWarehouseId.Value){stockInstrument.SetQualityWarehouse(op.QualityWarehouseId.Value);
+                    db.ProductionEvents.Add(new ProductionEvent(stockInstrument.Id,stockInstrument.AssemblyId,null,op.PerformerId,ProductionAction.WarehouseTransfer,EventResult.Completed,null,$"انتقال انبار از {warehouseNames[sourceWarehouse]} به {warehouseNames[stockInstrument.QualityWarehouseId]}"));}
+                break;
             case "workspace":await ApplyWorkspaceAsync(op,ct);break;
             case "edit":
                 Require(op.Edit is not null,"اطلاعات اصلاحات لازم است.");

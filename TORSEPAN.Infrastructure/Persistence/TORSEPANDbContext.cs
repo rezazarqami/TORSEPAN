@@ -24,6 +24,8 @@ public class TORSEPANDbContext : DbContext
 
     public DbSet<Bowl> Bowls => Set<Bowl>();
     public DbSet<HandpanAssembly> HandpanAssemblies => Set<HandpanAssembly>();
+    public DbSet<InstrumentWarehouse> InstrumentWarehouses => Set<InstrumentWarehouse>();
+
     public DbSet<Handpan> Handpans => Set<Handpan>();
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<Scale> Scales => Set<Scale>();

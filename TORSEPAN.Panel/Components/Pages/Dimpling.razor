@@ -354,9 +354,19 @@
             else if (_bowl.Stage == 14)
             {
                 <div class="mt-3">
+                    <section class="qc-warehouse-picker" aria-label="انتخاب انبار پس از کنترل کیفیت">
+                        <div class="qc-warehouse-heading"><small>رده‌بندی کیفیت ساز</small><h3>انبار مقصد را انتخاب کنید</h3><p>ساز پس از بسته‌بندی در این انبار قرار می‌گیرد.</p></div>
+                        @if (_qualityWarehouses.Count == 0)
+                        { <div class="alert alert-warning">دریافت انبارها انجام نشد. <button class="btn btn-sm btn-outline-primary" @onclick="LoadQualityWarehousesAsync">تلاش دوباره</button></div> }
+                        else
+                        { <div class="qc-warehouse-options" role="radiogroup" aria-label="انبار مقصد">
+                            @foreach (var warehouse in _qualityWarehouses)
+                            { <label class="qc-warehouse-option tier-@warehouse.Id @(_qualityWarehouseId==warehouse.Id ? "selected" : null)"><input type="radio" name="qc-warehouse" value="@warehouse.Id" checked="@(_qualityWarehouseId==warehouse.Id)" @onchange="()=>_qualityWarehouseId=warehouse.Id" /><span class="qc-tier-mark">@("0"+warehouse.Id)</span><strong dir="auto">@warehouse.Name</strong><small>@QualityTierDescription(warehouse.Id)</small></label> }
+                        </div> }
+                    </section>
                     <div class="d-flex gap-2 mb-3">
                         <button class="btn btn-success"
-                                disabled="@_loading"
+                                disabled="@(_loading || !_qualityWarehouseId.HasValue)"
                                 @onclick="ApproveQualityControlAsync">
                             QC تأیید شد
                         </button>
@@ -498,6 +508,8 @@
     private bool _showQcRejection;
     private string _qcRejectionReason = "OutOfTune";
     private string _qcDetails = string.Empty;
+    private int? _qualityWarehouseId;
+    private List<InstrumentWarehouseDto> _qualityWarehouses = [];
     private string _stageNote = string.Empty;
     private string _instrumentNote = string.Empty;
     private readonly List<ShaperDto> _shapers = [];
@@ -556,12 +568,14 @@
             _pairedProductionCode = string.Empty;
             _successMessage = null;
             _showQcRejection = false;
+            _qualityWarehouseId = null;
             _stageNote = string.Empty;
             _instrumentNote = string.Empty;
             _sendToExportWarehouse = false;
             _exportWarehouseLocation = null;
             _selectedPackagingMaterialIds.Clear();
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
+            if (_bowl?.Stage == 14) await LoadQualityWarehousesAsync();
             if (_bowl?.Stage == 16) await LoadPackagingMaterialsAsync();
             if (_bowl?.Stage == 2)
                 _scaleId = DimpleScales.FirstOrDefault()?.Id ?? Guid.Empty;
@@ -752,12 +766,19 @@
 
     private void ShowQualityControlRejection() => _showQcRejection = true;
 
+    private async Task LoadQualityWarehousesAsync()
+    {
+        try { _qualityWarehouses=await ProductionService.GetInstrumentWarehousesAsync(); }
+        catch { _qualityWarehouses=[]; }
+    }
+    private static string QualityTierDescription(int id) => id switch {1=>"ردهٔ اقتصادی",2=>"کیفیت بالاتر؛ ردهٔ میانی",_=>"کیفیت ممتاز و منتخب"};
     private async Task ApproveQualityControlAsync()
     {
+        if (!_qualityWarehouseId.HasValue) { _error="انبار مقصد ساز را انتخاب کنید."; return; }
         await SaveInstrumentNoteAsync();
         await ExecuteAsync(async () =>
         {
-            var result = await BowlService.CompleteQualityControlAsync(_productionCode, true);
+            var result = await BowlService.CompleteQualityControlAsync(_productionCode, true, qualityWarehouseId: _qualityWarehouseId);
             SetOperationResult(result, "QC تأیید شد و ساز در انتظار بسته‌بندی قرار گرفت.", "ثبت تأیید QC انجام نشد.");
         });
     }

@@ -9,8 +9,8 @@ android {
         applicationId 'ir.torsepan.mobile'
         minSdk 29
         targetSdk 34
-        versionCode 4
-        versionName '2.0-offline'
+        versionCode 5
+        versionName '2.1-warehouses'
     }
 }
 
