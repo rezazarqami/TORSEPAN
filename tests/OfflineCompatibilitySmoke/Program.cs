@@ -8,3 +8,7 @@ if(db.Database.HasPendingModelChanges())throw new Exception("Release migration s
 var sql=db.GetService<IMigrator>().GenerateScript("20261011071805_AddOfflineReleaseCompatibility");
 if(!sql.Contains("ADD \"ShowMyPayroll\"")||sql.Contains("DROP TABLE")||sql.Contains("DROP COLUMN"))throw new Exception("Expected additive user visibility migration");
 Console.WriteLine("PASS release API model snapshot and additive visibility migration");
+
+var legacy=new TORSEPAN.Application.Auth.Commands.UpdateUser.UpdateUserCommand(Guid.NewGuid(),"legacy","Legacy","",new List<Guid>());
+if(legacy.ShowMyPayroll is not null)throw new Exception("Legacy user edits must preserve payroll visibility");
+Console.WriteLine("PASS legacy update command remains source-compatible and preserves omitted visibility");
