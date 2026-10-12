@@ -8,15 +8,71 @@
 @inject IJSRuntime JS
 
 <style>.inline-add{display:grid;grid-template-columns:1fr auto;align-items:end;gap:7px}.inline-add .btn{min-height:44px;border-radius:11px;white-space:nowrap}</style>
-<PageTitle>فروش</PageTitle><PageHeader Title="فروش" SubTitle="فروش داخلی ساز، فروش صادراتی ساز و صادرات کاسه" />
-<nav class="sales-segments" aria-label="نوع فروش"><button class="@SegmentClass(0)" @onclick="()=>_saleSegment=0"><span>فروش داخلی ساز</span><strong>@_items.Count(x=>!x.IsBowl&&!x.IsExportSale)</strong></button><button class="@SegmentClass(1)" @onclick="()=>_saleSegment=1"><span>فروش صادراتی ساز</span><strong>@_items.Count(x=>!x.IsBowl&&x.IsExportSale)</strong></button><button class="@SegmentClass(2)" @onclick="()=>_saleSegment=2"><span>صادرات کاسه</span><strong>@_items.Count(x=>x.IsBowl)</strong></button></nav>
-<div class="mb-4"><input class="form-control" placeholder="جست‌وجوی کد، نوع، خریدار یا متریال..." @bind="_search" @bind:event="oninput" /></div>
+<PageTitle>فروش</PageTitle>
+<section class="sales-hero">
+    <span class="sales-kicker">SALES / TORSEPAN</span>
+    <div class="sales-hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h16v12H4zM8 8V6a4 4 0 0 1 8 0v2M9 13h6" /></svg></div>
+    <h1>فروش</h1><div class="sales-total"><strong>@_items.Count</strong> فروش ثبت‌شده</div>
+</section>
+<nav class="sales-segments" aria-label="نوع فروش">
+    @for(var segment=0;segment<3;segment++)
+    {
+        var current=segment;
+        <button type="button" class="@SegmentClass(current)" aria-pressed="@(_saleSegment==current?"true":"false")" @onclick="()=>_saleSegment=current">
+            <span class="sales-tier-mark" aria-hidden="true">@($"0{current+1}")</span>
+            <span class="sales-tier-text"><small>سوابق فروش</small><strong>@SegmentTitle(current)</strong></span>
+            <b class="sales-tier-count">@SegmentCount(current)</b>
+        </button>
+    }
+</nav>
+<div class="sales-collection-heading"><div><small>سوابق فروش</small><h2>@SegmentTitle(_saleSegment)</h2></div><span>@Items.Count() مورد</span></div>
+<div class="sales-search-wrap"><span aria-hidden="true">⌕</span><input class="form-control" aria-label="جست‌وجو در فروش انتخاب‌شده" placeholder="کد، خریدار، متریال یا Scale…" @bind="_search" @bind:event="oninput" /></div>
 <Card>
 @if(_loading){<div class="text-center p-5"><div class="spinner-border"></div></div>}
-else if(!Items.Any()){<EmptyState Title="هنوز فروشی ثبت نشده است" Description="سازهای فروخته‌شده و کاسه‌های صادراتی ارسال‌شده اینجا نمایش داده می‌شوند." />}
-else{<DataTable><thead><tr><th></th><th>نوع</th><th>کد</th><th>خریدار</th><th>شماره تلفن</th><th>@(IsBowlSegment?"روش ارسال":"قیمت")</th><th>مقصد</th><th>متریال</th><th>@(IsBowlSegment?"تسویه":"Scale")</th><th>ثبت‌کننده</th><th>تاریخ</th><th>گارانتی</th><th class="sale-actions-cell">عملیات</th></tr></thead><tbody>@foreach(var item in Items){<tr><td>@if(!item.IsBowl){<button class="btn btn-sm btn-outline-primary detail-toggle" disabled="@_detailsLoading.Contains(item.HandpanId)" @onclick="()=>ToggleDetailsAsync(item)">@if(_detailsLoading.Contains(item.HandpanId)){<span class="spinner-border spinner-border-sm"></span>}else{@(_expanded.Contains(item.HandpanId)?"−":"+")}</button>}</td><td><span class="badge @(item.IsBowl?"bg-warning text-dark":item.IsExportSale?"bg-info text-dark":"bg-primary")">@(item.IsBowl?item.ItemType:item.IsExportSale?"ساز صادراتی":"ساز داخلی")</span></td><td><strong>@item.SerialNumber</strong></td><td>@(string.IsNullOrWhiteSpace(item.BuyerName)?"—":item.BuyerName)</td><td>@(item.IsBowl?"—":string.IsNullOrWhiteSpace(item.BuyerPhoneNumber)?"—":item.BuyerPhoneNumber)</td><td>@(item.IsBowl?ShippingName(item.ShippingMethod):(item.Price?.ToString("N0")??"—"))</td><td>@(string.IsNullOrWhiteSpace(item.Destination)?"—":item.Destination)</td><td>@item.MaterialName</td><td>@(item.IsBowl?SettledName(item.IsSettled):item.ScaleName)</td><td>@item.SoldBy</td><td>@PersianDateTime.FormatDateTime(item.SoldAt)</td><td>@if(item.IsBowl){<span>—</span>}else{<span class="warranty-status @(item.IsWarrantyActive?"active":"inactive")"><i></i>@(item.IsWarrantyActive?"فعال":"غیرفعال")</span>}</td><td class="sale-actions-cell"><div class="sale-actions">@if(!item.IsBowl){<button class="btn btn-sm btn-outline-primary" @onclick="()=>Edit(item)">ویرایش</button>}<AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning rollback-action" title="بازگشت به مرحله قبل" disabled="@_rollingBack.Contains(item.HandpanId)" @onclick="()=>RequestRollback(item)">@(_rollingBack.Contains(item.HandpanId)?"در حال انجام…":"↩ بازگشت")</button><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></div></td></tr>
-@if(!item.IsBowl&&_expanded.Contains(item.HandpanId)){<tr class="sale-detail-row"><td colspan="13">@if(_detailErrors.Contains(item.HandpanId)){<div class="alert alert-warning">دریافت شناسنامه ساز انجام نشد. <button class="btn btn-sm btn-outline-warning" @onclick="()=>LoadDetailsAsync(item)">تلاش دوباره</button></div>}else if(_details.TryGetValue(item.HandpanId,out var detail)){<div class="sold-instrument-detail"><div class="sold-photo"><HandpanPhotoGallery HandpanId="@item.HandpanId" /></div><div class="sold-info"><h5>شناسنامه ساز @item.SerialNumber</h5><div class="sold-packaging">@if(detail.PackagingItems.Count==0){<span>اقلام بسته‌بندی ثبت نشده</span>}else{@foreach(var p in detail.PackagingItems){<span>✓ @p</span>}}</div><div class="table-responsive"><table class="table table-sm"><thead><tr><th>عملیات</th><th>انجام‌دهنده</th><th>زمان</th></tr></thead><tbody>@foreach(var op in detail.Operations){<tr><td>@op.Operation</td><td>@op.PerformedBy</td><td>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</td></tr>}</tbody></table></div></div></div>}else{<div class="sold-detail-loading"><span class="spinner-border spinner-border-sm"></span> در حال دریافت شناسنامه ساز…</div>}</td></tr>}
-}</tbody></DataTable>}
+else if(!Items.Any()){<EmptyState Title="فروشی پیدا نشد" Description="سوابق این بخش را بررسی کنید یا عبارت جست‌وجو را تغییر دهید." />}
+else
+{
+    <div class="sales-stock-list">
+    @foreach(var item in Items)
+    {
+        <article class="sales-stock-item">
+            <div class="sales-stock-summary">
+                <button class="sales-stock-expand" aria-label="جزئیات فروش @item.SerialNumber" aria-expanded="@(_expanded.Contains(item.HandpanId)?"true":"false")" disabled="@_detailsLoading.Contains(item.HandpanId)" @onclick="()=>ToggleDetailsAsync(item)">@if(_detailsLoading.Contains(item.HandpanId)){<span class="spinner-border spinner-border-sm"></span>}else{@(_expanded.Contains(item.HandpanId)?"−":"+")}</button>
+                <strong class="sales-stock-code" dir="ltr">@item.SerialNumber</strong>
+                <span class="sales-stock-material" dir="auto" title="@item.MaterialName">@item.MaterialName</span>
+                <span class="sales-stock-scale" dir="auto" title="@(item.IsBowl?item.ItemType:item.ScaleName)">@(item.IsBowl?item.ItemType:item.ScaleName)</span>
+            </div>
+            <div class="sales-stock-date">تاریخ فروش: <bdi>@PersianDateTime.FormatDateTime(item.SoldAt)</bdi></div>
+            @if(_expanded.Contains(item.HandpanId))
+            {
+                <section class="sales-stock-details">
+                    <dl class="sales-facts">
+                        <div><dt>نوع</dt><dd>@(item.IsBowl?item.ItemType:item.IsExportSale?"ساز صادراتی":"ساز داخلی")</dd></div>
+                        <div><dt>خریدار</dt><dd>@(string.IsNullOrWhiteSpace(item.BuyerName)?"—":item.BuyerName)</dd></div>
+                        <div><dt>شماره تلفن</dt><dd dir="auto">@(item.IsBowl?"—":string.IsNullOrWhiteSpace(item.BuyerPhoneNumber)?"—":item.BuyerPhoneNumber)</dd></div>
+                        <div><dt>@(IsBowlSegment?"روش ارسال":"قیمت")</dt><dd>@(item.IsBowl?ShippingName(item.ShippingMethod):(item.Price?.ToString("N0")??"—"))</dd></div>
+                        <div><dt>مقصد</dt><dd>@(string.IsNullOrWhiteSpace(item.Destination)?"—":item.Destination)</dd></div>
+                        <div><dt>متریال</dt><dd dir="auto">@item.MaterialName</dd></div>
+                        <div><dt>@(IsBowlSegment?"تسویه":"Scale")</dt><dd dir="auto">@(item.IsBowl?SettledName(item.IsSettled):item.ScaleName)</dd></div>
+                        <div><dt>ثبت‌کننده</dt><dd>@item.SoldBy</dd></div>
+                        @if(!item.IsBowl){<div><dt>گارانتی</dt><dd><span class="warranty-status @(item.IsWarrantyActive?"active":"inactive")"><i></i>@(item.IsWarrantyActive?"فعال":"غیرفعال")</span></dd></div>}
+                    </dl>
+                    <div class="sale-actions">@if(!item.IsBowl){<button class="btn btn-sm btn-outline-primary" @onclick="()=>Edit(item)">ویرایش</button>}<AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning rollback-action" title="بازگشت به مرحله قبل" disabled="@_rollingBack.Contains(item.HandpanId)" @onclick="()=>RequestRollback(item)">@(_rollingBack.Contains(item.HandpanId)?"در حال انجام…":"↩ بازگشت")</button><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></div>
+                    @if(!item.IsBowl)
+                    {
+                        @if(_detailErrors.Contains(item.HandpanId)){<div class="alert alert-warning">دریافت شناسنامه ساز انجام نشد. <button class="btn btn-sm btn-outline-warning" @onclick="()=>LoadDetailsAsync(item)">تلاش دوباره</button></div>}
+                        else if(_details.TryGetValue(item.HandpanId,out var detail))
+                        {
+                            <div class="sold-instrument-detail"><div class="sold-photo"><HandpanPhotoGallery HandpanId="@item.HandpanId" /></div><div class="sold-info"><h5>شناسنامه ساز @item.SerialNumber</h5><div class="sold-packaging">@if(detail.PackagingItems.Count==0){<span>اقلام بسته‌بندی ثبت نشده</span>}else{@foreach(var p in detail.PackagingItems){<span>✓ @p</span>}}</div><div class="table-responsive"><table class="table table-sm"><thead><tr><th>عملیات</th><th>انجام‌دهنده</th><th>زمان</th></tr></thead><tbody>@foreach(var op in detail.Operations){<tr><td>@op.Operation</td><td>@op.PerformedBy</td><td>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</td></tr>}</tbody></table></div></div></div>
+                        }
+                        else{<div class="sold-detail-loading"><span class="spinner-border spinner-border-sm"></span> در حال دریافت شناسنامه ساز…</div>}
+                    }
+                </section>
+            }
+        </article>
+    }
+    </div>
+}
 </Card>
 
 <AppConfirmDialog IsOpen="@(_rollbackCandidate is not null)"
@@ -57,6 +113,8 @@ else{<DataTable><thead><tr><th></th><th>نوع</th><th>کد</th><th>خریدار
     private string RemainingAmountText=>_price.HasValue?Math.Max(0,_price.Value-(_receivedAmount??0)).ToString("N0"):"—";
     private bool IsBowlSegment=>_saleSegment==2;
     private IEnumerable<SaleItemDto> Items{get{var typed=_items.Where(x=>_saleSegment switch{0=>!x.IsBowl&&!x.IsExportSale,1=>!x.IsBowl&&x.IsExportSale,_=>x.IsBowl});return string.IsNullOrWhiteSpace(_search)?typed:typed.Where(x=>x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ItemType.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BuyerName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search,StringComparison.OrdinalIgnoreCase));}}
+    private static string SegmentTitle(int segment)=>segment switch{0=>"فروش داخلی ساز",1=>"فروش صادراتی ساز",_=>"صادرات کاسه"};
+    private int SegmentCount(int segment)=>_items.Count(x=>segment switch{0=>!x.IsBowl&&!x.IsExportSale,1=>!x.IsBowl&&x.IsExportSale,_=>x.IsBowl});
     private string SegmentClass(int segment)=>_saleSegment==segment?"sales-segment active":"sales-segment";
     private static string ShippingName(string? value)=>value switch{"air"=>"هوایی","land"=>"زمینی","sea"=>"دریایی",_=>"ثبت نشده"};
     private static string SettledName(bool? value)=>value switch{true=>"تسویه شده",false=>"تسویه نشده",_=>"ثبت نشده"};
@@ -67,7 +125,7 @@ else{<DataTable><thead><tr><th></th><th>نوع</th><th>کد</th><th>خریدار
     private async Task AddSourceAsync(){if(string.IsNullOrWhiteSpace(_newSource))return;try{var item=await AttributionService.AddSourceAsync(_newSource);if(item is not null){_attribution.Sources.Add(item);_leadSourceId=item.Id;_newSource="";}}catch(Exception ex){_editError=ex.Message;}}
     private async Task AddReferrerAsync(){if(string.IsNullOrWhiteSpace(_newReferrer))return;try{var item=await AttributionService.AddReferrerAsync(_newReferrer);if(item is not null){_attribution.Referrers.Add(item);_referrerId=item.Id;_newReferrer="";}}catch(Exception ex){_editError=ex.Message;}}
     private void SaleTypeChanged(){if(!_isExportSale)_destination="";}
-    private async Task ToggleDetailsAsync(SaleItemDto item){if(!_expanded.Add(item.HandpanId)){_expanded.Remove(item.HandpanId);return;}if(!_details.ContainsKey(item.HandpanId))await LoadDetailsAsync(item);}
+    private async Task ToggleDetailsAsync(SaleItemDto item){if(!_expanded.Add(item.HandpanId)){_expanded.Remove(item.HandpanId);return;}if(!item.IsBowl&&!_details.ContainsKey(item.HandpanId))await LoadDetailsAsync(item);}
     private async Task LoadDetailsAsync(SaleItemDto item){if(!_detailsLoading.Add(item.HandpanId))return;_detailErrors.Remove(item.HandpanId);try{var detail=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(detail is null)throw new InvalidOperationException();_details[item.HandpanId]=detail;}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
     private void CloseEdit(){if(!_saving)_editing=null;}
     private async Task SaveEdit(){if(_editing is null)return;if(SelectedSourceRequiresReferrer&&!_referrerId.HasValue){_editError="نام معرف را انتخاب کنید.";return;}_saving=true;_editError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_partyId);var buyer=party?.Name??_buyer.Trim();await ProductionService.UpdateSaleAsync(_editing.HandpanId,buyer,party?.Phone??_buyerPhone.Trim(),_price,_receivedAmount,_isExportSale,_destination.Trim(),party?.Id,true,_leadSourceId,_referrerId);_editing=null;await LoadAsync();}catch(Exception ex){_editError=string.IsNullOrWhiteSpace(ex.Message)?"ذخیره فروش یا فعال‌سازی گارانتی انجام نشد.":ex.Message;}finally{_saving=false;}}

@@ -11,7 +11,7 @@
     <span class="hero-kicker">INSTRUMENT INVENTORY</span>
     <div class="hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 10 12 4l9 6v10H3V10Z"/><path d="M8 20v-7h8v7M8 9h8M10 16h4"/></svg></div>
     <h1>انبار سازها</h1>
-    <div class="hero-stats"><span><strong>@_items.Count</strong> موجودی کل</span><i></i><span><strong>@_warehouses.Count</strong> انبار</span></div>
+    <div class="hero-stats"><span><strong>@_items.Count</strong> موجودی کل</span></div>
     @if (_canManage) { <details class="warehouse-menu hero-menu"><summary aria-label="گزینه‌های مدیریت انبار">⋯</summary><div><button @onclick="OpenWarehouseManagement">مدیریت انبارها</button></div></details> }
 </section>
 @if (!string.IsNullOrWhiteSpace(_notice)) { <div class="warehouse-notice" role="status">✓ @_notice <button aria-label="بستن پیام" @onclick="()=>_notice=null">×</button></div> }

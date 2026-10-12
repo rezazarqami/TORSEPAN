@@ -117,6 +117,9 @@ public sealed class BowlService
         return _api.PostAsync<object, bool>($"bowls/production/{code}/notes", new { Description = description });
     }
 
+    public async Task<IReadOnlyList<ShapeEditDto>> GetShapeEditsAsync(string code)=>await _api.GetAsync<List<ShapeEditDto>>($"shape-edits/{Uri.EscapeDataString(code.Trim())}")??[];
+    public Task<object?> AddShapeContributorsAsync(string code,ShapeEditRequest request)=>_api.PutAsync<ShapeEditRequest,object>($"shape-edits/{Uri.EscapeDataString(code.Trim())}",request);
+
     public async Task<IReadOnlyList<ShaperDto>> GetShapersAsync()
         => await _api.GetAsync<List<ShaperDto>>("bowls/production/shapers") ?? [];
 
