@@ -67,7 +67,7 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         var rejected = peers.Any(x => x.Status == ProductionStatus.Rejected) || h?.Status == ProductionStatus.Rejected;
         return new(b.ProductionCode, b.Id, (int)b.BowlType, b.HasNotes, b.IsCustomScale, b.ScaleId,
             (int)(h?.Stage??b.Stage), rejected ? "ردشده؛ نیاز به بررسی آنلاین" : PassportBackupSnapshot.Stage(h?.Stage??b.Stage), Hash(JsonSerializer.Serialize(state)),
-            peers.FirstOrDefault(x => x.Id != b.Id)?.ProductionCode, h?.SerialNumber, rejected);
+            peers.FirstOrDefault(x => x.Id != b.Id)?.ProductionCode, h?.SerialNumber, rejected, h?.QualityWarehouseId??1);
     }
     public async Task<OfflineBowl> BowlAsync(string code, CancellationToken ct)
     {
@@ -104,8 +104,10 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         var parties = await db.AccountingParties.AsNoTracking().Where(x=>x.IsActive).Select(x=>new OfflineOption(x.Id,x.Name,false)).ToListAsync(ct);
         var editable = events.Select(x=>new OfflineEditableEvent(x.Id,x.BowlId,x.AssemblyId,x.HandpanId,x.UserId,x.Description,x.EventDate)).ToList();
         var workspace=await WorkspaceAsync(owner,ct);
+        var warehouses=await db.InstrumentWarehouses.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new OfflineWarehouse(x.Id,x.Name,x.Version)).ToListAsync(ct);
         await tx.CommitAsync(ct);
-        return new(2, device, owner, DateTime.UtcNow, bowls, users, scales, passports,materials,designs,sources,referrers,parties,editable,true,workspace);
+        return new(2, device, owner, DateTime.UtcNow, bowls, users, scales, passports,materials,designs,sources,referrers,parties,editable,true,workspace,
+            warehouses);
     }
 
     private async Task CheckVersionAsync(OfflineBowl bowl, string? version, Guid? previous, Guid device, CancellationToken ct)
@@ -146,7 +148,7 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         op=await ResolveWorkspaceIdsAsync(op,ct);
         using var alerts = new TORSEPAN.Application.Materials.InventoryAlertBatch();
         var action = op.Action;
-        var role = action switch { "dimple" => "Dimpler", "shape" => "Shaper", "bake" or "glue" or "release" => "Workshop", "tune" => "Tuner", "finalTune" => "FineTuner", "qc" => "QualityControl", "packaging" or "exportPackaging" => "Workshop", "sell" or "ship" => "SalesAdmin", "tuneExport" => "Tuner", "exportRoute" or "returnGlue" => "Workshop", "create" or "stock" or "edit" or "workspace" => "Administrator", "note" or "photo" or "design" => "*", _ => "" };
+        var role = action switch { "dimple" => "Dimpler", "shape" => "Shaper", "bake" or "glue" or "release" => "Workshop", "tune" => "Tuner", "finalTune" => "FineTuner", "qc" => "QualityControl", "packaging" or "exportPackaging" => "Workshop", "sell" or "ship" => "SalesAdmin", "tuneExport" => "Tuner", "exportRoute" or "returnGlue" => "Workshop", "create" or "stock" or "edit" or "workspace" => "Administrator", "warehouseTransfer" => "Administrator", "note" or "photo" or "design" => "*", _ => "" };
         if (role == "") throw new OfflineProblem("unsupported", "این عملیات در نسخه آفلاین پشتیبانی نمی‌شود.", 400);
         var performer = await db.Users.AsNoTracking().Where(x => x.Id == op.PerformerId)
             .Select(x => new { x.IsActive, x.IsDeleted, x.Role, Assigned = x.UserRoles.Select(r => r.Role.Name).ToArray() }).SingleOrDefaultAsync(ct);
@@ -191,7 +193,7 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
                 "glue" => await mediator.Send(new CompleteBowlGlueCommand(op.Code, op.PairCode!, op.ScaleId ?? Guid.Empty), ct),
                 "release" => await mediator.Send(new ReleaseBowlFromGlueRoomCommand(op.Code), ct),
                 "finalTune" => await mediator.Send(new CompleteHandpanFinalTuneCommand(op.Code, (OperationDuration)op.Duration), ct),
-                "qc" => await mediator.Send(new CompleteHandpanQualityControlCommand(op.Code, op.Approved, op.RejectionReason, op.Details), ct),
+                "qc" => await mediator.Send(new CompleteHandpanQualityControlCommand(op.Code, op.Approved, op.RejectionReason, op.Details, op.QualityWarehouseId??1), ct),
                 _ => await ApplyExtendedAsync(op, bowl, ct)
             };
         }

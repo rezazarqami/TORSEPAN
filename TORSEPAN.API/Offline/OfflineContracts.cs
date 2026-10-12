@@ -19,18 +19,19 @@ public sealed record OfflineOperation(Guid OperationId, Guid DeviceId, string Co
     Guid? DesignTypeId = null, TORSEPAN.API.Controllers.AdminProductionEditRequest? Edit = null,
     Dictionary<string,Guid?>? EditScales = null, string? Image = null, string? Thumbnail = null, string? ImageHash = null, List<OfflineLocalEventUserUpdate>? LocalEventUsers=null,
     string? WorkspaceModule=null,string? WorkspaceAction=null,System.Text.Json.JsonElement? WorkspaceData=null,
-    string? WorkspaceExpectedVersion=null,Guid? WorkspacePreviousOperationId=null);
+    string? WorkspaceExpectedVersion=null,Guid? WorkspacePreviousOperationId=null, int? QualityWarehouseId=null);
 public sealed record OfflineLocalEventUserUpdate(Guid OperationId,Guid UserId);
 public sealed record OfflineUser(Guid Id, string Name, string[] Roles);
 public sealed record OfflineScale(Guid Id, string Name, int Usage);
 public sealed record OfflineBowl(string Code, Guid Id, int Type, bool HasNotes, bool IsCustom, Guid? ScaleId,
-    int Stage, string StageName, string Version, string? PairCode, string? InstrumentCode, bool IsRejected);
+    int Stage, string StageName, string Version, string? PairCode, string? InstrumentCode, bool IsRejected, int QualityWarehouseId=1);
 public sealed record OfflineSnapshot(int Schema, Guid DeviceId, Guid OwnerId, DateTime CapturedUtc,
     IReadOnlyList<OfflineBowl> Bowls, IReadOnlyList<OfflineUser> Users,
     IReadOnlyList<OfflineScale> Scales, PassportSnapshot Passports,
     IReadOnlyList<OfflineMaterial>? Materials = null, IReadOnlyList<OfflineOption>? Designs = null,
     IReadOnlyList<OfflineOption>? LeadSources = null, IReadOnlyList<OfflineOption>? Referrers = null,
-    IReadOnlyList<OfflineOption>? Parties = null, IReadOnlyList<OfflineEditableEvent>? EditableEvents = null,bool SupportsLocalEventUsers=false,OfflineWorkspace? Workspace=null);
+    IReadOnlyList<OfflineOption>? Parties = null, IReadOnlyList<OfflineEditableEvent>? EditableEvents = null,bool SupportsLocalEventUsers=false,OfflineWorkspace? Workspace=null,IReadOnlyList<OfflineWarehouse>? Warehouses=null);
+public sealed record OfflineWarehouse(int Id,string Name,Guid Version);
 public sealed record OfflineMaterial(Guid Id, string Name, int Category, int Quantity, int TopQuantity,
     int BottomQuantity, string Version);
 public sealed record OfflineOption(Guid Id, string Name, bool RequiresReferrer = false);

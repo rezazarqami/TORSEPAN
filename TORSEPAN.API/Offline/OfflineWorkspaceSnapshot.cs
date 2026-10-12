@@ -6,6 +6,7 @@ public sealed partial class OfflineProductionService {
  private static readonly JsonSerializerOptions WebJson=new(JsonSerializerDefaults.Web);
  private async Task<OfflineWorkspace> WorkspaceAsync(Guid owner,CancellationToken ct){
   var w=new Dictionary<string,JsonElement>();void Put(string k,object v)=>w[k]=JsonSerializer.SerializeToElement(v,WebJson);
+  Put("warehouses",await db.InstrumentWarehouses.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.Name,x.Version}).ToListAsync(ct));
   Put("users",await db.Users.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.UserName,x.FullName,x.Title,x.Role,x.IsActive,x.IsDeleted,x.DisplayOrder,x.ShowMyPayroll,RoleIds=x.UserRoles.OrderBy(r=>r.RoleId).Select(r=>r.RoleId).ToList(),Roles=x.UserRoles.OrderBy(r=>r.RoleId).Select(r=>r.Role.Name).ToList()}).ToListAsync(ct));
   Put("roles",await db.Roles.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.Name,x.DisplayName}).ToListAsync(ct));
   Put("scales",await db.Scales.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.Name,Usage=(int)x.Usage,x.IsActive}).ToListAsync(ct));
@@ -22,7 +23,7 @@ public sealed partial class OfflineProductionService {
   Put("events",await db.ProductionEvents.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.BowlId,x.AssemblyId,x.HandpanId,x.UserId,Action=(int)x.Action,Result=(int)x.Result,x.Duration,x.Description,x.EventDate,x.IsPayrollExcluded}).ToListAsync(ct));
   Put("bowls",await db.Bowls.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.ProductionCode,x.MaterialId,BowlType=(int)x.BowlType,x.ScaleId,x.IsCustomScale,Stage=(int)x.Stage}).ToListAsync(ct));
   Put("assemblies",await db.HandpanAssemblies.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.TopBowlId,x.BottomBowlId}).ToListAsync(ct));
-  Put("handpans",await db.Handpans.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.SerialNumber,x.AssemblyId,x.ScaleId,Stage=(int)x.Stage,x.ExportWarehouseLocation,x.SoldAt,x.BuyerName,x.BuyerPhoneNumber,x.SalePrice,x.SaleLeadSourceId,x.SalesReferrerId}).ToListAsync(ct));
+  Put("handpans",await db.Handpans.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.SerialNumber,x.AssemblyId,x.ScaleId,Stage=(int)x.Stage,x.QualityWarehouseId,x.ExportWarehouseLocation,x.SoldAt,x.BuyerName,x.BuyerPhoneNumber,x.SalePrice,x.SaleLeadSourceId,x.SalesReferrerId}).ToListAsync(ct));
   Put("messages",await db.WorkshopMessages.AsNoTracking().Where(x=>x.SenderId==owner||x.Broadcast||db.WorkshopMessageReceipts.Any(r=>r.MessageId==x.Id&&r.RecipientId==owner)).OrderBy(x=>x.Id).Select(x=>new{x.Id,x.SenderId,x.Title,x.Body,x.Broadcast,x.CreatedAt,ReadAt=db.WorkshopMessageReceipts.Where(r=>r.MessageId==x.Id&&r.RecipientId==owner).Select(r=>r.ReadAt).SingleOrDefault(),RecipientIds=x.SenderId==owner?db.WorkshopMessageReceipts.Where(r=>r.MessageId==x.Id).Select(r=>r.RecipientId).ToList():new List<Guid>{owner}}).ToListAsync(ct));
   return new(Hash(JsonSerializer.Serialize(w,WebJson)),w);
  }

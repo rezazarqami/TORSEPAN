@@ -40,6 +40,15 @@ public class Handpan : Entity
 
     public ProductionStatus Status { get; private set; }
 
+    public int QualityWarehouseId { get; private set; } = 1;
+    public InstrumentWarehouse QualityWarehouse { get; private set; } = null!;
+    public void SetQualityWarehouse(int id)
+    {
+        if (!InstrumentWarehouse.IsValidId(id)) throw new ArgumentOutOfRangeException(nameof(id));
+        QualityWarehouseId = id;
+        // A tier transfer must not change the original warehouse-entry timestamp.
+    }
+
     public ProductionStage Stage { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
