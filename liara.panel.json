@@ -2,5 +2,8 @@
   "platform": "docker",
   "app": "torsepan",
   "port": 8080,
-  "dockerfile": "Dockerfile.panel"
+  "dockerfile": "Dockerfile.panel",
+  "build": {
+    "location": "iran"
+  }
 }

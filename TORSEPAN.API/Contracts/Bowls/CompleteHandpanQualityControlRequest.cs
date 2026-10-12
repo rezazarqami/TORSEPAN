@@ -4,4 +4,5 @@ public sealed record CompleteHandpanQualityControlRequest(
     bool Approved,
     string? RejectionReason,
     string? Details,
-    int? QualityWarehouseId = null);
+    int? QualityWarehouseId = null,
+    TORSEPAN.Domain.Enums.ExportWarehouseLocation? ExportWarehouseLocation = null);
