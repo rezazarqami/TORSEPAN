@@ -31,6 +31,9 @@ public sealed class CompleteHandpanQualityControlCommandHandler
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
         }
 
+        if (request.Approved && !InstrumentWarehouse.IsValidId(request.QualityWarehouseId))
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
+
         var code = request.ProductionCode.Trim();
         var bowl = (await _unitOfWork.Bowls.FindAsync(x => x.ProductionCode == code)).SingleOrDefault();
         if (bowl is null)
@@ -59,6 +62,7 @@ public sealed class CompleteHandpanQualityControlCommandHandler
             ? ProductionStage.WaitingForPackaging
             : ProductionStage.WaitingForFinalTune;
 
+        if (request.Approved) handpan.SetQualityWarehouse(request.QualityWarehouseId);
         handpan.ChangeStage(targetStage);
         handpan.ChangeStatus(ProductionStatus.Waiting);
         _unitOfWork.Handpans.Update(handpan);

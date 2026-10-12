@@ -91,8 +91,9 @@ internal static class OfflineProductionSmoke
         Check((await db.Handpans.AsNoTracking().SingleAsync()).CreatedAt==recorded&&(await db.HandpanAssemblies.AsNoTracking().SingleAsync()).AssemblyDate==recorded,"offline instrument and assembly preserve real creation time");
         var release=Operation("196","release",bottomDimple.ExpectedVersion,glue.OperationId);await service.ApplyAsync(registrar.Id,release,default);
         var final=Operation("855","finalTune",first.ExpectedVersion,release.OperationId);await service.ApplyAsync(registrar.Id,final,default);
-        var qc=Operation("855","qc",first.ExpectedVersion,final.OperationId);await service.ApplyAsync(registrar.Id,qc,default);
+        var qc=Operation("855","qc",first.ExpectedVersion,final.OperationId) with {QualityWarehouseId=3};await service.ApplyAsync(registrar.Id,qc,default);
         Check((await service.BowlAsync("855",default)).Stage==16&&(await service.BowlAsync("196",default)).Stage==16,"mixed top/bottom dependency chain reaches packaging after QC");
+        Check((await service.BowlAsync("855",default)).QualityWarehouseId==3,"offline QC stores the selected Signature warehouse on paired stock");
         await Problem(async()=>await service.ApplyAsync(registrar.Id,Operation("855","unknown",(await service.BowlAsync("855",default)).Version),default),"unsupported");
         var raw=new Material("Offline steel",MaterialCategory.BowlMaterial);raw.SetBowlStock(3,3);
         var pack=new Material("مثلثی",MaterialCategory.Other,6);
@@ -120,7 +121,11 @@ internal static class OfflineProductionSmoke
         var packaging=Operation("855","packaging","old",photo.OperationId) with {MaterialIds=[pack.Id],MaterialVersions=new(){{pack.Id.ToString(),pv}}};
         await service.ApplyAsync(registrar.Id,packaging,default);await service.ApplyAsync(registrar.Id,packaging,default);
         Check((await db.Materials.AsNoTracking().SingleAsync(x=>x.Id==pack.Id)).Quantity==4 && (await service.BowlAsync("855",default)).Stage==18,"packaging consumes two triangular items once and moves instrument to warehouse");
-        var sale=Operation("855","sell","old",packaging.OperationId) with {BuyerName="خریدار آزمایشی",BuyerPhoneNumber="09120000000",Price=500,ReceivedAmount=200};
+        Check((await service.BowlAsync("855",default)).QualityWarehouseId==3,"offline packaging preserves the selected quality warehouse");
+        var transfer=Operation("855","warehouseTransfer","old",packaging.OperationId) with {QualityWarehouseId=2};
+        await service.ApplyAsync(registrar.Id,transfer,default);await service.ApplyAsync(registrar.Id,transfer,default);
+        Check((await service.BowlAsync("196",default)).QualityWarehouseId==2&&await db.ProductionEvents.CountAsync(x=>x.Action==ProductionAction.WarehouseTransfer)==1,"offline warehouse transfer is paired, durable and idempotent");
+        var sale=Operation("855","sell","old",transfer.OperationId) with {BuyerName="خریدار آزمایشی",BuyerPhoneNumber="09120000000",Price=500,ReceivedAmount=200};
         await service.ApplyAsync(registrar.Id,sale,default);await service.ApplyAsync(registrar.Id,sale,default);
         var sold=await db.Handpans.AsNoTracking().SingleAsync();
         Check(sold.SoldAt==recorded && sold.WarrantyActivatedAt==recorded && (await service.BowlAsync("196",default)).Stage==20 && await db.AccountingDocuments.CountAsync()==1,"sale records one accounting document, real sale date, warranty and sold status on both local identities");

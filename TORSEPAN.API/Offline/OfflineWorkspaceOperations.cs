@@ -41,6 +41,8 @@ public sealed partial class OfflineProductionService {
   IActionResult? result=null;
   try {
    switch(op.WorkspaceModule,op.WorkspaceAction){
+    case ("warehouses","save"):{var id=data.GetProperty("id").GetInt32();var warehouse=await db.InstrumentWarehouses.SingleOrDefaultAsync(x=>x.Id==id,ct);if(warehouse is null)throw new OfflineProblem("missing","انبار پیدا نشد.",404);
+     var name=data.GetProperty("name").GetString()!;warehouse.Rename(name);if(await db.InstrumentWarehouses.AnyAsync(x=>x.Id!=id&&x.Name.ToUpper()==warehouse.Name.ToUpper(),ct))throw new OfflineProblem("duplicate","نام انبار تکراری است.");break;}
     case ("orders","save"):{var service=new CustomerOrderService(db,TimeProvider.System);var id=NullableId();if(id.HasValue&&await db.CustomerOrders.AnyAsync(x=>x.Id==id,ct)){var order=await db.CustomerOrders.AsNoTracking().SingleAsync(x=>x.Id==id,ct);var r=Read<SaveOrderDraftRequest>();if(order.IsDraft)await service.SaveDraftAsync(id,r,op.PerformerId,ct);else await service.UpdateOrderAsync(id.Value,r,ct);}else {var actual=await service.SaveDraftAsync(null,Read<SaveOrderDraftRequest>(),op.PerformerId,ct);Alias(actual);id=actual;}
      var stored=await db.CustomerOrders.AsNoTracking().Include(x=>x.Lines).SingleAsync(x=>x.Id==id,ct);var inputs=Read<SaveOrderDraftRequest>().Lines;for(int i=0;i<inputs.Count;i++)if(inputs[i].LineId is {} local){var line=stored.Lines.Single(x=>x.Position==i+1);if(local!=line.Id)workspaceAliases[local]=line.Id;}break;}
     case ("orders","finalize"):await new CustomerOrderService(db,TimeProvider.System).FinalizeAsync(Id(),data.GetProperty("version").GetInt32(),ct);break;

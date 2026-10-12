@@ -13,7 +13,7 @@ function renderPassport(saved={}){
  const baseRecord=record||snapshot.passports.records.find(x=>x.code===b.code);
  const scale=snapshot.scales.find(x=>x.id===b.instrumentScaleId)?.name||(b.instrumentCode?baseRecord?.scale:snapshot.scales.find(x=>x.id===b.scaleId)?.name)||baseRecord?.scale||'ثبت نشده';
  const pair=bowls.find(x=>x.code===b.pairCode); const kind=b.instrumentCode?'ساز':b.type===1?'کاسه رو':'کاسه زیر';
- let html=`<section class="card"><div class="identity"><small>TORSEPAN · ${b.instrumentCode?'INSTRUMENT':'BOWL'} ID</small><p>${b.instrumentCode?'کد ساز':'کد کاسه'}: <b dir="ltr">${escape(b.instrumentCode||b.code)}</b>${pair?' · '+escape(b.type===1?'کاسه زیر':'کاسه رو')+': '+escape(pair.code):''}</p>${!b.instrumentCode?`<p>نوع کاسه: ${kind}</p>`:''}<p><span dir="ltr">Scale: ${escape(scale)}</span></p><p><span dir="ltr">Design:</span> ${escape(b.design||baseRecord?.design||'ساده')}</p><p><span dir="ltr">Status:</span> ${escape(b.stageName)}</p></div><h2>مراحل ثبت‌شده</h2>`;
+ let html=`<section class="card"><div class="identity"><small>TORSEPAN · ${b.instrumentCode?'INSTRUMENT':'BOWL'} ID</small><p>${b.instrumentCode?'کد ساز':'کد کاسه'}: <b dir="ltr">${escape(b.instrumentCode||b.code)}</b>${pair?' · '+escape(b.type===1?'کاسه زیر':'کاسه رو')+': '+escape(pair.code):''}</p>${!b.instrumentCode?`<p>نوع کاسه: ${kind}</p>`:''}<p><span dir="ltr">Scale: ${escape(scale)}</span></p><p><span dir="ltr">Design:</span> ${escape(b.design||baseRecord?.design||'ساده')}</p><p><span dir="ltr">Status:</span> ${escape(b.stageName)}</p>${b.instrumentCode?'<p>انبار: '+escape(snapshot.warehouses?.find(x=>x.id===(b.qualityWarehouseId||1))?.name||'Economy')+'</p>':''}</div><h2>مراحل ثبت‌شده</h2>`;
  let history=baseRecord?.operations||[];
  if(!record&&b.instrumentCode&&pair){const other=snapshot.passports.records.find(x=>x.code===pair.code);history=[...history,...(other?.operations||[])].sort((x,y)=>new Date(x.date)-new Date(y.date));}
  for(const row of state.operations||[])if(row.body.action==='edit')for(const update of row.body.edit?.eventUsers||[])history=history.map(h=>h.id===update.eventId?{...h,actor:snapshot.users.find(u=>u.id===update.userId)?.name||h.actor}:h);
@@ -27,6 +27,7 @@ function renderPassport(saved={}){
  if(action==='glue') html+=select('pairCode','کاسه مقابل',bowls.filter(x=>x.stage===10&&x.type!==b.type&&!x.pairCode).map(x=>({id:x.code,name:x.code})),saved.pairCode);
  if(action==='dimple'||action==='shape'&&b.isCustom||action==='glue')html+=select('scaleId','Scale',model.scales(snapshot,action==='glue'&&b.type===2?bowls.find(x=>x.code===saved.pairCode)||b:b,action,!!saved.isCustom),saved.scaleId);
  if(action==='shape'){const shapers=snapshot.users.filter(u=>u.roles.includes('Shaper')).map(u=>({id:u.id,name:u.name}));for(const [key,name] of [['stretchUserId','کشش توسط'],['noteAreaUserId','دورنوت توسط'],['editUserId','اصلاح توسط']])html+=select(key,name+' (اختیاری)',shapers,saved[key],false);}
+ if(action==='qc'){html+=select('qualityWarehouseId','انبار مقصد ساز پس از بسته‌بندی',(snapshot.warehouses||[]).map(x=>({id:String(x.id),name:x.name})),saved.qualityWarehouseId);}
  if(action==='qc')html+=`<label><input id="approved" type="checkbox" ${saved.approved===false?'':'checked'}>تأیید کنترل کیفیت</label>${select('rejectionReason','علت رد (در صورت عدم تأیید)',[{id:'OutOfTune',name:'اشکال تیون'},{id:'Appearance',name:'اشکال ظاهری'},{id:'Other',name:'سایر'}],saved.rejectionReason,false)}<label for="details">توضیح</label><textarea id="details" maxlength="2000">${escape(saved.details||'')}</textarea>`;
  html+=`</div><button id="save" type="submit">ذخیره قطعی روی گوشی</button><p class="muted">پس از ثبت، این عملیات تا تأیید سرور در صف باقی می‌ماند.</p></form>`;
  }else html+=`<p class="muted">${state.locked?'برای ثبت جدید، وارد حساب مدیر همین گوشی شوید.':'گزینه‌های ثبت و اصلاحات در پایین نمایش داده می‌شوند.'}</p>`;
@@ -34,6 +35,7 @@ function renderPassport(saved={}){
  $('passport').innerHTML=html+'<div id="extra-buttons" class="buttons"></div><div id="extra-form"></div></section>';formStage=b.stage;renderExtraButtons(b);
  if(action==='dimple') $('isCustom')?.addEventListener('change',()=>{const scale=$('scaleId');scale.disabled=$('isCustom').checked;scale.required=!scale.disabled;});
  if(action==='dimple'&&$('isCustom')?.checked){$('scaleId').disabled=true;$('scaleId').required=false;}
+ if(action==='qc'){const update=()=>{$('qualityWarehouseId').required=$('approved').checked;$('qualityWarehouseId').disabled=!$('approved').checked;};$('approved').addEventListener('change',update);update();}
  if(action==='glue')$('pairCode').addEventListener('change',()=>{const other=bowls.find(x=>x.code===$('pairCode').value),top=b.type===1?b:other;const scales=top?model.scales(snapshot,top,action,false):[];$('scaleId').innerHTML=option('','انتخاب کنید','')+scales.map(x=>option(x.id,x.name,'')).join('');});
  $('operation')?.addEventListener('submit',event=>{
   event.preventDefault();const button=$('save');button.disabled=true;
@@ -41,7 +43,7 @@ function renderPassport(saved={}){
    const op={code:b.code,action,expectedVersion:b.version,performerId:$('performerId').value};
    for(const key of ['duration','scaleId','pairCode','stretchUserId','noteAreaUserId','editUserId','rejectionReason','details'])if($(key)&&$(key).value)op[key]=key==='duration'?Number($(key).value):$(key).value;
    if($('isCustom'))op.isCustom=$('isCustom').checked;
-   if($('approved'))op.approved=$('approved').checked;
+   if($('approved')){op.approved=$('approved').checked;if(op.approved){if(!$('qualityWarehouseId').value)throw Error('انبار مقصد را انتخاب کنید.');op.qualityWarehouseId=Number($('qualityWarehouseId').value);}}
    if(action==='glue'){const other=bowls.find(x=>x.code===op.pairCode);if(!other)throw Error('کاسه مقابل لازم است.');op.pairVersion=other.version;}
    if(action==='qc'&&!op.approved&&(!op.rejectionReason||op.rejectionReason==='Other'&&!op.details?.trim()))throw Error('علت رد و توضیح لازم را وارد کنید.');
    const reply=JSON.parse(OfflineNative.save(JSON.stringify(op)));if(!reply.id)throw Error(reply.error||'ذخیره انجام نشد.');window.refreshOffline();
@@ -83,7 +85,7 @@ function renderExtraButtons(b){
  const actions=['note','edit'];if(!b.isRejected){
   if(b.stage===8)actions.push('tuneExport');if(b.stage===10&&!b.instrumentCode)actions.push('exportRoute');
   if(b.stage===21)actions.push('exportPackaging','returnGlue');if(b.stage===16&&b.instrumentCode)actions.push('packaging');
-  if([18,22].includes(b.stage))actions.push(b.instrumentCode?'sell':'ship');
+  if([18,22].includes(b.stage)){actions.push(b.instrumentCode?'sell':'ship');if(b.instrumentCode)actions.push('warehouseTransfer');}
   if(b.instrumentCode&&b.stage>=12)actions.push('photo');if(![18,20,22].includes(b.stage))actions.push('design');
  }
  $('extra-buttons').innerHTML=actions.map(a=>`<button data-extra="${a}">${escape(model.names[a])}</button>`).join('');
@@ -92,6 +94,7 @@ function renderExtraButtons(b){
 function renderExtended(action,b,saved={}){
  const snap=state.snapshot,users=model.performers(snap,action).map(x=>({id:x.id,name:x.name}));
  let html=`<h2>${escape(model.names[action])}</h2><form id="extra-operation">${select('extra-performer','انجام‌دهنده',users,saved['extra-performer']||snap.ownerId)}`;
+ if(action==='warehouseTransfer')html+=select('extra-warehouse','انبار مقصد',(snap.warehouses||[]).filter(x=>x.id!==(b.qualityWarehouseId||1)).map(x=>({id:String(x.id),name:x.name})),saved['extra-warehouse']);
  if(action==='packaging'){
   html+='<p>اقلام مصرفی بسته‌بندی</p>';
   for(const m of inventory().filter(x=>x.category===3))html+=`<label><input id="material-${escape(m.id)}" type="checkbox" ${saved['material-'+m.id]?'checked':''} ${m.quantity<model.requiredQuantity(m.name)?'disabled':''}>${escape(m.name)} · موجودی ${m.quantity} · مصرف ${model.requiredQuantity(m.name)}</label>`;
@@ -119,6 +122,7 @@ function renderExtended(action,b,saved={}){
  $('extra-operation').addEventListener('submit',e=>{
   e.preventDefault();try{
    const op={code:b.code,action,performerId:$('extra-performer').value,expectedVersion:b.version};
+   if(action==='warehouseTransfer')op.qualityWarehouseId=Number($('extra-warehouse').value);
    if(action==='packaging'){op.materialIds=inventory().filter(m=>$('material-'+m.id)?.checked).map(m=>m.id);op.materialVersions=materialVersions(op.materialIds);const cases=inventory().filter(m=>op.materialIds.includes(m.id)&&['سافت کیس','میدل کیس','هارد کیس','soft case','middle case','hard case'].includes(m.name.trim().toLowerCase()));if(cases.length>1)throw Error('یک نوع کیس انتخاب کنید.');}
    if($('extra-location')?.value)op.exportLocation=Number($('extra-location').value);
    if($('extra-duration'))op.duration=Number($('extra-duration').value);
@@ -149,10 +153,11 @@ $('new-bowl').addEventListener('click',()=>{
 });
 $('inventory').addEventListener('click',()=>{
  if(!state.snapshot)return;
- $('workspace').innerHTML='<h2>موجودی محلی</h2><p class="muted">آخرین اطلاعات دریافتی به همراه تغییرات همین گوشی؛ وضعیت تأیید در صف مشخص است.</p>'+inventory().map(m=>`<div class="history">${escape(m.name)} · ${m.category===4?'رو '+m.topQuantity+' · زیر '+m.bottomQuantity:m.quantity}${state.locked?'':` <button data-stock="${escape(m.id)}">ورود / اصلاح موجودی</button>`}</div>`).join('')+'<div id="stock-form"></div><h2>سازها و کاسه‌ها</h2>'+[2,4,6,8,10,11,12,14,16,18,20,21,22].map(stage=>{const items=bowls.filter(b=>b.stage===stage&&(b.instrumentCode?b.type===1:true));return items.length?`<details><summary>${escape(model.labels[stage])} · ${items.length}</summary>${items.map(b=>`<button data-bowl="${escape(b.code)}">${escape(b.instrumentCode||b.code)}</button>`).join('')}</details>`:'';}).join('');
- $('workspace').onclick=e=>{if(e.target.dataset.bowl){selected=e.target.dataset.bowl;renderPassport();return;}const m=inventory().find(x=>x.id===e.target.dataset.stock);if(!m)return;
+ $('workspace').innerHTML='<h2>موجودی محلی</h2><p class="muted">آخرین اطلاعات دریافتی به همراه تغییرات همین گوشی؛ وضعیت تأیید در صف مشخص است.</p>'+inventory().map(m=>`<div class="history">${escape(m.name)} · ${m.category===4?'رو '+m.topQuantity+' · زیر '+m.bottomQuantity:m.quantity}${state.locked?'':` <button data-stock="${escape(m.id)}">ورود / اصلاح موجودی</button>`}</div>`).join('')+'<div id="stock-form"></div><h2>انبار سازها</h2><div class="offline-warehouse-tabs">'+(state.snapshot.warehouses||[{id:1,name:'Economy'},{id:2,name:'Studio'},{id:3,name:'Signature'}]).map(w=>'<button data-tier="'+w.id+'">'+escape(w.name)+' · '+bowls.filter(b=>b.type===1&&b.instrumentCode&&b.stage===18&&(b.qualityWarehouseId||1)===w.id).length+'</button>').join('')+'</div><div id="offline-tier-items"></div><h2>سازها و کاسه‌ها</h2>'+[2,4,6,8,10,11,12,14,16,18,20,21,22].map(stage=>{const items=bowls.filter(b=>b.stage===stage&&(b.instrumentCode?b.type===1:true)&&!(stage===18&&b.instrumentCode));return items.length?`<details><summary>${escape(model.labels[stage])} · ${items.length}</summary>${items.map(b=>`<button data-bowl="${escape(b.code)}">${escape(b.instrumentCode||b.code)}</button>`).join('')}</details>`:'';}).join('');
+ $('workspace').onclick=e=>{if(e.target.dataset.tier){const id=Number(e.target.dataset.tier);$('workspace').querySelectorAll('[data-tier]').forEach(el=>el.classList.toggle('selected',Number(el.dataset.tier)===id));$('offline-tier-items').innerHTML=bowls.filter(b=>b.type===1&&b.instrumentCode&&b.stage===18&&(b.qualityWarehouseId||1)===id).map(b=>'<button data-bowl="'+escape(b.code)+'">'+escape(b.instrumentCode)+'</button>').join('')||'<p>این انبار خالی است.</p>';return;}if(e.target.dataset.bowl){selected=e.target.dataset.bowl;renderPassport();return;}const m=inventory().find(x=>x.id===e.target.dataset.stock);if(!m)return;
   $('stock-form').innerHTML=`<form id="adjust-stock"><h2>${escape(m.name)}</h2>${m.category===4?input('stock-top','کاسه رو','number',0,true)+input('stock-bottom','کاسه زیر','number',0,true):input('stock-quantity','تعداد','number',0,true)}<label><input id="stock-absolute" type="checkbox">جایگزینی موجودی (در غیر این صورت، افزودن)</label><button type="submit">ذخیره موجودی روی گوشی</button></form>`;
   $('adjust-stock').addEventListener('submit',event=>{event.preventDefault();try{const op={code:'@'+m.id,action:'stock',performerId:state.snapshot.ownerId,expectedVersion:'stock',materialId:m.id,materialVersions:materialVersions([m.id]),quantity:Number($('stock-quantity')?.value||0),topQuantity:Number($('stock-top')?.value||0),bottomQuantity:Number($('stock-bottom')?.value||0),setAbsolute:$('stock-absolute').checked};if([op.quantity,op.topQuantity,op.bottomQuantity].some(x=>!Number.isInteger(x)||x<0||x>1000000))throw Error('تعداد باید عدد صحیح بین صفر و یک میلیون باشد.');if(!op.setAbsolute&&op.quantity+op.topQuantity+op.bottomQuantity===0)throw Error('مقدار ورودی را وارد کنید.');saveExtended(op);}catch(error){$('message').textContent=error.message;}});
  };
+ $('workspace').querySelector('[data-tier="1"]')?.click();
 });
 window.refreshOffline();

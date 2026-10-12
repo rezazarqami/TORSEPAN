@@ -324,12 +324,14 @@ public sealed class BowlsController : ControllerBase
         [FromBody] CompleteHandpanQualityControlRequest request,
         CancellationToken cancellationToken)
     {
+        if (request.Approved && !request.QualityWarehouseId.HasValue)
+            return BadRequest(new { Message = "انبار مقصد ساز را انتخاب کنید." });
         var result = await _mediator.Send(
             new CompleteHandpanQualityControlCommand(
                 productionCode,
                 request.Approved,
                 request.RejectionReason,
-                request.Details),
+                request.Details, request.QualityWarehouseId ?? 1),
             cancellationToken);
 
         return this.ToActionResult(result);

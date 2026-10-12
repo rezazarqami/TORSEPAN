@@ -3,8 +3,8 @@
   'use strict';
   const labels={2:'در انتظار دیمپل',4:'در انتظار شیپ',6:'در انتظار پخت',8:'در انتظار تیون',10:'در انتظار چسب',11:'اتاق چسب',12:'در انتظار فاین‌تیون',14:'در انتظار QC',16:'در انتظار بسته‌بندی',18:'انبار',20:'فروخته‌شده',21:'در انتظار بسته‌بندی صادرات',22:'انبار صادرات'};
   const actions={2:'dimple',4:'shape',6:'bake',8:'tune',10:'glue',11:'release',12:'finalTune',14:'qc',16:'packaging',21:'exportPackaging',18:'sell',22:'ship'};
-  const names={dimple:'ثبت دیمپل',shape:'ثبت شیپ',bake:'ثبت پخت',tune:'ثبت تیون',glue:'ثبت چسب و مونتاژ',release:'خروج از اتاق چسب',finalTune:'ثبت فاین‌تیون',qc:'ثبت کنترل کیفیت',create:'ساخت کاسه',stock:'تغییر موجودی',packaging:'بسته‌بندی',sell:'فروش ساز',ship:'ارسال کاسه صادراتی',note:'یادداشت',photo:'عکس ساز',design:'دیزاین',edit:'اصلاح شناسنامه',tuneExport:'تیون صادراتی',exportRoute:'ارسال به بسته‌بندی صادرات',returnGlue:'بازگشت به چسب',exportPackaging:'بسته‌بندی صادرات'};
-  const roles={dimple:['Dimpler','Shaper'],shape:['Shaper'],bake:['Workshop'],tune:['Tuner'],glue:['Workshop'],release:['Workshop'],finalTune:['FineTuner'],qc:['QualityControl'],packaging:['Workshop'],exportPackaging:['Workshop'],sell:['SalesAdmin'],ship:['SalesAdmin'],create:[],stock:[],edit:[],note:['*'],photo:['*'],design:['*'],tuneExport:['Tuner'],exportRoute:['Workshop'],returnGlue:['Workshop']};
+  const names={dimple:'ثبت دیمپل',shape:'ثبت شیپ',bake:'ثبت پخت',tune:'ثبت تیون',glue:'ثبت چسب و مونتاژ',release:'خروج از اتاق چسب',finalTune:'ثبت فاین‌تیون',qc:'ثبت کنترل کیفیت',create:'ساخت کاسه',stock:'تغییر موجودی',packaging:'بسته‌بندی',sell:'فروش ساز',ship:'ارسال کاسه صادراتی',note:'یادداشت',photo:'عکس ساز',design:'دیزاین',edit:'اصلاح شناسنامه',tuneExport:'تیون صادراتی',exportRoute:'ارسال به بسته‌بندی صادرات',returnGlue:'بازگشت به چسب',exportPackaging:'بسته‌بندی صادرات',warehouseTransfer:'انتقال انبار'};
+  const roles={dimple:['Dimpler','Shaper'],shape:['Shaper'],bake:['Workshop'],tune:['Tuner'],glue:['Workshop'],release:['Workshop'],finalTune:['FineTuner'],qc:['QualityControl'],packaging:['Workshop'],exportPackaging:['Workshop'],sell:['SalesAdmin'],ship:['SalesAdmin'],create:[],stock:[],edit:[],warehouseTransfer:[],note:['*'],photo:['*'],design:['*'],tuneExport:['Tuner'],exportRoute:['Workshop'],returnGlue:['Workshop']};
   function project(snapshot, rows) {
     if(!snapshot) return [];
     const bowls=JSON.parse(JSON.stringify(snapshot.bowls));
@@ -14,7 +14,9 @@
       if(op.action==='create')bowls.push({code:op.code,id:row.id,type:op.bowlType,hasNotes:op.bowlType===1||op.hasNotes,materialId:op.materialId,isCustom:false,scaleId:null,
         stage:op.bowlType===2&&!op.hasNotes?6:2,stageName:labels[op.bowlType===2&&!op.hasNotes?6:2],version:'new',pairCode:null,instrumentCode:null,localHistory:[]});
       const b=bowls.find(x=>x.code===op.code); if(!b)continue;
-      const action=op.action; let stage={dimple:4,shape:6,bake:b.type===2&&!b.hasNotes?10:8,tune:10,glue:11,release:12,finalTune:14,qc:op.approved?16:12,packaging:op.exportLocation?22:18,sell:20,ship:20,tuneExport:21,exportRoute:21,returnGlue:10,exportPackaging:22}[action];
+      const action=op.action;
+      if(action==='qc'&&op.approved||action==='warehouseTransfer')for(const target of bowls.filter(x=>x.code===b.code||x.code===b.pairCode))target.qualityWarehouseId=op.qualityWarehouseId||1;
+      let stage={dimple:4,shape:6,bake:b.type===2&&!b.hasNotes?10:8,tune:10,glue:11,release:12,finalTune:14,qc:op.approved?16:12,packaging:op.exportLocation?22:18,sell:20,ship:20,tuneExport:21,exportRoute:21,returnGlue:10,exportPackaging:22}[action];
       if(action==='design'){const name=(snapshot.designs||[]).find(x=>x.id===op.designTypeId)?.name||'دیزاین';b.design=b.design?b.design+'، '+name:name;}
       if(action==='edit'&&op.edit){
         for(const [code,scaleId] of Object.entries(op.editScales||{})){const target=bowls.find(x=>x.code===code);if(target)target.scaleId=scaleId;}

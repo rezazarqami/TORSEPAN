@@ -33,6 +33,13 @@ public sealed class ProductionService
             request);
     }
 
+    public async Task<List<InstrumentWarehouseDto>> GetInstrumentWarehousesAsync() =>
+        await _api.GetAsync<List<InstrumentWarehouseDto>>("instrument-warehouses") ?? [];
+    public async Task<InstrumentWarehouseDto?> RenameWarehouseAsync(int id, string name, Guid expectedVersion) =>
+        await _api.PutAsync<object, InstrumentWarehouseDto>($"instrument-warehouses/{id}", new { Name=name, ExpectedVersion=expectedVersion });
+    public async Task<List<WarehouseMoveResult>> TransferWarehouseAsync(int id, IReadOnlyList<WarehouseMoveItem> items) =>
+        await _api.PostAsync<object, List<WarehouseMoveResult>>("instrument-warehouses/transfer", new { WarehouseId=id, Items=items }) ?? [];
+
     public async Task<IReadOnlyList<WarehouseHandpanDto>> GetWarehouseAsync()
     {
         return await _api.GetAsync<List<WarehouseHandpanDto>>(
