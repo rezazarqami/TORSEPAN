@@ -27,7 +27,7 @@ function renderPassport(saved={}){
  if(action==='glue') html+=select('pairCode','کاسه مقابل',bowls.filter(x=>x.stage===10&&x.type!==b.type&&!x.pairCode).map(x=>({id:x.code,name:x.code})),saved.pairCode);
  if(action==='dimple'||action==='shape'&&b.isCustom||action==='glue')html+=select('scaleId','Scale',model.scales(snapshot,action==='glue'&&b.type===2?bowls.find(x=>x.code===saved.pairCode)||b:b,action,!!saved.isCustom),saved.scaleId);
  if(action==='shape'){const shapers=snapshot.users.filter(u=>u.roles.includes('Shaper')).map(u=>({id:u.id,name:u.name}));for(const [key,name] of [['stretchUserId','کشش توسط'],['noteAreaUserId','دورنوت توسط'],['editUserId','اصلاح توسط']])html+=select(key,name+' (اختیاری)',shapers,saved[key],false);}
- if(action==='qc'){html+=select('qualityWarehouseId','انبار مقصد ساز پس از بسته‌بندی',(snapshot.warehouses||[]).map(x=>({id:String(x.id),name:x.name})),saved.qualityWarehouseId);}
+ if(action==='qc'){html+=select('qualityWarehouseId','انبار مقصد ساز پس از بسته‌بندی',[...(snapshot.warehouses||[]).map(x=>({id:String(x.id),name:x.name})),{id:'export',name:'انبار صادراتی'}],saved.qualityWarehouseId)+`<div id="qc-export-destination">${select('qc-export-location','مقصد صادراتی',locations,saved['qc-export-location'],false)}</div>`;}
  if(action==='qc')html+=`<label><input id="approved" type="checkbox" ${saved.approved===false?'':'checked'}>تأیید کنترل کیفیت</label>${select('rejectionReason','علت رد (در صورت عدم تأیید)',[{id:'OutOfTune',name:'اشکال تیون'},{id:'Appearance',name:'اشکال ظاهری'},{id:'Other',name:'سایر'}],saved.rejectionReason,false)}<label for="details">توضیح</label><textarea id="details" maxlength="2000">${escape(saved.details||'')}</textarea>`;
  html+=`</div><button id="save" type="submit">ذخیره قطعی روی گوشی</button><p class="muted">پس از ثبت، این عملیات تا تأیید سرور در صف باقی می‌ماند.</p></form>`;
  }else html+=`<p class="muted">${state.locked?'برای ثبت جدید، وارد حساب مدیر همین گوشی شوید.':'گزینه‌های ثبت و اصلاحات در پایین نمایش داده می‌شوند.'}</p>`;
@@ -35,7 +35,7 @@ function renderPassport(saved={}){
  $('passport').innerHTML=html+'<div id="extra-buttons" class="buttons"></div><div id="extra-form"></div></section>';formStage=b.stage;renderExtraButtons(b);
  if(action==='dimple') $('isCustom')?.addEventListener('change',()=>{const scale=$('scaleId');scale.disabled=$('isCustom').checked;scale.required=!scale.disabled;});
  if(action==='dimple'&&$('isCustom')?.checked){$('scaleId').disabled=true;$('scaleId').required=false;}
- if(action==='qc'){const update=()=>{$('qualityWarehouseId').required=$('approved').checked;$('qualityWarehouseId').disabled=!$('approved').checked;};$('approved').addEventListener('change',update);update();}
+ if(action==='qc'){const update=()=>{$('qualityWarehouseId').required=$('approved').checked;$('qualityWarehouseId').disabled=!$('approved').checked;const exporting=$('approved').checked&&$('qualityWarehouseId').value==='export';$('qc-export-destination').hidden=!exporting;$('qc-export-location').required=exporting;};$('approved').addEventListener('change',update);$('qualityWarehouseId').addEventListener('change',update);update();}
  if(action==='glue')$('pairCode').addEventListener('change',()=>{const other=bowls.find(x=>x.code===$('pairCode').value),top=b.type===1?b:other;const scales=top?model.scales(snapshot,top,action,false):[];$('scaleId').innerHTML=option('','انتخاب کنید','')+scales.map(x=>option(x.id,x.name,'')).join('');});
  $('operation')?.addEventListener('submit',event=>{
   event.preventDefault();const button=$('save');button.disabled=true;
@@ -43,7 +43,7 @@ function renderPassport(saved={}){
    const op={code:b.code,action,expectedVersion:b.version,performerId:$('performerId').value};
    for(const key of ['duration','scaleId','pairCode','stretchUserId','noteAreaUserId','editUserId','rejectionReason','details'])if($(key)&&$(key).value)op[key]=key==='duration'?Number($(key).value):$(key).value;
    if($('isCustom'))op.isCustom=$('isCustom').checked;
-   if($('approved')){op.approved=$('approved').checked;if(op.approved){if(!$('qualityWarehouseId').value)throw Error('انبار مقصد را انتخاب کنید.');op.qualityWarehouseId=Number($('qualityWarehouseId').value);}}
+   if($('approved')){op.approved=$('approved').checked;if(op.approved){if(!$('qualityWarehouseId').value)throw Error('انبار مقصد را انتخاب کنید.');if($('qualityWarehouseId').value==='export'){if(!$('qc-export-location').value)throw Error('مقصد صادراتی را انتخاب کنید.');op.exportLocation=Number($('qc-export-location').value);}else op.qualityWarehouseId=Number($('qualityWarehouseId').value);}}
    if(action==='glue'){const other=bowls.find(x=>x.code===op.pairCode);if(!other)throw Error('کاسه مقابل لازم است.');op.pairVersion=other.version;}
    if(action==='qc'&&!op.approved&&(!op.rejectionReason||op.rejectionReason==='Other'&&!op.details?.trim()))throw Error('علت رد و توضیح لازم را وارد کنید.');
    const reply=JSON.parse(OfflineNative.save(JSON.stringify(op)));if(!reply.id)throw Error(reply.error||'ذخیره انجام نشد.');window.refreshOffline();
@@ -97,9 +97,10 @@ function renderExtended(action,b,saved={}){
  if(action==='warehouseTransfer')html+=select('extra-warehouse','انبار مقصد',(snap.warehouses||[]).filter(x=>x.id!==(b.qualityWarehouseId||1)).map(x=>({id:String(x.id),name:x.name})),saved['extra-warehouse']);
  if(action==='packaging'){
   html+='<p>اقلام مصرفی بسته‌بندی</p>';
-  for(const m of inventory().filter(x=>x.category===3))html+=`<label><input id="material-${escape(m.id)}" type="checkbox" ${saved['material-'+m.id]?'checked':''} ${m.quantity<model.requiredQuantity(m.name)?'disabled':''}>${escape(m.name)} · موجودی ${m.quantity} · مصرف ${model.requiredQuantity(m.name)}</label>`;
+  for(const m of inventory().filter(x=>x.category===3))html+=`<label><input id="material-${escape(m.id)}" type="${['سافت کیس','میدل کیس','هارد کیس','soft case','middle case','hard case'].includes(m.name.trim().toLowerCase())?'radio':'checkbox'}" name="${['سافت کیس','میدل کیس','هارد کیس','soft case','middle case','hard case'].includes(m.name.trim().toLowerCase())?'offline-packaging-case':'material-'+escape(m.id)}" ${(Object.prototype.hasOwnProperty.call(saved,'material-'+m.id)?saved['material-'+m.id]:!['میدل کیس','هارد کیس','middle case','hard case'].includes(m.name.trim().toLowerCase()))?'checked':''} ${m.quantity<model.requiredQuantity(m.name)?'data-low-stock="true"':''}>${escape(m.name)} · موجودی ${m.quantity} · مصرف ${model.requiredQuantity(m.name)}</label>`;
  }
- if(['packaging','exportPackaging'].includes(action))html+=select('extra-location',action==='packaging'?'انبار صادرات (برای انبار داخلی خالی بماند)':'انبار صادرات',locations,saved['extra-location'],action==='exportPackaging');
+ if(action==='exportPackaging')html+=select('extra-location','انبار صادرات',locations,saved['extra-location'],true);
+ if(action==='packaging'&&b.packagingExportLocation)html+=`<p>مقصد انتخاب‌شده در QC: ${escape(locations.find(x=>Number(x.id)===b.packagingExportLocation)?.name||'صادراتی')}</p>`;
  if(action==='tuneExport')html+=select('extra-duration','مدت تیون',Array.from({length:13},(_,i)=>({id:String(i+1),name:i===12?'بیش از ۶۰ دقیقه':`${(i+1)*5} دقیقه`})),saved['extra-duration']);
  if(['sell','ship'].includes(action)){
   html+=select('extra-party','طرف حساب (اختیاری)',snap.parties||[],saved['extra-party'],false)+input('extra-buyer','نام خریدار','text',saved['extra-buyer'])+input('extra-phone','شماره خریدار','tel',saved['extra-phone'])+input('extra-destination','مقصد','text',saved['extra-destination']);
@@ -123,7 +124,7 @@ function renderExtended(action,b,saved={}){
   e.preventDefault();try{
    const op={code:b.code,action,performerId:$('extra-performer').value,expectedVersion:b.version};
    if(action==='warehouseTransfer')op.qualityWarehouseId=Number($('extra-warehouse').value);
-   if(action==='packaging'){op.materialIds=inventory().filter(m=>$('material-'+m.id)?.checked).map(m=>m.id);op.materialVersions=materialVersions(op.materialIds);const cases=inventory().filter(m=>op.materialIds.includes(m.id)&&['سافت کیس','میدل کیس','هارد کیس','soft case','middle case','hard case'].includes(m.name.trim().toLowerCase()));if(cases.length>1)throw Error('یک نوع کیس انتخاب کنید.');}
+   if(action==='packaging'){if(inventory().some(m=>$('material-'+m.id)?.checked&&m.quantity<model.requiredQuantity(m.name)))throw Error('موجودی بعضی اقلام انتخاب‌شده کافی نیست؛ تیک آن اقلام را بردارید یا موجودی را تأمین کنید.');op.materialIds=inventory().filter(m=>$('material-'+m.id)?.checked).map(m=>m.id);op.materialVersions=materialVersions(op.materialIds);const cases=inventory().filter(m=>op.materialIds.includes(m.id)&&['سافت کیس','میدل کیس','هارد کیس','soft case','middle case','hard case'].includes(m.name.trim().toLowerCase()));if(cases.length>1)throw Error('یک نوع کیس انتخاب کنید.');}
    if($('extra-location')?.value)op.exportLocation=Number($('extra-location').value);
    if($('extra-duration'))op.duration=Number($('extra-duration').value);
    for(const [key,id] of [['buyerName','buyer'],['buyerPhoneNumber','phone'],['destination','destination'],['partyId','party'],['leadSourceId','source'],['referrerId','referrer'],['shippingMethod','shipping'],['designTypeId','design']])if($('extra-'+id)?.value)op[key]=$('extra-'+id).value;
@@ -161,3 +162,5 @@ $('inventory').addEventListener('click',()=>{
  $('workspace').querySelector('[data-tier="1"]')?.click();
 });
 window.refreshOffline();
+
+$('online-mode').addEventListener('click',()=>OfflineNative.online());

@@ -40,6 +40,14 @@ static class BackendChecks
         var invalid=await qc.Handle(new("ST-QC",true,null,null,4),default);Check(invalid.IsFailure,"QC refuses unknown warehouse IDs");
         var approved=await qc.Handle(new("ST-QC",true,null,null,3),default);db.ChangeTracker.Clear();var approvedStock=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==pending.Id);Check(approved.IsSuccess&&approvedStock.QualityWarehouseId==3&&approvedStock.Stage==ProductionStage.WaitingForPackaging,"QC assigns Signature before packaging");
         approvedStock.ChangeStage(ProductionStage.FinishedWarehouse);db.Update(approvedStock);await db.SaveChangesAsync();db.ChangeTracker.Clear();Check((await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==pending.Id)).QualityWarehouseId==3,"packaging/warehouse entry preserves QC classification");
+        var exportPending=Add("ST-QC-EXPORT",ProductionStage.WaitingForQualityControl);await db.SaveChangesAsync();db.ChangeTracker.Clear();
+        var badExport=await qc.Handle(new("ST-QC-EXPORT",true,null,null,1,(ExportWarehouseLocation)99),default);Check(badExport.IsFailure,"QC rejects invalid export destination");
+        var exportQc=await qc.Handle(new("ST-QC-EXPORT",true,null,null,1,ExportWarehouseLocation.London),default);db.ChangeTracker.Clear();
+        var reloaded=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==exportPending.Id);Check(exportQc.IsSuccess&&reloaded.Stage==ProductionStage.WaitingForPackaging&&reloaded.ExportWarehouseLocation==ExportWarehouseLocation.London,"QC export destination survives a new database read without premature stock entry");
+        var pack=new CompleteHandpanPackagingCommandHandler(uow,new UserContext(http),new SilentAlerts());
+        var exportPack=await pack.Handle(new("ST-QC-EXPORT",Array.Empty<Guid>(),null),default);db.ChangeTracker.Clear();
+        Check(exportPack.IsSuccess&&await db.Handpans.AnyAsync(x=>x.Id==exportPending.Id&&x.Stage==ProductionStage.ExportWarehouse&&x.ExportWarehouseLocation==ExportWarehouseLocation.London),"packaging uses persisted QC destination without receiving it from the browser");
+        Check(await db.Bowls.Where(x=>x.ProductionCode.StartsWith("ST-QC-EXPORT")).AllAsync(x=>x.Stage==ProductionStage.FinishedWarehouse),"export instrument components do not become duplicate export stock");
         var controller=new InstrumentWarehousesController(db){ControllerContext=new ControllerContext{HttpContext=http.HttpContext}};
         var before=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==stock1.Id);var warehouse=await db.InstrumentWarehouses.AsNoTracking().SingleAsync(x=>x.Id==1);var renamed=await controller.Rename(1,new("Entry",warehouse.Version),default);db.ChangeTracker.Clear();Check(renamed is OkObjectResult&&await db.Handpans.AllAsync(x=>x.Id!=stock1.Id||x.QualityWarehouseId==1),"renaming changes labels without moving stock");
         var duplicate=await controller.Rename(2,new(" entry ",(await db.InstrumentWarehouses.AsNoTracking().SingleAsync(x=>x.Id==2)).Version),default);db.ChangeTracker.Clear();Check(duplicate is ConflictObjectResult,"duplicate warehouse names are rejected case-insensitively");
@@ -56,6 +64,7 @@ static class BackendChecks
         Check(typeof(InstrumentWarehousesController).GetMethod("Transfer")!.GetCustomAttribute<AuthorizeAttribute>()!.Roles!.Contains("QualityControl"),"quality control and stock managers can transfer, without sales-only access");
         await MigrationCheck();
     }
+    sealed class SilentAlerts:TORSEPAN.Application.Interfaces.IInventoryAlertService { public Task SendLowStockAsync(string name,string kind,int quantity,int threshold,CancellationToken ct)=>Task.CompletedTask; }
     static async Task MigrationCheck()
     {
         var pgOptions=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused").Options;

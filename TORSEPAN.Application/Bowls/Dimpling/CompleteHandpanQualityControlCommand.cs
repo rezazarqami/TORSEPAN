@@ -8,4 +8,5 @@ public sealed record CompleteHandpanQualityControlCommand(
     bool Approved,
     string? RejectionReason,
     string? Details,
-    int QualityWarehouseId = 1) : IRequest<Result<BowlDimpleDto>>;
+    int QualityWarehouseId = 1,
+    TORSEPAN.Domain.Enums.ExportWarehouseLocation? ExportWarehouseLocation = null) : IRequest<Result<BowlDimpleDto>>;

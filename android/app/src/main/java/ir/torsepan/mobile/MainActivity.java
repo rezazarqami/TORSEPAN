@@ -42,6 +42,8 @@ public final class MainActivity extends Activity {
     private static final String HOME = "https://torsepan.liara.run/";
     private static final String HOST = "torsepan.liara.run";
     private WebView browser;
+    private LinearLayout recoveryToolbar;
+    private boolean onlineLoadFailed;
     private WebView localBrowser;
     private OfflineStore offlineStore;
     private OfflineSync offlineSync;
@@ -67,6 +69,8 @@ public final class MainActivity extends Activity {
         try { preferLocal = offlineStore.get("mode").equals("offline"); } catch(Exception ignored) {}
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         LinearLayout toolbar = new LinearLayout(this);
+        recoveryToolbar = toolbar;
+        toolbar.setVisibility(View.GONE);
         Button online = new Button(this); online.setText("آنلاین");
         Button local = new Button(this); local.setText("ثبت آفلاین / صف عملیات");
         toolbar.addView(online, new LinearLayout.LayoutParams(0, -2, 1));
@@ -147,6 +151,11 @@ public final class MainActivity extends Activity {
         browser.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
+                Uri current = Uri.parse(view.getUrl() == null ? "" : view.getUrl());
+                if (request.isForMainFrame() && "torsepan-app".equals(url.getScheme()) && "offline".equals(url.getHost()) &&
+                    "https".equals(current.getScheme()) && HOST.equalsIgnoreCase(current.getHost())) {
+                    unlockLocal(); return true;
+                }
                 if (HOST.equalsIgnoreCase(url.getHost()) && "https".equalsIgnoreCase(url.getScheme())) return false;
                 if (request.isForMainFrame()) {
                     try { startActivity(new Intent(Intent.ACTION_VIEW, url)); }
@@ -155,8 +164,21 @@ public final class MainActivity extends Activity {
                 return true;
             }
 
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) { onlineLoadFailed = false; }
+
+            @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
+                if (request.isForMainFrame()) { onlineLoadFailed = true; recoveryToolbar.setVisibility(View.VISIBLE); }
+            }
+
             @Override public void onPageFinished(WebView view, String url) {
                 if (!url.startsWith(HOME)) return;
+                if (!onlineLoadFailed) recoveryToolbar.setVisibility(View.GONE);
+                try (java.io.InputStream stream = getAssets().open("online-mode-controls.js")) {
+                    java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+                    byte[] buffer = new byte[4096]; int count;
+                    while ((count = stream.read(buffer)) != -1) output.write(buffer, 0, count);
+                    view.evaluateJavascript(output.toString("UTF-8"), null);
+                } catch (Exception ignored) { }
                 // The panel creates payroll PDFs as blob: URLs, which Android's DownloadManager cannot read.
                 view.evaluateJavascript("(function(){if(!window.torsepanReports)return;window.torsepanReports.download=function(name,bytes){" +
                     "var s='';for(var i=0;i<bytes.length;i+=8192)s+=String.fromCharCode.apply(null,bytes.slice(i,i+8192));" +
@@ -299,6 +321,7 @@ public final class MainActivity extends Activity {
     private void showLocal() {
         if (!localUnlocked) return;
         preferLocal=true; try { offlineStore.put("mode","offline"); } catch(Exception ignored) {}
+        recoveryToolbar.setVisibility(View.GONE);
         localVisible = true; browser.setVisibility(View.GONE); localBrowser.setVisibility(View.VISIBLE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         if (!LOCAL.equals(localBrowser.getUrl())) localBrowser.loadUrl(LOCAL); else refreshLocal();
@@ -337,6 +360,7 @@ public final class MainActivity extends Activity {
         });
     }
     private final class OfflineBridge {
+        @JavascriptInterface public void online() { runOnUiThread(() -> showOnline()); }
         @JavascriptInterface public String read() {
             if (!localUnlocked) return "{}";
             try { return offlineStore.view().toString(); }

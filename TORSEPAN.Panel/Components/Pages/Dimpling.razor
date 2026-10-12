@@ -355,26 +355,20 @@
             {
                 <div class="mt-3">
                     <section class="qc-warehouse-picker" aria-label="انتخاب انبار پس از کنترل کیفیت">
-                        <div class="qc-warehouse-heading"><small>رده‌بندی کیفیت ساز</small><h3>انبار مقصد را انتخاب کنید</h3><p>ساز پس از بسته‌بندی در این انبار قرار می‌گیرد.</p></div>
+                        <h3>انبار مقصد را انتخاب کنید</h3>
                         @if (_qualityWarehouses.Count == 0)
                         { <div class="alert alert-warning">دریافت انبارها انجام نشد. <button class="btn btn-sm btn-outline-primary" @onclick="LoadQualityWarehousesAsync">تلاش دوباره</button></div> }
-                        else
-                        { <div class="qc-warehouse-options" role="radiogroup" aria-label="انبار مقصد">
+                        <div class="qc-warehouse-options" role="radiogroup" aria-label="انبار مقصد">
                             @foreach (var warehouse in _qualityWarehouses)
-                            { <label class="qc-warehouse-option tier-@warehouse.Id @(_qualityWarehouseId==warehouse.Id ? "selected" : null)"><input type="radio" name="qc-warehouse" value="@warehouse.Id" checked="@(_qualityWarehouseId==warehouse.Id)" @onchange="()=>_qualityWarehouseId=warehouse.Id" /><span class="qc-tier-mark">@("0"+warehouse.Id)</span><strong dir="auto">@warehouse.Name</strong><small>@QualityTierDescription(warehouse.Id)</small></label> }
-                        </div> }
+                            { <label class="qc-warehouse-option @(!_sendToExportWarehouse && _qualityWarehouseId==warehouse.Id ? "selected" : null)"><input type="radio" name="qc-warehouse" checked="@(!_sendToExportWarehouse && _qualityWarehouseId==warehouse.Id)" @onchange="()=>SelectQcWarehouse(warehouse.Id)" /><strong dir="auto">@warehouse.Name</strong></label> }
+                            <label class="qc-warehouse-option @(_sendToExportWarehouse ? "selected" : null)"><input type="radio" name="qc-warehouse" checked="@_sendToExportWarehouse" @onchange="SelectQcExport" /><strong>صادراتی</strong></label>
+                        </div>
+                        @if (_sendToExportWarehouse)
+                        { <div class="qc-export-options" role="group" aria-label="مقصد صادراتی">@foreach(var location in ExportLocations){<button type="button" aria-pressed="@(_exportWarehouseLocation==location.Id ? "true" : "false")" class="@ExportLocationClass(location.Id)" @onclick="()=>_exportWarehouseLocation=location.Id">@location.Name</button>}</div> }
                     </section>
-                    <div class="d-flex gap-2 mb-3">
-                        <button class="btn btn-success"
-                                disabled="@(_loading || !_qualityWarehouseId.HasValue)"
-                                @onclick="ApproveQualityControlAsync">
-                            QC تأیید شد
-                        </button>
-                        <button class="btn btn-outline-danger"
-                                disabled="@_loading"
-                                @onclick="ShowQualityControlRejection">
-                            QC تأیید نشد
-                        </button>
+                    <div class="qc-actions">
+                        <button class="btn btn-success" disabled="@(_loading || (_sendToExportWarehouse ? !_exportWarehouseLocation.HasValue : !_qualityWarehouseId.HasValue))" @onclick="ApproveQualityControlAsync">QC تأیید شد</button>
+                        <button class="btn btn-outline-danger" disabled="@_loading" @onclick="ShowQualityControlRejection">QC تأیید نشد</button>
                     </div>
 
                     @if (_showQcRejection)
@@ -408,7 +402,7 @@
                         @foreach (var material in OtherPackagingMaterials)
                         {
                             <label class="packaging-option @(_selectedPackagingMaterialIds.Contains(material.Id)?"selected":"") @(material.Quantity < PackagingMaterialConsumption.RequiredQuantity(material.Name)?"disabled":"")">
-                                <input type="checkbox" disabled="@(_loading || material.Quantity < PackagingMaterialConsumption.RequiredQuantity(material.Name))" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
+                                <input type="checkbox" disabled="@(_loading || (material.Quantity < PackagingMaterialConsumption.RequiredQuantity(material.Name) && !_selectedPackagingMaterialIds.Contains(material.Id)))" checked="@_selectedPackagingMaterialIds.Contains(material.Id)" @onchange="e => TogglePackagingMaterial(material.Id, e.Value as bool? == true)" />
                                 <span class="packaging-check">✓</span><strong>@material.Name</strong><small>موجودی @material.Quantity · مصرف @PackagingMaterialConsumption.RequiredQuantity(material.Name)</small>
                             </label>
                         }
@@ -423,15 +417,12 @@
                         }
                     </div></div>
                 </div>
-                <div class="export-warehouse-choice mt-3">
-                    <label class="form-check"><input class="form-check-input" type="checkbox" @bind="_sendToExportWarehouse" /><strong>ارسال به انبار صادراتی</strong></label>
-                    @if (_sendToExportWarehouse)
-                    {
-                        <p>یکی از انبارهای مقصد را انتخاب کنید.</p><div class="export-location-options">@foreach(var location in ExportLocations){<button type="button" class="@ExportLocationClass(location.Id)" @onclick="()=>_exportWarehouseLocation=location.Id"><span>@location.Icon</span><b>@location.Name</b></button>}</div>
-                    }
-                </div>
+                @if (PackagingStockInsufficient)
+                { <p class="alert alert-warning mt-2">موجودی بعضی اقلام انتخاب‌شده کافی نیست؛ موجودی را تأمین کنید یا تیک آن اقلام را بردارید.</p> }
+                @if (_bowl.PackagingExportLocation.HasValue)
+                { <p class="packaging-destination">مقصد انتخاب‌شده در QC: انبار صادراتی @ExportLocationName(_bowl.PackagingExportLocation.Value)</p> }
                 <button class="btn btn-success mt-3"
-                        disabled="@(_loading || (_sendToExportWarehouse && !_exportWarehouseLocation.HasValue))"
+                        disabled="@(_loading || PackagingStockInsufficient || (_sendToExportWarehouse && !_exportWarehouseLocation.HasValue))"
                         @onclick="CompletePackagingAsync">
                     بسته‌بندی عادی انجام شد
                 </button>
@@ -497,6 +488,7 @@
     private IEnumerable<MaterialDto> CasePackagingMaterials => _packagingMaterials.Where(x => IsExclusiveCase(x.Name)).OrderBy(x => CaseOrder(x.Name)).ThenBy(x => x.Name);
     private IEnumerable<MaterialDto> OtherPackagingMaterials => _packagingMaterials.Where(x => !IsExclusiveCase(x.Name)).OrderBy(x => AccessoryOrder(x.Name)).ThenBy(x => x.Name);
     private readonly HashSet<Guid> _selectedPackagingMaterialIds = [];
+    private bool PackagingStockInsufficient => _packagingMaterials.Any(x => _selectedPackagingMaterialIds.Contains(x.Id) && x.Quantity < PackagingMaterialConsumption.RequiredQuantity(x.Name));
     private bool _sendToExportWarehouse;
     private int? _exportWarehouseLocation;
     private static readonly (int Id, string Name, string Icon)[] ExportLocations = [(4, "ایران", "IR"), (1, "ترکیه", "TR"), (2, "لندن", "UK"), (3, "آلمان", "DE")];
@@ -576,7 +568,13 @@
             _selectedPackagingMaterialIds.Clear();
             _bowl = await BowlService.GetForDimplingAsync(_productionCode);
             if (_bowl?.Stage == 14) await LoadQualityWarehousesAsync();
-            if (_bowl?.Stage == 16) await LoadPackagingMaterialsAsync();
+            if (_bowl?.Stage == 16)
+            {
+                _sendToExportWarehouse = _bowl.PackagingExportLocation.HasValue;
+                _exportWarehouseLocation = _bowl.PackagingExportLocation;
+                await LoadPackagingMaterialsAsync();
+                SelectDefaultPackagingMaterials();
+            }
             if (_bowl?.Stage == 2)
                 _scaleId = DimpleScales.FirstOrDefault()?.Id ?? Guid.Empty;
             else if (_bowl?.Stage == 4 && _bowl.IsCustomScale)
@@ -774,11 +772,11 @@
     private static string QualityTierDescription(int id) => id switch {1=>"ردهٔ اقتصادی",2=>"کیفیت بالاتر؛ ردهٔ میانی",_=>"کیفیت ممتاز و منتخب"};
     private async Task ApproveQualityControlAsync()
     {
-        if (!_qualityWarehouseId.HasValue) { _error="انبار مقصد ساز را انتخاب کنید."; return; }
+        if (_sendToExportWarehouse ? !_exportWarehouseLocation.HasValue : !_qualityWarehouseId.HasValue) { _error="انبار مقصد ساز را انتخاب کنید."; return; }
         await SaveInstrumentNoteAsync();
         await ExecuteAsync(async () =>
         {
-            var result = await BowlService.CompleteQualityControlAsync(_productionCode, true, qualityWarehouseId: _qualityWarehouseId);
+            var result = await BowlService.CompleteQualityControlAsync(_productionCode, true, qualityWarehouseId: _qualityWarehouseId, exportWarehouseLocation: _sendToExportWarehouse ? _exportWarehouseLocation : null);
             SetOperationResult(result, "QC تأیید شد و ساز در انتظار بسته‌بندی قرار گرفت.", "ثبت تأیید QC انجام نشد.");
         });
     }
@@ -871,6 +869,16 @@
 
     private void ToggleShapePart(string key, bool enabled) { var part = ShapeParts.First(x => x.Key == key); part.Enabled = enabled; if (!enabled) part.UserId = null; }
     private void SelectShapeUser(string key, string? value) => ShapeParts.First(x => x.Key == key).UserId = Guid.TryParse(value, out var id) ? id : null;
+
+    private void SelectQcWarehouse(int id) { _qualityWarehouseId = id; _sendToExportWarehouse = false; _exportWarehouseLocation = null; }
+    private void SelectQcExport() { _qualityWarehouseId = null; _sendToExportWarehouse = true; _exportWarehouseLocation = null; }
+    private void SelectDefaultPackagingMaterials()
+    {
+        foreach (var material in OtherPackagingMaterials)
+            _selectedPackagingMaterialIds.Add(material.Id);
+        var softCase = CasePackagingMaterials.FirstOrDefault(x => x.Name.Trim().ToLowerInvariant() is "سافت کیس" or "soft case");
+        if (softCase is not null) TogglePackagingMaterial(softCase.Id, true);
+    }
 
     private async Task LoadPackagingMaterialsAsync()
     {
