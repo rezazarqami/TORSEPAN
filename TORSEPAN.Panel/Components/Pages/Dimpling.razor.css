@@ -253,3 +253,15 @@
 }
 
 .qc-warehouse-picker{margin:0 0 18px;padding:22px;border:1px solid #dce3e9;border-radius:20px;background:#f9fafb}.qc-warehouse-heading small{font-size:.72rem;letter-spacing:.04em;color:#657489}.qc-warehouse-heading h3{margin:5px 0;font-size:1.1rem;font-weight:850;color:#1e344e}.qc-warehouse-heading p{font-size:.8rem;color:#6c7c8d}.qc-warehouse-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.qc-warehouse-option{position:relative;display:flex;flex-direction:column;gap:7px;min-height:118px;padding:14px;border:1px solid #d9e1e8;border-radius:15px;background:white;cursor:pointer;color:#2b4056}.qc-warehouse-option input{position:absolute;top:14px;left:14px;width:18px;height:18px;accent-color:#245679}.qc-tier-mark{font-size:.7rem;color:#8a97a4;font-weight:750}.qc-warehouse-option strong{font-family:inherit;font-size:1.05rem;font-weight:850}.qc-warehouse-option small{color:#748296;font-size:.72rem}.qc-warehouse-option.selected{border-color:#245679;box-shadow:0 0 0 2px #24567918;background:#f0f6fb}.qc-warehouse-option.tier-3.selected{border-color:#9f7535;box-shadow:0 0 0 2px #9f753518;background:#fffbf4}@media(max-width:520px){.qc-warehouse-picker{padding:15px}.qc-warehouse-options{grid-template-columns:1fr}.qc-warehouse-option{min-height:80px;gap:3px;padding:12px 15px}.qc-tier-mark{display:none}.qc-warehouse-option input{top:18px}}
+
+.qc-warehouse-picker{padding:10px;margin:0 0 12px;border-radius:12px;text-align:center}
+.qc-warehouse-picker h3{font-size:.85rem;margin:0 0 8px;color:#27485f}
+.qc-warehouse-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.qc-warehouse-option{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:54px;padding:7px 3px;border-radius:9px;text-align:center}
+.qc-warehouse-option input{position:static;display:block;margin:0;flex-shrink:0;width:15px;height:15px}
+.qc-warehouse-option strong{font-size:clamp(.58rem,2.6vw,.75rem);line-height:1.5;overflow-wrap:normal;max-width:100%}
+.qc-export-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:9px}
+.qc-export-options button{padding:8px 3px;min-height:34px;font-size:.73rem;border-radius:8px;border:1px solid #d5e2ec;background:#fff;color:#355a76}
+.qc-export-options button.active{background:#e8f4ef;border-color:#44806a;color:#24604b}
+.qc-actions{display:flex;justify-content:center;gap:8px;margin:0 0 15px}.qc-actions .btn{flex:1;max-width:200px;text-align:center;font-size:.85rem;padding:10px 8px}
+.packaging-destination{text-align:center;padding:10px;background:#edf6f2;border-radius:10px;font-size:.8rem;color:#386451}

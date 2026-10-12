@@ -205,12 +205,13 @@ public sealed class BowlService
         bool approved,
         string? rejectionReason = null,
         string? details = null,
-        int? qualityWarehouseId = null)
+        int? qualityWarehouseId = null,
+        int? exportWarehouseLocation = null)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/qc/complete",
-            new { Approved = approved, RejectionReason = rejectionReason, Details = details, QualityWarehouseId = qualityWarehouseId });
+            new { Approved = approved, RejectionReason = rejectionReason, Details = details, QualityWarehouseId = qualityWarehouseId, ExportWarehouseLocation = exportWarehouseLocation });
     }
 
     public Task<DimpleBowlDto?> CompletePackagingAsync(string productionCode, IReadOnlyCollection<Guid> materialIds, int? exportWarehouseLocation = null)
