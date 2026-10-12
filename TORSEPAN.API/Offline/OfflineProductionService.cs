@@ -103,8 +103,9 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         var referrers = await db.SalesReferrers.AsNoTracking().Where(x=>x.IsActive).Select(x=>new OfflineOption(x.Id,x.Name,false)).ToListAsync(ct);
         var parties = await db.AccountingParties.AsNoTracking().Where(x=>x.IsActive).Select(x=>new OfflineOption(x.Id,x.Name,false)).ToListAsync(ct);
         var editable = events.Select(x=>new OfflineEditableEvent(x.Id,x.BowlId,x.AssemblyId,x.HandpanId,x.UserId,x.Description,x.EventDate)).ToList();
+        var workspace=await WorkspaceAsync(owner,ct);
         await tx.CommitAsync(ct);
-        return new(2, device, owner, DateTime.UtcNow, bowls, users, scales, passports,materials,designs,sources,referrers,parties,editable);
+        return new(2, device, owner, DateTime.UtcNow, bowls, users, scales, passports,materials,designs,sources,referrers,parties,editable,true,workspace);
     }
 
     private async Task CheckVersionAsync(OfflineBowl bowl, string? version, Guid? previous, Guid device, CancellationToken ct)
@@ -127,8 +128,10 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         var utc = op.OccurredUtc;
         if (utc.Kind != DateTimeKind.Utc || utc < device.EnrolledUtc.AddMinutes(-5) || utc > DateTime.UtcNow.AddMinutes(5))
             throw new OfflineProblem("clock", "زمان ثبت معتبر نیست؛ ساعت گوشی و زمان فعال‌سازی را بررسی کنید.", 400);
-        var auditPayload = JsonSerializer.Serialize(op with { Image=null, Thumbnail=null });
-        if(auditPayload.Length>16384)throw new OfflineProblem("payload","اطلاعات عملیات بیش از حد طولانی است.",400);
+        var auditNode=System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(op with { Image=null, Thumbnail=null }))!;
+        if(auditNode["WorkspaceData"] is System.Text.Json.Nodes.JsonObject data)foreach(var key in data.Select(x=>x.Key).Where(x=>x.Equals("password",StringComparison.OrdinalIgnoreCase)).ToArray())data.Remove(key);
+        var auditPayload=auditNode.ToJsonString();
+        if(auditPayload.Length>262144)throw new OfflineProblem("payload","اطلاعات عملیات بیش از حد طولانی است.",400);
         var hash = Hash(JsonSerializer.Serialize(op));
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         await LockAsync(ct);
@@ -140,9 +143,10 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
             await tx.CommitAsync(ct);
             return prior; // Receipt lookup precedes stage validation: lost response retries are safe.
         }
+        op=await ResolveWorkspaceIdsAsync(op,ct);
         using var alerts = new TORSEPAN.Application.Materials.InventoryAlertBatch();
         var action = op.Action;
-        var role = action switch { "dimple" => "Dimpler", "shape" => "Shaper", "bake" or "glue" or "release" => "Workshop", "tune" => "Tuner", "finalTune" => "FineTuner", "qc" => "QualityControl", "packaging" or "exportPackaging" => "Workshop", "sell" or "ship" => "SalesAdmin", "tuneExport" => "Tuner", "exportRoute" or "returnGlue" => "Workshop", "create" or "stock" or "edit" => "Administrator", "note" or "photo" or "design" => "*", _ => "" };
+        var role = action switch { "dimple" => "Dimpler", "shape" => "Shaper", "bake" or "glue" or "release" => "Workshop", "tune" => "Tuner", "finalTune" => "FineTuner", "qc" => "QualityControl", "packaging" or "exportPackaging" => "Workshop", "sell" or "ship" => "SalesAdmin", "tuneExport" => "Tuner", "exportRoute" or "returnGlue" => "Workshop", "create" or "stock" or "edit" or "workspace" => "Administrator", "note" or "photo" or "design" => "*", _ => "" };
         if (role == "") throw new OfflineProblem("unsupported", "این عملیات در نسخه آفلاین پشتیبانی نمی‌شود.", 400);
         var performer = await db.Users.AsNoTracking().Where(x => x.Id == op.PerformerId)
             .Select(x => new { x.IsActive, x.IsDeleted, x.Role, Assigned = x.UserRoles.Select(r => r.Role.Name).ToArray() }).SingleOrDefaultAsync(ct);
@@ -151,10 +155,11 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         if (performer is null || !performer.IsActive || performer.IsDeleted || !(role=="*" || roles.Contains("Administrator") || roles.Contains(role) || action == "dimple" && roles.Contains("Shaper")))
             throw new OfflineProblem("performer", "انجام‌دهنده فعال نیست یا دسترسی این مرحله را ندارد.", 403);
         OfflineBowl? bowl = null;
-        if (action is not ("create" or "stock")) {
+        if (action is not ("create" or "stock" or "workspace")) {
             bowl = await BowlAsync(op.Code, ct);
             await CheckVersionAsync(bowl, op.ExpectedVersion, op.PreviousOperationId, op.DeviceId, ct);
         }
+        if(action=="workspace")await CheckWorkspaceVersionAsync(owner,op,ct);
         await CheckMaterialsAsync(op, ct);
         var expected = action switch { "dimple" => 2, "shape" => 4, "bake" => 6, "tune" => 8, "glue" => 10, "release" => 11, "finalTune" => 12, "qc" => 14, "packaging" => 16, "exportPackaging" => 21, "tuneExport" => 8, "exportRoute" => 10, "returnGlue" => 21, _ => 0 };
         if (bowl is not null && (bowl.IsRejected && action is not ("note" or "edit") || expected != 0 && bowl.Stage != expected)) throw new OfflineProblem("stage", "مرحله فعلی با عملیات انتخاب‌شده هم‌خوان نیست.");
@@ -204,7 +209,7 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         }
         await db.SaveChangesAsync(ct);
         var versions = new Dictionary<string,string>();
-        if (action != "stock") {
+        if (action is not ("stock" or "workspace")) {
             var updated = await BowlAsync(op.Code, ct); versions[updated.Code] = updated.Version;
             if (updated.PairCode is not null) versions[updated.PairCode] = (await BowlAsync(updated.PairCode, ct)).Version;
         }
@@ -212,6 +217,11 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
             var material = await db.Materials.AsNoTracking().SingleAsync(x=>x.Id==id,ct);
             versions["material:"+id] = material.OfflineVersion.ToString();
         }
+        foreach(var e in db.ChangeTracker.Entries<ProductionEvent>().Where(x=>!known.Contains(x.Entity.Id)&&x.Entity.UserId==op.PerformerId))versions["performerEvent:"+e.Entity.Id]=e.Entity.Id.ToString();
+        if(action=="workspace"&&op.WorkspaceModule=="materials"&&op.WorkspaceData?.TryGetProperty("id",out var mid)==true){var local=mid.GetGuid();var actual=workspaceAliases.GetValueOrDefault(local,local);var m=await db.Materials.AsNoTracking().SingleOrDefaultAsync(x=>x.Id==actual,ct);if(m is not null)versions["material:"+actual]=m.OfflineVersion.ToString();}
+        versions["workspace"]=(await WorkspaceAsync(owner,ct)).Version;
+        foreach(var alias in workspaceAliases)if(alias.Value!=Guid.Empty)versions["alias:"+alias.Key]=alias.Value.ToString();
+
         var receipt = new OfflineReceipt { OperationId = op.OperationId, DeviceId = op.DeviceId, RegistrarId = owner,
             PerformerId = op.PerformerId, PayloadJson = auditPayload, PayloadHash = hash, VersionsJson = JsonSerializer.Serialize(versions), OccurredUtc = utc, AcceptedUtc = DateTime.UtcNow, WarrantyPending = action=="sell" };
         db.OfflineReceipts.Add(receipt);

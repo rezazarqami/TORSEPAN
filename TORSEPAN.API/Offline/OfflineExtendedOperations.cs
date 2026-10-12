@@ -133,6 +133,7 @@ public sealed partial class OfflineProductionService
                     .Register(new RegisterDesignRequest(op.Code,[new RegisterDesignItem(op.DesignTypeId!.Value,op.PerformerId)]),ct);
                 Require(response is OkObjectResult,"دیزاین معتبر نیست، تکراری است یا ساز در انبار قفل شده است.");
                 break;
+            case "workspace":await ApplyWorkspaceAsync(op,ct);break;
             case "edit":
                 Require(op.Edit is not null,"اطلاعات اصلاحات لازم است.");
                 var edit=op.Edit!;
@@ -141,6 +142,10 @@ public sealed partial class OfflineProductionService
                     var updates=new List<AdminBowlScaleUpdate>();
                     foreach(var pair in op.EditScales)updates.Add(new AdminBowlScaleUpdate((await BowlAsync(pair.Key,ct)).Id,pair.Value));
                     edit=edit with { BowlScales=updates };
+                }
+                if(op.LocalEventUsers is {Count:>0}){
+                    Require(op.LocalEventUsers.Count<=100&&op.LocalEventUsers.Select(x=>x.OperationId).Distinct().Count()==op.LocalEventUsers.Count,"اصلاحات تکراری هستند.");var users=new List<AdminEventUserUpdate>(edit.EventUsers??[]);
+                    foreach(var update in op.LocalEventUsers){var r=await db.OfflineReceipts.AsNoTracking().SingleOrDefaultAsync(x=>x.OperationId==update.OperationId&&x.DeviceId==op.DeviceId,ct);Require(r is not null,"مرحله محلی هنوز تأیید نشده است.");var source=JsonSerializer.Deserialize<OfflineOperation>(r!.PayloadJson)!;Require(source.Code==bowl!.Code||source.Code==bowl.PairCode||source.PairCode==bowl.Code,"مرحله به این ساز تعلق ندارد.");var ids=JsonSerializer.Deserialize<Dictionary<string,string>>(r.VersionsJson)!.Where(x=>x.Key.StartsWith("performerEvent:")).Select(x=>Guid.Parse(x.Value)).ToArray();Require(ids.Length>0,"دریافت اطلاعات تازه لازم است.");Require(await db.Users.AnyAsync(x=>x.Id==update.UserId&&x.IsActive&&!x.IsDeleted,ct),"همکار فعال نیست.");users.AddRange(ids.Select(id=>new AdminEventUserUpdate(id,update.UserId)));}edit=edit with {EventUsers=users};
                 }
                 var result=await new AdminProductionEditsController(db).Update(op.Code,edit,ct);
                 if(result.Result is ObjectResult error && error.StatusCode>=400) throw new OfflineProblem("edit",error.Value?.ToString()??"اصلاح اطلاعات معتبر نیست.",422);

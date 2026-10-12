@@ -42,6 +42,7 @@ public sealed class UpdateUserCommandHandler
         user.ChangeUserName(request.UserName);
         user.ChangeFullName(request.FullName);
         user.ChangeTitle(request.Title);
+        if(request.ShowMyPayroll.HasValue)user.SetShowMyPayroll(request.ShowMyPayroll.Value);
 
         _unitOfWork.Users.Update(user);
 

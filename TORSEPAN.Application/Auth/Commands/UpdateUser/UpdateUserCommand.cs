@@ -7,4 +7,5 @@ public sealed record UpdateUserCommand(
     string UserName,
     string FullName,
     string Title,
-    List<Guid> RoleIds) : IRequest;
+    List<Guid> RoleIds,
+    bool? ShowMyPayroll = null) : IRequest;

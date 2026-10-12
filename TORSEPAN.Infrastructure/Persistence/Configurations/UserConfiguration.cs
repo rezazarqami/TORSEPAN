@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TORSEPAN.Domain.Entities;
 
@@ -31,6 +31,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.IsActive)
             .IsRequired();
         builder.Property(x => x.DisplayOrder).HasDefaultValue(0).IsRequired();
+        builder.Property(x => x.ShowMyPayroll).HasDefaultValue(false).IsRequired();
         builder.Property(x => x.Title).HasMaxLength(100).HasDefaultValue("").IsRequired();
 
         builder.Property(x => x.CredentialVersion).HasDefaultValue(0).IsConcurrencyToken();

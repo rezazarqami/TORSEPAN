@@ -1,4 +1,4 @@
-﻿using TORSEPAN.Domain.Common;
+using TORSEPAN.Domain.Common;
 
 namespace TORSEPAN.Domain.Entities;
 
@@ -33,7 +33,9 @@ public sealed class User : Entity
         foreach (var token in RefreshTokens) token.Revoke();
     }
     public int DisplayOrder { get; private set; }
+    public bool ShowMyPayroll { get; private set; }
     public void SetDisplayOrder(int order) => DisplayOrder = Math.Max(0, order);
+    public void SetShowMyPayroll(bool value) => ShowMyPayroll = value;
 
     public ICollection<UserRole> UserRoles { get; private set; }
         = new List<UserRole>();
