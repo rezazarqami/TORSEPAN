@@ -2,5 +2,8 @@
   "platform": "docker",
   "app": "torsepan-api",
   "port": 8080,
-  "dockerfile": "Dockerfile.api"
+  "dockerfile": "Dockerfile.api",
+  "build": {
+    "location": "iran"
+  }
 }
