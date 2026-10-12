@@ -3,6 +3,11 @@ namespace TORSEPAN.Panel.Models;
 public sealed class WarehouseHandpanDto
 {
     public Guid HandpanId { get; set; }
+
+    public IReadOnlyList<string> Notes { get; set; } = [];
+    public int QualityWarehouseId { get; set; } = 1;
+    public Guid Version { get; set; }
+
     public string SerialNumber { get; set; } = string.Empty;
     public string TopBowlCode { get; set; } = string.Empty;
     public string BottomBowlCode { get; set; } = string.Empty;
