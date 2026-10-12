@@ -54,6 +54,7 @@ public sealed class GetBowlForDimpleQueryHandler
                     .SingleOrDefault();
                 handpanId = handpan?.Id;
                 dto.HandpanId = handpanId;
+                dto.PackagingExportLocation = handpan?.ExportWarehouseLocation is { } location ? (int)location : null;
                 dto.HandpanCode = handpan?.SerialNumber ?? topBowl.ProductionCode;
                 dto.TopBowlCode = topBowl.ProductionCode;
                 dto.BottomBowlCode = bottomBowl?.ProductionCode ?? string.Empty;

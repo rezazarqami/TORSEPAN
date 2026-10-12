@@ -67,7 +67,7 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         var rejected = peers.Any(x => x.Status == ProductionStatus.Rejected) || h?.Status == ProductionStatus.Rejected;
         return new(b.ProductionCode, b.Id, (int)b.BowlType, b.HasNotes, b.IsCustomScale, b.ScaleId,
             (int)(h?.Stage??b.Stage), rejected ? "ردشده؛ نیاز به بررسی آنلاین" : PassportBackupSnapshot.Stage(h?.Stage??b.Stage), Hash(JsonSerializer.Serialize(state)),
-            peers.FirstOrDefault(x => x.Id != b.Id)?.ProductionCode, h?.SerialNumber, rejected, h?.QualityWarehouseId??1);
+            peers.FirstOrDefault(x => x.Id != b.Id)?.ProductionCode, h?.SerialNumber, rejected, h?.QualityWarehouseId??1, h?.ExportWarehouseLocation is { } destination ? (int)destination : null);
     }
     public async Task<OfflineBowl> BowlAsync(string code, CancellationToken ct)
     {
@@ -193,7 +193,7 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
                 "glue" => await mediator.Send(new CompleteBowlGlueCommand(op.Code, op.PairCode!, op.ScaleId ?? Guid.Empty), ct),
                 "release" => await mediator.Send(new ReleaseBowlFromGlueRoomCommand(op.Code), ct),
                 "finalTune" => await mediator.Send(new CompleteHandpanFinalTuneCommand(op.Code, (OperationDuration)op.Duration), ct),
-                "qc" => await mediator.Send(new CompleteHandpanQualityControlCommand(op.Code, op.Approved, op.RejectionReason, op.Details, op.QualityWarehouseId??1), ct),
+                "qc" => await mediator.Send(new CompleteHandpanQualityControlCommand(op.Code, op.Approved, op.RejectionReason, op.Details, op.QualityWarehouseId??1, op.ExportLocation.HasValue ? (ExportWarehouseLocation)op.ExportLocation.Value : null), ct),
                 _ => await ApplyExtendedAsync(op, bowl, ct)
             };
         }

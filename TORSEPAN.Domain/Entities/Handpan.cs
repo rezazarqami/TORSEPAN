@@ -76,6 +76,13 @@ public class Handpan : Entity
 
     public ExportWarehouseLocation? ExportWarehouseLocation { get; private set; }
 
+    public void SetPackagingDestination(ExportWarehouseLocation? location)
+    {
+        if (location.HasValue && !Enum.IsDefined(location.Value)) throw new ArgumentOutOfRangeException(nameof(location));
+        ExportWarehouseLocation = location;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void MoveToExportWarehouse(ExportWarehouseLocation location)
     {
         if (!Enum.IsDefined(location)) throw new ArgumentOutOfRangeException(nameof(location));
