@@ -19,12 +19,17 @@ if(!args.Contains("--ui-only"))await BackendChecks.Run();
 var preview=Environment.GetEnvironmentVariable("WAREHOUSE_PREVIEW_DIR");if(preview is not null)Directory.CreateDirectory(preview);
 foreach(var role in new[]{"Administrator","QualityControl","Tuner"})
 {
-    var api=new FixtureApi();var services=new ServiceCollection();services.AddLogging();services.AddAuthorizationCore();services.AddCascadingAuthenticationState();services.AddSingleton<AuthenticationStateProvider>(new FixtureAuth(role));services.AddSingleton<IJSRuntime,FixtureJs>();services.AddSingleton<NavigationManager,FixtureNavigation>();services.AddScoped<TokenStorage>();services.AddSingleton(new HttpClient(api){BaseAddress=new Uri("https://fixture.invalid/api/")});services.AddScoped<ApiClient>();services.AddScoped<ProductionService>();services.AddScoped<AccountingService>();services.AddScoped<HandpanPhotoService>();services.AddScoped<SalesAttributionService>();services.AddScoped<BowlService>();services.AddScoped<MaterialService>();services.AddScoped<ScaleService>();
+    var api=new FixtureApi();var services=new ServiceCollection();services.AddLogging();services.AddAuthorizationCore();services.AddCascadingAuthenticationState();services.AddSingleton<AuthenticationStateProvider>(new FixtureAuth(role));services.AddSingleton<IJSRuntime,FixtureJs>();services.AddSingleton<NavigationManager,FixtureNavigation>();services.AddScoped<TokenStorage>();services.AddSingleton(new HttpClient(api){BaseAddress=new Uri("https://fixture.invalid/api/")});services.AddScoped<ApiClient>();services.AddScoped<ProductionService>();services.AddScoped<AccountingService>();services.AddScoped<HandpanPhotoService>();services.AddScoped<SalesAttributionService>();services.AddScoped<BowlService>();services.AddScoped<MaterialService>();services.AddScoped<ScaleService>();services.AddScoped<PersonalWorkspaceService>();
     await using var provider=services.BuildServiceProvider();await using var renderer=new HtmlRenderer(provider,provider.GetRequiredService<ILoggerFactory>());
     await renderer.Dispatcher.InvokeAsync(async()=>
     {
+        if(preview is not null&&role=="Administrator") {
+            var header=await renderer.RenderComponentAsync<TORSEPAN.Panel.Components.Layout.Topbar>(ParameterView.Empty);
+            await File.WriteAllTextAsync(Path.Combine(preview,"header.html"),header.ToHtmlString());
+        }
         var rendered=await renderer.RenderComponentAsync<WarehousePreview>(ParameterView.Empty);var instance=WarehousePreview.Instance!;string Html()=>WebUtility.HtmlDecode(rendered.ToHtmlString());
         Check(Html().Contains("Economy")&&Html().Contains("Studio")&&Html().Contains("Signature")&&Html().Split("role=\"tab\"").Length-1==3,role+" sees exactly three warehouse tabs");
+        Check(Html().Contains("instrument-hero")&&!Html().Contains("هر ساز، در جای درست خودش"),"instrument inventory uses the blue hero without unsolicited slogan");
         Check(Html().Contains("ST-00281")&&!Html().Contains("ST-00310"),role+" initial inventory shows Economy only");
         Check(Html().Contains("مدیریت انبارها")== (role=="Administrator"),role+" naming controls stay in the administrator overflow menu");
         Check(Html().Contains("انتقال به انبار دیگر")== (role is "Administrator" or "QualityControl"),role+" transfer controls follow stock permissions");
