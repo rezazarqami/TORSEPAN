@@ -160,7 +160,7 @@ app.MapMethods("/api/internal/mobile-offline/{**path}", new[] { "GET", "POST" },
     if (!System.Net.Http.Headers.AuthenticationHeaderValue.TryParse(context.Request.Headers.Authorization, out var auth)
         || auth.Scheme != "Bearer" || string.IsNullOrWhiteSpace(auth.Parameter))
     { context.Response.StatusCode = 401; return; }
-    var limit = path == "photos" ? 7_500_000 : 16384;
+    var limit = path == "photos" ? 7_500_000 : 262144;
     if (context.Request.ContentLength > limit) { context.Response.StatusCode = 413; return; }
     using var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), "offline/" + path);
     request.Headers.Authorization = auth;
