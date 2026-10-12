@@ -4,6 +4,9 @@ public sealed class GetWarehouseInventoryResponse
 {
     public Guid HandpanId { get; set; }
 
+    public int QualityWarehouseId { get; set; } = 1;
+    public Guid Version { get; set; }
+
     public string SerialNumber { get; set; } = string.Empty;
 
     public string Stage { get; set; } = string.Empty;

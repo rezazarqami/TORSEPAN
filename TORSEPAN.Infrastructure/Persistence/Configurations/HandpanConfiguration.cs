@@ -30,6 +30,8 @@ public class HandpanConfiguration : IEntityTypeConfiguration<Handpan>
         builder.Property(x => x.Status)
             .IsRequired();
 
+        builder.Property(x => x.QualityWarehouseId).HasDefaultValue(1).IsRequired();
+        builder.HasOne(x => x.QualityWarehouse).WithMany().HasForeignKey(x => x.QualityWarehouseId).OnDelete(DeleteBehavior.Restrict);
         builder.Property(x => x.Stage)
             .IsRequired();
         builder.Property(x => x.BuyerName).HasMaxLength(200);

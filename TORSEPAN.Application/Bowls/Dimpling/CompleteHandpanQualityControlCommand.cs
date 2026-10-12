@@ -7,4 +7,5 @@ public sealed record CompleteHandpanQualityControlCommand(
     string ProductionCode,
     bool Approved,
     string? RejectionReason,
-    string? Details) : IRequest<Result<BowlDimpleDto>>;
+    string? Details,
+    int QualityWarehouseId = 1) : IRequest<Result<BowlDimpleDto>>;

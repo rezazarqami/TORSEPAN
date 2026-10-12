@@ -85,6 +85,8 @@ public sealed class GetWarehouseInventoryQueryHandler
             return new GetWarehouseInventoryResponse
             {
                 HandpanId = x.Id,
+                QualityWarehouseId = x.QualityWarehouseId,
+                Version = x.OfflineVersion,
                 SerialNumber = x.SerialNumber,
                 Stage = x.Stage.ToString(),
                 TopBowlCode = x.Assembly.TopBowl.ProductionCode,
