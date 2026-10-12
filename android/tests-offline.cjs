@@ -11,3 +11,9 @@ assert.deepEqual(model.performers(snapshot,'tune').map(x=>x.id),['a','t']);asser
 assert.deepEqual(model.scales(snapshot,{type:1,isCustom:true},'shape',false).map(x=>x.id),['custom']);assert.equal(model.scales(snapshot,{type:1},'dimple',true).length,0);
 assert.equal(model.normalize(' ss-۰۰۹۰ '),'SS-0090');
 console.log('PASS offline projection, paired stage chain, QC rejection, roles, scale flags and Persian code lookup');
+const workspace=require('./app/src/main/assets/offline/workspace.js');
+const payrollSnapshot={ownerId:'a',bowls:[{id:'top',code:'P1',type:1,isCustom:false,scaleId:'scale',stage:18},{id:'bottom',code:'P2',type:2,stage:18}],scales:[],workspace:{sections:{users:[{id:'a',fullName:'Admin'}],bowls:[{id:'top',materialId:'steel'},{id:'bottom',materialId:'steel'}],assemblies:[{id:'assembly',topBowlId:'top',bottomBowlId:'bottom'}],handpans:[{id:'instrument',assemblyId:'assembly',serialNumber:'P1'}],events:[{id:'dimple',bowlId:'top',userId:'a',action:2,result:1,eventDate:'2026-10-10T10:00:00Z',description:''},{id:'pack',handpanId:'instrument',userId:'a',action:9,result:1,eventDate:'2026-10-12T10:00:00Z',description:''}],rates:[{id:'rate',action:2,materialId:'steel',bowlType:1,scaleId:null,isExport:false,isCustom:false,amount:100}],designTypes:[],payments:[]}}};
+let sections=workspace.project(payrollSnapshot,[]),calc=workspace.payroll(sections,payrollSnapshot,[],{from:'2026-10-12T00:00:00Z',to:'2026-10-12T00:00:00Z'});assert.equal(calc.total,100);assert.deepEqual(calc.ids,['instrument']);
+sections.payments.push({handpanIdsJson:'["instrument"]'});assert.equal(workspace.payroll(sections,payrollSnapshot,[],{from:'2026-10-12T00:00:00Z',to:'2026-10-12T00:00:00Z'}).total,0);
+assert.equal(payrollSnapshot.workspace.sections.payments.length,0,'projection must not mutate the durable snapshot');
+console.log('PASS offline payroll warehouse period, prior payments and immutable snapshot projection');

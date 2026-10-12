@@ -18,7 +18,7 @@ public sealed class OfflineController(OfflineProductionService service) : Contro
     public Task<IActionResult> Snapshot(Guid deviceId, CancellationToken ct) => Execute(async () => {
         Response.Headers.CacheControl = "no-store"; return Ok(await service.SnapshotAsync(Owner, deviceId, ct));
     });
-    [HttpPost("operations"), RequestSizeLimit(16384)]
+    [HttpPost("operations"), RequestSizeLimit(262144)]
     public Task<IActionResult> Apply(OfflineOperation request, CancellationToken ct) => Execute(async () => {
         if (request.Action == "photo" || request.Image is not null || request.Thumbnail is not null)
             throw new OfflineProblem("route", "عکس باید از مسیر مخصوص ارسال شود.",400);

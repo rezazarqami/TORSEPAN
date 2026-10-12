@@ -48,6 +48,7 @@ public final class MainActivity extends Activity {
     private final ScheduledExecutorService offlineWorker = Executors.newSingleThreadScheduledExecutor();
     private volatile boolean localVisible;
     private volatile boolean localUnlocked;
+    private boolean preferLocal;
     private static final int OFFLINE_UNLOCK = 1002;
     private static final String LOCAL = "https://appassets.androidplatform.net/offline/index.html";
     private static final int PHOTO_CHOOSER = 1001;
@@ -63,6 +64,7 @@ public final class MainActivity extends Activity {
         browser.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         offlineStore = OfflineStore.get(this);
         offlineSync = new OfflineSync(this, offlineStore);
+        try { preferLocal = offlineStore.get("mode").equals("offline"); } catch(Exception ignored) {}
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         LinearLayout toolbar = new LinearLayout(this);
         Button online = new Button(this); online.setText("آنلاین");
@@ -83,7 +85,7 @@ public final class MainActivity extends Activity {
                 Uri uri = request.getUrl(); String path = uri.getPath();
                 try {
                     if ("https".equals(uri.getScheme()) && "appassets.androidplatform.net".equals(uri.getHost()) &&
-                        ("/offline/index.html".equals(path) || "/offline/app.js".equals(path) || "/offline/model.js".equals(path) || "/offline/style.css".equals(path)))
+                        ("/offline/index.html".equals(path) || "/offline/app.js".equals(path) || "/offline/model.js".equals(path) || "/offline/style.css".equals(path) || "/offline/workspace.js".equals(path)))
                         return new WebResourceResponse(path.endsWith(".html") ? "text/html" : path.endsWith(".css") ? "text/css" : "application/javascript", "UTF-8", getAssets().open(path.substring(1)));
                 } catch (Exception ignored) { }
                 return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked", java.util.Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
@@ -175,8 +177,8 @@ public final class MainActivity extends Activity {
                 Toast.makeText(this, "دانلود آغاز شد", Toast.LENGTH_SHORT).show();
             } catch (Exception e) { Toast.makeText(this, "دانلود انجام نشد", Toast.LENGTH_SHORT).show(); }
         });
-        if (state == null) browser.loadUrl(HOME);
-        else browser.restoreState(state);
+        if (!preferLocal) { if (state == null) browser.loadUrl(HOME); else browser.restoreState(state); }
+        else { localVisible=true; browser.setVisibility(View.GONE); localBrowser.setVisibility(View.VISIBLE); }
     }
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -296,11 +298,13 @@ public final class MainActivity extends Activity {
     }
     private void showLocal() {
         if (!localUnlocked) return;
+        preferLocal=true; try { offlineStore.put("mode","offline"); } catch(Exception ignored) {}
         localVisible = true; browser.setVisibility(View.GONE); localBrowser.setVisibility(View.VISIBLE);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         if (!LOCAL.equals(localBrowser.getUrl())) localBrowser.loadUrl(LOCAL); else refreshLocal();
     }
     private void showOnline() {
+        preferLocal=false; try { offlineStore.put("mode","online"); } catch(Exception ignored) {}
         localVisible = false; localUnlocked = false; localBrowser.setVisibility(View.GONE); browser.setVisibility(View.VISIBLE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
         if (browser.getUrl() == null) browser.loadUrl(HOME);
@@ -313,7 +317,9 @@ public final class MainActivity extends Activity {
         JSONObject json = new JSONObject(payload);
         return json.optString("sub", json.optString("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", ""));
     }
-    private void captureToken(Runnable done) {
+    private void captureToken(Runnable done) { captureToken(false,done); }
+    private void captureToken(boolean force,Runnable done) {
+        if (preferLocal && !force) { done.run(); return; }
         Uri page = Uri.parse(browser.getUrl() == null ? "" : browser.getUrl());
         if (!"https".equals(page.getScheme()) || !HOST.equals(page.getHost())) { done.run(); return; }
         browser.evaluateJavascript("localStorage.getItem('access_token')||''", result -> {
@@ -339,7 +345,7 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public String save(String raw) {
             if (!localUnlocked) return "{\"error\":\"صفحه قفل است.\"}";
             try {
-                if (raw == null || raw.length() > 12000) throw new IllegalStateException("اطلاعات عملیات معتبر نیست.");
+                if (raw == null || raw.length() > 240000) throw new IllegalStateException("اطلاعات عملیات معتبر نیست.");
                 String id = offlineStore.enqueue(raw);
                 // Scheduling is secondary: once SQLite commits, report that write as successful.
                 try { OfflineSync.schedule(MainActivity.this,false); } catch (RuntimeException ignored) { }
@@ -350,7 +356,7 @@ public final class MainActivity extends Activity {
         }
         @JavascriptInterface public void activate() {
             if (!localUnlocked) return;
-            runOnUiThread(() -> captureToken(() -> offlineWorker.execute(() -> {
+            runOnUiThread(() -> captureToken(true,() -> offlineWorker.execute(() -> {
                 try { offlineSync.enroll(); }
                 catch (Exception error) { try { offlineStore.put("message",error.getMessage()); } catch (Exception ignored) { } }
                 refreshLocal();
@@ -360,7 +366,7 @@ public final class MainActivity extends Activity {
             if (!localUnlocked) return;
             runOnUiThread(() -> {
                 try {
-                    if(offlineStore.get("token").isEmpty())throw new IllegalStateException("ورود به حساب مدیر لازم است.");
+                    if(offlineStore.get("owner").isEmpty())throw new IllegalStateException("فعال‌سازی اولیه لازم است.");
                     org.json.JSONObject op=new org.json.JSONObject(metadata);
                     if(!op.optString("action").equals("photo"))throw new IllegalStateException("انتخاب عکس معتبر نیست.");
                     offlineStore.put("photoSelection",op.toString());
@@ -390,11 +396,11 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onResume() {
         super.onResume();
-        if (localVisible && !localUnlocked) showOnline();
+        if (localVisible && !localUnlocked) unlockLocal();
         if (browser != null) captureToken(() -> offlineWorker.execute(() -> { offlineSync.sync(); refreshLocal(); }));
     }
     @Override protected void onStop() {
-        localUnlocked = false; super.onStop();
+        localUnlocked = false; if(localVisible)localBrowser.setVisibility(View.INVISIBLE); super.onStop();
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {
@@ -403,7 +409,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (localVisible) { showOnline(); return; }
+        if (localVisible) { super.onBackPressed(); return; }
         if (browser.canGoBack()) browser.goBack();
         else super.onBackPressed();
     }

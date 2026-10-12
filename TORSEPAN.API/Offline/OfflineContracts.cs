@@ -17,7 +17,10 @@ public sealed record OfflineOperation(Guid OperationId, Guid DeviceId, string Co
     Guid? LeadSourceId = null, Guid? ReferrerId = null, Guid? PartyId = null,
     string? ShippingMethod = null, bool? IsSettled = null, bool IsInstrumentNote = false,
     Guid? DesignTypeId = null, TORSEPAN.API.Controllers.AdminProductionEditRequest? Edit = null,
-    Dictionary<string,Guid?>? EditScales = null, string? Image = null, string? Thumbnail = null, string? ImageHash = null);
+    Dictionary<string,Guid?>? EditScales = null, string? Image = null, string? Thumbnail = null, string? ImageHash = null, List<OfflineLocalEventUserUpdate>? LocalEventUsers=null,
+    string? WorkspaceModule=null,string? WorkspaceAction=null,System.Text.Json.JsonElement? WorkspaceData=null,
+    string? WorkspaceExpectedVersion=null,Guid? WorkspacePreviousOperationId=null);
+public sealed record OfflineLocalEventUserUpdate(Guid OperationId,Guid UserId);
 public sealed record OfflineUser(Guid Id, string Name, string[] Roles);
 public sealed record OfflineScale(Guid Id, string Name, int Usage);
 public sealed record OfflineBowl(string Code, Guid Id, int Type, bool HasNotes, bool IsCustom, Guid? ScaleId,
@@ -27,7 +30,7 @@ public sealed record OfflineSnapshot(int Schema, Guid DeviceId, Guid OwnerId, Da
     IReadOnlyList<OfflineScale> Scales, PassportSnapshot Passports,
     IReadOnlyList<OfflineMaterial>? Materials = null, IReadOnlyList<OfflineOption>? Designs = null,
     IReadOnlyList<OfflineOption>? LeadSources = null, IReadOnlyList<OfflineOption>? Referrers = null,
-    IReadOnlyList<OfflineOption>? Parties = null, IReadOnlyList<OfflineEditableEvent>? EditableEvents = null);
+    IReadOnlyList<OfflineOption>? Parties = null, IReadOnlyList<OfflineEditableEvent>? EditableEvents = null,bool SupportsLocalEventUsers=false,OfflineWorkspace? Workspace=null);
 public sealed record OfflineMaterial(Guid Id, string Name, int Category, int Quantity, int TopQuantity,
     int BottomQuantity, string Version);
 public sealed record OfflineOption(Guid Id, string Name, bool RequiresReferrer = false);
