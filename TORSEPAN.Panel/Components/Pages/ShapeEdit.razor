@@ -1,0 +1,24 @@
+@page "/admin/shape-edit"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles="Administrator")]
+@inject BowlService BowlService
+<PageTitle>ویرایش شیپ</PageTitle>
+<section class="shape-edit-hero"><span>TORSEPAN / SHAPE</span><h1>ویرایش شیپ</h1><p>ثبت انجام‌دهندهٔ کشش، دورنوت و Edit برای شیپ‌های انجام‌شده</p></section>
+<form class="shape-search" @onsubmit="SearchAsync" @onsubmit:preventDefault="true"><label for="shape-code">کد ساز یا کاسه</label><div><input id="shape-code" class="form-control" @bind="_code" placeholder="مثلاً 850 یا SS-00086" disabled="@_busy" /><button class="btn btn-primary" type="submit" disabled="@_busy">@(_busy?"در حال بررسی…":"جست‌وجو")</button></div></form>
+@if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger" role="alert">@_error</div>}
+@if(!string.IsNullOrWhiteSpace(_notice)){<div class="alert alert-success" role="status">@_notice</div>}
+@if(_searched&&_rows.Count==0){<EmptyState Title="شیپ تکمیل‌شده‌ای پیدا نشد" Description="کد را بررسی کنید؛ ثبت انجام‌دهنده فقط برای شیپ انجام‌شده ممکن است." />}
+@foreach(var row in _rows)
+{
+ <section class="shape-edit-card" @key="row.EventId"><header><div><small>کاسه <bdi>@row.BowlCode</bdi></small><h2>شیپ توسط @row.PerformedBy</h2><span>@PersianDateTime.FormatDateTime(row.EventDate)</span></div></header>
+ <div class="shape-parts">@foreach(var part in _parts){var saved=row.Contributors.FirstOrDefault(x=>x.Key==part.Key);<label><span>@part.Label</span>@if(saved is not null){<div class="shape-saved">توسط @saved.Name <small>ثبت‌شده</small></div>}else{<select class="form-select" disabled="@_busy" value="@Selection(row.EventId,part.Key)" @onchange="e=>Select(row.EventId,part.Key,e.Value?.ToString())"><option value="">ثبت نشده — بدون تغییر</option>@foreach(var user in _shapers){<option value="@user.Id">@(string.IsNullOrWhiteSpace(user.FullName)?user.UserName:user.FullName)</option>}</select>}</label>}</div>
+ <footer><small>فقط موارد انتخاب‌شده به شناسنامه اضافه می‌شوند.</small><button class="btn btn-primary" disabled="@(_busy||!HasSelection(row.EventId))" @onclick="()=>SaveAsync(row)">ثبت انجام‌دهنده‌ها</button></footer></section>
+}
+@code{
+ private string _code="",_resolvedCode="";private bool _busy,_searched;private string? _error,_notice;private List<ShapeEditDto> _rows=[];private IReadOnlyList<ShaperDto> _shapers=[];private readonly Dictionary<(Guid,string),Guid> _selected=[];
+ private readonly (string Key,string Label)[] _parts=[("Stretch","کشش"),("NoteArea","دورنوت"),("Edit","Edit")];
+ private string Selection(Guid id,string key)=>_selected.TryGetValue((id,key),out var user)?user.ToString():"";
+ private bool HasSelection(Guid id)=>_selected.Keys.Any(x=>x.Item1==id);
+ private void Select(Guid id,string key,string? value){if(Guid.TryParse(value,out var user))_selected[(id,key)]=user;else _selected.Remove((id,key));}
+ private async Task SearchAsync(){if(_busy)return;_error=_notice=null;_rows=[];_selected.Clear();_searched=false;if(string.IsNullOrWhiteSpace(_code)){_error="کد ساز یا کاسه را وارد کنید.";return;}_busy=true;try{_resolvedCode=_code.Trim();_rows=(await BowlService.GetShapeEditsAsync(_resolvedCode)).ToList();_shapers=await BowlService.GetShapersAsync();_searched=true;}catch(Exception e){_error=e.Message;}finally{_busy=false;}}
+ private async Task SaveAsync(ShapeEditDto row){if(_busy||!HasSelection(row.EventId))return;_busy=true;_error=_notice=null;try{Guid? Value(string key)=>_selected.TryGetValue((row.EventId,key),out var id)?id:null;await BowlService.AddShapeContributorsAsync(_resolvedCode,new(row.EventId,row.ExpectedDescription,Value("Stretch"),Value("NoteArea"),Value("Edit")));_rows=(await BowlService.GetShapeEditsAsync(_resolvedCode)).ToList();_selected.Clear();_notice="انجام‌دهنده‌ها ثبت شدند و در شناسنامه نمایش داده می‌شوند.";}catch(Exception e){_error=e.Message;}finally{_busy=false;}}
+}

@@ -105,3 +105,20 @@
  .warehouse-tab:last-child{min-height:72px;grid-template-columns:auto minmax(0,1fr) auto}.warehouse-tab:last-child .warehouse-tier-text{padding-top:0}.warehouse-tab:last-child .warehouse-tier-count{position:static}
  .warehouse-collection{padding:0;border-radius:0}.warehouse-collection-heading{padding:9px 12px}.warehouse-collection-heading h2{font-size:.96rem}.warehouse-selection-bar{gap:8px}.warehouse-selection-bar .btn{min-height:36px}
 }
+
+/* Keep the three collections together at every viewport width. */
+.warehouse-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.warehouse-tab:last-child{grid-column:auto}
+.warehouse-tools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;width:100%;align-items:stretch}
+.warehouse-search-wrap{width:100%;min-width:0}.warehouse-search{width:100%;max-width:none}
+@media(max-width:900px){.warehouse-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.warehouse-tab:last-child{grid-column:auto}}
+@media(max-width:600px){
+ .warehouse-tab,.warehouse-tab:last-child{display:grid;grid-template-columns:1fr;align-content:start;min-height:104px;padding:12px 8px;gap:7px;border-radius:16px}
+ .warehouse-tier-mark{width:27px;height:27px;border-radius:8px;font-size:.57rem}
+ .warehouse-tier-text,.warehouse-tab:last-child .warehouse-tier-text{padding-top:0}
+ .warehouse-tier-text small{font-size:.53rem}.warehouse-tier-text strong{font-size:clamp(.65rem,2.7vw,.85rem);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .warehouse-tier-count,.warehouse-tab:last-child .warehouse-tier-count{position:absolute;top:12px;left:8px;min-width:25px;height:23px;font-size:.66rem}
+ .warehouse-tools{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .warehouse-search-wrap{grid-column:1/-1;flex-basis:auto}.warehouse-search{height:48px;font-size:.78rem}
+ .warehouse-filter-toggle,.gallery-open{width:100%;min-width:0;height:44px;margin:0}
+}
