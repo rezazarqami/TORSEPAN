@@ -11,7 +11,7 @@
     bowls.forEach(b=>b.localHistory=[]);
     for(const row of rows) {
       const op=row.body;
-      if(op.action==='create')bowls.push({code:op.code,id:row.id,type:op.bowlType,hasNotes:op.bowlType===1||op.hasNotes,isCustom:false,scaleId:null,
+      if(op.action==='create')bowls.push({code:op.code,id:row.id,type:op.bowlType,hasNotes:op.bowlType===1||op.hasNotes,materialId:op.materialId,isCustom:false,scaleId:null,
         stage:op.bowlType===2&&!op.hasNotes?6:2,stageName:labels[op.bowlType===2&&!op.hasNotes?6:2],version:'new',pairCode:null,instrumentCode:null,localHistory:[]});
       const b=bowls.find(x=>x.code===op.code); if(!b)continue;
       const action=op.action; let stage={dimple:4,shape:6,bake:b.type===2&&!b.hasNotes?10:8,tune:10,glue:11,release:12,finalTune:14,qc:op.approved?16:12,packaging:op.exportLocation?22:18,sell:20,ship:20,tuneExport:21,exportRoute:21,returnGlue:10,exportPackaging:22}[action];

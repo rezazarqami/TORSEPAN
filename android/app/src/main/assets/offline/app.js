@@ -6,7 +6,7 @@ let state={},bowls=[],selected='',formStage=0,extraAction='';
 const option=(value,name,current)=>`<option value="${escape(value)}" ${value===current?'selected':''}>${escape(name)}</option>`;
 const select=(id,label,items,current,required=true)=>`<label for="${id}">${label}</label><select id="${id}" ${required?'required':''}>${option('','انتخاب کنید',current)}${items.map(x=>option(x.id,x.name,current)).join('')}</select>`;
 function contributors(text){return text.replace(/\|CONTRIB:(.*)/,(_,values)=>' | '+values.split(';').map(v=>{const [kind,id]=v.split('=');return ({Stretch:'کشش',NoteArea:'دورنوت',Edit:'اصلاح'}[kind]||kind)+' توسط '+(state.snapshot.users.find(u=>u.id===id)?.name||id);}).join('، '));}
-function pendingHistory(row){const op=row.body;const source=bowls.find(x=>x.code===op.code);const bowlLabel=['dimple','shape','bake','tune'].includes(op.action)?(source?.type===1?'کاسه رو ':'کاسه زیر ')+op.code:'ساز / مونتاژ';let details='';for(const [key,name] of [['stretchUserId','کشش'],['noteAreaUserId','دورنوت'],['editUserId','اصلاح']])if(op[key])details+=' | '+name+' توسط '+(state.snapshot.users.find(u=>u.id===op[key])?.name||'—');return `<div class="history">${escape(model.names[op.action])} · ${escape(bowlLabel)} · ${escape(state.snapshot.users.find(u=>u.id===op.performerId)?.name||'—')}${escape(details)}<small>${escape(date(op.occurredUtc))} · ${row.state==='applied'?'در سرور ثبت شد؛ دریافت اطلاعات تازه در انتظار':'ثبت محلی؛ هنوز تأیید نشده'}</small></div>`;}
+function pendingHistory(row){const op={...row.body};for(const edit of state.operations||[])for(const change of edit.body.localEventUsers||[])if(change.operationId===row.id)op.performerId=change.userId;const source=bowls.find(x=>x.code===op.code);const bowlLabel=['dimple','shape','bake','tune'].includes(op.action)?(source?.type===1?'کاسه رو ':'کاسه زیر ')+op.code:'ساز / مونتاژ';let details='';for(const [key,name] of [['stretchUserId','کشش'],['noteAreaUserId','دورنوت'],['editUserId','اصلاح']])if(op[key])details+=' | '+name+' توسط '+(state.snapshot.users.find(u=>u.id===op[key])?.name||'—');return `<div class="history">${escape(model.names[op.action])} · ${escape(bowlLabel)} · ${escape(state.snapshot.users.find(u=>u.id===op.performerId)?.name||'—')}${escape(details)}<small>${escape(date(op.occurredUtc))} · ${row.state==='applied'?'در سرور ثبت شد؛ دریافت اطلاعات تازه در انتظار':'ثبت محلی؛ هنوز تأیید نشده'}</small></div>`;}
 function renderPassport(saved={}){
  const b=bowls.find(x=>x.code===selected);if(!b){$('passport').innerHTML='';return;}
  const snapshot=state.snapshot,record=snapshot.passports.records.find(x=>x.code===(b.instrumentCode||b.code));
@@ -21,7 +21,7 @@ function renderPassport(saved={}){
  const related=new Set([...b.localHistory,...(b.instrumentCode?pair?.localHistory||[]:[])].map(x=>x.id));
  html+=(state.operations||[]).filter(x=>related.has(x.id)).map(pendingHistory).join('');
  const action=b.isRejected?undefined:({2:'dimple',4:'shape',6:'bake',8:'tune',10:'glue',11:'release',12:'finalTune',14:'qc'})[b.stage];
- if(action&&!state.locked){html+=`<h2>${escape(model.names[action])}</h2><form id="operation">${select('performerId','انجام‌دهنده',model.performers(snapshot,action).map(u=>({id:u.id,name:u.name})),saved.performerId)}<div id="fields">`;
+ if(action&&!state.locked){html+=`<h2>${escape(model.names[action])}</h2><form id="operation">${select('performerId','انجام‌دهنده',model.performers(snapshot,action).map(u=>({id:u.id,name:u.name})),saved.performerId||snapshot.ownerId)}<div id="fields">`;
  if(['dimple','shape','tune','finalTune'].includes(action))html+=select('duration','مدت انجام مرحله',Array.from({length:13},(_,i)=>({id:String(i+1),name:i===12?'بیش از ۶۰ دقیقه':`${(i+1)*5} دقیقه`})),saved.duration);
  if(action==='dimple')html+=`<label><input id="isCustom" type="checkbox" ${saved.isCustom?'checked':''}>اسکیل سفارشی (انتخاب در مرحله شیپ)</label>`;
  if(action==='glue') html+=select('pairCode','کاسه مقابل',bowls.filter(x=>x.stage===10&&x.type!==b.type&&!x.pairCode).map(x=>({id:x.code,name:x.code})),saved.pairCode);
@@ -56,12 +56,14 @@ window.refreshOffline=function(){
  const extraSaved={};document.querySelectorAll('#extra-operation input,#extra-operation select,#extra-operation textarea').forEach(e=>extraSaved[e.id]=e.type==='checkbox'?e.checked:e.value);
  const saved={};document.querySelectorAll('#operation input,#operation select,#operation textarea').forEach(e=>saved[e.id]=e.type==='checkbox'?e.checked:e.value);
  try{state=JSON.parse(OfflineNative.read());}catch(_){state={message:'خواندن اطلاعات محلی انجام نشد.'};}
+ if(window.OfflineWorkspace)OfflineWorkspace.projectInto(state);
  bowls=model.project(state.snapshot,state.operations||[]);$('message').textContent=state.message||'ابتدا این گوشی را هنگام اتصال به اینترنت فعال کنید.';
  const pending=(state.operations||[]).filter(x=>x.state!=='applied');$('summary').textContent=state.snapshot?`آخرین دریافت: ${date(state.snapshot.capturedUtc)} · ${bowls.length} کاسه · ${pending.length} عملیات در انتظار`:'هنوز اطلاعاتی روی گوشی دریافت نشده است.';
  $('activate').hidden=!!state.snapshot;
  $('queue').innerHTML=(state.operations||[]).map(row=>`<div class="operation">${escape(row.body.code)} · ${escape(model.names[row.body.action])}<span class="pill ${escape(row.state)}">${row.state==='applied'?'تأیید شد':row.state==='blocked'?'نیاز به بررسی':'در انتظار'}</span><small>${escape(date(row.body.occurredUtc))} · ${escape(row.message)}</small></div>`).join('');
  $('retry').hidden=!(state.operations||[]).some(x=>x.state==='blocked');
  renderResults(false);const b=bowls.find(x=>x.code===selected);const sameStage=b?.stage===formStage;renderPassport(sameStage?saved:{});if(extraAction&&sameStage)renderExtended(extraAction,b,extraSaved);else extraAction='';
+ if(window.OfflineWorkspace)OfflineWorkspace.refresh();
 };
 $('search').addEventListener('input',renderResults);$('results').addEventListener('click',event=>{const item=event.target.closest('[data-code]');if(item){selected=item.dataset.code;renderPassport();}});
 $('activate').addEventListener('click',()=>{$('message').textContent='در حال فعال‌سازی و دریافت اطلاعات…';OfflineNative.activate();});
@@ -107,6 +109,7 @@ function renderExtended(action,b,saved={}){
   const targets=bowls.filter(x=>x.code===b.code||x.code===b.pairCode);
   for(const target of targets)html+=select('scale-'+target.code,'Scale '+target.code,snap.scales.filter(s=>(s.usage&(target.type===1?1:2))!==0),saved['scale-'+target.code]??target.scaleId,false);
   if(b.instrumentCode)html+=select('extra-scale','Scale ساز',snap.scales.filter(s=>(s.usage&4)!==0),saved['extra-scale']??b.instrumentScaleId??snap.scales.find(s=>s.name===snap.passports.records.find(x=>x.code===b.instrumentCode)?.scale)?.id,false);
+  if(snap.supportsLocalEventUsers)for(const row of state.operations||[])if(b.localHistory.includes(row)||bowls.find(x=>x.code===b.pairCode)?.localHistory.includes(row)){if(['dimple','shape','bake','tune','glue','finalTune','qc','design'].includes(row.body.action)){let actor=row.body.performerId;for(const edit of state.operations||[])for(const change of edit.body.localEventUsers||[])if(change.operationId===row.id)actor=change.userId;html+=select('local-event-'+row.id,'انجام‌دهنده '+model.names[row.body.action]+' · ثبت محلی',snap.users,saved['local-event-'+row.id]??actor);}}
   const history=snap.passports.records.filter(r=>[b.code,b.pairCode,b.instrumentCode].includes(r.code)).flatMap(r=>r.operations);
   const ids=new Set(history.map(x=>x.id));
   for(const event of snap.editableEvents||[])if(ids.has(event.id))html+=select('event-'+event.id,'انجام‌دهنده '+(history.find(x=>x.id===event.id)?.action||'مرحله')+' · '+date(event.date),snap.users,saved['event-'+event.id]??event.userId);
@@ -127,6 +130,7 @@ function renderExtended(action,b,saved={}){
    if(action==='edit'){
     const targets=bowls.filter(x=>x.code===b.code||x.code===b.pairCode);
     op.editScales=Object.fromEntries(targets.map(x=>[x.code,$('scale-'+x.code).value||null]));
+    op.localEventUsers=[];for(const row of state.operations||[])if($('local-event-'+row.id))op.localEventUsers.push({operationId:row.id,userId:$('local-event-'+row.id).value});
     op.edit={handpanScaleId:$('extra-scale')?.value||null,bowlScales:targets.map(x=>({bowlId:x.id,scaleId:$('scale-'+x.code).value||null})),eventUsers:[]};
     for(const event of snap.editableEvents||[])if($('event-'+event.id))op.edit.eventUsers.push({eventId:event.id,userId:$('event-'+event.id).value});
    }

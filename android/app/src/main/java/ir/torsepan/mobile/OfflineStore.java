@@ -55,7 +55,7 @@ final class OfflineStore extends SQLiteOpenHelper {
         JSONArray visible=operations();
         for(int i=0;i<visible.length();i++)visible.getJSONObject(i).getJSONObject("body").remove("image");
         return new JSONObject().put("snapshot", snapshot.isEmpty() ? JSONObject.NULL : new JSONObject(snapshot)).put("operations", visible)
-            .put("message", get("message")).put("locked", get("token").isEmpty()).put("deviceId", device());
+            .put("message", get("message")).put("locked", get("owner").isEmpty()).put("deviceId", device());
     }
     synchronized int pending() throws Exception {
         int count = 0; JSONArray rows = operations();
@@ -85,7 +85,7 @@ final class OfflineStore extends SQLiteOpenHelper {
         return "";
     }
     synchronized String enqueue(String raw) throws Exception {
-        if (get("token").isEmpty()) throw new IllegalStateException("ورود به حساب ثبت‌کننده لازم است.");
+        if (get("owner").isEmpty()) throw new IllegalStateException("فعال‌سازی اولیه لازم است.");
         String saved = get("snapshot"); if (saved.isEmpty()) throw new IllegalStateException("اطلاعات اولیه هنوز دریافت نشده است.");
         JSONObject snapshot = new JSONObject(saved), op = new JSONObject(raw); JSONArray rows = operations();
         if (rows.length() >= 5000) throw new IllegalStateException("صف بزرگ شده؛ ابتدا همگام‌سازی کنید.");
@@ -102,6 +102,10 @@ final class OfflineStore extends SQLiteOpenHelper {
         if(queuedBytes>64_000_000)throw new IllegalStateException("صف عکس‌ها بزرگ شده؛ ابتدا همگام‌سازی کنید.");
         JSONArray materialIds=new JSONArray();
         String action=op.getString("action");
+        if(action.equals("workspace")){
+            op.put("workspaceExpectedVersion",snapshot.getJSONObject("workspace").getString("version"));
+            op.put("workspacePreviousOperationId",rows.length()==0?JSONObject.NULL:rows.getJSONObject(rows.length()-1).getString("id"));
+        }
         if(action.equals("create")||action.equals("stock"))materialIds.put(op.getString("materialId"));
         else if(action.equals("packaging"))materialIds=op.optJSONArray("materialIds")==null?new JSONArray():op.getJSONArray("materialIds");
         JSONObject materialPrevious=new JSONObject();
@@ -110,6 +114,7 @@ final class OfflineStore extends SQLiteOpenHelper {
             for(int i=rows.length()-1;i>=0;i--){
                 JSONObject body=rows.getJSONObject(i).getJSONObject("body");
                 boolean affects=material.equals(body.optString("materialId"));
+                if(body.optString("action").equals("workspace")&&body.optString("workspaceModule").equals("materials"))affects|=material.equals(body.getJSONObject("workspaceData").optString("id"));
                 JSONArray items=body.optJSONArray("materialIds");
                 if(items!=null)for(int j=0;j<items.length();j++)affects|=material.equals(items.getString(j));
                 if(affects){materialPrevious.put(material,rows.getJSONObject(i).getString("id"));break;}

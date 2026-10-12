@@ -65,8 +65,8 @@ public class OfflineStoreTest {
         assertFalse(sync.sync());assertEquals("blocked",store.operations().getJSONObject(0).getString("state"));assertEquals(id,store.operations().getJSONObject(0).getString("id"));
         String saved=store.get("snapshot");store.installSnapshot(snapshot(store));assertEquals(saved,store.get("snapshot"));
         try{store.installSnapshot(snapshot(store).put("ownerId","another-account"));fail("account mismatch accepted");}catch(IllegalStateException expected){}
-        store.put("token","");try{store.enqueue(op("196","bake").toString());fail("logged out write accepted");}catch(IllegalStateException expected){}
-        assertEquals(1,store.pending());store.close();context().deleteDatabase(name);
+        store.put("token","");store.enqueue(op("196","bake").toString());
+        assertEquals(2,store.pending());assertFalse(store.view().getBoolean("locked"));store.close();context().deleteDatabase(name);
     }
     @Test public void unrelatedSuccessResponseCannotAcknowledgeOrEraseOutbox() throws Exception {
         String name=UUID.randomUUID()+".db";OfflineStore store=create(name);setup(store);
@@ -119,4 +119,15 @@ public class OfflineStoreTest {
         assertTrue(sync.sync());assertEquals(1,store.pending());assertFalse(sync.sync());assertEquals(0,store.operations().length());assertEquals(2,attempts[0]);
         store.close();context().deleteDatabase(name);
     }
+    @Test public void workspaceDependsOnLastProductionAndNewMaterialSurvivesReopen() throws Exception {
+        String name=UUID.randomUUID()+".db";OfflineStore store=create(name);setup(store);
+        store.installSnapshot(snapshot(store).put("workspace",new JSONObject().put("version","management-v1")));
+        String production=store.enqueue(op("855","tune").toString());String material=UUID.randomUUID().toString();
+        String created=store.enqueue(op("@materials","workspace").put("workspaceModule","materials").put("workspaceAction","save").put("workspaceData",new JSONObject().put("id",material)).toString());
+        String bowl=store.enqueue(op("NEW","create").put("materialId",material).toString());store.close();store=create(name);
+        JSONObject body=store.operations().getJSONObject(1).getJSONObject("body");assertEquals(production,body.getString("workspacePreviousOperationId"));assertEquals("management-v1",body.getString("workspaceExpectedVersion"));
+        assertEquals(created,store.operations().getJSONObject(2).getJSONObject("body").getJSONObject("materialPreviousOperations").getString(material));assertEquals(bowl,store.operations().getJSONObject(2).getString("id"));
+        store.close();context().deleteDatabase(name);
+    }
+
 }

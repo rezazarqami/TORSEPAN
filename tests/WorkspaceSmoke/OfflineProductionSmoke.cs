@@ -57,7 +57,7 @@ internal static class OfflineProductionSmoke
         services.AddSingleton<IUserRepository,UserRepository>();services.AddSingleton<IRoleRepository,RoleRepository>();
         services.AddSingleton<IUserRoleRepository,UserRoleRepository>();services.AddSingleton<IRefreshTokenRepository,RefreshTokenRepository>();
         services.AddSingleton<IInventoryAlertService,QuietAlerts>();services.AddSingleton<IUnitOfWork,UnitOfWork>();services.AddMediatR(x=>x.RegisterServicesFromAssembly(typeof(CompleteBowlDimpleCommand).Assembly));
-        using var provider=services.BuildServiceProvider();var service=new OfflineProductionService(db,provider.GetRequiredService<IMediator>(),http);
+        using var provider=services.BuildServiceProvider();http.HttpContext!.RequestServices=provider;var service=new OfflineProductionService(db,provider.GetRequiredService<IMediator>(),http);
         var device=Guid.NewGuid();await service.EnrollAsync(registrar.Id,device,default); await service.EnrollAsync(registrar.Id,device,default);
         async Task Problem(Func<Task> action,string code){try{await action();throw new Exception("Expected "+code);}catch(OfflineProblem error){Check(error.Code==code,"rejects "+code);db.ChangeTracker.Clear();}}
         await Problem(()=>service.EnrollAsync(registrar.Id,Guid.NewGuid(),default),"device");
@@ -171,6 +171,26 @@ internal static class OfflineProductionSmoke
         Check(rejectedView.IsRejected,"rejected bowls remain read-only even if their old stage is still a waiting stage");
         await Problem(()=>service.ApplyAsync(registrar.Id,Operation(rejected.ProductionCode,"shape",rejectedView.Version),default),"stage");
         Check(typeof(OfflineController).GetCustomAttribute<AuthorizeAttribute>()?.Roles=="Administrator"&&typeof(OfflineController).GetMethods().All(x=>x.GetCustomAttribute<AllowAnonymousAttribute>() is null),"offline enrollment, snapshot and sync are administrator-only authenticated endpoints");
+        var localPerformerEdit=Operation("855","edit",(await service.BowlAsync("855",default)).Version) with {PerformerId=registrar.Id,Edit=new AdminProductionEditRequest(scale.Id,[],[]),LocalEventUsers=[new OfflineLocalEventUserUpdate(tune.OperationId,registrar.Id)]};
+        await service.ApplyAsync(registrar.Id,localPerformerEdit,default);db.ChangeTracker.Clear();Check(await db.ProductionEvents.AnyAsync(x=>x.BowlId==top.Id&&x.Action==ProductionAction.Tune&&x.UserId==registrar.Id),"an offline tune receipt can be reassigned to a colleague without rewriting its original operation");
+        var workspaceSnapshot=await service.SnapshotAsync(registrar.Id,device,default);
+        Check(workspaceSnapshot.Workspace is not null&&workspaceSnapshot.Workspace.Sections.ContainsKey("orders")&&workspaceSnapshot.SupportsLocalEventUsers,"management snapshot includes offline sections and local performer editing capability");
+        OfflineOperation Workspace(string module,string action,object data,Guid? previous=null)=>new(Guid.NewGuid(),device,"@"+module,"workspace",registrar.Id,DateTime.UtcNow,"workspace",WorkspaceModule:module,WorkspaceAction:action,WorkspaceData:JsonSerializer.SerializeToElement(data),WorkspaceExpectedVersion:workspaceSnapshot.Workspace!.Version,WorkspacePreviousOperationId:previous);
+        var localParty=Guid.NewGuid();var partyOp=Workspace("parties","save",new {id=localParty,name="Offline customer",company="",phone="",notes=""});
+        var partyReceipt=await service.ApplyAsync(registrar.Id,partyOp,default);db.ChangeTracker.Clear();
+        var sameReceipt=await service.ApplyAsync(registrar.Id,partyOp,default);Check(partyReceipt.OperationId==sameReceipt.OperationId&&await db.AccountingParties.CountAsync(x=>x.Name=="Offline customer")==1,"lost management response retries do not duplicate a party");
+        var actualParty=JsonSerializer.Deserialize<Dictionary<string,string>>(partyReceipt.VersionsJson)!["alias:"+localParty];
+        var localDoc=Guid.NewGuid();var documentOp=Workspace("documents","save",new{id=localDoc,type=1,title="Offline invoice",totalAmount=1000,paidAmount=200,partyId=localParty},partyOp.OperationId);
+        var documentReceipt=await service.ApplyAsync(registrar.Id,documentOp,default);db.ChangeTracker.Clear();var actualDoc=Guid.Parse(JsonSerializer.Deserialize<Dictionary<string,string>>(documentReceipt.VersionsJson)!["alias:"+localDoc]);
+        Check(await db.AccountingDocuments.AnyAsync(x=>x.Id==actualDoc&&x.PartyId==Guid.Parse(actualParty)),"dependent offline invoice resolves a locally created party identifier");
+        var paymentOp=Workspace("documents","payment",new{id=localDoc,amount=300},documentOp.OperationId);await service.ApplyAsync(registrar.Id,paymentOp,default);db.ChangeTracker.Clear();
+        Check(await db.AccountingDocuments.AnyAsync(x=>x.Id==actualDoc&&x.PaidAmount==500),"offline accounting payment is applied exactly once to the resolved document");
+        await service.ApplyAsync(registrar.Id,paymentOp,default);Check(await db.AccountingDocuments.AnyAsync(x=>x.Id==actualDoc&&x.PaidAmount==500),"accounting payment lost-response retry remains idempotent");
+        await Problem(()=>service.ApplyAsync(registrar.Id,Workspace("parties","save",new{id=Guid.NewGuid(),name="Stale party"}),default),"conflict");
+        var localOrder=Guid.NewGuid();var localLine=Guid.NewGuid();var draftOp=Workspace("orders","save",new{id=localOrder,customerName="Offline order",durationDays=30,version=1,lines=new[]{new{scaleId=scale.Id,quantity=2,lineId=localLine}}},paymentOp.OperationId);
+        var draftReceipt=await service.ApplyAsync(registrar.Id,draftOp,default);db.ChangeTracker.Clear();var orderAliases=JsonSerializer.Deserialize<Dictionary<string,string>>(draftReceipt.VersionsJson)!;var actualOrder=Guid.Parse(orderAliases["alias:"+localOrder]);Check(orderAliases.ContainsKey("alias:"+localLine),"offline order and line identifiers resolve together in one receipt");
+        var finalizeOp=Workspace("orders","finalize",new{id=localOrder,version=1},draftOp.OperationId);await service.ApplyAsync(registrar.Id,finalizeOp,default);db.ChangeTracker.Clear();Check(await db.CustomerOrders.AnyAsync(x=>x.Id==actualOrder&&!x.IsDraft),"offline draft finalizes atomically using its prior receipt");
+
         var pgOptions=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused").Options;
         await using var pg=new TORSEPANDbContext(pgOptions);
         var sql=pg.GetService<IMigrator>().GenerateScript("20261006185746_AddOrderComposition");

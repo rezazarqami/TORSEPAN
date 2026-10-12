@@ -13,7 +13,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
 {
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct)
     {
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(ct) : null;
         // Wait for any in-flight reminder batch, then remove the order and its reminders together.
         if (db.Database.IsNpgsql())
             await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(730031, 1)", ct);
@@ -21,7 +21,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         if (order is null) return false;
         db.CustomerOrders.Remove(order);
         await db.SaveChangesAsync(ct);
-        await transaction.CommitAsync(ct);
+        if(transaction is not null)await transaction.CommitAsync(ct);
         return true;
     }
 
@@ -99,7 +99,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
     public async Task<Guid> SaveDraftAsync(Guid? id, SaveOrderDraftRequest request, Guid userId, CancellationToken ct)
     {
         var start = OrderStart(request.OrderDate);
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(ct) : null;
         if (id.HasValue) await LockOrder(id.Value, ct);
         var order = id.HasValue ? await db.CustomerOrders.Include(x => x.Lines).SingleOrDefaultAsync(x => x.Id == id, ct) : null;
         if (id.HasValue && order is null) throw new OrderValidationException("این پیش‌سفارش حذف شده است؛ فهرست را به‌روز کنید.");
@@ -122,13 +122,13 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
             order.ChangeDraft(request.CustomerName, request.DurationDays, start, lines);
             db.CustomerOrderLines.AddRange(lines);
         }
-        await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
+        await db.SaveChangesAsync(ct); if(transaction is not null)await transaction.CommitAsync(ct);
         return order.Id;
     }
     public async Task<bool> UpdateOrderAsync(Guid id, SaveOrderDraftRequest request, CancellationToken ct)
     {
         var start=OrderStart(request.OrderDate);
-        await using var transaction=await db.Database.BeginTransactionAsync(ct);
+        await using var transaction=db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(ct) : null;
         if(db.Database.IsNpgsql())await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(730031, 1)",ct);
         await LockOrder(id,ct);
         var order=await db.CustomerOrders.Include(x=>x.Reminders).Include(x=>x.Lines).ThenInclude(x=>x.Instruments).SingleOrDefaultAsync(x=>x.Id==id,ct);
@@ -162,11 +162,11 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         order.ChangeFinalOrder(request.CustomerName,request.DurationDays,start);
         var first=order.Lines.OrderBy(x=>x.Position).First().Instruments.SingleOrDefault(x=>x.Slot==1);
         order.SyncPrimaryInstrument(first);
-        await db.SaveChangesAsync(ct);await transaction.CommitAsync(ct);return true;
+        await db.SaveChangesAsync(ct);if(transaction is not null)await transaction.CommitAsync(ct);return true;
     }
     public async Task<bool> FinalizeAsync(Guid id, int version, CancellationToken ct)
     {
-        await using (var transaction = await db.Database.BeginTransactionAsync(ct))
+        await using (var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(ct) : null)
         {
             await LockOrder(id, ct);
             var order = await db.CustomerOrders.Include(x => x.Lines).Include(x => x.Reminders).SingleOrDefaultAsync(x => x.Id == id, ct);
@@ -176,7 +176,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
             await ValidateDraft(id, new(order.CustomerName, order.DurationDays, null,
                 order.Lines.Select(x => new OrderLineRequest(x.ScaleId, x.DesignTypeId, x.Quantity)).ToArray()), ct);
             order.FinalizeOrder(clock.GetUtcNow().UtcDateTime);
-            await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
+            await db.SaveChangesAsync(ct); if(transaction is not null)await transaction.CommitAsync(ct);
         }
         if (notifications is not null)
         { try { await notifications.ProcessAsync(ct, id); } catch { /* Durable retry. */ } }
@@ -193,7 +193,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
     {
         var code = ProductionCodeNormalizer.Normalize(value).ToUpperInvariant();
         if (code.Length is < 1 or > 50) throw new OrderValidationException("کد ساز را حداکثر در ۵۰ حرف وارد کنید.");
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(ct) : null;
         await LockOrder(id, ct);
         var order = await db.CustomerOrders.Include(x => x.Lines).ThenInclude(x => x.Instruments).SingleOrDefaultAsync(x => x.Id == id, ct);
         if (order is null) return false;
@@ -220,7 +220,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
         instrument.Assign(canonicalCode, top.Id, handpanId, userId, clock.GetUtcNow().UtcDateTime);
         if (line.Position == 1 && slot == 1) order.AssignInstrument(canonicalCode, top.Id, handpanId, userId, clock.GetUtcNow().UtcDateTime);
         order.Touch();
-        await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
+        await db.SaveChangesAsync(ct); if(transaction is not null)await transaction.CommitAsync(ct);
         return true;
     }
 
