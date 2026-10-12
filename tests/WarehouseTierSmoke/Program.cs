@@ -27,8 +27,15 @@ foreach(var role in new[]{"Administrator","QualityControl","Tuner"})
         Check(Html().Contains("Economy")&&Html().Contains("Studio")&&Html().Contains("Signature")&&Html().Split("role=\"tab\"").Length-1==3,role+" sees exactly three warehouse tabs");
         Check(Html().Contains("ST-00281")&&!Html().Contains("ST-00310"),role+" initial inventory shows Economy only");
         Check(Html().Contains("مدیریت انبارها")== (role=="Administrator"),role+" naming controls stay in the administrator overflow menu");
-        Check(Html().Contains("⇄ انتقال")== (role is "Administrator" or "QualityControl"),role+" transfer controls follow stock permissions");
+        Check(Html().Contains("انتقال به انبار دیگر")== (role is "Administrator" or "QualityControl"),role+" transfer controls follow stock permissions");
         if(preview is not null&&role=="Administrator")await File.WriteAllTextAsync(Path.Combine(preview,"warehouse-economy.html"),rendered.ToHtmlString());
+        if(role=="Administrator"){
+            var row=((List<WarehouseHandpanDto>)instance.Get("_items")!).First();
+            ((HashSet<Guid>)instance.Get("_expanded")!).Add(row.HandpanId);((HashSet<Guid>)instance.Get("_detailsLoaded")!).Add(row.HandpanId);
+            row.Operations=[new(){Operation="دیمپل",PerformedBy="فؤاد احمدفیض",PerformedAt=DateTime.UtcNow},new(){Operation="شیپ",PerformedBy="محمدرضا رنجبر",PerformedAt=DateTime.UtcNow},new(){Operation="فاین تیون",PerformedBy="علیرضا ضرغامی",PerformedAt=DateTime.UtcNow}];row.PackagingItems=["روغن","دستمال","مثلثی"];instance.Refresh();
+            if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"warehouse-details.html"),rendered.ToHtmlString());
+            ((HashSet<Guid>)instance.Get("_expanded")!).Clear();instance.Refresh();
+        }
         await instance.Call("SelectWarehouse",2);instance.Refresh();Check(Html().Contains("ST-00310")&&!Html().Contains("ST-00281"),role+" tab switching isolates Studio stock");
         if(preview is not null&&role=="Administrator")await File.WriteAllTextAsync(Path.Combine(preview,"warehouse-studio.html"),rendered.ToHtmlString());
         await instance.Call("SelectWarehouse",3);instance.Refresh();Check(Html().Contains("ST-00402")&&!Html().Contains("ST-00310"),role+" Signature has its own inventory");
@@ -48,6 +55,12 @@ foreach(var role in new[]{"Administrator","QualityControl","Tuner"})
         if(role=="Administrator")
         {
             var qc=await renderer.RenderComponentAsync<QcPreview>(ParameterView.Empty);var qi=QcPreview.Instance!;string QHtml()=>WebUtility.HtmlDecode(qc.ToHtmlString());Check(QHtml().Contains("انبار مقصد را انتخاب کنید")&&QHtml().Contains("Economy")&&QHtml().Contains("Signature"),"QC shows the three warehouse destination choices");if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"qc-warehouse.html"),qc.ToHtmlString());await qi.Call("ApproveQualityControlAsync");Check(api.QcRequests==0,"QC approval cannot submit before choosing a destination");qi.Set("_qualityWarehouseId",3);await qi.Call("ApproveQualityControlAsync");Check(api.QcRequests==1&&api.LastQualityWarehouse==3,"QC approval submits the selected warehouse");
+            qi.Set("_successMessage",null);qi.Set("_bowl",new DimpleBowlDto{ProductionCode="QC-FIXTURE",Stage=14,BowlType=1});await qi.Call("SelectQcExport");qi.Refresh();await qi.Call("ApproveQualityControlAsync");Check(api.QcRequests==1,"export QC requires a country before submitting");
+            Check(QHtml().Contains("ایران")&&QHtml().Contains("لندن")&&QHtml().Contains("ترکیه")&&QHtml().Contains("آلمان"),"export selection reveals four destinations");
+            if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"qc-export.html"),qc.ToHtmlString());
+            qi.Set("_exportWarehouseLocation",2);await qi.Call("ApproveQualityControlAsync");Check(api.LastExportLocation==2&&api.QcRequests==2,"QC persists selected export country");
+            ((List<MaterialDto>)qi.Get("_packagingMaterials")!).AddRange(new List<MaterialDto>{new(){Id=Guid.NewGuid(),Name="روغن",Quantity=20},new(){Id=Guid.NewGuid(),Name="دستمال",Quantity=20},new(){Id=Guid.NewGuid(),Name="پایه",Quantity=20},new(){Id=Guid.NewGuid(),Name="پنگارد",Quantity=20},new(){Id=Guid.NewGuid(),Name="کارتن",Quantity=20},new(){Id=Guid.NewGuid(),Name="مثلثی",Quantity=20},new(){Id=Guid.NewGuid(),Name="سافت کیس",Quantity=20},new(){Id=Guid.NewGuid(),Name="هارد کیس",Quantity=20}});
+            await qi.Call("SelectDefaultPackagingMaterials");Check(((HashSet<Guid>)qi.Get("_selectedPackagingMaterialIds")!).Count==7,"packaging defaults select six accessories plus soft case");
         }
     });
 }
@@ -64,6 +77,8 @@ public sealed class WarehousePreview:WarehouseList
 public sealed class QcPreview:Dimpling
 {
     public static QcPreview? Instance;protected override async Task OnInitializedAsync(){await base.OnInitializedAsync();Instance=this;Set("_bowl",new DimpleBowlDto{ProductionCode="QC-FIXTURE",Stage=14,BowlType=1,HandpanId=Guid.NewGuid()});Set("_productionCode","QC-FIXTURE");Set("_qualityWarehouses",InstrumentWarehouseDto.Defaults());}
+    public void Refresh()=>StateHasChanged();
+    public object? Get(string name)=>typeof(Dimpling).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(this);
     public void Set(string name,object? value)=>typeof(Dimpling).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(this,value);
     public async Task Call(string name,params object?[] args){var r=typeof(Dimpling).GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(this,args);if(r is Task t)await t;}
 }
@@ -72,7 +87,7 @@ sealed class FixtureJs:IJSRuntime{public ValueTask<T> InvokeAsync<T>(string id,o
 sealed class FixtureNavigation:NavigationManager{public FixtureNavigation(){Initialize("https://fixture.invalid/","https://fixture.invalid/warehouse/list");}protected override void NavigateToCore(string uri,bool forceLoad){}}
 sealed class FixtureApi:HttpMessageHandler
 {
-    public int Transfers,Renames,QcRequests,LastQualityWarehouse;
+    public int Transfers,Renames,QcRequests,LastQualityWarehouse; public int? LastExportLocation;
     readonly List<InstrumentWarehouseDto> warehouses=InstrumentWarehouseDto.Defaults();
     public readonly List<WarehouseHandpanDto> Stock=new[]{("ST-00281","D Kurd 9",1), ("ST-00284","D Amara 13",1), ("ST-00295","E Sabye 9",1), ("ST-00310","D Kurd 14",2), ("ST-00326","C Aegean 10",2), ("ST-00402","F Low Pygmy 16",3)}.Select((x,i)=>new WarehouseHandpanDto{HandpanId=Guid.NewGuid(),SerialNumber=x.Item1,TopBowlCode=x.Item1,BottomBowlCode="SB-"+(20000+i),MaterialName=i%2==0?"Ember Steel":"Stainless Steel",ScaleName=x.Item2,QualityWarehouseId=x.Item3,Version=Guid.NewGuid(),WarehouseEntryDate=new DateTime(2026,10,10,10,0,0),Notes=i==1?["انتخاب‌شده برای سفارش مشتری"]:[]}).ToList();
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
@@ -82,7 +97,7 @@ sealed class FixtureApi:HttpMessageHandler
         else if(path.Contains("/instrument-warehouses/")&&request.Method==HttpMethod.Put){Renames++;var d=await request.Content!.ReadFromJsonAsync<JsonElement>(ct);var id=int.Parse(path.Split('/').Last());var item=warehouses.Single(x=>x.Id==id);item.Name=d.GetProperty("name").GetString()!;item.Version=Guid.NewGuid();data=item;}
         else if(path.EndsWith("/instrument-warehouses/transfer")){Transfers++;var d=await request.Content!.ReadFromJsonAsync<JsonElement>(ct);var id=d.GetProperty("warehouseId").GetInt32();var rows=d.GetProperty("items").EnumerateArray().Select(x=>Stock.Single(s=>s.HandpanId==x.GetProperty("handpanId").GetGuid())).ToList();foreach(var row in rows){row.QualityWarehouseId=id;row.Version=Guid.NewGuid();}data=rows.Select(x=>new WarehouseMoveResult{HandpanId=x.HandpanId,QualityWarehouseId=x.QualityWarehouseId,Version=x.Version}).ToList();}
         else if(path.EndsWith("/production/warehouse"))data=Stock;
-        else if(path.EndsWith("/qc/complete")){QcRequests++;var d=await request.Content!.ReadFromJsonAsync<JsonElement>(ct);LastQualityWarehouse=d.GetProperty("qualityWarehouseId").GetInt32();data=new DimpleBowlDto{ProductionCode="QC-FIXTURE",Stage=16,BowlType=1};}
+        else if(path.EndsWith("/qc/complete")){QcRequests++;var d=await request.Content!.ReadFromJsonAsync<JsonElement>(ct);LastQualityWarehouse=d.GetProperty("qualityWarehouseId").ValueKind==JsonValueKind.Null?1:d.GetProperty("qualityWarehouseId").GetInt32();LastExportLocation=d.GetProperty("exportWarehouseLocation").ValueKind==JsonValueKind.Null?null:d.GetProperty("exportWarehouseLocation").GetInt32();data=new DimpleBowlDto{ProductionCode="QC-FIXTURE",Stage=16,BowlType=1};}
         else if(path.EndsWith("/sales-attribution/options"))data=new SalesAttributionOptionsDto();
         return new HttpResponseMessage(HttpStatusCode.OK){Content=JsonContent.Create(data)};
     }

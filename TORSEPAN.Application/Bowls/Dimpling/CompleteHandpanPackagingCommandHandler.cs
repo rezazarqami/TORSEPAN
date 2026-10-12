@@ -50,6 +50,10 @@ public sealed class CompleteHandpanPackagingCommandHandler
         if (_userContext.UserId is not Guid userId)
             throw new UnauthorizedAccessException();
 
+        var exportLocation = handpan.ExportWarehouseLocation ?? request.ExportWarehouseLocation;
+        if (exportLocation.HasValue && !Enum.IsDefined(exportLocation.Value))
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
+
         var selectedMaterialIds = request.MaterialIds.Distinct().ToArray();
         var selectedMaterials = selectedMaterialIds.Length == 0
             ? []
@@ -73,8 +77,8 @@ public sealed class CompleteHandpanPackagingCommandHandler
                 MaterialStockMetadata.Encode(material.Id,material.Name,"general",-quantity,material.Quantity,"مصرف در بسته‌بندی")));
         }
 
-        if (request.ExportWarehouseLocation.HasValue)
-            handpan.MoveToExportWarehouse(request.ExportWarehouseLocation.Value);
+        if (exportLocation.HasValue)
+            handpan.MoveToExportWarehouse(exportLocation.Value);
         else
             handpan.ChangeStage(ProductionStage.FinishedWarehouse);
         handpan.ChangeStatus(ProductionStatus.Completed);
@@ -92,8 +96,8 @@ public sealed class CompleteHandpanPackagingCommandHandler
         await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(
             handpan.Id, assembly.Id, null, userId, ProductionAction.Packaging,
             EventResult.Completed, null,
-            request.ExportWarehouseLocation.HasValue
-                ? $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}|EXPORT_WAREHOUSE:{(int)request.ExportWarehouseLocation.Value}"
+            exportLocation.HasValue
+                ? $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}|EXPORT_WAREHOUSE:{(int)exportLocation.Value}"
                 : $"PACKAGING_ITEMS:{string.Join("|", selectedMaterials.Select(x => x.Name))}"));
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);

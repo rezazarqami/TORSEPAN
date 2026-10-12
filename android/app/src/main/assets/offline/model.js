@@ -16,7 +16,8 @@
       const b=bowls.find(x=>x.code===op.code); if(!b)continue;
       const action=op.action;
       if(action==='qc'&&op.approved||action==='warehouseTransfer')for(const target of bowls.filter(x=>x.code===b.code||x.code===b.pairCode))target.qualityWarehouseId=op.qualityWarehouseId||1;
-      let stage={dimple:4,shape:6,bake:b.type===2&&!b.hasNotes?10:8,tune:10,glue:11,release:12,finalTune:14,qc:op.approved?16:12,packaging:op.exportLocation?22:18,sell:20,ship:20,tuneExport:21,exportRoute:21,returnGlue:10,exportPackaging:22}[action];
+      if(action==='qc'&&op.approved)for(const target of bowls.filter(x=>x.code===b.code||x.code===b.pairCode))target.packagingExportLocation=op.exportLocation||null;
+      let stage={dimple:4,shape:6,bake:b.type===2&&!b.hasNotes?10:8,tune:10,glue:11,release:12,finalTune:14,qc:op.approved?16:12,packaging:(b.packagingExportLocation||op.exportLocation)?22:18,sell:20,ship:20,tuneExport:21,exportRoute:21,returnGlue:10,exportPackaging:22}[action];
       if(action==='design'){const name=(snapshot.designs||[]).find(x=>x.id===op.designTypeId)?.name||'دیزاین';b.design=b.design?b.design+'، '+name:name;}
       if(action==='edit'&&op.edit){
         for(const [code,scaleId] of Object.entries(op.editScales||{})){const target=bowls.find(x=>x.code===code);if(target)target.scaleId=scaleId;}

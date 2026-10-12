@@ -31,7 +31,8 @@ public sealed class CompleteHandpanQualityControlCommandHandler
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
         }
 
-        if (request.Approved && !InstrumentWarehouse.IsValidId(request.QualityWarehouseId))
+        if (request.Approved && (!InstrumentWarehouse.IsValidId(request.QualityWarehouseId) ||
+            (request.ExportWarehouseLocation.HasValue && !Enum.IsDefined(request.ExportWarehouseLocation.Value))))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
         var code = request.ProductionCode.Trim();
@@ -62,7 +63,11 @@ public sealed class CompleteHandpanQualityControlCommandHandler
             ? ProductionStage.WaitingForPackaging
             : ProductionStage.WaitingForFinalTune;
 
-        if (request.Approved) handpan.SetQualityWarehouse(request.QualityWarehouseId);
+        if (request.Approved)
+        {
+            handpan.SetQualityWarehouse(request.QualityWarehouseId);
+            handpan.SetPackagingDestination(request.ExportWarehouseLocation);
+        }
         handpan.ChangeStage(targetStage);
         handpan.ChangeStatus(ProductionStatus.Waiting);
         _unitOfWork.Handpans.Update(handpan);
@@ -82,7 +87,8 @@ public sealed class CompleteHandpanQualityControlCommandHandler
             _ => string.Empty
         };
         var description = request.Approved
-            ? "QC تأیید شد و ساز در انتظار بسته‌بندی قرار گرفت"
+            ? "QC تأیید شد و ساز در انتظار بسته‌بندی قرار گرفت" +
+                (request.ExportWarehouseLocation.HasValue ? $"؛ مقصد صادراتی: {request.ExportWarehouseLocation.Value}" : string.Empty)
             : $"QC تأیید نشد؛ دلیل: {reasonText}; توضیحات: {request.Details}";
 
         await _unitOfWork.ProductionEvents.AddAsync(new ProductionEvent(

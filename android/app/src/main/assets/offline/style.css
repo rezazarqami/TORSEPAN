@@ -2,3 +2,5 @@
 
 .photo-preview{display:block;max-width:100%;width:160px;border-radius:14px;margin:12px auto}#extra-form{margin-top:16px}
 .offline-warehouse-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.offline-warehouse-tabs button{min-width:0;padding:10px 5px;border:1px solid #d8e2ea;background:#f7fafc;color:#46677d;font-size:.8rem;overflow-wrap:anywhere}.offline-warehouse-tabs button.selected{background:#e8f1f7;border-color:#89abc2}.offline-warehouse-management{font-size:.75rem;color:#778a99;margin-top:10px}.offline-warehouse-management summary{cursor:pointer;padding:8px}.offline-warehouse-management button{font-size:.75rem;background:#eef3f7;color:#5e788d}
+
+.mode-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #cadbe8}.mode-controls button{width:auto;padding:7px 10px;font-size:12px}.mode-controls strong{font-size:14px}
