@@ -11,7 +11,7 @@
 <PageTitle>فروش</PageTitle>
 <section class="sales-hero">
     <span class="sales-kicker">SALES / TORSEPAN</span>
-    <div class="sales-hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 8h16v12H4zM8 8V6a4 4 0 0 1 8 0v2M9 13h6" /></svg></div>
+    <img class="sales-hero-logo" src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
     <h1>فروش</h1><div class="sales-total"><strong>@_items.Count</strong> فروش ثبت‌شده</div>
 </section>
 <nav class="sales-segments" aria-label="نوع فروش">
@@ -19,8 +19,7 @@
     {
         var current=segment;
         <button type="button" class="@SegmentClass(current)" aria-pressed="@(_saleSegment==current?"true":"false")" @onclick="()=>_saleSegment=current">
-            <span class="sales-tier-mark" aria-hidden="true">@($"0{current+1}")</span>
-            <span class="sales-tier-text"><small>سوابق فروش</small><strong>@SegmentTitle(current)</strong></span>
+            <span class="sales-tier-text"><strong>@SegmentTitle(current)</strong></span>
             <b class="sales-tier-count">@SegmentCount(current)</b>
         </button>
     }
@@ -165,7 +164,7 @@ else
     private readonly Dictionary<Guid,DimpleBowlDto> _bowlDetails=[];
     private int ExportBowlCount(int bowlType, bool? hasNotes = null)=>Items.Count(x=>x.IsBowl && x.BowlType==bowlType && (!hasNotes.HasValue || x.HasNotes==hasNotes.Value));
     private IEnumerable<SaleItemDto> Items{get{var typed=_items.Where(x=>_saleSegment switch{0=>!x.IsBowl&&!x.IsExportSale,1=>!x.IsBowl&&x.IsExportSale,_=>x.IsBowl});return string.IsNullOrWhiteSpace(_search)?typed:typed.Where(x=>x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ItemType.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BuyerName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search,StringComparison.OrdinalIgnoreCase));}}
-    private static string SegmentTitle(int segment)=>segment switch{0=>"فروش داخلی ساز",1=>"فروش صادراتی ساز",_=>"صادرات کاسه"};
+    private static string SegmentTitle(int segment)=>segment switch{0=>"فروش داخلی ساز",1=>"فروش صادراتی ساز",_=>"فروش صادراتی کاسه"};
     private int SegmentCount(int segment)=>_items.Count(x=>segment switch{0=>!x.IsBowl&&!x.IsExportSale,1=>!x.IsBowl&&x.IsExportSale,_=>x.IsBowl});
     private string SegmentClass(int segment)=>_saleSegment==segment?"sales-segment active":"sales-segment";
     private static string ShippingName(string? value)=>value switch{"air"=>"هوایی","land"=>"زمینی","sea"=>"دریایی",_=>"ثبت نشده"};
