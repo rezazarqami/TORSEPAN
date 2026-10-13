@@ -35,6 +35,7 @@ internal static class OrderPreviewFixtures
         {
             fixtureApi.EmptyDesigns = type == typeof(SimplePreview);
             var markup = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync(type, ParameterView.Empty)).ToHtmlString());
+            if (WebUtility.HtmlDecode(markup).Contains("@if(order.IsDraft)")) throw new Exception("Draft condition leaked into the order directory");
             if (!WebUtility.HtmlDecode(markup).Contains("ساخت سفارش") || !markup.Contains("orders-hero")) throw new Exception("Orders preview failed");
             var styles = await File.ReadAllTextAsync(Path.Combine(root, $"TORSEPAN.Panel/obj/{buildConfiguration}/net10.0/scopedcss/projectbundle/TORSEPAN.Panel.bundle.scp.css"));
             var global = await File.ReadAllTextAsync(Path.Combine(root, "TORSEPAN.Panel/wwwroot/app.css"));
@@ -212,7 +213,7 @@ internal static class OrderPreviewFixtures
             var flags=BindingFlags.Instance|BindingFlags.NonPublic;
             var orders=(List<OrderDto>)typeof(Orders).GetField("_orders",flags)!.GetValue(this)!;
             typeof(Orders).GetMethod("ToggleOrder",flags)!.Invoke(this,[orders[0].Id]);
-            var stages=new[]{"در انتظار دیمپل","در انتظار شیپ","در انتظار تیون","در انتظار فاین‌تیون","در اتاق چسب"};
+            var stages=new[]{"در انتظار دیمپل","در انتظار شیپ","در انتظار تیون","در انتظار فاین‌تیون","در اتاق چسب","ارسال‌شده"};
             orders[0]=orders[0] with {Lines=[orders[0].Lines[0] with {Quantity=50,Instruments=Enumerable.Range(1,50)
                 .Select(n=>new OrderInstrumentDto(n,$"TP-{n:0000}",stages[(n-1)%stages.Length],"در انتظار",[])).ToArray()}]};
         }
