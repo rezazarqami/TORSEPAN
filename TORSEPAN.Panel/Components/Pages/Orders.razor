@@ -11,8 +11,13 @@
 
 <PageTitle>ثبت سفارش | تورسپن</PageTitle>
 <section class="orders-hero">
-    <div><span class="hero-kicker" dir="ltr">TORSEPAN / CUSTOM ORDERS</span><h1>هر سفارش، یک ترکیب خاص</h1><p>دیزاین‌ها و اسکیل‌ها را بچین؛ از پیش‌سفارش تا آخرین ساز، همه‌چیز همین‌جاست.</p><div class="hero-steps"><span>۱ · چیدن ردیف‌ها</span><span>۲ · بررسی و تأیید</span><span>۳ · ثبت کد سازها</span></div></div>
+    <span class="hero-kicker" dir="ltr">TORSEPAN / CUSTOM ORDERS</span>
     <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
+    <h1>ثبت و مدیریت سفارش</h1>
+    @if(!_loading && !_loadFailed)
+    {
+        <p class="orders-hero-total"><strong>@_orders.Count(x => !x.IsDraft)</strong> سفارش نهایی شامل <strong>@_orders.Where(x => !x.IsDraft).Sum(x => x.TotalQuantity)</strong> ساز</p>
+    }
 </section>
 <nav class="order-tabs" aria-label="بخش‌های سفارش">
     <button class="@(_tab == "list" ? "active" : "")" aria-pressed="@(_tab == "list")" @onclick='() => _tab = "list"'><strong>سفارش‌های نهایی</strong><b>@_orders.Count(x => !x.IsDraft)</b></button>
@@ -77,12 +82,9 @@ else if (_tab == "new")
 }
 else
 {
-    var selected = _orders.Where(x => x.IsDraft == (_tab == "drafts")).ToArray();
-    <div class="order-metrics"><article><small>@(_tab == "drafts" ? "پیش‌سفارش" : "سفارش نهایی")</small><strong>@selected.Length</strong></article><article><small>تعداد سازها</small><strong>@selected.Sum(x => x.TotalQuantity)</strong></article><article><small>کدهای ثبت‌شده</small><strong>@selected.Sum(x => x.AssignedQuantity)</strong></article><article><small>در انتظار کد</small><strong>@selected.Sum(x => x.TotalQuantity - x.AssignedQuantity)</strong></article></div>
     <section class="order-panel list-panel">
-        <header><div><small class="section-kicker">@(_tab == "drafts" ? "آماده برای ادامه" : "مسیر ساخت تا تحویل")</small><h2>@(_tab == "drafts" ? "پیش‌سفارش‌های ذخیره‌شده" : "سفارش‌ها و سازهایشان")</h2></div><button class="btn subtle" disabled="@_refreshing" @onclick="RefreshAsync">↻ به‌روزرسانی</button></header>
-        <div class="order-filters"><label for="order-search"><span class="visually-hidden">جست‌وجوی سفارش</span><input id="order-search" class="form-control" placeholder="نام، دیزاین، اسکیل یا کد ساز…" @bind="_search" @bind:event="oninput" /></label>@if(_tab == "list"){<select aria-label="فیلتر سفارش" class="form-select" @bind="_filter"><option value="all">همه سفارش‌ها</option><option value="active">دارای مهلت</option><option value="near">یک‌چهارم پایانی</option><option value="overdue">مهلت پایان‌یافته</option><option value="no-code">کدهای ناقص</option></select>}</div>
-        @if(!VisibleOrders.Any()){<div class="empty-orders"><span>☷</span><h3>سفارشی برای نمایش نیست</h3><p>یک سفارش تازه بساز یا عبارت جست‌وجو را تغییر بده.</p><button class="btn create-order" @onclick='()=>_tab="new"'>ساخت سفارش</button></div>}
+        <header><h2>@(_tab == "drafts" ? "لیست پیش‌سفارش‌ها" : "لیست سفارش‌ها")</h2><button class="btn subtle" disabled="@_refreshing" @onclick="RefreshAsync">↻ به‌روزرسانی</button></header>
+        @if(!VisibleOrders.Any()){<div class="empty-orders"><span>☷</span><h3>سفارشی برای نمایش نیست</h3><p>برای شروع یک سفارش تازه بساز.</p><button class="btn create-order" @onclick='()=>_tab="new"'>ساخت سفارش</button></div>}
         <div class="orders-list">
             @foreach(var entry in VisibleOrders.Select((order, index) => (Order: order, Number: index + 1)))
             {
@@ -90,16 +92,16 @@ else
                 <article class="order-card @(!order.IsDraft && order.DueAtUtc <= _now ? "late" : "")" @key="order.Id">
                     <button type="button" class="order-list-toggle" aria-expanded="@(_selectedOrderId == order.Id ? "true" : "false")" aria-controls="order-details-@order.Id" @onclick="()=>ToggleOrder(order.Id)">
                         <span class="order-list-number">@entry.Number</span>
-                        <span class="order-list-name"><strong>@order.CustomerName</strong><small>@order.TotalQuantity ساز · @(order.IsDraft ? "پیش‌سفارش" : "سفارش نهایی")</small></span>
+                        <span class="order-list-name"><strong>@order.CustomerName</strong><small>@order.TotalQuantity ساز@if(order.IsDraft){<text> · پیش‌سفارش</text>}</small></span>
                         <span class="order-list-date">@PersianDate(order.CreatedAtUtc)</span>
                         <span class="order-list-chevron">@(_selectedOrderId == order.Id ? "⌃" : "⌄")</span>
                     </button>
                     @if(_selectedOrderId == order.Id)
                     {
                     <div class="order-details" id="order-details-@order.Id">
-                    <div class="order-card-head"><div><small>@(order.IsDraft ? "پیش‌سفارش / قابل ویرایش" : "سفارش نهایی")</small><h3>@order.CustomerName</h3><span>@order.TotalQuantity ساز · @order.Lines.Count ردیف</span></div><div class="time-badge"><strong>@(order.IsDraft ? "پیش‌سفارش" : TimeLabel(order))</strong><small>@(order.IsDraft ? "هنوز نهایی نشده" : order.DueAtUtc <= _now ? "از موعد گذشته" : "تا موعد تحویل")</small></div></div>
+                    <div class="order-card-head"><div>@if(order.IsDraft){<small>پیش‌سفارش / قابل ویرایش</small>}<strong class="order-quantity-summary">@order.TotalQuantity ساز · @order.Lines.Count ردیف</strong></div><div class="time-badge"><strong>@(order.IsDraft ? "پیش‌سفارش" : TimeLabel(order))</strong><small>@(order.IsDraft ? "هنوز نهایی نشده" : order.DueAtUtc <= _now ? "از موعد گذشته" : "تا موعد تحویل")</small></div></div>
                     <div class="order-dates"><span>تاریخ سفارش: <b>@PersianDate(order.CreatedAtUtc)</b></span><span>مدت: <b>@order.DurationDays روز</b></span><span>موعد: <b>@PersianDate(order.DueAtUtc)</b></span></div>
-                    @if(!order.IsDraft){<div class="order-progress" role="progressbar" aria-label="زمان سپری‌شده" aria-valuenow="@((int)Progress(order))" aria-valuemin="0" aria-valuemax="100"><i style="width:@(Progress(order).ToString("0.##", CultureInfo.InvariantCulture))%"></i></div><div class="progress-caption"><span>@((int)Progress(order))٪ زمان گذشته</span><span>@order.AssignedQuantity / @order.TotalQuantity کد ثبت شده</span></div>}
+                    @if(!order.IsDraft){<div class="order-progress" role="progressbar" aria-label="زمان سپری‌شده" aria-valuenow="@((int)Progress(order))" aria-valuemin="0" aria-valuemax="100"><i style="width:@(Progress(order).ToString("0.##", CultureInfo.InvariantCulture))%"></i></div><div class="progress-caption"><span>@((int)Progress(order))٪ زمان گذشته</span></div><div class="assigned-code-summary">@order.AssignedQuantity از @order.TotalQuantity کد ثبت شده</div>}
                     @if(!order.IsDraft)
                     {
                         var overview=order.Lines.OrderBy(x=>x.Position).SelectMany(x=>x.Instruments.OrderBy(i=>i.Slot).Select(i=>(Instrument: i, Scale: i.ScaleName ?? x.ScaleName))).ToArray();
@@ -201,7 +203,7 @@ else
     private bool _editingFinalized;
     private Guid? _draftId;
     private int _draftVersion = 1;
-    private string _tab = "list", _customerName = "", _duration = "", _search = "", _filter = "all", _code = "";
+    private string _tab = "list", _customerName = "", _duration = "", _code = "";
     private DateTime? _orderDate = TehranToday;
     private DateTime _now = DateTime.UtcNow;
     private static TimeZoneInfo Tehran => TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
@@ -239,9 +241,7 @@ else
     private bool CanSave => !ValidationErrors.Any();
     private string DesignName(Guid? id) => !id.HasValue ? "دیزاین ساده" : _designs.FirstOrDefault(x=>x.Id==id)?.Name ?? "دیزاین غیرفعال";
     private string ScaleName(Guid? id) => _scales.FirstOrDefault(x=>x.Id==id)?.Name ?? "انتخاب اسکیل";
-    private IEnumerable<OrderDto> VisibleOrders => _orders.Where(x => x.IsDraft == (_tab == "drafts") &&
-        (string.IsNullOrWhiteSpace(_search) || x.CustomerName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || x.Lines.Any(l => l.DesignName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || l.ScaleName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase) || l.Instruments.Any(i=>i.Code.Contains(ProductionCodeNormalizer.Normalize(_search),StringComparison.OrdinalIgnoreCase)))) &&
-        (_tab=="drafts" || (_filter switch { "active"=>x.DueAtUtc>_now,"overdue"=>x.DueAtUtc<=_now,"near"=>x.DueAtUtc>_now && Remaining(x)<=x.DurationDays/4d,"no-code"=>x.AssignedQuantity<x.TotalQuantity,_=>true }))).OrderByDescending(x => x.CreatedAtUtc).ThenBy(x => x.Id);
+    private IEnumerable<OrderDto> VisibleOrders => _orders.Where(x => x.IsDraft == (_tab == "drafts")).OrderByDescending(x => x.CreatedAtUtc).ThenBy(x => x.Id);
     private string FinalizeMessage => _finalizeOrder is null ? "" : $"سفارش {_finalizeOrder.CustomerName} با {_finalizeOrder.TotalQuantity} ساز نهایی شود؟ " + string.Join("؛ ",_finalizeOrder.Lines.Select(x=>$"{x.Quantity} × {x.DesignName} / {x.ScaleName}")) + $". موعد تحویل: {PersianDate(_finalizeOrder.DueAtUtc)}. پس از ثبت نهایی، کد هر ساز را در ردیف خودش وارد کنید.";
     private string DeleteMessage => $"سفارش «{_deleteOrder?.CustomerName}» با {_deleteOrder?.TotalQuantity} ساز و یادآوری‌های آن حذف شود؟ سوابق تولید سازها باقی می‌مانند.";
     protected override async Task OnInitializedAsync(){await ReloadAsync();_polling=PollAsync();}
@@ -321,7 +321,7 @@ else
     private async Task PollAsync(){using var timer=new PeriodicTimer(TimeSpan.FromMinutes(1));try{while(await timer.WaitForNextTickAsync(_lifetime.Token))await InvokeAsync(async()=>{_now=DateTime.UtcNow;if(!_saving && !_savingCode && !_deleting && _finalizeOrder is null && _codeOrder is null && _deleteOrder is null && !_loadFailed)await RefreshAsync();StateHasChanged();});}catch(OperationCanceledException) when(_lifetime.IsCancellationRequested){}}
     private double Remaining(OrderDto order)=>OrderTiming.RemainingDays(order.DueAtUtc,_now);
     private double Progress(OrderDto order)=>OrderTiming.Progress(order.CreatedAtUtc,order.DueAtUtc,_now);
-    private static string Days(double n)=>n.ToString("0.#",CultureInfo.GetCultureInfo("fa-IR"));
+    private static string Days(double n)=>Math.Ceiling(n).ToString("0",CultureInfo.GetCultureInfo("fa-IR"));
     private string TimeLabel(OrderDto order)=>order.DueAtUtc<=_now?$"{Days((_now-order.DueAtUtc).TotalDays)} روز":Remaining(order)<1?$"{Days(Remaining(order)*24)} ساعت":$"{Days(Remaining(order))} روز";
     private static string PersianDate(DateTime utc)=>TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc,DateTimeKind.Utc),Tehran).ToString("yyyy/MM/dd",CultureInfo.GetCultureInfo("fa-IR"));
     private static string ReminderTitle(OrderReminderDto r)=>r.SentAtUtc.HasValue?"به تلگرام ارسال شده":r.HasError?"در انتظار تلاش مجدد":"زمان‌بندی‌شده برای "+PersianDate(r.DueAtUtc);
