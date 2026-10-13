@@ -48,14 +48,16 @@ else if (_tab == "bowls")
                 @foreach (var bowl in _bowls)
                 {
                     <article class="production-card" @key="bowl.Id">
-                        <header><strong class="card-code"><bdi dir="ltr">@bowl.ProductionCode</bdi></strong><small>@(bowl.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</small></header>
-                        <p class="card-scale">@bowl.ScaleName</p>
-                        <span class="card-stage">@StageText(bowl.Stage)</span>
-                        <button type="button" class="card-expand" aria-label="@($"جزئیات و عملیات کاسه {bowl.ProductionCode}")" aria-expanded="@_expandedBowls.Contains(bowl.Id)" @onclick="() => ToggleBowlDetails(bowl.Id)">@(_expandedBowls.Contains(bowl.Id) ? "بستن جزئیات −" : "جزئیات و عملیات +")</button>
+                        <div class="production-row-summary">
+                            <button type="button" class="card-expand" aria-label="@($"جزئیات و عملیات کاسه {bowl.ProductionCode}")" aria-expanded="@_expandedBowls.Contains(bowl.Id)" @onclick="() => ToggleBowlDetails(bowl.Id)">@(_expandedBowls.Contains(bowl.Id) ? "−" : "+")</button>
+                            <strong class="card-code"><bdi dir="ltr">@bowl.ProductionCode</bdi></strong>
+                            <small class="production-row-kind">@(bowl.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</small>
+                            <span class="card-stage">@StageText(bowl.Stage)</span>
+                        </div>
                         @if (_expandedBowls.Contains(bowl.Id))
                         {
                             <div class="production-card-details">
-                                <dl><div><dt>متریال</dt><dd>@bowl.MaterialName</dd></div><div><dt>دارای نت</dt><dd>@(bowl.HasNotes ? "بله" : "خیر")</dd></div></dl>
+                                <p class="card-scale">اسکیل: <bdi>@bowl.ScaleName</bdi></p><dl><div><dt>متریال</dt><dd>@bowl.MaterialName</dd></div><div><dt>دارای نت</dt><dd>@(bowl.HasNotes ? "بله" : "خیر")</dd></div></dl>
                                 <div class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@(_deleting || _rollingBack)" @onclick="() => RequestRollback(bowl)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@(_deleting || _rollingBack)" @onclick="() => RequestDelete(bowl)">حذف</button></AuthorizeView></div>
                                 <div class="production-details"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی کاسه {bowl.ProductionCode}")" Operations="bowl.Operations" /></div>
                             </div>
@@ -65,10 +67,10 @@ else if (_tab == "bowls")
             </div>
             @if (_bowlTotalPages > 1)
             {
-                <nav aria-label="صفحه‌بندی کاسه‌ها"><ul class="pagination justify-content-center flex-wrap">
-                    <li class="page-item"><button type="button" class="page-link" disabled="@(_filtering || _bowlPage <= 1)" @onclick="() => GoToBowlPageAsync(_bowlPage - 1)">قبلی</button></li>
-                    @foreach (var page in VisiblePages(_bowlPage, _bowlTotalPages)) { var selectedPage = page; <li class="page-item @(selectedPage == _bowlPage ? "active" : null)"><button type="button" class="page-link" aria-current="@(selectedPage == _bowlPage ? "page" : null)" disabled="@_filtering" @onclick="() => GoToBowlPageAsync(selectedPage)">@selectedPage</button></li> }
-                    <li class="page-item"><button type="button" class="page-link" disabled="@(_filtering || _bowlPage >= _bowlTotalPages)" @onclick="() => GoToBowlPageAsync(_bowlPage + 1)">بعدی</button></li>
+                <nav class="production-pagination" aria-label="صفحه‌بندی کاسه‌ها"><ul class="production-page-list">
+                    <li class="page-item"><button type="button" class="production-page-button" disabled="@(_filtering || _bowlPage <= 1)" @onclick="() => GoToBowlPageAsync(_bowlPage - 1)">قبلی</button></li>
+                    @foreach (var page in VisiblePages(_bowlPage, _bowlTotalPages)) { var selectedPage = page; <li class="page-item @(selectedPage == _bowlPage ? "active" : null)"><button type="button" class="production-page-button" aria-label="@($"صفحه {selectedPage}")" aria-current="@(selectedPage == _bowlPage ? "page" : null)" disabled="@_filtering" @onclick="() => GoToBowlPageAsync(selectedPage)">@selectedPage</button></li> }
+                    <li class="page-item"><button type="button" class="production-page-button" disabled="@(_filtering || _bowlPage >= _bowlTotalPages)" @onclick="() => GoToBowlPageAsync(_bowlPage + 1)">بعدی</button></li>
                 </ul><p class="production-page-caption">صفحهٔ @_bowlPage از @_bowlTotalPages</p></nav>
             }
         }
@@ -93,14 +95,16 @@ else
                 @foreach (var handpan in PagedHandpans)
                 {
                     <article class="production-card" @key="handpan.Id">
-                        <header><strong class="card-code"><bdi dir="ltr">@handpan.SerialNumber</bdi></strong><small>ساز</small></header>
-                        <p class="card-scale">@handpan.ScaleName</p>
-                        <span class="card-stage">@StageText(handpan.Stage)</span>
-                        <button type="button" class="card-expand" aria-label="@($"جزئیات و عملیات ساز {handpan.SerialNumber}")" aria-expanded="@_expandedHandpans.Contains(handpan.Id)" @onclick="() => ToggleHandpanDetails(handpan.Id)">@(_expandedHandpans.Contains(handpan.Id) ? "بستن جزئیات −" : "جزئیات و عملیات +")</button>
+                        <div class="production-row-summary">
+                            <button type="button" class="card-expand" aria-label="@($"جزئیات و عملیات ساز {handpan.SerialNumber}")" aria-expanded="@_expandedHandpans.Contains(handpan.Id)" @onclick="() => ToggleHandpanDetails(handpan.Id)">@(_expandedHandpans.Contains(handpan.Id) ? "−" : "+")</button>
+                            <strong class="card-code"><bdi dir="ltr">@handpan.SerialNumber</bdi></strong>
+                            <small class="production-row-kind">ساز</small>
+                            <span class="card-stage">@StageText(handpan.Stage)</span>
+                        </div>
                         @if (_expandedHandpans.Contains(handpan.Id))
                         {
                             <div class="production-card-details">
-                                <dl><div><dt>متریال</dt><dd>@handpan.MaterialName</dd></div><div><dt>کد کاسه رو</dt><dd><bdi dir="ltr">@handpan.TopBowlCode</bdi></dd></div><div><dt>کد کاسه زیر</dt><dd><bdi dir="ltr">@handpan.BottomBowlCode</bdi></dd></div></dl>
+                                <p class="card-scale">اسکیل: <bdi>@handpan.ScaleName</bdi></p><dl><div><dt>متریال</dt><dd>@handpan.MaterialName</dd></div><div><dt>کد کاسه رو</dt><dd><bdi dir="ltr">@handpan.TopBowlCode</bdi></dd></div><div><dt>کد کاسه زیر</dt><dd><bdi dir="ltr">@handpan.BottomBowlCode</bdi></dd></div></dl>
                                 <div class="item-actions"><AuthorizeView Roles="Administrator"><button type="button" class="btn btn-sm btn-outline-warning" disabled="@(_deleting || _rollingBack)" @onclick="() => RequestRollback(handpan)">مرحله قبل</button><button type="button" class="btn btn-sm btn-outline-danger" disabled="@(_deleting || _rollingBack)" @onclick="() => RequestDelete(handpan)">حذف</button></AuthorizeView></div>
                                 <div class="production-details"><ProductionOperationDetails Title="@($"عملیات انجام‌شده روی ساز {handpan.SerialNumber}")" Operations="handpan.Operations" /></div>
                             </div>
@@ -110,11 +114,11 @@ else
             </div>
             @if (HandpanTotalPages > 1)
             {
-                <nav aria-label="صفحه‌بندی سازها"><ul class="pagination justify-content-center flex-wrap">
-                    <li class="page-item"><button type="button" class="page-link" disabled="@(_handpanPage <= 1)" @onclick="() => ChangeHandpanPage(_handpanPage - 1)">قبلی</button></li>
-                    @foreach (var page in VisiblePages(_handpanPage, HandpanTotalPages)) { var selectedPage = page; <li class="page-item @(selectedPage == _handpanPage ? "active" : null)"><button type="button" class="page-link" aria-current="@(selectedPage == _handpanPage ? "page" : null)" @onclick="() => ChangeHandpanPage(selectedPage)">@selectedPage</button></li> }
-                    <li class="page-item"><button type="button" class="page-link" disabled="@(_handpanPage >= HandpanTotalPages)" @onclick="() => ChangeHandpanPage(_handpanPage + 1)">بعدی</button></li>
-                </ul></nav>
+                <nav class="production-pagination" aria-label="صفحه‌بندی سازها"><ul class="production-page-list">
+                    <li class="page-item"><button type="button" class="production-page-button" disabled="@(_handpanPage <= 1)" @onclick="() => ChangeHandpanPage(_handpanPage - 1)">قبلی</button></li>
+                    @foreach (var page in VisiblePages(_handpanPage, HandpanTotalPages)) { var selectedPage = page; <li class="page-item @(selectedPage == _handpanPage ? "active" : null)"><button type="button" class="production-page-button" aria-label="@($"صفحه {selectedPage}")" aria-current="@(selectedPage == _handpanPage ? "page" : null)" @onclick="() => ChangeHandpanPage(selectedPage)">@selectedPage</button></li> }
+                    <li class="page-item"><button type="button" class="production-page-button" disabled="@(_handpanPage >= HandpanTotalPages)" @onclick="() => ChangeHandpanPage(_handpanPage + 1)">بعدی</button></li>
+                </ul><p class="production-page-caption">صفحهٔ @_handpanPage از @HandpanTotalPages</p></nav>
             }
         }
     </section>

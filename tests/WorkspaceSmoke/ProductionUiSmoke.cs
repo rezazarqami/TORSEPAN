@@ -36,13 +36,15 @@ internal static class ProductionUiSmoke
         Check(bowls.Contains("PRODUCTION MANAGEMENT") && bowls.Contains("torsepan-mark-new.webp") && bowls.Contains("production-tabs"),
             "production renders the branded hero and separate navigation tabs");
         Check(bowls.Contains("BOWL-FIXTURE") && !bowls.Contains("HANDPAN-FIXTURE") && bowls.Contains("production-card-grid"),
-            "default tab displays compact bowl cards and hides instrument records");
+            "default tab displays compact bowl rows and hides instrument records");
         var handpans = await Render(typeof(HandpanPreview));
         Check(handpans.Contains("HANDPAN-FIXTURE") && !handpans.Contains("BOWL-FIXTURE") && handpans.Contains("card-expand"),
-            "instrument tab displays compact cards with an accessible details button");
-        Check(handpans.Contains("12 notes (9+3) Full Custom Scale") && handpans.Contains("card-scale"),
-            "full scale names remain available in compact cards");
+            "instrument tab displays compact rows with an accessible details button");
+        Check(!handpans.Contains("class=\"card-scale\"") && handpans.Contains("production-row-summary"),
+            "collapsed production rows show code, kind and stage without extra details");
         var expanded = await Render(typeof(ExpandedHandpanPreview));
+        Check(expanded.Contains("12 notes (9+3) Full Custom Scale") && expanded.Contains("card-scale"), "full scale names remain available in expanded details");
+        Check(bowls.Contains("production-page-list") && bowls.Contains("aria-current=\"page\""), "pagination renders a dedicated horizontal list with an active-page marker");
         Check(!handpans.Contains("BOTTOM-LINKED") && expanded.Contains("BOTTOM-LINKED") && expanded.Contains("TOP-LINKED"), "linked codes appear when instrument details are expanded");
         Check(expanded.Contains("حذف") && expanded.Contains("مرحله قبل"),
             "expanded instrument retains administrator deletion and rollback controls");
@@ -50,6 +52,7 @@ internal static class ProductionUiSmoke
         Check(empty.Contains("فیلتر کاسه‌ها") && empty.Contains("پاک کردن فیلترها") && !empty.Contains("production-card-grid"),
             "empty filtered result keeps filter and reset controls available");
         var pages = typeof(Bowls).GetMethod("VisiblePages", BindingFlags.Static | BindingFlags.NonPublic)!;
+        Check(((IEnumerable<int>)pages.Invoke(null, [4, 15])!).SequenceEqual([2, 3, 4, 5, 6]), "page four shifts the five-button window forward");
         var middle = ((IEnumerable<int>)pages.Invoke(null, [50, 1000])!).ToArray();
         var last = ((IEnumerable<int>)pages.Invoke(null, [1000, 1000])!).ToArray();
         Check(middle.SequenceEqual([48, 49, 50, 51, 52]) && last.SequenceEqual([996, 997, 998, 999, 1000]),
