@@ -102,7 +102,7 @@ public sealed class BowlsController : ControllerBase
     }
 
     [HttpGet("dimpling/{productionCode}")]
-    [Authorize(Roles = "Dimpler,Shaper,Workshop,Tuner,FineTuner,QualityControl,ProductionManager,Administrator")]
+    [Authorize(Roles = "Dimpler,Shaper,Workshop,Tuner,FineTuner,QualityControl,ProductionManager,Administrator,SalesAdmin")]
     public async Task<ActionResult> GetForDimpling(
         string productionCode,
         CancellationToken cancellationToken)

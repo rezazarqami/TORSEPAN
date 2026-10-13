@@ -50,6 +50,8 @@ public sealed class GetSalesQueryHandler(IUnitOfWork unitOfWork)
                 {
                     HandpanId = bowl.Id,
                     IsBowl = true,
+                    BowlType = (int)bowl.BowlType,
+                    HasNotes = bowl.HasNotes,
                     ItemType = "کاسه صادراتی",
                     SerialNumber = bowl.ProductionCode,
                     BuyerName = metadata?.BuyerName ?? "ارسال صادراتی",
