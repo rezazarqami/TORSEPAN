@@ -14,6 +14,11 @@ using TORSEPAN.Application.Materials;
 using TORSEPAN.Application.Common.Reporting;
 
 static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
+if(args.Contains("--bowl-code-only"))
+{
+    await BowlCodeSmoke.RunAsync();
+    return;
+}
 if(args.Contains("--sales-bowls-only"))
 {
     await SalesBowlSmoke.RunAsync();

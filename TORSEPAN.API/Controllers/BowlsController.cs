@@ -77,6 +77,7 @@ public sealed class BowlsController : ControllerBase
         [FromBody] CreateBowlCommand command,
         CancellationToken cancellationToken)
     {
+        if (!Enum.IsDefined(command.BowlType)) return BadRequest("نوع کاسه معتبر نیست.");
         var canOverrideCode = User.IsInRole("Administrator") || User.IsInRole("ProductionManager");
         if (!canOverrideCode)
         {
@@ -127,6 +128,7 @@ public sealed class BowlsController : ControllerBase
     [HttpGet("suggested-code")]
     public async Task<IActionResult> SuggestedCode([FromQuery] Guid? materialId, [FromQuery] int? bowlType, CancellationToken cancellationToken)
     {
+        if (bowlType.HasValue && bowlType.Value is not (1 or 2)) return BadRequest("نوع کاسه معتبر نیست.");
         return Ok(await BuildSuggestedCode(materialId, bowlType, cancellationToken));
     }
 
@@ -137,28 +139,11 @@ public sealed class BowlsController : ControllerBase
             return new SuggestedBowlCode("—", string.Empty, string.Empty);
 
         var material = await _unitOfWork.Materials.GetByIdAsync(materialId.Value);
-        var template = ProductionCodeNormalizer.Normalize(
-            bowlType.Value == 1 ? material?.TopBowlCodeTemplate : material?.BottomBowlCodeTemplate)
-            .ToUpperInvariant();
-        if (string.IsNullOrWhiteSpace(template))
-            return new SuggestedBowlCode("—", string.Empty, string.Empty);
-
-        var digits = template.Reverse().TakeWhile(x => x == '0').Count();
-        if (digits == 0)
-            return new SuggestedBowlCode("—", string.Empty, template);
-
-        var prefix = template[..^digits];
-        var matching = bowls
-            .Where(x => x.MaterialId == materialId.Value && (int)x.BowlType == bowlType.Value)
-            .Select(x => ProductionCodeNormalizer.Normalize(x.ProductionCode).ToUpperInvariant())
-            .Where(x => x.StartsWith(prefix, StringComparison.Ordinal) && x.Length == prefix.Length + digits)
-            .Select(x => new { Code = x, Number = int.TryParse(x[prefix.Length..], out var number) ? number : -1 })
-            .Where(x => x.Number >= 0)
-            .OrderByDescending(x => x.Number)
-            .ToList();
-        var last = matching.FirstOrDefault();
-        var next = (last?.Number ?? 0) + 1;
-        return new SuggestedBowlCode(last?.Code ?? "—", $"{prefix}{next.ToString($"D{digits}")}", template);
+        var suggestion = TORSEPAN.Application.Bowls.BowlCodeSequence.Suggest(
+            materialId.Value, (BowlType)bowlType.Value,
+            bowlType.Value == 1 ? material?.TopBowlCodeTemplate : material?.BottomBowlCodeTemplate,
+            bowls);
+        return new SuggestedBowlCode(suggestion.LastCode, suggestion.SuggestedCode, suggestion.Template);
     }
 
     private sealed record SuggestedBowlCode(string LastCode, string SuggestedCode, string Template);

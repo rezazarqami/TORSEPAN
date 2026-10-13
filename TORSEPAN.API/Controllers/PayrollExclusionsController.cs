@@ -15,11 +15,11 @@ public sealed class PayrollExclusionsController(TORSEPANDbContext db) : Controll
     [HttpGet("lookup")]
     public async Task<IActionResult> Lookup([FromQuery] string code, CancellationToken ct)
     {
-        code = (code ?? string.Empty).Trim();
+        code = TORSEPAN.Application.ProductionCodeNormalizer.Normalize(code);
         if (code.Length == 0) return BadRequest("کد ساز یا کاسه را وارد کنید.");
-        var bowl = await db.Bowls.AsNoTracking().FirstOrDefaultAsync(x => x.ProductionCode == code, ct);
+        var bowl = await db.Bowls.AsNoTracking().FirstOrDefaultAsync(x => x.ProductionCode.Trim().ToUpper() == code, ct);
         var handpan = await db.Handpans.AsNoTracking().Include(x => x.Assembly)
-            .FirstOrDefaultAsync(x => x.SerialNumber == code || (bowl != null && (x.Assembly.TopBowlId == bowl.Id || x.Assembly.BottomBowlId == bowl.Id)), ct);
+            .FirstOrDefaultAsync(x => x.SerialNumber.Trim().ToUpper() == code || (bowl != null && (x.Assembly.TopBowlId == bowl.Id || x.Assembly.BottomBowlId == bowl.Id)), ct);
         if (bowl is null && handpan is null) return NotFound("کدی با این مشخصات پیدا نشد.");
         var bowlIds = handpan is null ? new[] { bowl!.Id } : new[] { handpan.Assembly.TopBowlId, handpan.Assembly.BottomBowlId };
         var assemblyId = handpan?.AssemblyId;

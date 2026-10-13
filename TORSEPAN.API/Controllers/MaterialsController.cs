@@ -10,7 +10,6 @@ using TORSEPAN.Application.Materials.Commands.SetLowStockThreshold;
 using TORSEPAN.Application.Materials.Queries.GetAllMaterials;
 using TORSEPAN.Application.Materials.Queries.GetMaterialById;
 using TORSEPAN.Application.Interfaces;
-using System.Text.RegularExpressions;
 
 using GetAllMaterialDto = TORSEPAN.Application.Materials.Queries.GetAllMaterials.MaterialDto;
 using GetByIdMaterialDto = TORSEPAN.Application.Materials.Queries.GetMaterialById.MaterialDto;
@@ -151,13 +150,21 @@ public sealed class MaterialsController : ControllerBase
     public async Task<IActionResult> SetBowlCodeTemplates(Guid id, [FromBody] BowlCodeTemplatesRequest request,
         CancellationToken cancellationToken)
     {
-        static bool Valid(string? value) => string.IsNullOrWhiteSpace(value) ||
-            Regex.IsMatch(value.Trim(), "^[A-Za-z]{2}-0{5}$");
-        if (!Valid(request.TopTemplate) || !Valid(request.BottomTemplate))
-            return BadRequest("Template must look like AB-00000.");
+        var top = TORSEPAN.Application.Bowls.BowlCodeSequence.CompactTemplate(request.TopTemplate, TORSEPAN.Domain.Enums.BowlType.Top);
+        var bottom = TORSEPAN.Application.Bowls.BowlCodeSequence.CompactTemplate(request.BottomTemplate, TORSEPAN.Domain.Enums.BowlType.Bottom);
+        if (!TORSEPAN.Application.Bowls.BowlCodeSequence.IsValidTemplate(top, TORSEPAN.Domain.Enums.BowlType.Top) ||
+            !TORSEPAN.Application.Bowls.BowlCodeSequence.IsValidTemplate(bottom, TORSEPAN.Domain.Enums.BowlType.Bottom) ||
+            (top.Length > 0 && bottom.Length > 0 && top[0] != bottom[0]))
+            return BadRequest("قالب رو باید مانند S10000 و قالب زیر مانند S20000، با حرف یکسان باشد.");
         var material = await _unitOfWork.Materials.GetByIdAsync(id);
         if (material is null) return NotFound();
-        material.SetBowlCodeTemplates(request.TopTemplate, request.BottomTemplate);
+        var letter = top.FirstOrDefault() != default ? top[0] : bottom.FirstOrDefault();
+        var materials = await _unitOfWork.Materials.GetAllAsync();
+        if (letter != default && materials.Where(x => x.Id != id).Any(x =>
+            TORSEPAN.Application.Bowls.BowlCodeSequence.CompactTemplate(x.TopBowlCodeTemplate, TORSEPAN.Domain.Enums.BowlType.Top).StartsWith(letter) ||
+            TORSEPAN.Application.Bowls.BowlCodeSequence.CompactTemplate(x.BottomBowlCodeTemplate, TORSEPAN.Domain.Enums.BowlType.Bottom).StartsWith(letter)))
+            return BadRequest("این حرف برای متریال دیگری استفاده شده است.");
+        material.SetBowlCodeTemplates(top, bottom);
         _unitOfWork.Materials.Update(material);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return NoContent();

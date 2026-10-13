@@ -49,9 +49,9 @@ public sealed class ShapeEditsController(TORSEPANDbContext db):ControllerBase
     private async Task<List<Guid>> ResolveAsync(string code,CancellationToken ct)
     {
         var normalized=ProductionCodeNormalizer.Normalize(code);
-        var bowl=await db.Bowls.Where(x=>x.ProductionCode==normalized).Select(x=>(Guid?)x.Id).SingleOrDefaultAsync(ct);
+        var bowl=await db.Bowls.Where(x=>x.ProductionCode.Trim().ToUpper() == normalized).Select(x=>(Guid?)x.Id).SingleOrDefaultAsync(ct);
         if(bowl.HasValue)return [bowl.Value];
-        var pair=await db.Handpans.Where(x=>x.SerialNumber==normalized).Select(x=>new{x.Assembly.TopBowlId,x.Assembly.BottomBowlId}).SingleOrDefaultAsync(ct);
+        var pair=await db.Handpans.Where(x=>x.SerialNumber.Trim().ToUpper() == normalized).Select(x=>new{x.Assembly.TopBowlId,x.Assembly.BottomBowlId}).SingleOrDefaultAsync(ct);
         return pair is null?[]:[pair.TopBowlId,pair.BottomBowlId];
     }
 }

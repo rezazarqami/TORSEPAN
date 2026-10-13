@@ -12,7 +12,7 @@ public sealed class CompleteBowlTuneForExportCommandHandler(IUnitOfWork unitOfWo
 {
     public async Task<Result<BowlDimpleDto>> Handle(CompleteBowlTuneForExportCommand request, CancellationToken cancellationToken)
     {
-        var bowl = (await unitOfWork.Bowls.FindAsync(x => x.ProductionCode == request.ProductionCode.Trim())).SingleOrDefault();
+        var bowl = (await unitOfWork.Bowls.FindAsync(x => x.ProductionCode.Trim().ToUpper() == ProductionCodeNormalizer.Normalize(request.ProductionCode))).SingleOrDefault();
         if (bowl is null) return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);
         if (bowl.Stage != ProductionStage.WaitingForTune || !Enum.IsDefined(request.Duration))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidStage);

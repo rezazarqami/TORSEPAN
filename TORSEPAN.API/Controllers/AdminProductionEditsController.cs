@@ -97,8 +97,8 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
 
     private async Task<EditTarget?> ResolveAsync(string code,CancellationToken ct)
     {
-        var bowlId=await db.Bowls.AsNoTracking().Where(x=>x.ProductionCode==code).Select(x=>(Guid?)x.Id).SingleOrDefaultAsync(ct);
-        var handpanData=await db.Handpans.AsNoTracking().Where(x=>x.SerialNumber==code).Select(x=>new{x.Id,x.AssemblyId}).SingleOrDefaultAsync(ct);
+        var bowlId=await db.Bowls.AsNoTracking().Where(x=>x.ProductionCode.Trim().ToUpper() == code).Select(x=>(Guid?)x.Id).SingleOrDefaultAsync(ct);
+        var handpanData=await db.Handpans.AsNoTracking().Where(x=>x.SerialNumber.Trim().ToUpper() == code).Select(x=>new{x.Id,x.AssemblyId}).SingleOrDefaultAsync(ct);
         if(!bowlId.HasValue&&handpanData is null)return null;
         Guid? assemblyId=handpanData?.AssemblyId;
         if(!assemblyId.HasValue&&bowlId.HasValue)assemblyId=await db.HandpanAssemblies.AsNoTracking().Where(x=>x.TopBowlId==bowlId||x.BottomBowlId==bowlId).Select(x=>(Guid?)x.Id).SingleOrDefaultAsync(ct);
