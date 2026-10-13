@@ -92,7 +92,16 @@ else
                 <article class="order-card @(!order.IsDraft && order.DueAtUtc <= _now ? "late" : "")" @key="order.Id">
                     <button type="button" class="order-list-toggle" aria-expanded="@(_selectedOrderId == order.Id ? "true" : "false")" aria-controls="order-details-@order.Id" @onclick="()=>ToggleOrder(order.Id)">
                         <span class="order-list-number">@entry.Number</span>
-                        <span class="order-list-name"><strong>@order.CustomerName</strong><small>@order.TotalQuantity ساز@if(order.IsDraft){<text> · پیش‌سفارش</text>}</small></span>
+                        <span class="order-list-name">
+                            <strong>@order.CustomerName</strong>
+                            <small>
+                                @order.TotalQuantity ساز
+                                @if(order.IsDraft)
+                                {
+                                    <text> · پیش‌سفارش</text>
+                                }
+                            </small>
+                        </span>
                         <span class="order-list-date">@PersianDate(order.CreatedAtUtc)</span>
                         <span class="order-list-chevron">@(_selectedOrderId == order.Id ? "⌃" : "⌄")</span>
                     </button>
@@ -114,7 +123,11 @@ else
                                 <div class="overview-grid" tabindex="0" role="list" aria-label="فهرست کد و وضعیت" aria-live="polite">
                                     @foreach(var item in overview.Skip(overviewPage*50).Take(50))
                                     {
-                                        <div class="overview-item" role="listitem" @key="item.Instrument.Code"><strong dir="ltr">@item.Instrument.Code</strong><span class="overview-scale" dir="auto">@item.Scale</span><span>@item.Instrument.ProductionStage</span></div>
+                                        <div class="overview-item" role="listitem" @key="item.Instrument.Code">
+                                            <strong class="overview-code" dir="ltr">@item.Instrument.Code</strong>
+                                            <span class="overview-scale" title="@item.Scale">Scale: <bdi>@item.Scale</bdi></span>
+                                            <span class="overview-status @(item.Instrument.ProductionStage == "ارسال‌شده" ? "dispatched" : "")" title="@item.Instrument.ProductionStage">وضعیت: @item.Instrument.ProductionStage</span>
+                                        </div>
                                     }
                                 </div>
                                 @if(overview.Length>50){<nav class="overview-pages" aria-label="صفحات وضعیت سازها"><button type="button" class="btn subtle" disabled="@(overviewPage==0)" @onclick="()=>_overviewPages[order.Id]=overviewPage-1">قبلی</button><span>@(overviewPage*50+1) تا @Math.Min((overviewPage+1)*50,overview.Length) از @overview.Length کد</span><button type="button" class="btn subtle" disabled="@((overviewPage+1)*50>=overview.Length)" @onclick="()=>_overviewPages[order.Id]=overviewPage+1">بعدی</button></nav>}
