@@ -15,6 +15,8 @@ jobs:
           dotnet-version: 10.0.x
       - name: Verify export routing, atomic shipping and current account roles
         run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --export-workflow-only
+      - name: Verify compact bowl code sequencing and case-insensitive lookups
+        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --bowl-code-only
       - name: Verify role policies
         run: dotnet run --project tests/AccessSmoke/AccessSmoke.csproj -c Release
       - name: Verify startup splash handoff

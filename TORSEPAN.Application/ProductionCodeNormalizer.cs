@@ -10,6 +10,6 @@ public static class ProductionCodeNormalizer
             >= '۰' and <= '۹' => (char)('0' + c - '۰'),
             >= '٠' and <= '٩' => (char)('0' + c - '٠'),
             _ => c
-        }));
+        })).ToUpperInvariant();
     }
 }

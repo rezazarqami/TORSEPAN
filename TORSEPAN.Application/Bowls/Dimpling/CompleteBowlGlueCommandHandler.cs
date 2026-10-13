@@ -25,8 +25,8 @@ public sealed class CompleteBowlGlueCommandHandler
         CompleteBowlGlueCommand request,
         CancellationToken cancellationToken)
     {
-        var firstCode = request.ProductionCode.Trim();
-        var secondCode = request.PairedProductionCode.Trim();
+        var firstCode = ProductionCodeNormalizer.Normalize(request.ProductionCode);
+        var secondCode = ProductionCodeNormalizer.Normalize(request.PairedProductionCode);
 
         if (string.IsNullOrWhiteSpace(secondCode) ||
             string.Equals(firstCode, secondCode, StringComparison.OrdinalIgnoreCase))
@@ -35,11 +35,11 @@ public sealed class CompleteBowlGlueCommandHandler
         }
 
         var bowls = (await _unitOfWork.Bowls.FindAsync(
-            x => x.ProductionCode == firstCode ||
-                 x.ProductionCode == secondCode)).ToList();
+            x => x.ProductionCode.Trim().ToUpper() == firstCode ||
+                 x.ProductionCode.Trim().ToUpper() == secondCode)).ToList();
 
-        var first = bowls.SingleOrDefault(x => x.ProductionCode == firstCode);
-        var second = bowls.SingleOrDefault(x => x.ProductionCode == secondCode);
+        var first = bowls.SingleOrDefault(x => x.ProductionCode.Trim().ToUpper() == firstCode);
+        var second = bowls.SingleOrDefault(x => x.ProductionCode.Trim().ToUpper() == secondCode);
 
         if (first is null || second is null)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);

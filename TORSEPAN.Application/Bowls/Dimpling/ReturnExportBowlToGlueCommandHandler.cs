@@ -9,7 +9,7 @@ public sealed class ReturnExportBowlToGlueCommandHandler(IUnitOfWork unitOfWork)
 {
     public async Task<Result<BowlDimpleDto>> Handle(ReturnExportBowlToGlueCommand request, CancellationToken ct)
     {
-        var bowl=(await unitOfWork.Bowls.FindAsync(x=>x.ProductionCode==request.ProductionCode.Trim())).SingleOrDefault();
+        var bowl=(await unitOfWork.Bowls.FindAsync(x=>x.ProductionCode.Trim().ToUpper()==ProductionCodeNormalizer.Normalize(request.ProductionCode))).SingleOrDefault();
         if(bowl is null)return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);
         if(bowl.Stage!=ProductionStage.WaitingForExportPackaging)return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidStage);
         bowl.MarkAsWaiting(); bowl.ChangeStage(ProductionStage.WaitingForGlue); unitOfWork.Bowls.Update(bowl);

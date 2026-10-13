@@ -23,7 +23,7 @@ public sealed class GetBowlForDimpleQueryHandler
     {
         var code = ProductionCodeNormalizer.Normalize(request.ProductionCode);
         var bowl = (await _unitOfWork.Bowls.FindAsync(
-            x => x.ProductionCode == code)).SingleOrDefault();
+            x => x.ProductionCode.Trim().ToUpper() == code)).SingleOrDefault();
 
         if (bowl is null) return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);
         var dto = BowlDimpleMapper.Map(bowl);
@@ -50,14 +50,14 @@ public sealed class GetBowlForDimpleQueryHandler
             var bottomBowl = (await _unitOfWork.Bowls.FindAsync(x => x.Id == assembly.BottomBowlId)).SingleOrDefault();
             if (topBowl is not null)
             {
-                var handpan = (await _unitOfWork.Handpans.FindAsync(x => x.SerialNumber == topBowl.ProductionCode))
+                var handpan = (await _unitOfWork.Handpans.FindAsync(x => x.SerialNumber.Trim().ToUpper() == topBowl.ProductionCode.Trim().ToUpper()))
                     .SingleOrDefault();
                 handpanId = handpan?.Id;
                 dto.HandpanId = handpanId;
                 dto.PackagingExportLocation = handpan?.ExportWarehouseLocation is { } location ? (int)location : null;
-                dto.HandpanCode = handpan?.SerialNumber ?? topBowl.ProductionCode;
-                dto.TopBowlCode = topBowl.ProductionCode;
-                dto.BottomBowlCode = bottomBowl?.ProductionCode ?? string.Empty;
+                dto.HandpanCode = ProductionCodeNormalizer.Normalize(handpan?.SerialNumber ?? topBowl.ProductionCode);
+                dto.TopBowlCode = ProductionCodeNormalizer.Normalize(topBowl.ProductionCode);
+                dto.BottomBowlCode = ProductionCodeNormalizer.Normalize(bottomBowl?.ProductionCode);
                 if (bowl.Stage >= ProductionStage.GlueRoom && handpan is not null)
                 {
                     dto.IsHandpanScale = true;

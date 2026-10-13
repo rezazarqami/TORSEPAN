@@ -13,7 +13,7 @@ public sealed class AddProductionNoteCommandHandler(IUnitOfWork unitOfWork, IUse
     public async Task<Result<bool>> Handle(AddProductionNoteCommand request, CancellationToken cancellationToken)
     {
         var code = ProductionCodeNormalizer.Normalize(request.ProductionCode);
-        var bowl = (await unitOfWork.Bowls.FindAsync(x => x.ProductionCode == code)).SingleOrDefault();
+        var bowl = (await unitOfWork.Bowls.FindAsync(x => x.ProductionCode.Trim().ToUpper() == code)).SingleOrDefault();
         if (bowl is null) return Result<bool>.Failure(ErrorCodes.BowlNotFound);
         if (string.IsNullOrWhiteSpace(request.Description)) return Result<bool>.Success(true);
         if (userContext.UserId is not Guid userId) throw new UnauthorizedAccessException();

@@ -26,7 +26,7 @@ public sealed class GetHandpanBySerialNumberQueryHandler
 
         return new HandpanDto(
             handpan.Id,
-            handpan.SerialNumber,
+            ProductionCodeNormalizer.Normalize(handpan.SerialNumber),
             handpan.Stage.ToString(),
             handpan.Status.ToString(),
             handpan.CreatedAt);
