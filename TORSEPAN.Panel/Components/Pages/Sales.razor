@@ -26,6 +26,14 @@
     }
 </nav>
 <div class="sales-collection-heading"><div><small>سوابق فروش</small><h2>@SegmentTitle(_saleSegment)</h2></div><span>@Items.Count() مورد</span></div>
+@if(IsBowlSegment && !_loading)
+{
+    <div class="export-bowl-counts" aria-label="تعداد کاسه‌های صادراتی فروخته‌شده">
+        <div><span>کاسه زیر ساده</span><strong>@ExportBowlCount(2, false)</strong><small>بدون نوت</small></div>
+        <div><span>کاسه زیر نوت‌دار</span><strong>@ExportBowlCount(2, true)</strong><small>دارای نوت</small></div>
+        <div><span>کاسه رو</span><strong>@ExportBowlCount(1)</strong><small>کاسه بالایی</small></div>
+    </div>
+}
 <div class="sales-search-wrap"><span aria-hidden="true">⌕</span><input class="form-control" aria-label="جست‌وجو در فروش انتخاب‌شده" placeholder="کد، خریدار، متریال یا Scale…" @bind="_search" @bind:event="oninput" /></div>
 <Card>
 @if(_loading){<div class="text-center p-5"><div class="spinner-border"></div></div>}
@@ -58,7 +66,49 @@ else
                         @if(!item.IsBowl){<div><dt>گارانتی</dt><dd><span class="warranty-status @(item.IsWarrantyActive?"active":"inactive")"><i></i>@(item.IsWarrantyActive?"فعال":"غیرفعال")</span></dd></div>}
                     </dl>
                     <div class="sale-actions">@if(!item.IsBowl){<button class="btn btn-sm btn-outline-primary" @onclick="()=>Edit(item)">ویرایش</button>}<AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning rollback-action" title="بازگشت به مرحله قبل" disabled="@_rollingBack.Contains(item.HandpanId)" @onclick="()=>RequestRollback(item)">@(_rollingBack.Contains(item.HandpanId)?"در حال انجام…":"↩ بازگشت")</button><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></div>
-                    @if(!item.IsBowl)
+                    @if(item.IsBowl)
+                    {
+                        @if(_detailErrors.Contains(item.HandpanId))
+                        {
+                            <div class="alert alert-warning" role="alert">دریافت سابقه ساخت کاسه انجام نشد. <button class="btn btn-sm btn-outline-warning" @onclick="()=>LoadDetailsAsync(item)">تلاش دوباره</button></div>
+                        }
+                        else if(_bowlDetails.TryGetValue(item.HandpanId, out var bowlDetail))
+                        {
+                            <div class="sold-bowl-detail">
+                                <h5>سابقه ساخت کاسه @item.SerialNumber</h5>
+                                @if(bowlDetail.History.Count == 0)
+                                {
+                                    <p class="text-muted">سابقه‌ای برای ساخت این کاسه ثبت نشده است.</p>
+                                }
+                                else
+                                {
+                                    <div class="table-responsive"><table class="table table-sm">
+                                        <thead><tr><th>عملیات</th><th>انجام‌دهنده</th><th>زمان</th></tr></thead>
+                                        <tbody>@foreach(var op in bowlDetail.History)
+                                        {
+                                            <tr><td>@op.ActionTitle</td><td>
+                                                @if(op.BowlPerformers.Count > 0)
+                                                {
+                                                    @foreach(var performer in op.BowlPerformers)
+                                                    {
+                                                        <div>@performer.Label: @performer.PerformedBy</div>
+                                                        @if(!string.IsNullOrWhiteSpace(performer.Details)){<small class="text-muted">@performer.Details</small>}
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    @op.PerformedBy
+                                                    @if(!string.IsNullOrWhiteSpace(op.Details)){<small class="d-block text-muted">@op.Details</small>}
+                                                }
+                                            </td><td>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</td></tr>
+                                        }</tbody>
+                                    </table></div>
+                                }
+                            </div>
+                        }
+                        else{<div class="sold-detail-loading"><span class="spinner-border spinner-border-sm"></span> در حال دریافت سابقه ساخت کاسه…</div>}
+                    }
+                    else
                     {
                         @if(_detailErrors.Contains(item.HandpanId)){<div class="alert alert-warning">دریافت شناسنامه ساز انجام نشد. <button class="btn btn-sm btn-outline-warning" @onclick="()=>LoadDetailsAsync(item)">تلاش دوباره</button></div>}
                         else if(_details.TryGetValue(item.HandpanId,out var detail))
@@ -112,6 +162,8 @@ else
     private bool SelectedSourceRequiresReferrer=>_attribution.Sources.FirstOrDefault(x=>x.Id==_leadSourceId)?.RequiresReferrer==true;
     private string RemainingAmountText=>_price.HasValue?Math.Max(0,_price.Value-(_receivedAmount??0)).ToString("N0"):"—";
     private bool IsBowlSegment=>_saleSegment==2;
+    private readonly Dictionary<Guid,DimpleBowlDto> _bowlDetails=[];
+    private int ExportBowlCount(int bowlType, bool? hasNotes = null)=>Items.Count(x=>x.IsBowl && x.BowlType==bowlType && (!hasNotes.HasValue || x.HasNotes==hasNotes.Value));
     private IEnumerable<SaleItemDto> Items{get{var typed=_items.Where(x=>_saleSegment switch{0=>!x.IsBowl&&!x.IsExportSale,1=>!x.IsBowl&&x.IsExportSale,_=>x.IsBowl});return string.IsNullOrWhiteSpace(_search)?typed:typed.Where(x=>x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ItemType.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BuyerName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search,StringComparison.OrdinalIgnoreCase));}}
     private static string SegmentTitle(int segment)=>segment switch{0=>"فروش داخلی ساز",1=>"فروش صادراتی ساز",_=>"صادرات کاسه"};
     private int SegmentCount(int segment)=>_items.Count(x=>segment switch{0=>!x.IsBowl&&!x.IsExportSale,1=>!x.IsBowl&&x.IsExportSale,_=>x.IsBowl});
@@ -125,8 +177,29 @@ else
     private async Task AddSourceAsync(){if(string.IsNullOrWhiteSpace(_newSource))return;try{var item=await AttributionService.AddSourceAsync(_newSource);if(item is not null){_attribution.Sources.Add(item);_leadSourceId=item.Id;_newSource="";}}catch(Exception ex){_editError=ex.Message;}}
     private async Task AddReferrerAsync(){if(string.IsNullOrWhiteSpace(_newReferrer))return;try{var item=await AttributionService.AddReferrerAsync(_newReferrer);if(item is not null){_attribution.Referrers.Add(item);_referrerId=item.Id;_newReferrer="";}}catch(Exception ex){_editError=ex.Message;}}
     private void SaleTypeChanged(){if(!_isExportSale)_destination="";}
-    private async Task ToggleDetailsAsync(SaleItemDto item){if(!_expanded.Add(item.HandpanId)){_expanded.Remove(item.HandpanId);return;}if(!item.IsBowl&&!_details.ContainsKey(item.HandpanId))await LoadDetailsAsync(item);}
-    private async Task LoadDetailsAsync(SaleItemDto item){if(!_detailsLoading.Add(item.HandpanId))return;_detailErrors.Remove(item.HandpanId);try{var detail=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(detail is null)throw new InvalidOperationException();_details[item.HandpanId]=detail;}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
+    private async Task ToggleDetailsAsync(SaleItemDto item){if(!_expanded.Add(item.HandpanId)){_expanded.Remove(item.HandpanId);return;}if(item.IsBowl?!_bowlDetails.ContainsKey(item.HandpanId):!_details.ContainsKey(item.HandpanId))await LoadDetailsAsync(item);}
+    private async Task LoadDetailsAsync(SaleItemDto item)
+    {
+        if(!_detailsLoading.Add(item.HandpanId))return;
+        _detailErrors.Remove(item.HandpanId);
+        try
+        {
+            if(item.IsBowl)
+            {
+                var detail=await BowlService.GetForDimplingAsync(item.SerialNumber);
+                if(detail is null)throw new InvalidOperationException();
+                _bowlDetails[item.HandpanId]=detail;
+            }
+            else
+            {
+                var detail=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);
+                if(detail is null)throw new InvalidOperationException();
+                _details[item.HandpanId]=detail;
+            }
+        }
+        catch{_detailErrors.Add(item.HandpanId);}
+        finally{_detailsLoading.Remove(item.HandpanId);}
+    }
     private void CloseEdit(){if(!_saving)_editing=null;}
     private async Task SaveEdit(){if(_editing is null)return;if(SelectedSourceRequiresReferrer&&!_referrerId.HasValue){_editError="نام معرف را انتخاب کنید.";return;}_saving=true;_editError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_partyId);var buyer=party?.Name??_buyer.Trim();await ProductionService.UpdateSaleAsync(_editing.HandpanId,buyer,party?.Phone??_buyerPhone.Trim(),_price,_receivedAmount,_isExportSale,_destination.Trim(),party?.Id,true,_leadSourceId,_referrerId);_editing=null;await LoadAsync();}catch(Exception ex){_editError=string.IsNullOrWhiteSpace(ex.Message)?"ذخیره فروش یا فعال‌سازی گارانتی انجام نشد.":ex.Message;}finally{_saving=false;}}
     private async Task DeleteAsync(SaleItemDto item){if(!await JS.InvokeAsync<bool>("confirm",$"رکورد {item.ItemType} با کد {item.SerialNumber} و تمام سوابق آن برای همیشه حذف شود؟"))return;if(item.IsBowl)await BowlService.DeleteAsync(item.HandpanId);else await ProductionService.DeleteAsync(item.HandpanId);_items.Remove(item);}
