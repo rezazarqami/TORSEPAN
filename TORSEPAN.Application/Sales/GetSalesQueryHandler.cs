@@ -48,6 +48,8 @@ public sealed class GetSalesQueryHandler(IUnitOfWork unitOfWork)
                 return new SaleItemResponse
                 {
                     HandpanId = bowl.Id,
+                    BowlType = (int)bowl.BowlType,
+                    HasNotes = bowl.HasNotes,
                     IsBowl = true,
                     ItemType = "کاسه صادراتی",
                     SerialNumber = bowl.ProductionCode,
