@@ -17,13 +17,13 @@ public class HandpanRepository
     {
         return await _dbSet
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.SerialNumber == serialNumber);
+            .FirstOrDefaultAsync(x => x.SerialNumber.Trim().ToUpper() == TORSEPAN.Application.ProductionCodeNormalizer.Normalize(serialNumber));
     }
 
     public async Task<Handpan?> GetForUpdateBySerialNumberAsync(string serialNumber)
     {
         return await _dbSet
-            .FirstOrDefaultAsync(x => x.SerialNumber == serialNumber);
+            .FirstOrDefaultAsync(x => x.SerialNumber.Trim().ToUpper() == TORSEPAN.Application.ProductionCodeNormalizer.Normalize(serialNumber));
     }
 
     public async Task<IEnumerable<Handpan>> GetByStatusAsync(ProductionStatus status)

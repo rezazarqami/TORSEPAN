@@ -35,8 +35,8 @@ public sealed class CompleteHandpanQualityControlCommandHandler
             (request.ExportWarehouseLocation.HasValue && !Enum.IsDefined(request.ExportWarehouseLocation.Value))))
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
-        var code = request.ProductionCode.Trim();
-        var bowl = (await _unitOfWork.Bowls.FindAsync(x => x.ProductionCode == code)).SingleOrDefault();
+        var code = ProductionCodeNormalizer.Normalize(request.ProductionCode);
+        var bowl = (await _unitOfWork.Bowls.FindAsync(x => x.ProductionCode.Trim().ToUpper() == code)).SingleOrDefault();
         if (bowl is null)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);
         if (bowl.Stage != ProductionStage.WaitingForQualityControl)

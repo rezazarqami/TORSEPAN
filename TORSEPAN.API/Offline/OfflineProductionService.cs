@@ -65,13 +65,14 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
             Handpan = h is null ? null : new { h.Id, Version = h.OfflineVersion, h.AssemblyId, h.SerialNumber, h.Stage, h.Status, h.ScaleId, h.ExportWarehouseLocation }, Events = events
         };
         var rejected = peers.Any(x => x.Status == ProductionStatus.Rejected) || h?.Status == ProductionStatus.Rejected;
-        return new(b.ProductionCode, b.Id, (int)b.BowlType, b.HasNotes, b.IsCustomScale, b.ScaleId,
+        return new(TORSEPAN.Application.ProductionCodeNormalizer.Normalize(b.ProductionCode), b.Id, (int)b.BowlType, b.HasNotes, b.IsCustomScale, b.ScaleId,
             (int)(h?.Stage??b.Stage), rejected ? "ردشده؛ نیاز به بررسی آنلاین" : PassportBackupSnapshot.Stage(h?.Stage??b.Stage), Hash(JsonSerializer.Serialize(state)),
             peers.FirstOrDefault(x => x.Id != b.Id)?.ProductionCode, h?.SerialNumber, rejected, h?.QualityWarehouseId??1, h?.ExportWarehouseLocation is { } destination ? (int)destination : null);
     }
     public async Task<OfflineBowl> BowlAsync(string code, CancellationToken ct)
     {
-        var b = await db.Bowls.AsNoTracking().SingleOrDefaultAsync(x => x.ProductionCode == code, ct)
+        code = TORSEPAN.Application.ProductionCodeNormalizer.Normalize(code);
+        var b = await db.Bowls.AsNoTracking().SingleOrDefaultAsync(x => x.ProductionCode.Trim().ToUpper() == code, ct)
             ?? throw new OfflineProblem("missing", "کاسه پیدا نشد.", 404);
         var assemblies = await db.HandpanAssemblies.AsNoTracking().Where(x => x.TopBowlId == b.Id || x.BottomBowlId == b.Id).ToListAsync(ct);
         var a = assemblies.SingleOrDefault();
