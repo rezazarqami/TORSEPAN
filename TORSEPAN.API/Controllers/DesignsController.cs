@@ -18,6 +18,7 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
     public async Task<IActionResult> Users(CancellationToken ct) => Ok(await db.Users.AsNoTracking().Where(x => !x.IsDeleted && x.IsActive)
         .OrderBy(x => x.DisplayOrder).ThenBy(x => x.FullName).Select(x => new { x.Id, Name = x.FullName == "" ? x.UserName : x.FullName }).ToListAsync(ct));
 
+
     [HttpPost("types"), Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> AddType(DesignTypeRequest request, CancellationToken ct)
     {
@@ -38,7 +39,7 @@ public sealed class DesignsController(TORSEPANDbContext db) : ControllerBase
     public async Task<IActionResult> Register(RegisterDesignRequest request,CancellationToken ct)
     {
         var code=ProductionCodeNormalizer.Normalize(request.ProductionCode??"");
-        var bowl=await db.Bowls.FirstOrDefaultAsync(x=>x.ProductionCode==code,ct);if(bowl is null)return NotFound("کاسه یا ساز پیدا نشد.");
+        var bowl=await db.Bowls.FirstOrDefaultAsync(x=>x.ProductionCode.Trim().ToUpper() == code,ct);if(bowl is null)return NotFound("کاسه یا ساز پیدا نشد.");
         if(request.Items is null||request.Items.Count==0)return BadRequest("حداقل یک دیزاین انتخاب کنید.");
         var typeIds=request.Items.Select(x=>x.DesignTypeId).Distinct().ToList();
         var types=await db.DesignTypes.AsNoTracking().Where(x=>typeIds.Contains(x.Id)&&x.IsActive).ToDictionaryAsync(x=>x.Id,ct);

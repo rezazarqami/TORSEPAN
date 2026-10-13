@@ -25,7 +25,7 @@ public sealed class CreateBowlCommandHandler : IRequestHandler<CreateBowlCommand
     {
         var normalizedCode = ProductionCodeNormalizer.Normalize(request.ProductionCode);
         var exists = await _unitOfWork.Bowls.AnyAsync(
-            b => b.ProductionCode.Trim() == normalizedCode,
+            b => b.ProductionCode.Trim().ToUpper() == normalizedCode,
             cancellationToken);
 
         if (exists)

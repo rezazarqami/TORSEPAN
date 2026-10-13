@@ -25,9 +25,9 @@ public sealed class CompleteBowlBakeCommandHandler
         CompleteBowlBakeCommand request,
         CancellationToken cancellationToken)
     {
-        var code = request.ProductionCode.Trim();
+        var code = ProductionCodeNormalizer.Normalize(request.ProductionCode);
         var bowl = (await _unitOfWork.Bowls.FindAsync(
-            x => x.ProductionCode == code)).SingleOrDefault();
+            x => x.ProductionCode.Trim().ToUpper() == code)).SingleOrDefault();
 
         if (bowl is null)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.BowlNotFound);

@@ -7,7 +7,7 @@ internal static class BowlDimpleMapper
     public static BowlDimpleDto Map(Bowl bowl) => new()
     {
         Id = bowl.Id,
-        ProductionCode = bowl.ProductionCode,
+        ProductionCode = ProductionCodeNormalizer.Normalize(bowl.ProductionCode),
         BowlType = (int)bowl.BowlType,
         HasNotes = bowl.HasNotes,
         InstrumentType = (int)bowl.InstrumentType,
