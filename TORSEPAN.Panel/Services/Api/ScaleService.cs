@@ -10,6 +10,9 @@ public sealed class ScaleService
     public async Task<IReadOnlyList<ScaleDto>> GetAsync() =>
         await _api.GetAsync<List<ScaleDto>>("scales") ?? [];
 
+    public async Task<IReadOnlyList<LegacyTopBowlScaleDto>> GetLegacyTopBowlsAsync() =>
+        await _api.GetAsync<List<LegacyTopBowlScaleDto>>("scales/legacy-top-bowls") ?? [];
+
     public Task<Guid> CreateAsync(string name, int usage) =>
         _api.PostAsync<object, Guid>("scales", new { Name = name.Trim(), Usage = usage });
     public Task DeleteAsync(Guid id, int usage) => _api.DeleteAsync($"scales/{id}?usage={usage}");

@@ -77,6 +77,16 @@
 }
 
 @code{
+    [SupplyParameterFromQuery(Name = "code")] public string? InitialCode { get; set; }
+    private string? _appliedQueryCode;
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(InitialCode) && InitialCode != _appliedQueryCode)
+        {
+            _appliedQueryCode = InitialCode; _search.Code = InitialCode; await SearchAsync();
+        }
+    }
+
     private readonly SearchModel _search=new();
     private AdminProductionEditDto? _record;
     private List<ScaleDto> _scales=[];
