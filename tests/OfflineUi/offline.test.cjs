@@ -15,9 +15,9 @@ async function fixture(){
 }
 test('local screen searches Persian codes and commits sequential operations; refresh preserves unfinished forms',async()=>{
  const f=await fixture();const {$,input,submit,dom,state,errors}=f;
- input('search','۸۵۵');assert.ok($('operation'));$('performerId').value='actor';$('duration').value='2';$('scaleId').value='scale';submit();
+ input('search','۸۵۵');assert.ok($('operation'));$('performerId').value='actor';$('duration').value='2';assert.equal($('scaleId'),null);submit();
  assert.equal(state.operations.length,1);assert.match(dom.window.document.querySelector('.identity').textContent,/در انتظار شیپ/);
- $('performerId').value='actor';$('duration').value='3';dom.window.refreshOffline();assert.equal($('duration').value,'3');assert.equal($('performerId').value,'actor');submit();
+ $('performerId').value='actor';$('duration').value='3';$('scaleId').value='scale';$('noteCount').value='9';dom.window.refreshOffline();assert.equal($('duration').value,'3');assert.equal($('performerId').value,'actor');assert.equal($('noteCount').value,'9');submit();
  assert.equal(state.operations.length,2);assert.match(dom.window.document.querySelector('.identity').textContent,/در انتظار پخت/);
  $('performerId').value='actor';submit();assert.equal(state.operations.length,3);assert.match(dom.window.document.querySelector('.identity').textContent,/در انتظار تیون/);
  assert.deepEqual(errors,[]);dom.window.close();
@@ -37,8 +37,8 @@ test('new bowl can run through packaging and sale locally with stock projection 
  state.snapshot.users.push({id:'owner',name:'مدیر',roles:['Administrator']});state.snapshot.bowls[1].stage=10;state.snapshot.bowls[1].stageName='در انتظار چسب';
  w.refreshOffline();$('new-bowl').click();$('create-code').value='NEW-001';$('create-material').value='steel';$('create-type').value='1';
  $('create-bowl').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.equal(state.operations[0].body.action,'create');
- assert.ok($('operation'));$('performerId').value='actor';$('duration').value='2';$('scaleId').value='scale';submit();
- $('performerId').value='actor';$('duration').value='2';submit();$('performerId').value='actor';submit();$('performerId').value='actor';$('duration').value='2';submit();
+ assert.ok($('operation'));$('performerId').value='actor';$('duration').value='2';assert.equal($('scaleId'),null);submit();
+ $('performerId').value='actor';$('duration').value='2';$('scaleId').value='scale';$('noteCount').value='9';submit();$('performerId').value='actor';submit();$('performerId').value='actor';$('duration').value='2';submit();
  $('performerId').value='actor';$('pairCode').value='196';$('pairCode').dispatchEvent(new w.Event('change'));$('scaleId').value='scale';submit();
  $('performerId').value='actor';submit();$('performerId').value='actor';$('duration').value='2';submit();$('performerId').value='actor';$('qualityWarehouseId').value='1';submit();
  let photo;w.OfflineNative.photo=raw=>photo=JSON.parse(raw);dom.window.document.querySelector('[data-extra="photo"]').click();$('extra-operation').dispatchEvent(new w.Event('submit',{cancelable:true}));assert.equal(photo.code,'NEW-001');assert.equal(photo.action,'photo');

@@ -60,14 +60,14 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         var events = allEvents.Where(x => x.BowlId.HasValue && ids.Contains(x.BowlId.Value)
             || a != null && x.AssemblyId == a.Id || h != null && x.HandpanId == h.Id).OrderBy(x => x.Id).ToList();
         var state = new {
-            Bowls = peers.Select(x => new { x.Id, Version = x.OfflineVersion, x.Stage, x.Status, x.ScaleId, x.IsCustomScale, x.HasNotes, x.BowlType, x.InstrumentType, x.MaterialId, x.ProductionCode, x.ExportWarehouseLocation }),
+            Bowls = peers.Select(x => new { x.Id, Version = x.OfflineVersion, x.Stage, x.Status, x.ScaleId, x.NoteCount, x.IsCustomScale, x.HasNotes, x.BowlType, x.InstrumentType, x.MaterialId, x.ProductionCode, x.ExportWarehouseLocation }),
             Assembly = a is null ? null : new { a.Id, Version = a.OfflineVersion, a.TopBowlId, a.BottomBowlId, a.AssemblyDate },
             Handpan = h is null ? null : new { h.Id, Version = h.OfflineVersion, h.AssemblyId, h.SerialNumber, h.Stage, h.Status, h.ScaleId, h.ExportWarehouseLocation }, Events = events
         };
         var rejected = peers.Any(x => x.Status == ProductionStatus.Rejected) || h?.Status == ProductionStatus.Rejected;
         return new(TORSEPAN.Application.ProductionCodeNormalizer.Normalize(b.ProductionCode), b.Id, (int)b.BowlType, b.HasNotes, b.IsCustomScale, b.ScaleId,
             (int)(h?.Stage??b.Stage), rejected ? "ردشده؛ نیاز به بررسی آنلاین" : PassportBackupSnapshot.Stage(h?.Stage??b.Stage), Hash(JsonSerializer.Serialize(state)),
-            peers.FirstOrDefault(x => x.Id != b.Id)?.ProductionCode, h?.SerialNumber, rejected, h?.QualityWarehouseId??1, h?.ExportWarehouseLocation is { } destination ? (int)destination : null);
+            peers.FirstOrDefault(x => x.Id != b.Id)?.ProductionCode, h?.SerialNumber, rejected, h?.QualityWarehouseId??1, h?.ExportWarehouseLocation is { } destination ? (int)destination : null, b.NoteCount);
     }
     public async Task<OfflineBowl> BowlAsync(string code, CancellationToken ct)
     {
@@ -188,7 +188,7 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         {
             result = action switch {
                 "dimple" => await mediator.Send(new CompleteBowlDimpleCommand(op.Code, (OperationDuration)op.Duration, op.ScaleId ?? Guid.Empty, op.IsCustom), ct),
-                "shape" => await mediator.Send(new CompleteBowlShapeCommand(op.Code, (OperationDuration)op.Duration, op.ScaleId, op.StretchUserId, op.NoteAreaUserId, op.EditUserId), ct),
+                "shape" => await mediator.Send(new CompleteBowlShapeCommand(op.Code, (OperationDuration)op.Duration, op.ScaleId, op.StretchUserId, op.NoteAreaUserId, op.EditUserId, op.NoteCount), ct),
                 "bake" => await mediator.Send(new CompleteBowlBakeCommand(op.Code), ct),
                 "tune" => await mediator.Send(new CompleteBowlTuneCommand(op.Code, (OperationDuration)op.Duration), ct),
                 "glue" => await mediator.Send(new CompleteBowlGlueCommand(op.Code, op.PairCode!, op.ScaleId ?? Guid.Empty), ct),

@@ -44,17 +44,15 @@ public sealed class CompleteBowlShapeCommandHandler
         if (_userContext.UserId is not Guid userId)
             throw new UnauthorizedAccessException();
 
-        if (bowl.IsCustomScale)
+        if (!request.NoteCount.HasValue || request.NoteCount < 0 ||
+            (bowl.BowlType == BowlType.Top && (request.NoteCount == 0 || !request.ScaleId.HasValue || request.ScaleId == Guid.Empty)))
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidRequest);
+        Scale? selectedScale = null;
+        if (request.ScaleId.HasValue && request.ScaleId != Guid.Empty)
         {
-            if (!request.ScaleId.HasValue)
+            selectedScale = await _unitOfWork.Scales.GetByIdAsync(request.ScaleId.Value);
+            if (selectedScale is null || !selectedScale.IsActive)
                 return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidRequest);
-            var customScale = await _unitOfWork.Scales.GetByIdAsync(request.ScaleId.Value);
-            var requiredUsage = bowl.BowlType == BowlType.Top
-                ? ScaleUsage.CustomTopBowl
-                : ScaleUsage.CustomBottomBowl;
-            if (customScale is null || !customScale.IsActive || !customScale.Usage.HasFlag(requiredUsage))
-                return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidRequest);
-            bowl.SetScale(customScale.Id);
         }
 
         var contributors = new[]
@@ -75,6 +73,9 @@ public sealed class CompleteBowlShapeCommandHandler
             ? "Shape completed"
             : $"Shape completed|CONTRIB:{contributionText}";
 
+        bowl.SetNoteCount(request.NoteCount.Value);
+        if (selectedScale is null) bowl.ResetScaleSelection();
+        else bowl.SetStandardScale(selectedScale.Id);
         bowl.MarkAsWaiting();
         bowl.ChangeStage(ProductionStage.WaitingForBake);
         _unitOfWork.Bowls.Update(bowl);

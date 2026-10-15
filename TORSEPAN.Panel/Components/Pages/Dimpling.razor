@@ -177,9 +177,9 @@
             @if (_bowl.Stage == 2)
             {
                 <section class="stage-workspace">
-                    <header class="stage-workspace-header"><span class="stage-workspace-number">۱</span><div><small>مرحله جاری</small><h4>ثبت پایان دیمپل</h4><p>زمان انجام و Scale کاسه را بررسی کنید.</p></div></header>
+                    <header class="stage-workspace-header"><span class="stage-workspace-number">۱</span><div><small>مرحله جاری</small><h4>ثبت پایان دیمپل</h4><p>زمان انجام دیمپل را ثبت کنید.</p></div></header>
                     <div class="stage-workspace-body"><div class="stage-fields">
-                        <label class="stage-field"><span>مدت زمان انجام دیمپل</span>
+                        <label class="stage-field"><span>مدت زمان انجام دیمپل *</span>
                         <select class="form-select" @bind="_duration">
                             @foreach (var option in DurationOptions)
                             {
@@ -187,20 +187,10 @@
                             }
                         </select>
                         </label>
-                        <label class="stage-field"><span>Scale کاسه</span>
-                        <select class="form-select" @bind="_scaleId">
-                            <option value="@Guid.Empty">انتخاب کنید...</option>
-                            @foreach (var scale in DimpleScales)
-                            {
-                                <option value="@scale.Id">@scale.Name</option>
-                            }
-                            <option value="@CustomScaleChoiceId">Custom</option>
-                        </select>
-                        </label>
                     </div></div>
                     <footer class="stage-workspace-actions">
                         <button class="stage-submit"
-                                disabled="@(_loading || _scaleId == Guid.Empty)"
+                                disabled="@_loading"
                                 @onclick="CompleteAsync">
                             <strong>دیمپل انجام شد</strong><span>ثبت و انتقال به مرحله شیپ</span>
                         </button>
@@ -212,7 +202,7 @@
                 <section class="stage-workspace">
                     <header class="stage-workspace-header"><span class="stage-workspace-number">۲</span><div><small>مرحله جاری</small><h4>ثبت پایان شیپ</h4><p>اطلاعات این مرحله را یکجا تکمیل کنید.</p></div></header>
                     <div class="stage-workspace-body"><div class="stage-fields">
-                        <label class="stage-field stage-field-wide"><span>مدت زمان انجام شیپ</span>
+                        <label class="stage-field stage-field-wide"><span>مدت زمان انجام شیپ *</span>
                         <select class="form-select" @bind="_duration">
                             @foreach (var option in DurationOptions)
                             {
@@ -220,24 +210,20 @@
                             }
                         </select>
                         </label>
-                        @if (_bowl.IsCustomScale)
-                        {
-                            <label class="stage-field stage-field-wide"><span>Scale Custom</span>
-                                <select class="form-select" @bind="_scaleId">
-                                    <option value="@Guid.Empty">انتخاب کنید...</option>
-                                    @foreach (var scale in CustomBowlScales)
-                                    {
-                                        <option value="@scale.Id">@scale.Name</option>
-                                    }
-                                </select>
-                                <small class="text-muted">Scale نهایی این ساز در همین مرحله ثبت می‌شود.</small>
-                            </label>
-                        }
+                        <label class="stage-field"><span>اسکیل کاسه @(_bowl.BowlType == 1 ? "*" : "")</span>
+                            <select class="form-select" @bind="_scaleId">
+                                <option value="@Guid.Empty">انتخاب کنید...</option>
+                                @foreach (var scale in _scales) { <option value="@scale.Id">@scale.Name</option> }
+                            </select>
+                        </label>
+                        <label class="stage-field"><span>تعداد نوت *</span>
+                            <input class="form-control" type="number" min="@(_bowl.BowlType == 1 ? 1 : 0)" step="1" @bind="_noteCount" />
+                        </label>
                         <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>توضیحات این مرحله</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="4" @bind="_stageNote" placeholder="نکته‌ای که باید در مرحله بعد دیده شود را بنویسید..."></textarea></label>
                     </div></div>
                     <footer class="stage-workspace-actions">
                         <button class="stage-submit"
-                                disabled="@(_loading || (_bowl.IsCustomScale && _scaleId == Guid.Empty))"
+                                disabled="@(_loading || (_bowl.BowlType == 1 && _scaleId == Guid.Empty) || !_noteCount.HasValue || _noteCount < (_bowl.BowlType == 1 ? 1 : 0))"
                                 @onclick="CompleteShapeAsync">
                             <strong>شیپ انجام شد</strong><span>بررسی و ثبت نتیجه مرحله</span>
                         </button>
@@ -301,7 +287,7 @@
                            placeholder="کد کاسه مکمل را وارد کنید"
                            @bind="_pairedProductionCode"
                            @bind:event="oninput" />
-                    <label class="form-label mt-3">Scale ساز@(_bowl.IsCustomScale ? " Custom" : "")</label>
+                    <label class="form-label mt-3">اسکیل ساز</label>
                         <select class="form-select" @bind="_scaleId">
                             <option value="@Guid.Empty">انتخاب کنید...</option>
                             @foreach (var scale in GlueScales)
@@ -474,16 +460,9 @@
     private int _duration = 1;
     private string _pairedProductionCode = string.Empty;
     private Guid _scaleId;
-    private static readonly Guid CustomScaleChoiceId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
+    private int? _noteCount;
     private readonly List<ScaleDto> _scales = [];
-    private IEnumerable<ScaleDto> DimpleScales => _bowl is null
-        ? []
-        : _scales.Where(x => (x.Usage & (_bowl.BowlType == 1 ? 1 : 2)) != 0);
-    private IEnumerable<ScaleDto> HandpanScales => _scales.Where(x => (x.Usage & 4) != 0);
-    private IEnumerable<ScaleDto> CustomBowlScales => _scales.Where(x =>
-        (x.Usage & (_bowl?.BowlType == 1 ? 8 : 16)) != 0);
-    private IEnumerable<ScaleDto> CustomHandpanScales => _scales.Where(x => (x.Usage & 32) != 0);
-    private IEnumerable<ScaleDto> GlueScales => _bowl?.IsCustomScale == true ? CustomHandpanScales : HandpanScales;
+    private IEnumerable<ScaleDto> GlueScales => _scales;
     private readonly List<MaterialDto> _packagingMaterials = [];
     private IEnumerable<MaterialDto> CasePackagingMaterials => _packagingMaterials.Where(x => IsExclusiveCase(x.Name)).OrderBy(x => CaseOrder(x.Name)).ThenBy(x => x.Name);
     private IEnumerable<MaterialDto> OtherPackagingMaterials => _packagingMaterials.Where(x => !IsExclusiveCase(x.Name)).OrderBy(x => AccessoryOrder(x.Name)).ThenBy(x => x.Name);
@@ -575,12 +554,8 @@
                 await LoadPackagingMaterialsAsync();
                 SelectDefaultPackagingMaterials();
             }
-            if (_bowl?.Stage == 2)
-                _scaleId = DimpleScales.FirstOrDefault()?.Id ?? Guid.Empty;
-            else if (_bowl?.Stage == 4 && _bowl.IsCustomScale)
-                _scaleId = CustomBowlScales.FirstOrDefault()?.Id ?? Guid.Empty;
-            else if (_bowl?.Stage == 10)
-                _scaleId = GlueScales.FirstOrDefault()?.Id ?? Guid.Empty;
+            _scaleId = Guid.Empty;
+            _noteCount = null;
             if (_bowl is null)
                 _error = "کاسه پیدا نشد.";
         });
@@ -589,7 +564,7 @@
     private Task CompleteAsync()
     {
         ShowOperationConfirmation("دیمپل انجام شد",
-            [("کد کاسه", _productionCode), ("Scale کاسه", _scaleId == CustomScaleChoiceId ? "Custom — انتخاب در شیپ" : SelectedScaleName()), ("مدت زمان", DurationText())],
+            [("کد کاسه", _productionCode), ("مدت زمان", DurationText())],
             CompleteDimpleConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -598,8 +573,7 @@
     {
         await ExecuteAsync(async () =>
         {
-            var isCustom = _scaleId == CustomScaleChoiceId;
-            var result = await BowlService.CompleteDimplingAsync(_productionCode, _duration, isCustom ? Guid.Empty : _scaleId, isCustom);
+            var result = await BowlService.CompleteDimplingAsync(_productionCode, _duration, Guid.Empty);
             SetOperationResult(result, "دیمپل با موفقیت انجام شد.", "ثبت پایان دیمپل انجام نشد.");
         });
     }
@@ -608,7 +582,7 @@
     {
         _isShapeConfirmation = true;
         ShowOperationConfirmation("شیپ انجام شد",
-            [("کد کاسه", _productionCode), ("Scale کاسه", _bowl?.IsCustomScale == true ? SelectedScaleName() : _bowl?.ScaleName ?? "نامشخص"), ("مدت زمان", DurationText())],
+            [("کد کاسه", _productionCode), ("Scale کاسه", SelectedScaleName()), ("تعداد نوت", _noteCount?.ToString() ?? ""), ("مدت زمان", DurationText())],
             CompleteShapeConfirmedAsync);
         return Task.CompletedTask;
     }
@@ -619,7 +593,7 @@
         await ExecuteAsync(async () =>
         {
             Guid? UserFor(string key) => _useShapeContributors ? ShapeParts.First(x => x.Key == key).SelectedUserId : null;
-            var result = await BowlService.CompleteShapeAsync(_productionCode, _duration, _bowl?.IsCustomScale == true ? _scaleId : null, UserFor("Stretch"), UserFor("NoteArea"), UserFor("Edit"));
+            var result = await BowlService.CompleteShapeAsync(_productionCode, _duration, _scaleId == Guid.Empty ? null : _scaleId, UserFor("Stretch"), UserFor("NoteArea"), UserFor("Edit"), _noteCount);
             SetOperationResult(result, "شیپ با موفقیت انجام شد.", "ثبت پایان شیپ انجام نشد.");
         });
     }
@@ -954,7 +928,7 @@
     }
 
     private string SelectedScaleName() =>
-        _scales.FirstOrDefault(x => x.Id == _scaleId)?.Name ?? _bowl?.ScaleName ?? "نامشخص";
+        _scales.FirstOrDefault(x => x.Id == _scaleId)?.Name ?? "بدون اسکیل";
 
     private string DurationText() =>
         DurationOptions.FirstOrDefault(x => x.Value == _duration).Text ?? "نامشخص";

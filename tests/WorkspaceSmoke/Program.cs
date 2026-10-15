@@ -14,6 +14,7 @@ using TORSEPAN.Application.Materials;
 using TORSEPAN.Application.Common.Reporting;
 
 static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
+if(args.Contains("--unified-scales-only")) { await UnifiedScalesSmoke.RunAsync(); return; }
 if(args.Contains("--bowl-code-only"))
 {
     await BowlCodeSmoke.RunAsync();
@@ -174,11 +175,11 @@ Check(!(bool)exportCompletionMethod.Invoke(null,[normalTune])!,"ordinary tune ev
 var reportsPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Reports.razor"));
 Check(reportsPage.Contains("کاسه‌های داخلی رسیده به انبار")&&reportsPage.Contains("کاسه‌های صادراتی آماده بسته‌بندی یا ارسال")&&reportsPage.Contains("روند ماهانه سازهای واردشده به انبار"),"production report separates domestic bowls, export bowls, and warehouse instruments");
 var sidebar=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Layout/Sidebar.razor"));
-var customScalesPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/CustomScales.razor"));
+var scalesPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Scales.razor"));
 var dimplingPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Dimpling.razor"));
 var payrollPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/Payroll.razor"));
-Check(sidebar.Contains("href=\"/custom-scales\"")&&customScalesPage.Contains("new(8, \"اسکیل کاستوم کاسه رو\")")&&customScalesPage.Contains("new(16, \"اسکیل کاستوم کاسه زیر\")")&&customScalesPage.Contains("new(32, \"اسکیل کاستوم ساز\")"),"custom scales are registered in separate top, bottom, and instrument categories");
-Check(dimplingPage.Contains(">کاستوم</option>")&&dimplingPage.Contains("اسکیل کاستوم"),"dimple offers custom and shape captures its real scale");
+Check(sidebar.Contains("href=\"/scales\"") && !sidebar.Contains("href=\"/custom-scales\"") && scalesPage.Contains("@page \"/custom-scales\""), "one scale menu preserves the old page URL");
+Check(dimplingPage.Contains("تعداد نوت *") && !dimplingPage.Contains("CustomScaleChoiceId"), "shaping captures the shared scale and explicit note count");
 Check(payrollPage.Contains("دستمزد تولید عادی")&&payrollPage.Contains("دستمزد تولید کاستوم")&&payrollPage.Contains("دستمزد تولید صادراتی"),"payroll presents normal, custom, and export production separately");
 var productionEditPage=File.ReadAllText(Path.Combine(root,"TORSEPAN.Panel/Components/Pages/AdminProductionEdit.razor"));
 Check(sidebar.Contains("AuthorizeView Roles=\"Administrator\"")&&sidebar.Contains("href=\"/admin/production-edit\""),"production correction navigation is visible only to administrators");

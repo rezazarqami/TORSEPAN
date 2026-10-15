@@ -25,8 +25,8 @@
         if(b.instrumentCode)bowls.filter(x=>x.code===b.code||x.code===b.pairCode).forEach(x=>x.instrumentScaleId=op.edit.handpanScaleId);
       }
       if(!stage){b.localHistory.push(row);continue;}
-      if(action==='dimple') { b.isCustom=!!op.isCustom; b.scaleId=op.isCustom?null:op.scaleId; }
-      if(action==='shape'&&b.isCustom)b.scaleId=op.scaleId;
+
+      if(action==='shape'){b.scaleId=op.scaleId||null;b.noteCount=op.noteCount;b.isCustom=false;}
       if(action==='glue') {
         const pair=bowls.find(x=>x.code===op.pairCode); if(!pair)continue;
         b.pairCode=pair.code;pair.pairCode=b.code;
@@ -40,8 +40,7 @@
   }
   function performers(snapshot,action){ return snapshot.users.filter(u=>u.roles.includes('Administrator')||(roles[action]||[]).includes('*')||(roles[action]||[]).some(r=>u.roles.includes(r))); }
   function scales(snapshot,bowl,action,isCustom) {
-    const usage=action==='glue'?(bowl.isCustom?32:4):action==='shape'?(bowl.type===1?8:16):(bowl.type===1?1:2);
-    return action==='dimple'&&isCustom?[]:snapshot.scales.filter(s=>(s.usage&usage)!==0);
+    return action==='dimple'?[]:snapshot.scales;
   }
   function normalize(code){return String(code).trim().toUpperCase().replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632));}
   function materials(snapshot,rows){

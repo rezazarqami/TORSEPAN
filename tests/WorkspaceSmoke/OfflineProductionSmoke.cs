@@ -67,7 +67,7 @@ internal static class OfflineProductionSmoke
         Check(snapshot.Bowls.Count==2&&snapshot.Passports.Records.Count==2&&snapshot.Users.All(x=>x.Id!=Guid.Empty),"snapshot includes stable bowl identities, passports and safe performer projections");
         Check(snapshot.Users.Single(x=>x.Id==outsider.Id).Roles.SequenceEqual(["Tuner"]),"legacy single-role accounts remain available without exposing account credentials");
         var recorded=DateTime.UtcNow.AddMinutes(-1);
-        OfflineOperation Operation(string code,string action,string version,Guid? previous=null)=>new(Guid.NewGuid(),device,code,action,actor.Id,recorded,version,previous,2,scale.Id);
+        OfflineOperation Operation(string code,string action,string version,Guid? previous=null)=>new(Guid.NewGuid(),device,code,action,actor.Id,recorded,version,previous,2,scale.Id, NoteCount: action == "shape" ? 9 : null);
         var first=Operation("855","dimple",snapshot.Bowls.Single(x=>x.Code=="855").Version);
         var receipt=await service.ApplyAsync(registrar.Id,first,default);
         Check(await db.ProductionEvents.CountAsync()==1&&await db.OfflineReceipts.CountAsync()==1,"offline stage and receipt commit together");

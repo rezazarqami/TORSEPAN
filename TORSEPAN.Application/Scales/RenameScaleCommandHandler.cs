@@ -1,4 +1,5 @@
 using MediatR;
+using TORSEPAN.Domain.Entities;
 using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.Application.Scales;
@@ -12,7 +13,7 @@ public sealed class RenameScaleCommandHandler(IUnitOfWork unitOfWork) : IRequest
         var name = request.Name.Trim();
         if (string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("نام اسکیل الزامی است.");
         if (name.Length > 100) throw new InvalidOperationException("نام اسکیل نباید بیشتر از ۱۰۰ کاراکتر باشد.");
-        if ((await unitOfWork.Scales.FindAsync(x => x.Name == name && x.Id != request.Id)).Any())
+        if ((await unitOfWork.Scales.GetAllAsync()).Any(x => x.Id != request.Id && Scale.NameKey(x.Name) == Scale.NameKey(name)))
             throw new InvalidOperationException("Scaleی با این نام از قبل وجود دارد.");
         scale.Rename(name);
         unitOfWork.Scales.Update(scale);
