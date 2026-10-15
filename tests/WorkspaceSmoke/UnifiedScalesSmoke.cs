@@ -65,8 +65,12 @@ internal static class UnifiedScalesSmoke
         db.ChangeTracker.Clear();
         top = await db.Bowls.SingleAsync(x => x.Id == top.Id);
         bottom = await db.Bowls.SingleAsync(x => x.Id == bottom.Id);
-        Check(top.FormatScaleName(scale.Name) == "روی ره مینور 9 نوت" && bottom.FormatScaleName(null) == "زیر بدون اسکیل 3 نوت",
+        Check(top.FormatScaleName(scale.Name) == "روی ره مینور 9 نوت" && bottom.FormatScaleName(null) == "3 نت زیر",
             "bowl labels include side and count");
+        var bowlsPage = await new TORSEPAN.Infrastructure.Services.BowlQueryService(db).GetAllAsync(
+            new TORSEPAN.Application.Common.Pagination.PageRequest(), null, null, null, null, null, default);
+        Check(bowlsPage.Items.Single(x => x.Id == bottom.Id).ScaleName == "3 نت زیر",
+            "paginated bowl list uses the same note-only label as the passport");
         db.ChangeTracker.Clear();
         var id = await new CreateScaleCommandHandler(unit).Handle(new(" ره   مینور ", 8), default);
         Check(id == scale.Id && await db.Scales.CountAsync() == 1, "normalized duplicate creation keeps one scale");

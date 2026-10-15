@@ -85,3 +85,14 @@ test('offline QC requires a warehouse, preserves classification during packaging
 test('offline naming manager edits a stable numeric warehouse ID without moving inventory',async()=>{
  const f=await fixture(),{dom,state,$,errors}=f,w=dom.window;addWorkspace(f);dom.window.document.querySelector('[data-module="warehouses"]').click();dom.window.document.querySelector('[data-edit="2"]').click();$('wf-name').value='Atelier';$('workspace-form').dispatchEvent(new w.Event('submit',{cancelable:true}));assert.equal(state.operations[0].body.workspaceData.id,2);assert.equal(state.operations[0].body.workspaceModule,'warehouses');assert.match($('module-content').textContent,/Atelier/);assert.deepEqual(errors,[]);dom.window.close();
 });
+
+test('note-only bottom bowls display count and side without an empty-scale placeholder',async()=>{
+ const {dom,state,$,input,errors}=await fixture();
+ for(const count of [2,3]){
+  Object.assign(state.snapshot.bowls[1],{stage:6,stageName:'در انتظار پخت',scaleId:null,noteCount:count});
+  dom.window.refreshOffline();input('search','196');
+  const identity=dom.window.document.querySelector('.identity').textContent;
+  assert.ok(identity.includes(count+' نت زیر'));assert.ok(!identity.includes('بدون اسکیل'));
+ }
+ assert.deepEqual(errors,[]);dom.window.close();
+});

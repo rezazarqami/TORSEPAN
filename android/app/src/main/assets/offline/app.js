@@ -12,7 +12,7 @@ function renderPassport(saved={}){
  const snapshot=state.snapshot,record=snapshot.passports.records.find(x=>x.code===(b.instrumentCode||b.code));
  const baseRecord=record||snapshot.passports.records.find(x=>x.code===b.code);
  let scale=snapshot.scales.find(x=>x.id===b.instrumentScaleId)?.name||(b.instrumentCode?baseRecord?.scale:snapshot.scales.find(x=>x.id===b.scaleId)?.name)||baseRecord?.scale||'ثبت نشده';
- if(!b.instrumentCode&&b.noteCount!=null)scale=(b.type===1?'روی ':'زیر ')+(snapshot.scales.find(x=>x.id===b.scaleId)?.name||'بدون اسکیل')+' '+b.noteCount+' نوت';
+ if(!b.instrumentCode&&b.noteCount!=null){const name=snapshot.scales.find(x=>x.id===b.scaleId)?.name;scale=name?(b.type===1?'روی ':'زیر ')+name+' '+b.noteCount+' نوت':b.noteCount+' نت '+(b.type===1?'رو':'زیر');}
  const pair=bowls.find(x=>x.code===b.pairCode); const kind=b.instrumentCode?'ساز':b.type===1?'کاسه رو':'کاسه زیر';
  let html=`<section class="card"><div class="identity"><small>TORSEPAN · ${b.instrumentCode?'INSTRUMENT':'BOWL'} ID</small><p>${b.instrumentCode?'کد ساز':'کد کاسه'}: <b dir="ltr">${escape(b.instrumentCode||b.code)}</b>${pair?' · '+escape(b.type===1?'کاسه زیر':'کاسه رو')+': '+escape(pair.code):''}</p>${!b.instrumentCode?`<p>نوع کاسه: ${kind}</p>`:''}<p><span dir="ltr">Scale: ${escape(scale)}</span></p><p><span dir="ltr">Design:</span> ${escape(b.design||baseRecord?.design||'ساده')}</p><p><span dir="ltr">Status:</span> ${escape(b.stageName)}</p>${b.instrumentCode?'<p>انبار: '+escape(snapshot.warehouses?.find(x=>x.id===(b.qualityWarehouseId||1))?.name||'Economy')+'</p>':''}</div><h2>مراحل ثبت‌شده</h2>`;
  let history=baseRecord?.operations||[];
