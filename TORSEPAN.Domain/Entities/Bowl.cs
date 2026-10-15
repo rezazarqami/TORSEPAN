@@ -17,7 +17,12 @@ public class Bowl : Entity
         if (count < 0 || (BowlType == BowlType.Top && count == 0)) throw new ArgumentOutOfRangeException(nameof(count));
         NoteCount = count;
     }
-    public string FormatScaleName(string? name) => $"{(BowlType == BowlType.Top ? "روی" : "زیر")} {name ?? "بدون اسکیل"}{(NoteCount.HasValue ? $" {NoteCount} نوت" : "")}";
+    public string FormatScaleName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name) && NoteCount.HasValue)
+            return $"{NoteCount} نت {(BowlType == BowlType.Top ? "رو" : "زیر")}";
+        return $"{(BowlType == BowlType.Top ? "روی" : "زیر")} {name ?? "بدون اسکیل"}{(NoteCount.HasValue ? $" {NoteCount} نوت" : "")}";
+    }
     public bool IsCustomScale { get; private set; }
     public ProductionStatus Status { get; private set; }
     public ProductionStage Stage { get; private set; }
