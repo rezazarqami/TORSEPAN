@@ -52,6 +52,8 @@ jobs:
         run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --scales-payroll-only
       - name: Verify unified scale catalog, shaping requirements and historical references
         run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --unified-scales-only
+      - name: Verify manual top-bowl scale review and unknown bottom counts
+        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --remaining-scales-only
       - name: Verify offline scale projection
         run: node android/tests-offline.cjs
   warranty:

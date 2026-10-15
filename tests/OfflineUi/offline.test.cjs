@@ -96,3 +96,14 @@ test('note-only bottom bowls display count and side without an empty-scale place
  }
  assert.deepEqual(errors,[]);dom.window.close();
 });
+
+
+test('named bottom scale with unknown count never displays the instrument total as bowl notes',async()=>{
+ const {dom,state,input,errors}=await fixture();
+ state.snapshot.scales.push({id:'named',name:'D aegean 21',usage:63});
+ Object.assign(state.snapshot.bowls[1],{stage:6,scaleId:'named',noteCount:null});
+ dom.window.refreshOffline();input('search','196');
+ const identity=dom.window.document.querySelector('.identity').textContent;
+ assert.ok(identity.includes('D aegean 21'));assert.ok(identity.includes('تعداد نت نامشخص'));assert.ok(!identity.includes('21 نوت'));
+ assert.deepEqual(errors,[]);dom.window.close();
+});

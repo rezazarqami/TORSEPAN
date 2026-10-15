@@ -17,6 +17,11 @@ public sealed class ScalesController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<ScaleDto>>> GetAll(CancellationToken cancellationToken) =>
         Ok(await _mediator.Send(new GetAllScalesQuery(), cancellationToken));
 
+    [HttpGet("legacy-top-bowls")]
+    [Authorize(Roles = "Administrator,ProductionManager")]
+    public async Task<ActionResult<IReadOnlyList<LegacyTopBowlScaleDto>>> GetLegacyTopBowls(CancellationToken cancellationToken) =>
+        Ok(await _mediator.Send(new GetLegacyTopBowlScalesQuery(), cancellationToken));
+
     [HttpPost]
     public async Task<ActionResult<Guid>> Create(CreateScaleCommand command, CancellationToken cancellationToken)
     {
