@@ -4,6 +4,6 @@
   "port": 8080,
   "dockerfile": "Dockerfile.panel",
   "build": {
-    "location": "iran"
+    "location": "germany"
   }
 }
