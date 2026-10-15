@@ -23,6 +23,8 @@ public class Bowl : Entity
     {
         if (string.IsNullOrWhiteSpace(name) && NoteCount.HasValue)
             return $"{NoteCount} نت {(BowlType == BowlType.Top ? "رو" : "زیر")}";
+        if (BowlType == BowlType.Bottom && !string.IsNullOrWhiteSpace(name) && !NoteCount.HasValue)
+            return $"زیر {name} — تعداد نت نامشخص";
         return $"{(BowlType == BowlType.Top ? "روی" : "زیر")} {name ?? "بدون اسکیل"}{(NoteCount.HasValue ? $" {NoteCount} نوت" : "")}";
     }
     public bool IsCustomScale { get; private set; }
