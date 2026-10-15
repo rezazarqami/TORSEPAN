@@ -59,7 +59,7 @@ public static class PassportBackupSnapshot
         {
             var related = bowlEvents[b.Id].Concat(assemblies.Where(a => a.TopBowlId == b.Id || a.BottomBowlId == b.Id).SelectMany(a => assemblyEvents[a.Id]));
             records.Add(new(b.ProductionCode, b.BowlType == BowlType.Top ? "کاسه رو" : "کاسه زیر", b.Status == ProductionStatus.Rejected ? "ردشده" : Group(b.Stage), Stage(b.Stage),
-                b.Scale?.Name ?? (b.IsCustomScale ? "سفارشی" : "ثبت نشده"), Design(bowlEvents[b.Id]),
+                b.FormatScaleName(b.Scale?.Name), Design(bowlEvents[b.Id]),
                 $"متریال: {b.Material.Name} | {(b.HasNotes ? "نت‌دار" : "بدون نت")}" + (b.ExportWarehouseLocation.HasValue ? $" | محل انبار صادراتی: {b.ExportWarehouseLocation}" : ""), Operations(related)));
         }
         return new(captured, records, materials);

@@ -50,6 +50,10 @@ jobs:
           dotnet-version: 10.0.x
       - name: Verify scale rename propagation and confirmed payroll exclusions
         run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --scales-payroll-only
+      - name: Verify unified scale catalog, shaping requirements and historical references
+        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --unified-scales-only
+      - name: Verify offline scale projection
+        run: node android/tests-offline.cjs
   warranty:
     runs-on: ubuntu-latest
     steps:

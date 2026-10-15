@@ -1,0 +1,18 @@
+const {PGlite}=require('@electric-sql/pglite');
+const fs=require('fs'),assert=require('assert/strict');
+(async()=>{const db=new PGlite();await db.exec(`CREATE TABLE "Scales" ("Id" uuid PRIMARY KEY, "Name" text UNIQUE, "Usage" int, "IsActive" bool);
+INSERT INTO "Scales" VALUES ('00000000-0000-0000-0000-000000000001','ره مینور',7,true),('00000000-0000-0000-0000-000000000002',' ره  مینور ',56,true),('00000000-0000-0000-0000-000000000003','حذف شده',7,false);
+CREATE TABLE "Bowls" ("Id" int PRIMARY KEY,"ScaleId" uuid REFERENCES "Scales"("Id"));
+CREATE TABLE "Handpans" ("Id" int PRIMARY KEY,"ScaleId" uuid REFERENCES "Scales"("Id"));
+CREATE TABLE "PayrollRates" ("Id" int PRIMARY KEY,"ScaleId" uuid REFERENCES "Scales"("Id"));
+CREATE TABLE "CustomerOrders" ("Id" int PRIMARY KEY,"ScaleId" uuid REFERENCES "Scales"("Id"));
+INSERT INTO "Bowls" VALUES (1,'00000000-0000-0000-0000-000000000002'),(2,'00000000-0000-0000-0000-000000000003');
+INSERT INTO "Handpans" VALUES (1,'00000000-0000-0000-0000-000000000002');
+INSERT INTO "PayrollRates" VALUES (1,'00000000-0000-0000-0000-000000000002');
+INSERT INTO "CustomerOrders" VALUES (1,'00000000-0000-0000-0000-000000000002');`);
+const src=fs.readFileSync('TORSEPAN.Infrastructure/Migrations/20261015190000_UnifyScalesAndBowlNotes.cs','utf8');const sql=src.split('migrationBuilder.Sql("""')[1].split('""");')[0];await db.exec('BEGIN;'+sql+'COMMIT;');
+for(const t of ['Bowls','Handpans','PayrollRates','CustomerOrders'])assert.equal((await db.query(`SELECT "ScaleId" FROM "${t}" WHERE "Id"=1`)).rows[0].ScaleId,'00000000-0000-0000-0000-000000000001');
+assert.equal((await db.query('SELECT count(*) AS n FROM "Scales"')).rows[0].n,3);
+assert.equal((await db.query('SELECT count(*) AS n FROM "Scales" WHERE "IsActive"')).rows[0].n,1);
+assert.equal((await db.query('SELECT "ScaleId" FROM "Bowls" WHERE "Id"=2')).rows[0].ScaleId,'00000000-0000-0000-0000-000000000003');
+console.log('PASS PostgreSQL migration: duplicates unified, four kinds of references retained, deleted historical scale retained');await db.close();})();
