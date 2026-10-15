@@ -118,7 +118,7 @@ internal static class OrdersSmoke
             "unlinked loose bowl has no customer label");
         var early = (await orders.GetAsync(default)).Single();
         Check(early.ProductionStage == "در انتظار شیپ" && early.CompletedOperations.Contains("دیمپل کاسه رو") && !early.CompletedOperations.Contains("شیپ کاسه رو"), "live bowl stage and only successful operations are displayed");
-        Check(early.Lines[0].Instruments[0].ScaleName == scale.Name, "overview exposes the assigned bowl actual scale");
+        Check(early.Lines[0].Instruments[0].ScaleName == top.FormatScaleName(scale.Name), "overview exposes the assigned bowl actual scale");
         var second = await orders.CreateAsync(new("خانم موسوی", scale.Id, 60), user.Id, default);
         await Reject(() => orders.AssignCodeAsync(second, top.ProductionCode, user.Id, default), "one instrument cannot be assigned to two orders");
         var assembly = new HandpanAssembly(top.Id, bottom.Id);
