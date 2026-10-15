@@ -42,7 +42,7 @@ public sealed class BowlQueryService : IBowlQueryService
                 MaterialId = x.MaterialId,
                 MaterialName = x.Material.Name,
                 ScaleId = x.ScaleId,
-                ScaleName = (x.BowlType == BowlType.Top ? "روی " : "زیر ") + (x.Scale != null ? x.Scale.Name : "بدون اسکیل") + (x.NoteCount.HasValue ? " " + x.NoteCount.Value + " نوت" : ""),
+                ScaleName = x.FormatScaleName(x.Scale != null ? x.Scale.Name : null),
                 Status = (int)x.Status,
                 Stage = (int)x.Stage,
                 Operations = x.ProductionEvents
