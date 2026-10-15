@@ -45,7 +45,7 @@ else if (_tab == "new")
             <section class="order-panel composition-panel">
                 <header><div><small class="section-kicker">۰۲ / ترکیب سازها</small><h2>دیزاین × اسکیل × تعداد</h2></div><button class="btn subtle" disabled="@(_saving || _catalogLoading)" @onclick="RefreshCatalogAsync">@(_catalogLoading ? "در حال دریافت…" : "↻ فهرست دیزاین و اسکیل")</button></header>
                 <p class="panel-caption">برای هر ترکیب، یک ردیف اضافه کن. مثلاً ۵ ساز ساده و ۵ ساز اسیدکاری، با اسکیل‌های متفاوت.</p>
-                @if(_scales.Count == 0){<div class="form-hint warning">ابتدا اسکیل ساز را در <a href="/scales">اسکیل‌ها</a> یا <a href="/custom-scales">اسکیل کاستوم</a> ثبت کنید.</div>}
+                @if(_scales.Count == 0){<div class="form-hint warning">ابتدا اسکیل ساز را در <a href="/scales">اسکیل‌ها</a>  ثبت کنید.</div>}
                 <div class="form-hint">اگر دیزاین دیگری انتخاب نکنید، ساز با دیزاین ساده ثبت می‌شود.</div>
                 <div class="composition-lines">
                     @foreach(var item in _items)

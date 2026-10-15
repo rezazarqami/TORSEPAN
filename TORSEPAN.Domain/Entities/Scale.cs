@@ -16,6 +16,9 @@ public sealed class Scale
         SetUsage(usage);
     }
 
+    public static string NameKey(string name) => System.Text.RegularExpressions.Regex.Replace(
+        name.Trim().Replace('ي', 'ی').Replace('ك', 'ک'), @"\s+", " ").ToLowerInvariant();
+
     public Guid Id { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;

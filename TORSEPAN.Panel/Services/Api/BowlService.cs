@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text.Json;
 using TORSEPAN.Panel.Models;
 
@@ -85,12 +85,12 @@ public sealed class BowlService
 
     public Task<DimpleBowlDto?> CompleteShapeAsync(
         string productionCode,
-        int duration, Guid? scaleId = null, Guid? stretchUserId = null, Guid? noteAreaUserId = null, Guid? editUserId = null)
+        int duration, Guid? scaleId = null, Guid? stretchUserId = null, Guid? noteAreaUserId = null, Guid? editUserId = null, int? noteCount = null)
     {
         var code = Uri.EscapeDataString(productionCode.Trim());
         return _api.PostAsync<object, DimpleBowlDto>(
             $"bowls/production/{code}/shape/complete",
-            new { Duration = duration, ScaleId = scaleId, StretchUserId = stretchUserId, NoteAreaUserId = noteAreaUserId, EditUserId = editUserId });
+            new { Duration = duration, ScaleId = scaleId, StretchUserId = stretchUserId, NoteAreaUserId = noteAreaUserId, EditUserId = editUserId, NoteCount = noteCount });
     }
 
     public Task<DimpleBowlDto?> CompleteBakeAsync(string productionCode)

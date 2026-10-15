@@ -10,4 +10,5 @@ public sealed record CompleteBowlShapeCommand(
     Guid? ScaleId = null,
     Guid? StretchUserId = null,
     Guid? NoteAreaUserId = null,
-    Guid? EditUserId = null) : IRequest<Result<BowlDimpleDto>>;
+    Guid? EditUserId = null,
+    int? NoteCount = null) : IRequest<Result<BowlDimpleDto>>;
