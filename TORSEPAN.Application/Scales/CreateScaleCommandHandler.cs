@@ -14,10 +14,14 @@ public sealed class CreateScaleCommandHandler : IRequestHandler<CreateScaleComma
     public async Task<Guid> Handle(CreateScaleCommand request, CancellationToken cancellationToken)
     {
         var name = request.Name.Trim();
-        var usage = (ScaleUsage)request.Usage;
+        var usage = ScaleUsage.All;
         if (usage == ScaleUsage.None || (usage & ~ScaleUsage.All) != 0)
-            throw new InvalidOperationException("دسته‌بندی اسکیل معتبر نیست.");
-        var existing = (await _unitOfWork.Scales.FindAsync(x => x.Name == name)).FirstOrDefault();
+            throw new InvalidOperationException("دسته‌بندی Scale معتبر نیست.");
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 100)
+            throw new InvalidOperationException("نام اسکیل باید بین ۱ و ۱۰۰ کاراکتر باشد.");
+        var existing = (await _unitOfWork.Scales.GetAllAsync())
+            .Where(x => Scale.NameKey(x.Name) == Scale.NameKey(name))
+            .OrderByDescending(x => x.IsActive).ThenBy(x => x.Id).FirstOrDefault();
         if (existing is not null)
         {
             existing.Activate();

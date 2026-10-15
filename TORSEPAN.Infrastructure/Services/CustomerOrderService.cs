@@ -260,7 +260,7 @@ public sealed class CustomerOrderService(TORSEPANDbContext db, TimeProvider cloc
                         ? source.BowlType == BowlType.Top ? " کاسه رو" : " کاسه زیر" : "") : null).Where(x => x is not null)
                 .Cast<string>().Distinct().ToArray();
             return new(slot, code, stage.HasValue ? StageTitle(stage.Value) : "کد تولید در دسترس نیست",
-                status.HasValue ? StatusTitle(status.Value) : "", completed) { ScaleName = handpan?.Scale?.Name ?? bowl?.Scale?.Name };
+                status.HasValue ? StatusTitle(status.Value) : "", completed) { ScaleName = handpan?.Scale?.Name ?? (bowl is null ? null : bowl.FormatScaleName(bowl.Scale?.Name)) };
         }
         return orders.Select(order =>
         {

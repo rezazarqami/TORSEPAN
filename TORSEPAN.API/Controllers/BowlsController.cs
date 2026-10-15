@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TORSEPAN.API.Common.Extensions;
@@ -177,7 +177,7 @@ public sealed class BowlsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new CompleteBowlShapeCommand(productionCode, request.Duration, request.ScaleId, request.StretchUserId, request.NoteAreaUserId, request.EditUserId),
+            new CompleteBowlShapeCommand(productionCode, request.Duration, request.ScaleId, request.StretchUserId, request.NoteAreaUserId, request.EditUserId, request.NoteCount),
             cancellationToken);
 
         return this.ToActionResult(result);
@@ -338,7 +338,7 @@ public sealed class BowlsController : ControllerBase
 }
 
 public sealed record ProductionNoteRequest(string? Description, bool IsInstrumentNote = false);
-public sealed record CompleteShapeRequest(TORSEPAN.Domain.Enums.OperationDuration Duration, Guid? ScaleId, Guid? StretchUserId, Guid? NoteAreaUserId, Guid? EditUserId);
+public sealed record CompleteShapeRequest(TORSEPAN.Domain.Enums.OperationDuration Duration, Guid? ScaleId, Guid? StretchUserId, Guid? NoteAreaUserId, Guid? EditUserId, int? NoteCount = null);
 public sealed record ExportShipmentRequest(IReadOnlyCollection<Guid>? BowlIds, string? BuyerName,
     Guid? PartyId, string? Destination, string? ShippingMethod, bool? IsSettled);
 

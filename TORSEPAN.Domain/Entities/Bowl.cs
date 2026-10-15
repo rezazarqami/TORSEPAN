@@ -1,4 +1,4 @@
-﻿using TORSEPAN.Domain.Common;
+using TORSEPAN.Domain.Common;
 using TORSEPAN.Domain.Enums;
 
 namespace TORSEPAN.Domain.Entities;
@@ -13,6 +13,13 @@ public class Bowl : Entity
     public InstrumentType InstrumentType { get; private set; }
     public Guid MaterialId { get; private set; }
     public Guid? ScaleId { get; private set; }
+    public int? NoteCount { get; private set; }
+    public void SetNoteCount(int count)
+    {
+        if (count < 0 || (BowlType == BowlType.Top && count == 0)) throw new ArgumentOutOfRangeException(nameof(count));
+        NoteCount = count;
+    }
+    public string FormatScaleName(string? name) => $"{(BowlType == BowlType.Top ? "روی" : "زیر")} {name ?? "بدون اسکیل"}{(NoteCount.HasValue ? $" {NoteCount} نوت" : "")}";
     public bool IsCustomScale { get; private set; }
     public ProductionStatus Status { get; private set; }
     public ProductionStage Stage { get; private set; }

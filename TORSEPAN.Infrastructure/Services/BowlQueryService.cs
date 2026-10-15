@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using TORSEPAN.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using TORSEPAN.Application.Bowls.Queries.GetAllBowls;
 using TORSEPAN.Application.Bowls.Queries.GetBowlById;
 using TORSEPAN.Application.Common.Pagination;
@@ -41,7 +42,7 @@ public sealed class BowlQueryService : IBowlQueryService
                 MaterialId = x.MaterialId,
                 MaterialName = x.Material.Name,
                 ScaleId = x.ScaleId,
-                ScaleName = x.Scale != null ? x.Scale.Name : "نامشخص",
+                ScaleName = (x.BowlType == BowlType.Top ? "روی " : "زیر ") + (x.Scale != null ? x.Scale.Name : "بدون اسکیل") + (x.NoteCount.HasValue ? " " + x.NoteCount.Value + " نوت" : ""),
                 Status = (int)x.Status,
                 Stage = (int)x.Stage,
                 Operations = x.ProductionEvents
