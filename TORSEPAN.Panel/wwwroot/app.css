@@ -1102,3 +1102,69 @@ body .layout>.main>.topbar{position:sticky;top:0;z-index:1050;flex:0 0 70px;heig
  .topbar-left .page-title-main{white-space:nowrap}
 }
 @media(max-width:350px){.topbar-left .app-mode-controls,.topbar-left .app-mode-controls a{width:94px}.topbar-left .app-mode-controls a{font-size:8.5px}}
+
+/* Workshop photograph belongs only to the dashboard route. Keep the original
+   composition intact; overlays blend its sky into the navy header. */
+body .layout > .main.dashboard-scene {
+    --dashboard-navy: #092b49;
+    background: #edf1f5;
+    isolation: isolate;
+    position: relative;
+}
+body .layout > .main.dashboard-scene::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: clamp(490px, 63vw, 1100px);
+    z-index: -1;
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, var(--dashboard-navy) 0%, rgba(9,43,73,.98) 9%, rgba(9,43,73,.65) 21%, rgba(9,43,73,0) 38%, rgba(237,241,245,0) 74%, #edf1f5 100%),
+        url('/images/brand/dashboard-workshop.webp') center 80px / 100% auto no-repeat,
+        var(--dashboard-navy);
+}
+body .layout > .main.dashboard-scene > .topbar {
+    background: var(--dashboard-navy);
+    box-shadow: none;
+    border-bottom-color: rgba(255,255,255,.09);
+}
+body .dashboard-scene .dashboard-hero {
+    margin-top: clamp(240px, 36vw, 540px);
+    background: linear-gradient(120deg,rgba(9,43,73,.86),rgba(14,79,94,.82));
+    backdrop-filter: blur(3px);
+    border-color: rgba(255,255,255,.42);
+}
+@media(max-width:768px) {
+    body .layout > .main.dashboard-scene {
+        width: 100%;
+        max-width: 100%;
+        margin-right: 0;
+    }
+    body .layout > .main.dashboard-scene > .topbar {
+        border-bottom: 0;
+    }
+    body .layout > .main.dashboard-scene::before {
+        top: 70px;
+        height: calc(56.25vw + 140px);
+        background:
+            linear-gradient(180deg, #092b49 0%, rgba(9,43,73,.9) 9%, rgba(9,43,73,.35) 24%, rgba(9,43,73,0) 38%, rgba(237,241,245,0) 72%, #edf1f5 100%),
+            url('/images/brand/dashboard-workshop.webp') center 35px / 100% auto no-repeat,
+            #092b49;
+    }
+    body .dashboard-scene .dashboard-hero {
+        margin-top: calc(56.25vw - 50px);
+        padding: 12px 14px;
+        border-radius: 20px;
+    }
+    body .dashboard-scene .dashboard-hero .dashboard-kicker {
+        font-size: 1rem;
+        padding: 5px 14px;
+    }
+    body .dashboard-scene .dashboard-hero p {
+        margin-top: 6px;
+        font-size: .7rem;
+    }
+    body .dashboard-scene .dashboard-hero-stats {
+        margin-top: 12px;
+    }
+}

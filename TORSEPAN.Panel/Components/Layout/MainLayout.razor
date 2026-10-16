@@ -13,13 +13,14 @@
         <button type="button" class="mobile-menu-backdrop" aria-label="بستن منوی اصلی" @onclick="CloseMobileMenu"></button>
     }
     <aside class="sidebar @(_mobileMenuOpen ? "mobile-open" : null)"><Sidebar /></aside>
-    <div class="main">
+    <div class="main @(IsDashboard ? "dashboard-scene" : null)">
         <header class="topbar"><Topbar /></header>
         <main class="content"><GlobalProductionSearch />@Body</main>
     </div>
 </div>
 
 @code {
+    private bool IsDashboard => string.IsNullOrEmpty(Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0]);
     private bool _mobileMenuOpen;
 
     protected override void OnInitialized() => Navigation.LocationChanged += HandleLocationChanged;
