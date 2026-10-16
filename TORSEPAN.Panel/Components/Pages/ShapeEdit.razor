@@ -1,5 +1,5 @@
 @page "/admin/shape-edit"
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles="Administrator")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles="Administrator,Shaper")]
 @inject BowlService BowlService
 <PageTitle>ویرایش شیپ</PageTitle>
 <section class="shape-edit-hero"><span>TORSEPAN / SHAPE</span><h1>ویرایش شیپ</h1><p>ثبت انجام‌دهندهٔ کشش، دورنوت و Edit برای شیپ‌های انجام‌شده</p></section>
