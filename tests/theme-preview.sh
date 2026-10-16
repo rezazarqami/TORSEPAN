@@ -11,4 +11,4 @@ for attempt in $(seq 1 60); do
     if curl -sf http://127.0.0.1:5170/ > /dev/null; then break; fi
     sleep .5
 done
-node tests/theme-browser.cjs
+node "${THEME_BROWSER_SCRIPT:-tests/theme-browser.cjs}"

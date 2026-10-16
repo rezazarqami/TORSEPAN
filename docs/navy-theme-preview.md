@@ -51,3 +51,11 @@ The first code preview did not closely reproduce the approved mockup. The review
 Current actual application capture (synthetic isolated account):
 
 ![Corrected mobile dashboard](previews/navy-dashboard.png)
+
+## Equal-scale typography and lighting review
+
+A second review compares the approved 893px-wide application area with the actual app at the same physical display scale. Mobile text is now calibrated independently for the brand, profile, summary title, metric values, captions, form title and field placeholder, and shortcut labels. The real Vazirmatn Bold font is bundled under its OFL license instead of relying on browser-synthesized weight. The summary panel uses an independent white/cyan corner glint, blue perimeter bloom, inner reflection and gold divider. Entry-button width and the summary/form/shortcut heights are adjusted from that comparison.
+
+`tests/theme-reference-capture.cjs` captures the actual interactive app at 390×670 CSS pixels with a 3× device scale (1170×2010 output). Run through `tests/theme-preview.sh` with `THEME_BROWSER_SCRIPT=tests/theme-reference-capture.cjs` and `THEME_REFERENCE_CONTENT=1`. That opt-in fixture copies the reference's display name, role label and 262/12 figures into synthetic local data; it does not authenticate a real user or read production data. Default regression fixtures retain their own test identity. Full-resolution screenshots are delivered separately; the checked-in preview remains a current normal-resolution app capture.
+
+The screenshot comparison still shows differences in the workshop photograph and the decorative architectural artwork. Functional checks and this review do not assert pixel-identical reproduction or authorize production publication.
