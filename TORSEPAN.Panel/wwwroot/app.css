@@ -1119,7 +1119,7 @@ body .layout > .main.dashboard-scene::before {
     z-index: -1;
     pointer-events: none;
     background:
-        linear-gradient(180deg, var(--dashboard-navy) 0px, var(--dashboard-navy) 82px, rgba(9,43,73,.98) 94px, rgba(9,43,73,.85) 116px, rgba(9,43,73,.55) 148px, rgba(9,43,73,.2) 182px, rgba(9,43,73,0) 220px, rgba(237,241,245,0) 74%, #edf1f5 100%),
+        linear-gradient(180deg, var(--dashboard-navy) 0px, var(--dashboard-navy) 80px, rgba(9,43,73,.85) 86px, rgba(9,43,73,.5) 92px, rgba(9,43,73,.15) 98px, rgba(9,43,73,0) 104px, rgba(237,241,245,0) 74%, #edf1f5 100%),
         url('/images/brand/dashboard-workshop.webp') center 80px / 100% auto no-repeat,
         var(--dashboard-navy);
 }
@@ -1136,23 +1136,23 @@ body .dashboard-scene .dashboard-hero {
 }
 @media(max-width:768px) {
     body .layout > .main.dashboard-scene {
-        width: 100%;
-        max-width: 100%;
-        margin-right: 0;
+        width: calc(100% - 25px);
+        max-width: calc(100% - 25px);
+        margin-right: 25px;
     }
     body .layout > .main.dashboard-scene > .topbar {
         border-bottom: 0;
     }
     body .layout > .main.dashboard-scene::before {
         top: 70px;
-        height: calc(56.25vw + 140px);
+        height: calc((100vw - 25px) * .5625 + 140px);
         background:
-            linear-gradient(180deg, #092b49 0px, #092b49 50px, rgba(9,43,73,.98) 60px, rgba(9,43,73,.9) 73px, rgba(9,43,73,.72) 90px, rgba(9,43,73,.42) 110px, rgba(9,43,73,.15) 130px, rgba(9,43,73,0) 150px, rgba(237,241,245,0) 72%, #edf1f5 100%),
-            url('/images/brand/dashboard-workshop.webp') center 35px / 100% auto no-repeat,
+            linear-gradient(180deg, #092b49 0px, #092b49 36px, rgba(9,43,73,.85) 42px, rgba(9,43,73,.5) 48px, rgba(9,43,73,.15) 54px, rgba(9,43,73,0) 60px, rgba(237,241,245,0) 72%, #edf1f5 100%),
+            url('/images/brand/dashboard-workshop.webp') center 36px / 100% auto no-repeat,
             #092b49;
     }
     body .dashboard-scene .dashboard-hero {
-        margin-top: calc(56.25vw - 50px);
+        margin-top: calc((100vw - 25px) * .5625 - 50px);
         padding: 12px 14px;
         border-radius: 20px;
     }
