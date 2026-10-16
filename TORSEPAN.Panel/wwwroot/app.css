@@ -1119,14 +1119,14 @@ body .layout > .main.dashboard-scene::before {
     z-index: -1;
     pointer-events: none;
     background:
-        linear-gradient(180deg, var(--dashboard-navy) 0%, rgba(9,43,73,.98) 9%, rgba(9,43,73,.65) 21%, rgba(9,43,73,0) 38%, rgba(237,241,245,0) 74%, #edf1f5 100%),
+        linear-gradient(180deg, var(--dashboard-navy) 0px, var(--dashboard-navy) 82px, rgba(9,43,73,.98) 94px, rgba(9,43,73,.85) 116px, rgba(9,43,73,.55) 148px, rgba(9,43,73,.2) 182px, rgba(9,43,73,0) 220px, rgba(237,241,245,0) 74%, #edf1f5 100%),
         url('/images/brand/dashboard-workshop.webp') center 80px / 100% auto no-repeat,
         var(--dashboard-navy);
 }
 body .layout > .main.dashboard-scene > .topbar {
     background: var(--dashboard-navy);
     box-shadow: none;
-    border-bottom-color: rgba(255,255,255,.09);
+    border-bottom: 0;
 }
 body .dashboard-scene .dashboard-hero {
     margin-top: clamp(240px, 36vw, 540px);
@@ -1147,7 +1147,7 @@ body .dashboard-scene .dashboard-hero {
         top: 70px;
         height: calc(56.25vw + 140px);
         background:
-            linear-gradient(180deg, #092b49 0%, rgba(9,43,73,.9) 9%, rgba(9,43,73,.35) 24%, rgba(9,43,73,0) 38%, rgba(237,241,245,0) 72%, #edf1f5 100%),
+            linear-gradient(180deg, #092b49 0px, #092b49 50px, rgba(9,43,73,.98) 60px, rgba(9,43,73,.9) 73px, rgba(9,43,73,.72) 90px, rgba(9,43,73,.42) 110px, rgba(9,43,73,.15) 130px, rgba(9,43,73,0) 150px, rgba(237,241,245,0) 72%, #edf1f5 100%),
             url('/images/brand/dashboard-workshop.webp') center 35px / 100% auto no-repeat,
             #092b49;
     }
