@@ -200,10 +200,10 @@
             }
             else if (_bowl.Stage == 4)
             {
-                <section class="stage-workspace">
-                    <header class="stage-workspace-header"><span class="stage-workspace-number">۲</span><div><small>مرحله جاری</small><h4>ثبت پایان شیپ</h4><p>اطلاعات این مرحله را یکجا تکمیل کنید.</p></div></header>
+                <section class="stage-workspace shape-workspace compact-stage-workspace">
+                    <header class="stage-workspace-header"><span class="stage-workspace-number">۲</span><div><small>مرحله جاری</small><h4>ثبت پایان شیپ</h4></div></header>
                     <div class="stage-workspace-body"><div class="stage-fields">
-                        <label class="stage-field stage-field-wide"><span>مدت زمان انجام شیپ *</span>
+                        <label class="stage-field shape-duration"><span>مدت زمان انجام شیپ *</span>
                         <select class="form-select" @bind="_duration">
                             @foreach (var option in DurationOptions)
                             {
@@ -220,13 +220,13 @@
                         <label class="stage-field"><span>تعداد نوت *</span>
                             <input class="form-control" type="number" min="@(_bowl.BowlType == 1 ? 1 : 0)" step="1" @bind="_noteCount" />
                         </label>
-                        <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>توضیحات این مرحله</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="4" @bind="_stageNote" placeholder="نکته‌ای که باید در مرحله بعد دیده شود را بنویسید..."></textarea></label>
+                        <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>توضیحات این مرحله</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="2" @bind="_stageNote" placeholder="توضیحات مرحله..."></textarea></label>
                     </div></div>
                     <footer class="stage-workspace-actions">
                         <button class="stage-submit"
                                 disabled="@(_loading || (_bowl.BowlType == 1 && _scaleId == Guid.Empty) || !_noteCount.HasValue || _noteCount < (_bowl.BowlType == 1 ? 1 : 0))"
                                 @onclick="CompleteShapeAsync">
-                            <strong>شیپ انجام شد</strong><span>بررسی و ثبت نتیجه مرحله</span>
+                            <strong>شیپ انجام شد</strong>
                         </button>
                     </footer>
                 </section>
@@ -241,8 +241,8 @@
             }
             else if (_bowl.Stage == 8)
             {
-                <section class="stage-workspace">
-                    <header class="stage-workspace-header"><span class="stage-workspace-number">۴</span><div><small>مرحله جاری</small><h4>ثبت پایان تیون</h4><p>زمان، توضیحات و مسیر بعدی کاسه را مشخص کنید.</p></div></header>
+                <section class="stage-workspace tune-workspace compact-stage-workspace">
+                    <header class="stage-workspace-header"><span class="stage-workspace-number">۴</span><div><small>مرحله جاری</small><h4>ثبت پایان تیون</h4></div></header>
                     <div class="stage-workspace-body">
                         <div class="stage-fields">
                             <label class="stage-field stage-field-wide"><span>مدت زمان انجام تیون</span>
@@ -253,12 +253,12 @@
                             }
                         </select>
                             </label>
-                            <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>توضیحات این مرحله</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="4" @bind="_stageNote" placeholder="نکته‌ای که باید در مرحله بعد دیده شود را بنویسید..."></textarea></label>
+                            <label class="stage-field stage-field-wide"><span class="stage-field-title"><span>توضیحات این مرحله</span><small>اختیاری</small></span><textarea class="form-control stage-note" rows="2" @bind="_stageNote" placeholder="توضیحات مرحله..."></textarea></label>
                         </div>
-                        <div class="stage-route-heading"><strong>مرحله بعدی را انتخاب کنید</strong><span>جزئیات مسیر پیش از ثبت نهایی نمایش داده می‌شود.</span></div>
+                        <div class="stage-route-heading"><strong>مرحله بعدی را انتخاب کنید</strong></div>
                         <div class="stage-route-actions">
-                            <button type="button" class="stage-route-action" disabled="@_loading" @onclick="CompleteTuneAsync"><strong>ادامه مسیر ساخت ساز</strong><span>ارسال کاسه به مرحله چسب</span></button>
-                            <button type="button" class="stage-route-action" disabled="@_loading" @onclick="CompleteTuneForExportAsync"><strong>مسیر بسته‌بندی صادراتی</strong><span>ارسال مستقیم به بسته‌بندی صادراتی</span></button>
+                            <button type="button" class="stage-route-action" disabled="@_loading" @onclick="CompleteTuneAsync"><strong>ادامه ساخت ساز</strong><span>ارسال کاسه به مرحله چسب</span></button>
+                            <button type="button" class="stage-route-action" disabled="@_loading" @onclick="CompleteTuneForExportAsync"><strong>بسته‌بندی صادراتی</strong><span>ارسال مستقیم به بسته‌بندی صادراتی</span></button>
                         </div>
                     </div>
                 </section>

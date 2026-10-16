@@ -13,22 +13,10 @@
     <h1>مدیریت اسکیل‌ها</h1>
     <p>فهرست مشترک اسکیل‌ها برای کاسه‌ها و سازها</p>
 </section>
-<section class="scale-card" aria-labelledby="legacy-top-title">
-    <header class="legacy-scale-header"><div><h2 id="legacy-top-title">کاسه‌روهای نیازمند ویرایش اسکیل</h2><p>اسکیل‌های ۱۱، ۱۲، ۱۳ و ۱۴ نت رو در مراحل آمادهٔ پخت، تیون و چسب؛ این موارد خودکار تغییر نمی‌کنند.</p></div><button type="button" class="btn btn-outline-primary" disabled="@_legacyLoading" @onclick="ReloadLegacyAsync">به‌روزرسانی فهرست</button></header>
-    @if (_legacyLoading) { <div class="scale-empty" role="status">در حال بررسی کاسه‌ها…</div> }
-    else if (_legacyError is not null) { <div class="scale-notice error" role="alert">@_legacyError</div> }
-    else if (_legacyBowls.Count == 0) { <div class="scale-empty">کاسه‌ای با این اسکیل‌ها در سه مرحلهٔ مشخص‌شده وجود ندارد.</div> }
-    else
-    {
-        <p>@_legacyBowls.Count کاسه برای بررسی</p>
-        <div class="legacy-scale-scroll"><table class="legacy-scale-table"><thead><tr><th>کد کاسه</th><th>اسکیل فعلی</th><th>مرحله</th><th>ویرایش</th></tr></thead><tbody>
-        @foreach (var bowl in _legacyBowls)
-        {
-            <tr @key="bowl.BowlId"><td><strong dir="ltr">@bowl.ProductionCode</strong></td><td>@bowl.ScaleName</td><td>@bowl.StageName</td><td><AuthorizeView Roles="Administrator"><a class="btn btn-outline-primary" href="@($"/admin/production-edit?code={Uri.EscapeDataString(bowl.ProductionCode)}")">ویرایش کاسه</a></AuthorizeView></td></tr>
-        }
-        </tbody></table></div>
-    }
-</section>
+<nav class="scale-tabs" aria-label="بخش‌های مدیریت اسکیل">
+    <button type="button" class="@(!_createTab ? "active" : null)" aria-pressed="@(!_createTab)" disabled="@_busy" @onclick="() => SelectTab(false)"><strong>اسکیل‌ها</strong></button>
+    <button type="button" class="@(_createTab ? "active" : null)" aria-pressed="@_createTab" disabled="@_busy" @onclick="() => SelectTab(true)"><strong>ثبت اسکیل جدید</strong></button>
+</nav>
 @if (_message is not null)
 {
     <div class="scale-notice @(_isError ? "error" : "success")" role="@(_isError ? "alert" : "status")">@_message</div>
@@ -37,7 +25,7 @@
 {
     <div class="scale-empty" role="status">در حال دریافت اسکیل‌ها…</div>
 }
-else
+else if (_createTab)
 {
     <section class="scale-card">
         <header><h2>اسکیل جدید</h2><p>نام پایهٔ اسکیل را بدون تعداد نت ثبت کنید؛ تعداد نت در شیپ تعیین و مجموع ساز در چسب محاسبه می‌شود.</p></header>
@@ -46,6 +34,9 @@ else
             <button type="button" class="btn btn-primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_name))" @onclick="CreateAsync">ثبت اسکیل</button>
         </div>
     </section>
+}
+else
+{
     <section class="scale-card">
         <header><h2>اسکیل‌ها</h2><p>ویرایش نام، در تمام سازها و کاسه‌های مرتبط هم نمایش داده می‌شود.</p></header>
         @if (Items(_usage).Count == 0)
@@ -70,7 +61,7 @@ else
                         else
                         {
                             <strong class="scale-name">@scale.Name</strong>
-                            <div class="scale-actions"><button type="button" class="btn btn-outline-primary" disabled="@_busy" @onclick="() => BeginEdit(scale)">ویرایش</button><button type="button" class="btn btn-outline-danger" disabled="@_busy" @onclick="() => _deleting = scale">حذف اسکیل</button></div>
+                            <div class="scale-actions"><button type="button" class="btn btn-outline-primary" disabled="@_busy" @onclick="() => BeginEdit(scale)">ویرایش</button><button type="button" class="btn btn-outline-danger" disabled="@_busy" @onclick="() => _deleting = scale">حذف</button></div>
                         }
                     </div>
                 }
@@ -84,16 +75,8 @@ else
 }
 @code {
     private readonly List<ScaleDto> _scales = [];
-    private IReadOnlyList<LegacyTopBowlScaleDto> _legacyBowls = [];
-    private bool _legacyLoading = true;
-    private string? _legacyError;
-    private async Task ReloadLegacyAsync()
-    {
-        _legacyLoading = true; _legacyError = null;
-        try { _legacyBowls = await ScaleService.GetLegacyTopBowlsAsync(); }
-        catch { _legacyError = "دریافت فهرست کاسه‌ها ممکن نشد؛ دوباره به‌روزرسانی کنید."; }
-        finally { _legacyLoading = false; }
-    }
+    private bool _createTab;
+    private void SelectTab(bool create) { _createTab = create; CancelEdit(); _message = null; }
     private const int _usage = 63;
     private string _name = "", _editingName = "";
     private Guid? _editingId;
@@ -104,7 +87,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         try { await ReloadAsync(); } catch (Exception ex) { ShowError(ex); } finally { _loading = false; }
-        await ReloadLegacyAsync();
     }
     private void BeginEdit(ScaleDto scale) { _editingId = scale.Id; _editingName = scale.Name; _message = null; }
     private void CancelEdit() { _editingId = null; _editingName = ""; }
