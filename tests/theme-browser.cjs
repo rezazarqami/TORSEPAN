@@ -7,7 +7,8 @@ const output=process.env.THEME_SCREENSHOTS;
 (async()=>{
  const browser=await chromium.launch({headless:true,...(process.env.THEME_CHROMIUM?{executablePath:process.env.THEME_CHROMIUM,args:JSON.parse(process.env.THEME_CHROMIUM_ARGS||'[]')}:{})});
  try {
-  const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const page=await browser.newPage();const errors=[],failedAssets=[];page.on('pageerror',e=>errors.push(e.message));
+  page.on('response',r=>{if(r.url().startsWith(origin)&&r.status()>=400&&/\.(css|js|woff2|svg|webp|png)(\?|$)/.test(r.url()))failedAssets.push(`${r.status()} ${r.url()}`)});
   const {token}=await (await fetch('http://127.0.0.1:5169/api/auth/login',{method:'POST'})).json();
   await page.addInitScript(token=>{localStorage.setItem('access_token',token);localStorage.setItem('refresh_token','local-fixture')},token);
   for(const width of [360,390,768,1280]) {
@@ -55,6 +56,7 @@ const output=process.env.THEME_SCREENSHOTS;
    }
   }
   assert.deepEqual(errors,[],'browser runtime errors');
+  assert.deepEqual(failedAssets,[],'missing application assets');
   console.log('PASS no browser runtime errors; no production data or accounts used');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -43,3 +43,11 @@ THEME_PLAYWRIGHT=/path/to/node_modules/playwright bash tests/theme-preview.sh
 ## Before production
 
 Review the actual rendered mobile screenshots and accept the three pages. Complete any page-specific redesign of remaining sections in further commits, then validate the complete release in an isolated staging environment. Production publication, release-branch synchronization, Android packaging and verification of the Liara deployed SHA remain separate steps. No live deployment is claimed by this preview.
+
+## Fidelity correction after visual review
+
+The first code preview did not closely reproduce the approved mockup. The review identified missing Bootstrap CSS in the repository (App.razor referred to a nonexistent path), excessive vertical spacing, Unicode placeholder icons and an oversimplified header. The correction vendors Bootstrap RTL 5.3.3 with its MIT notice, adds native SVG statistics/navigation icons and architectural header artwork, and recalibrates header/profile, summary, entry and shortcut proportions. Browser checks now fail on missing CSS/JS/font/image assets as well as runtime errors. The workshop photograph remains the existing source asset rather than the slightly different AI-generated rendering in the concept. This is a remaining visible difference, not a claim of pixel-identical reproduction.
+
+Current actual application capture (synthetic isolated account):
+
+![Corrected mobile dashboard](previews/navy-dashboard.png)

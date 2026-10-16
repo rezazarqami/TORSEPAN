@@ -1,0 +1,21 @@
+<svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    @switch (Name)
+    {
+        case "clock":
+            <circle cx="12" cy="12" r="9"/><path d="M12 6v6h5"/>
+            break;
+        case "users":
+            <circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3zM16 4a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 5v3h-3"/>
+            break;
+        case "layers":
+            <path d="m12 3 10 6-10 6L2 9zM2 15l10 6 10-6"/>
+            break;
+        case "calendar":
+            <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 11h18M7 15h2M12 15h2M7 18h2"/>
+            break;
+        case "chart":
+            <path d="M4 21V11h4v10zm6 0V3h4v18zm6 0V7h4v14z"/>
+            break;
+    }
+</svg>
+@code { [Parameter] public string Name { get; set; } = ""; }
