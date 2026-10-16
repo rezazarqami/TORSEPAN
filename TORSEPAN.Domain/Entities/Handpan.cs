@@ -35,6 +35,22 @@ public class Handpan : Entity
     public string SerialNumber { get; private set; } = string.Empty;
 
     public Guid? ScaleId { get; private set; }
+    public int? NoteCount { get; private set; }
+    public void SetNoteCountFromBowls(Bowl top, Bowl bottom)
+    {
+        if (top.BowlType != BowlType.Top || bottom.BowlType != BowlType.Bottom)
+            throw new ArgumentException("A top and a bottom bowl are required.");
+        NoteCount = top.KnownNoteCount is int t && bottom.KnownNoteCount is int b ? checked(t + b) : null;
+    }
+    public string FormatScaleName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "تعیین نشده";
+        var parsed = ScaleFamilyNames.Parse(name);
+        if (parsed.FamilyName is null) return name;
+        var count = NoteCount ?? parsed.NoteCount;
+        return count.HasValue ? $"{parsed.FamilyName} {count}" : $"{parsed.FamilyName} — تعداد نت نامشخص";
+    }
+
 
     public Scale? Scale { get; private set; }
 

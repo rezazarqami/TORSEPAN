@@ -67,16 +67,19 @@ public sealed class CompleteBowlGlueCommandHandler
         if (actualScaleId == Guid.Empty)
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
         var scale = await _unitOfWork.Scales.GetByIdAsync(actualScaleId);
-        if (scale is null || !scale.IsActive)
+        if (scale is null || !scale.IsActive || ScaleFamilyNames.Parse(scale.Name) is not { FamilyName: not null, NoteCount: null })
             return Result<BowlDimpleDto>.Failure(ErrorCodes.Validation);
 
         if (_userContext.UserId is not Guid userId)
             throw new UnauthorizedAccessException();
 
+        if (top.KnownNoteCount is int topCount && bottom.KnownNoteCount is int bottomCount && (long)topCount + bottomCount > int.MaxValue)
+            return Result<BowlDimpleDto>.Failure(ErrorCodes.InvalidRequest);
         var assembly = new HandpanAssembly(top.Id, bottom.Id);
         await _unitOfWork.HandpanAssemblies.AddAsync(assembly);
 
         var handpan = new Handpan(assembly.Id, top.ProductionCode, actualScaleId);
+        handpan.SetNoteCountFromBowls(top, bottom);
         handpan.ChangeStatus(ProductionStatus.Waiting);
         handpan.ChangeStage(ProductionStage.GlueRoom);
         await _unitOfWork.Handpans.AddAsync(handpan);

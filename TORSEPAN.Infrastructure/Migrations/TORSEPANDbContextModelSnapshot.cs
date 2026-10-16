@@ -143,8 +143,14 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<Guid?>("LegacyScaleId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("MaterialId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("NoteCount")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("OfflineVersion")
                         .IsConcurrencyToken()
@@ -154,9 +160,6 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<int?>("NoteCount")
-                        .HasColumnType("integer");
 
                     b.Property<Guid?>("ScaleId")
                         .HasColumnType("uuid");
@@ -356,6 +359,9 @@ namespace TORSEPAN.Infrastructure.Migrations
 
                     b.Property<bool?>("IsExportSale")
                         .HasColumnType("boolean");
+
+                    b.Property<int?>("NoteCount")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("OfflineVersion")
                         .IsConcurrencyToken()
@@ -1216,10 +1222,16 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CanonicalScaleId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
+
+                    b.Property<int?>("LegacyNoteCount")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()

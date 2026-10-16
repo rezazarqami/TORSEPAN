@@ -27,7 +27,7 @@ public sealed class GetSalesQueryHandler(IUnitOfWork unitOfWork)
                 SoldAt = x.SoldAt ?? x.UpdatedAt ?? x.CreatedAt,
                 SoldBy = UserName(user),
                 MaterialName = x.Assembly.TopBowl.Material.Name,
-                ScaleName = x.Scale?.Name ?? "تعیین نشده",
+                ScaleName = x.FormatScaleName(x.Scale?.Name),
                 TopBowlCode = x.Assembly.TopBowl.ProductionCode,
                 BottomBowlCode = x.Assembly.BottomBowl.ProductionCode
             };

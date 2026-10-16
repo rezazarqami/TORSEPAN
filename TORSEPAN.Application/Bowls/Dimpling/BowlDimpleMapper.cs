@@ -10,6 +10,7 @@ internal static class BowlDimpleMapper
         ProductionCode = ProductionCodeNormalizer.Normalize(bowl.ProductionCode),
         BowlType = (int)bowl.BowlType,
         HasNotes = bowl.HasNotes,
+        NoteCount = bowl.KnownNoteCount,
         InstrumentType = (int)bowl.InstrumentType,
         Status = (int)bowl.Status,
         Stage = (int)bowl.Stage,

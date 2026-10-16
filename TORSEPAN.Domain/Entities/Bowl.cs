@@ -13,7 +13,9 @@ public class Bowl : Entity
     public InstrumentType InstrumentType { get; private set; }
     public Guid MaterialId { get; private set; }
     public Guid? ScaleId { get; private set; }
+    public Guid? LegacyScaleId { get; private set; }
     public int? NoteCount { get; private set; }
+    public int? KnownNoteCount => BowlType == BowlType.Bottom && !HasNotes ? 0 : NoteCount;
     public void SetNoteCount(int count)
     {
         if (count < 0 || (BowlType == BowlType.Top && count == 0)) throw new ArgumentOutOfRangeException(nameof(count));
@@ -80,21 +82,25 @@ public class Bowl : Entity
     public void SetScale(Guid scaleId)
     {
         if (scaleId == Guid.Empty) throw new ArgumentException("Scale is required.");
+        if (ScaleId != scaleId) LegacyScaleId = null;
         ScaleId = scaleId;
     }
     public void SetStandardScale(Guid scaleId)
     {
+        LegacyScaleId = null;
         SetScale(scaleId);
         IsCustomScale = false;
     }
     public void SetCustomScalePending()
     {
+        LegacyScaleId = null;
         ScaleId = null;
         IsCustomScale = true;
     }
-    public void ClearScale() => ScaleId = null;
+    public void ClearScale() { ScaleId = null; LegacyScaleId = null; }
     public void ResetScaleSelection()
     {
+        LegacyScaleId = null;
         ScaleId = null;
         IsCustomScale = false;
     }
