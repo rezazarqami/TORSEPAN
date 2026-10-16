@@ -6,6 +6,10 @@ public sealed class BowlDimpleDto
     public Guid? HandpanId { get; set; }
     public string ProductionCode { get; init; } = string.Empty;
     public int BowlType { get; init; }
+    public int? NoteCount { get; set; }
+    public int? TopNoteCount { get; set; }
+    public int? BottomNoteCount { get; set; }
+    public int? InstrumentNoteCount { get; set; }
     public bool HasNotes { get; init; }
     public int InstrumentType { get; init; }
     public int Status { get; init; }

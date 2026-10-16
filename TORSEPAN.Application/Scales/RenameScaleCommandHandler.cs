@@ -10,7 +10,7 @@ public sealed class RenameScaleCommandHandler(IUnitOfWork unitOfWork) : IRequest
     {
         var scale = await unitOfWork.Scales.GetByIdAsync(request.Id)
             ?? throw new InvalidOperationException("Scale پیدا نشد.");
-        var name = request.Name.Trim();
+        var name = ScaleFamilyNames.Parse(request.Name).FamilyName ?? request.Name.Trim();
         if (string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("نام اسکیل الزامی است.");
         if (name.Length > 100) throw new InvalidOperationException("نام اسکیل نباید بیشتر از ۱۰۰ کاراکتر باشد.");
         if ((await unitOfWork.Scales.GetAllAsync()).Any(x => x.Id != request.Id && Scale.NameKey(x.Name) == Scale.NameKey(name)))

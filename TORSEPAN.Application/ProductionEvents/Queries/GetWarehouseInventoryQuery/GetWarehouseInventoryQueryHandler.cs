@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Enums;
 
@@ -90,7 +90,7 @@ public sealed class GetWarehouseInventoryQueryHandler
                 TopBowlCode = x.Assembly.TopBowl.ProductionCode,
                 BottomBowlCode = x.Assembly.BottomBowl.ProductionCode,
                 MaterialName = x.Assembly.TopBowl.Material.Name,
-                ScaleName = x.Scale?.Name ?? "تعیین نشده",
+                ScaleName = x.FormatScaleName(x.Scale?.Name),
                 CreatedAt = x.CreatedAt,
                 WarehouseEntryDate = x.UpdatedAt,
                 Operations = operations,

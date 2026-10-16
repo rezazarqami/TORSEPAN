@@ -113,6 +113,7 @@
                     }
                 </div>
                 <div class="passport-info-line passport-scale"><span lang="en">Scale:</span><strong dir="auto">@_bowl.ScaleName</strong></div>
+                @if (_bowl.IsHandpanScale) { <div class="passport-info-line"><span>نت رو: @(_bowl.TopNoteCount?.ToString() ?? "نامشخص") · نت زیر: @(_bowl.BottomNoteCount?.ToString() ?? "نامشخص")</span></div> }
                 @if(!string.IsNullOrWhiteSpace(_bowl.OrderCustomerName))
                 {
                     <div class="passport-info-line passport-order"><strong>سفارش @_bowl.OrderCustomerName</strong></div>
@@ -462,7 +463,7 @@
     private Guid _scaleId;
     private int? _noteCount;
     private readonly List<ScaleDto> _scales = [];
-    private IEnumerable<ScaleDto> GlueScales => _scales;
+    private IEnumerable<ScaleDto> GlueScales => _scales.Where(x => TORSEPAN.Domain.Entities.ScaleFamilyNames.Parse(x.Name) is { FamilyName: not null, NoteCount: null });
     private readonly List<MaterialDto> _packagingMaterials = [];
     private IEnumerable<MaterialDto> CasePackagingMaterials => _packagingMaterials.Where(x => IsExclusiveCase(x.Name)).OrderBy(x => CaseOrder(x.Name)).ThenBy(x => x.Name);
     private IEnumerable<MaterialDto> OtherPackagingMaterials => _packagingMaterials.Where(x => !IsExclusiveCase(x.Name)).OrderBy(x => AccessoryOrder(x.Name)).ThenBy(x => x.Name);
@@ -679,20 +680,28 @@
         });
     }
 
-    private Task CompleteGlueAsync()
+    private async Task CompleteGlueAsync()
     {
         if (string.IsNullOrWhiteSpace(_pairedProductionCode) || _scaleId == Guid.Empty)
         {
             _error = "کد کاسه مکمل را وارد کنید.";
-            return Task.CompletedTask;
+            return;
         }
 
+        DimpleBowlDto? paired;
+        try { paired = await BowlService.GetForDimplingAsync(_pairedProductionCode); }
+        catch { _error = "بازیابی اطلاعات کاسه مکمل ممکن نشد."; return; }
+        if (paired is null || paired.Stage != 10 || paired.BowlType == _bowl?.BowlType)
+        { _error = "کاسه مکمل باید از نوع مقابل و آمادهٔ چسب باشد."; return; }
+        var topNotes = _bowl?.BowlType == 1 ? _bowl.NoteCount : paired.NoteCount;
+        var bottomNotes = _bowl?.BowlType == 2 ? _bowl.NoteCount : paired.NoteCount;
+        var totalNotes = topNotes.HasValue && bottomNotes.HasValue ? (long?)topNotes.Value + bottomNotes.Value : null;
         var topCode = _bowl?.BowlType == 1 ? _productionCode : _pairedProductionCode;
         var bottomCode = _bowl?.BowlType == 1 ? _pairedProductionCode : _productionCode;
         ShowOperationConfirmation("چسب انجام شد",
-            [("کد کاسه بالا", topCode), ("کد کاسه پایین", bottomCode), ("Scale ساز", SelectedScaleName())],
+            [("کد کاسه بالا", topCode), ("کد کاسه پایین", bottomCode), ("اسکیل ساز", SelectedScaleName()), ("نت رو", topNotes?.ToString() ?? "نامشخص"), ("نت زیر", bottomNotes?.ToString() ?? "نامشخص"), ("مجموع نت ساز", totalNotes?.ToString() ?? "نامشخص")],
             CompleteGlueConfirmedAsync);
-        return Task.CompletedTask;
+        return;
     }
 
     private async Task CompleteGlueConfirmedAsync()

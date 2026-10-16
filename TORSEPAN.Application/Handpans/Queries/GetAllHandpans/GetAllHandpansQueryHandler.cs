@@ -75,7 +75,7 @@ public sealed class GetAllHandpansQueryHandler
                 x.Assembly.TopBowl.ProductionCode,
                 x.Assembly.BottomBowl.ProductionCode,
                 x.Assembly.TopBowl.Material.Name,
-                x.Scale?.Name ?? "تعیین نشده",
+                x.FormatScaleName(x.Scale?.Name),
                 (int)x.Status,
                 (int)x.Stage,
                 x.CreatedAt,

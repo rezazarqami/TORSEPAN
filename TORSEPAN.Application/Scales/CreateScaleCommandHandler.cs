@@ -13,17 +13,19 @@ public sealed class CreateScaleCommandHandler : IRequestHandler<CreateScaleComma
 
     public async Task<Guid> Handle(CreateScaleCommand request, CancellationToken cancellationToken)
     {
-        var name = request.Name.Trim();
+        var name = ScaleFamilyNames.Parse(request.Name).FamilyName ?? request.Name.Trim();
         var usage = ScaleUsage.All;
         if (usage == ScaleUsage.None || (usage & ~ScaleUsage.All) != 0)
             throw new InvalidOperationException("دسته‌بندی Scale معتبر نیست.");
         if (string.IsNullOrWhiteSpace(name) || name.Length > 100)
             throw new InvalidOperationException("نام اسکیل باید بین ۱ و ۱۰۰ کاراکتر باشد.");
         var existing = (await _unitOfWork.Scales.GetAllAsync())
-            .Where(x => Scale.NameKey(x.Name) == Scale.NameKey(name))
+            .Where(x => x.CanonicalScaleId == null && ScaleFamilyNames.Parse(x.Name) is var parsed && parsed.NoteCount == null &&
+                ScaleFamilyNames.Key(parsed.FamilyName ?? x.Name) == ScaleFamilyNames.Key(name))
             .OrderByDescending(x => x.IsActive).ThenBy(x => x.Id).FirstOrDefault();
         if (existing is not null)
         {
+            existing = await _unitOfWork.Scales.GetByIdAsync(existing.Id) ?? existing;
             existing.Activate();
             existing.AddUsage(usage);
             _unitOfWork.Scales.Update(existing);

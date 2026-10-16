@@ -58,9 +58,11 @@ public sealed class GetBowlForDimpleQueryHandler
                 if (bowl.Stage >= ProductionStage.GlueRoom && handpan is not null)
                 {
                     dto.IsHandpanScale = true;
-                    dto.ScaleName = handpan.ScaleId.HasValue
-                        ? (await _unitOfWork.Scales.GetByIdAsync(handpan.ScaleId.Value))?.Name ?? "نامشخص"
-                        : "نامشخص";
+                    dto.TopNoteCount = topBowl?.KnownNoteCount;
+                    dto.BottomNoteCount = bottomBowl?.KnownNoteCount;
+                    dto.InstrumentNoteCount = handpan.NoteCount;
+                    dto.ScaleName = handpan.FormatScaleName(handpan.ScaleId.HasValue
+                        ? (await _unitOfWork.Scales.GetByIdAsync(handpan.ScaleId.Value))?.Name : null);
                 }
             }
         }
