@@ -31,6 +31,12 @@ const output=process.env.THEME_SCREENSHOTS;
      await page.locator('.content').evaluate(n=>n.scrollTop=0);
     }
     if(name==='dashboard') {
+     if(width<=768) {
+      const overlap=await page.evaluate(()=>document.querySelector('.workshop-panorama').getBoundingClientRect().bottom-document.querySelector('.dashboard-hero').getBoundingClientRect().top);
+      assert(overlap>=28 && overlap<=34,`summary must overlap photograph by about 31px, got ${overlap}`);
+      const header=await page.locator('.topbar-right').evaluate(n=>({display:getComputedStyle(n).display,columns:getComputedStyle(n).gridTemplateColumns,divider:getComputedStyle(n.querySelector('.user-box-clean')).borderInlineEndWidth}));
+      assert.equal(header.display,'grid');assert.equal(header.divider,'1px');
+     }
      const tabs=page.locator('.dashboard-tabs button');await tabs.nth(1).click();await page.locator('.calendar-day').first().waitFor();await page.locator('.calendar-day').nth(4).click();
      await tabs.nth(2).click();await page.getByText('نمای ماهانه',{exact:true}).waitFor();await tabs.first().click();await page.locator('.queue-table').waitFor();
     }
