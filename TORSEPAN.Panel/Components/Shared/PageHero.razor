@@ -1,0 +1,18 @@
+<section class="theme-hero @CssClass" aria-labelledby="@HeadingId">
+    @if (!string.IsNullOrEmpty(Eyebrow)) { <span class="theme-kicker" dir="ltr">@Eyebrow</span> }
+    @if (BrandMark) { <img class="theme-hero-mark" src="/images/brand/torsepan-mark-new.webp" alt="" /> }
+    @if (Icon is not null) { <div class="theme-hero-icon" aria-hidden="true">@Icon</div> }
+    <h1 id="@HeadingId">@Title</h1>
+    @if (!string.IsNullOrEmpty(Description)) { <p>@Description</p> }
+    @ChildContent
+</section>
+@code {
+    [Parameter] public string? CssClass { get; set; }
+    [Parameter] public string HeadingId { get; set; } = "page-heading";
+    [Parameter] public string? Eyebrow { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public bool BrandMark { get; set; }
+    [Parameter] public RenderFragment? Icon { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

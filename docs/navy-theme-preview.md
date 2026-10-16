@@ -1,0 +1,45 @@
+# Navy and champagne preview — 2026-10-17
+
+The approved mobile design is now implemented as shared panel code. This branch is for review; it does not change the production deployment or production database.
+
+## Scope
+
+- `theme.css` defines shared navy/champagne colors, surfaces, typography, spacing, controls and responsive layout. It loads after legacy component styles and is scoped to the authenticated shell.
+- `PageHero` shares the dashboard, order and export summary treatment. Counts come from existing services; preview numbers are never hardcoded into application code.
+- The header retains the original logo and authenticated user information, home link and live message count. PWA installation is available in the navigation drawer.
+- The 25px mobile menu rail occupies the full viewport height. Header, photograph and cards reserve its width. The content column scrolls independently; the drawer can be closed from the same rail or backdrop.
+- Dashboard uses the existing workshop asset from `deploy-panel`, production code entry, queues, calendar and monthly performance tabs. Orders and export keep their event handlers, validation, permission checks and service calls.
+- The latest scale tabs and compact shape/tune presentation from `deploy-panel` are preserved, so this preview does not revert those recent UI changes when based on `master`.
+- The native Android mode controls are hidden in the new header presentation. Their native implementation is retained; relocation is deferred as requested. This branch does not build a new Android package.
+
+## Baselines
+
+Prepared from master `607d490`, with the selected existing panel UI work from deploy-panel `20d599d`. deploy-api `53d017c` was inspected; this change does not modify API, database, authentication or deployment configuration. Release branches are not reset or merged.
+
+## Validation
+
+Local Release build of the panel: passed. Browser checks render the actual interactive Blazor application against a localhost-only fixture, with an isolated synthetic account and synthetic data:
+
+- Widths 360, 390, 768 and 1280; dashboard, orders and export.
+- No horizontal overflow in shared header, hero, tabs, destination grid or production entry.
+- Fixed rail geometry while content scrolls; drawer open/close and installation entry.
+- Dashboard calendar day and view switching; order expansion, editor row add/remove and draft view.
+- Export destination switching, empty search, selection and shipment dialog cancellation.
+- No browser runtime errors.
+
+Existing order-composition and export-workflow smoke suites passed locally. An additional legacy `node tests/mobile-regressions.cjs` check passes its camera/reconnection checks but fails its existing WarehouseList CSS assertion (`warehouse-detail...100vw`). That stylesheet is byte-identical to master and is not modified here; this pre-existing warehouse-layout gate must be resolved before a production release. The PostgreSQL multi-session concurrency case requires `ORDER_TEST_DB`; it is not covered by the isolated SQLite fixtures.
+
+## Reproduce
+
+Build with .NET 10, install Playwright outside the checkout, and run:
+
+```sh
+dotnet build TORSEPAN.Panel -c Release -m:1
+THEME_PLAYWRIGHT=/path/to/node_modules/playwright bash tests/theme-preview.sh
+```
+
+`THEME_SCREENSHOTS=/path/to/output` enables mobile screenshots. `THEME_CHROMIUM` and `THEME_CHROMIUM_ARGS` optionally choose an installed browser. The dedicated GitHub Actions workflow stores screenshots as a review artifact. Fixtures and test runner are not shipped with the panel.
+
+## Before production
+
+Review the actual rendered mobile screenshots and accept the three pages. Complete any page-specific redesign of remaining sections in further commits, then validate the complete release in an isolated staging environment. Production publication, release-branch synchronization, Android packaging and verification of the Liara deployed SHA remain separate steps. No live deployment is claimed by this preview.

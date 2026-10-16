@@ -5,13 +5,10 @@
 @inject IJSRuntime JS
 
 <PageTitle>انبار صادراتی</PageTitle>
-<section class="warehouse-hero export-hero">
-    <span class="hero-kicker">EXPORT INVENTORY</span>
-    <div class="hero-icon" aria-hidden="true">✈</div>
-    <h1>انبار صادراتی</h1>
-    <p>مدیریت یکپارچه سازها و کاسه‌های آماده ارسال در ایران و انبارهای خارجی</p>
-    <div class="hero-stats"><span><strong>@_items.Count</strong> موجودی کل</span><i></i><span><strong>@Warehouses.Length</strong> مقصد فعال</span></div>
-</section>
+<PageHero CssClass="warehouse-hero export-hero" Eyebrow="EXPORT INVENTORY" Title="انبار صادراتی" Description="مدیریت یکپارچه سازها و کاسه‌های آماده ارسال در ایران و انبارهای خارجی">
+    <Icon><svg viewBox="0 0 24 24"><path d="m21 3-7 18-3-8-8-3Z M11 13 21 3"/></svg></Icon>
+    <ChildContent><div class="theme-stats"><span><strong>@_items.Count</strong> موجودی کل</span><i aria-hidden="true"></i><span><strong>@Warehouses.Length</strong> مقصد فعال</span></div></ChildContent>
+</PageHero>
 
 <div class="warehouse-dashboard">
     @foreach(var warehouse in Warehouses)
