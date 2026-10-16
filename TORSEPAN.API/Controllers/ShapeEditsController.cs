@@ -9,7 +9,7 @@ using TORSEPAN.Domain.Enums;
 using TORSEPAN.Infrastructure.Persistence;
 namespace TORSEPAN.API.Controllers;
 
-[ApiController, Route("api/shape-edits"), Authorize(Roles="Administrator")]
+[ApiController, Route("api/shape-edits"), Authorize(Roles="Administrator,Shaper")]
 public sealed class ShapeEditsController(TORSEPANDbContext db):ControllerBase
 {
     [HttpGet("{code}")]

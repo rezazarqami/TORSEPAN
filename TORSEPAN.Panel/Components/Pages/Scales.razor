@@ -42,7 +42,7 @@ else
     <section class="scale-card">
         <header><h2>اسکیل جدید</h2><p>نام پایهٔ اسکیل را بدون تعداد نت ثبت کنید؛ تعداد نت در شیپ تعیین و مجموع ساز در چسب محاسبه می‌شود.</p></header>
         <div class="scale-create">
-            <label for="new-scale-name">نام اسکیل<input id="new-scale-name" class="form-control" maxlength="100" placeholder="مثلاً ره مینور" @bind="_name" @bind:event="oninput" disabled="@_busy" /></label>
+            <label for="new-scale-name">نام اسکیل<input id="new-scale-name" class="form-control" maxlength="100" @bind="_name" @bind:event="oninput" disabled="@_busy" /></label>
             <button type="button" class="btn btn-primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_name))" @onclick="CreateAsync">ثبت اسکیل</button>
         </div>
     </section>
