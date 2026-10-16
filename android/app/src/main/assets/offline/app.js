@@ -12,6 +12,7 @@ function renderPassport(saved={}){
  const snapshot=state.snapshot,record=snapshot.passports.records.find(x=>x.code===(b.instrumentCode||b.code));
  const baseRecord=record||snapshot.passports.records.find(x=>x.code===b.code);
  let scale=snapshot.scales.find(x=>x.id===b.instrumentScaleId)?.name||(b.instrumentCode?baseRecord?.scale:snapshot.scales.find(x=>x.id===b.scaleId)?.name)||baseRecord?.scale||'ثبت نشده';
+ if(b.instrumentCode&&b.instrumentScaleId){const name=snapshot.scales.find(x=>x.id===b.instrumentScaleId)?.name;if(name)scale=b.instrumentNoteCount!=null?name+' '+b.instrumentNoteCount:name+' — تعداد نت نامشخص';}
  if(!b.instrumentCode&&b.type===2&&b.noteCount==null){const name=snapshot.scales.find(x=>x.id===b.scaleId)?.name;if(name)scale='زیر '+name+' — تعداد نت نامشخص';}
  if(!b.instrumentCode&&b.noteCount!=null){const name=snapshot.scales.find(x=>x.id===b.scaleId)?.name;scale=name?(b.type===1?'روی ':'زیر ')+name+' '+b.noteCount+' نوت':b.noteCount+' نت '+(b.type===1?'رو':'زیر');}
  const pair=bowls.find(x=>x.code===b.pairCode); const kind=b.instrumentCode?'ساز':b.type===1?'کاسه رو':'کاسه زیر';

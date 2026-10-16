@@ -26,12 +26,15 @@
       }
       if(!stage){b.localHistory.push(row);continue;}
 
-      if(action==='shape'){b.scaleId=op.scaleId||null;b.noteCount=op.noteCount;b.isCustom=false;}
+      if(action==='shape'){b.scaleId=op.scaleId||null;b.legacyScaleId=null;b.noteCount=op.noteCount;b.isCustom=false;}
       if(action==='glue') {
         const pair=bowls.find(x=>x.code===op.pairCode); if(!pair)continue;
         b.pairCode=pair.code;pair.pairCode=b.code;
         b.instrumentCode=pair.instrumentCode=b.type===1?b.code:pair.code;
         b.instrumentScaleId=pair.instrumentScaleId=op.scaleId;
+        const top=b.type===1?b:pair,bottom=b.type===2?b:pair;
+        const topNotes=top.noteCount??null,bottomNotes=bottom.hasNotes===false?0:(bottom.noteCount??null);
+        b.instrumentNoteCount=pair.instrumentNoteCount=topNotes!=null&&bottomNotes!=null?topNotes+bottomNotes:null;
       }
       const targets=['glue','release','finalTune','qc','packaging','sell'].includes(action)?bowls.filter(x=>x.code===b.code||x.code===b.pairCode):[b];
       for(const target of targets) { target.stage=stage;target.stageName=labels[stage];target.localHistory.push(row); }

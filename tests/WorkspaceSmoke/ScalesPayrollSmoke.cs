@@ -67,7 +67,7 @@ internal static class ScalesPayrollSmoke
         Check(warehouse.Single(x => x.HandpanId == handpans[0].Id).ScaleName == "12 notes (9+3)"
             && sales.Single(x => x.HandpanId == handpans[1].Id).ScaleName == "12 notes (9+3)",
             "renaming the existing scale updates both pre-existing warehouse and sold instruments");
-        Check(warehouse.Single(x => x.HandpanId == handpans[2].Id).ScaleName == "Unrelated", "unrelated instrument scale remains unchanged");
+        Check(warehouse.Single(x => x.HandpanId == handpans[2].Id).ScaleName == "Unrelated — تعداد نت نامشخص", "unrelated instrument scale remains unchanged");
         Check((await db.Bowls.AsNoTracking().Include(x => x.Scale).ToListAsync()).All(x => x.Scale!.Name == "12 notes (9+3)"),
             "all linked top and bottom bowls display the renamed scale");
         try { await new RenameScaleCommandHandler(unit).Handle(new(scale.Id, "Unrelated"), default); throw new Exception("Duplicate rename accepted"); }

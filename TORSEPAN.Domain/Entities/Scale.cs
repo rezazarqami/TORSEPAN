@@ -20,6 +20,8 @@ public sealed class Scale
         name.Trim().Replace('ي', 'ی').Replace('ك', 'ک'), @"\s+", " ").ToLowerInvariant();
 
     public Guid Id { get; private set; }
+    public Guid? CanonicalScaleId { get; private set; }
+    public int? LegacyNoteCount { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
     public ScaleUsage Usage { get; private set; } = ScaleUsage.All;

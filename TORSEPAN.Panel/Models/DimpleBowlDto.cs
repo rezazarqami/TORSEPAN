@@ -8,6 +8,10 @@ public sealed class DimpleBowlDto
     public string ProductionCode { get; set; } = string.Empty;
     public int BowlType { get; set; }
     public bool HasNotes { get; set; }
+    public int? NoteCount { get; set; }
+    public int? TopNoteCount { get; set; }
+    public int? BottomNoteCount { get; set; }
+    public int? InstrumentNoteCount { get; set; }
     public int InstrumentType { get; set; }
     public int Status { get; set; }
     public int Stage { get; set; }

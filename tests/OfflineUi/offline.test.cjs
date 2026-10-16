@@ -3,7 +3,7 @@ const {JSDOM,ResourceLoader,VirtualConsole}=require('jsdom');
 const root=path.resolve(__dirname,'../../android/app/src/main/assets/offline');
 class BundledAssets extends ResourceLoader{fetch(url){const name=new URL(url).pathname.split('/').pop();if(!['app.js','model.js','style.css','workspace.js'].includes(name))throw Error('unexpected network access '+url);return Promise.resolve(fs.readFileSync(path.join(root,name)));}}
 async function fixture(){
- const errors=[],snapshot={schema:1,deviceId:'fixture',ownerId:'owner',capturedUtc:new Date().toISOString(),bowls:[{code:'855',type:1,hasNotes:true,stage:2,stageName:'در انتظار دیمپل',version:'v1',pairCode:null},{code:'196',type:2,hasNotes:false,stage:2,stageName:'در انتظار دیمپل',version:'v2',pairCode:null}],users:[{id:'actor',name:'همکار آزمایشی',roles:['Administrator']}],scales:[{id:'scale',name:'D Kurd 14',usage:63}],passports:{records:[{code:'855',design:'ساده',scale:'ثبت نشده',operations:[]},{code:'196',design:'ساده',scale:'ثبت نشده',operations:[]}]}};
+ const errors=[],snapshot={schema:1,deviceId:'fixture',ownerId:'owner',capturedUtc:new Date().toISOString(),bowls:[{code:'855',type:1,hasNotes:true,stage:2,stageName:'در انتظار دیمپل',version:'v1',pairCode:null},{code:'196',type:2,hasNotes:false,stage:2,stageName:'در انتظار دیمپل',version:'v2',pairCode:null}],users:[{id:'actor',name:'همکار آزمایشی',roles:['Administrator']}],scales:[{id:'scale',name:'D Kurd',usage:63}],passports:{records:[{code:'855',design:'ساده',scale:'ثبت نشده',operations:[]},{code:'196',design:'ساده',scale:'ثبت نشده',operations:[]}]}};
  snapshot.warehouses=[{id:1,name:'Economy'},{id:2,name:'Studio'},{id:3,name:'Signature'}];
  const state={snapshot,operations:[],locked:false,message:'اطلاعات آزمایشی'};
  const console=new VirtualConsole();console.on('jsdomError',e=>errors.push(e.message));
@@ -106,4 +106,13 @@ test('named bottom scale with unknown count never displays the instrument total 
  const identity=dom.window.document.querySelector('.identity').textContent;
  assert.ok(identity.includes('D aegean 21'));assert.ok(identity.includes('تعداد نت نامشخص'));assert.ok(!identity.includes('21 نوت'));
  assert.deepEqual(errors,[]);dom.window.close();
+});
+
+
+test('gluing chooses only a family and displays the derived top-plus-bottom note total',async()=>{
+ const {dom,state,$,input,submit,errors}=await fixture();
+ Object.assign(state.snapshot.bowls[0],{stage:10,noteCount:10});Object.assign(state.snapshot.bowls[1],{stage:10,noteCount:8,hasNotes:true});
+ dom.window.refreshOffline();input('search','855');$('performerId').value='actor';$('pairCode').value='196';$('pairCode').dispatchEvent(new dom.window.Event('change'));$('scaleId').value='scale';submit();
+ assert.equal(state.operations[0].body.action,'glue');assert.ok(!Object.hasOwn(state.operations[0].body,'noteCount'));
+ assert.match(dom.window.document.querySelector('.identity').textContent,/D Kurd 18/);assert.deepEqual(errors,[]);dom.window.close();
 });

@@ -129,7 +129,7 @@ internal static class OrdersSmoke
         db.Add(assembly); db.Add(handpan); await db.SaveChangesAsync();
         var afterAssembly = (await orders.GetAsync(default)).Single(x => x.Id == id);
         Check(afterAssembly.ProductionStage == "در انتظار فاین‌تیون" && order.HandpanId is null, "pre-assembly code automatically follows the resulting handpan");
-        Check(afterAssembly.Lines[0].Instruments[0].ScaleName == scale.Name, "overview keeps actual instrument scale after assembly");
+        Check(afterAssembly.Lines[0].Instruments[0].ScaleName == handpan.FormatScaleName(scale.Name), "overview keeps actual instrument scale after assembly");
         Check(CustomerOrderService.StageTitle(ProductionStage.Sold) == "ارسال‌شده", "sold instruments are labelled dispatched only in order presentation");
         var fractionalMessage = OrderReminderProcessor.BuildMessage(order, 1, order.DueAtUtc.AddDays(-4.35));
         Check(fractionalMessage.Contains("زمان باقی‌مانده: 5 روز") && !System.Text.RegularExpressions.Regex.IsMatch(fractionalMessage, @"\d+[.,]\d+ روز"), "Telegram days are whole numbers and a partial remaining day rounds up");
