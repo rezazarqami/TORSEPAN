@@ -58,10 +58,18 @@ A second review compares the approved 893px-wide application area with the actua
 
 `tests/theme-reference-capture.cjs` captures the actual interactive app at 390×670 CSS pixels with a 3× device scale (1170×2010 output). Run through `tests/theme-preview.sh` with `THEME_BROWSER_SCRIPT=tests/theme-reference-capture.cjs` and `THEME_REFERENCE_CONTENT=1`. That opt-in fixture copies the reference's display name, role label and 262/12 figures into synthetic local data; it does not authenticate a real user or read production data. Default regression fixtures retain their own test identity. Full-resolution screenshots are delivered separately; the checked-in preview remains a current normal-resolution app capture.
 
-The screenshot comparison still shows differences in the workshop photograph and the decorative architectural artwork. Functional checks and this review do not assert pixel-identical reproduction or authorize production publication.
+The screenshot comparison still shows differences in the workshop photograph. The architectural corner is now extracted from the supplied approved reference, as recorded below. Functional checks and this review do not assert pixel-identical reproduction or authorize production publication.
 
 ## Header placement and actual photo overlap correction
 
 The brand group is aligned to the reference rather than the right edge of the available header. At a 390px viewport, the title starts at x=122 CSS px and the profile icon at x=302 CSS px. The toolbar now has explicit profile/home/message columns and both vertical dividers. The user region is inset to reproduce the reference composition without changing account data or routes.
 
 The workshop photograph is extended 28px behind the summary card, and the card overlaps it by 31px. The card's overall vertical position is retained; the visible strips of photograph beside its upper corners establish genuine layering instead of placing the card after the image. Browser checks assert a 28–34px intersection and both toolbar divider/grid behavior at mobile widths, in addition to existing functional checks. Actual tested widths: 360, 390, 768 and 1280px. Panel Release build and the browser suite passed.
+
+## Approved reference artwork and deeper navy
+
+The architectural corner now uses actual pixels cropped from the user-supplied `1000029148(2).png` reference (source rectangle x=82..355, y=0..174), rather than the hand-drawn SVG approximation. Only its terminal right/bottom edges are feathered into the header; no text, logo, toolbar or controls are baked into this asset. The corner keeps its aspect ratio and narrows on small viewports to stay clear of the brand. The original silver logo and live controls remain separate.
+
+Shared navy tokens are now #031e43 / #00152f / #073b73. Header, toolbar, hero panels, menu, entry buttons, selected warehouse/order tabs and dashboard shortcuts use deeper saturated blue-navy gradients. Reference navy samples include #011a39 in the header and #001a35 in the summary panel. Existing photo/card overlap, typography and fixed 25px rail geometry are retained.
+
+Validation: Panel Release build passed (three existing application warnings). Actual Blazor browser checks passed for dashboard, orders and export at 360, 390, 768 and 1280px, including the new corner-versus-brand clearance assertion, photo/card overlap, menu scrolling behavior and existing route interactions. No runtime or missing asset errors. The updated 1170×2010 capture uses isolated synthetic data. This prepares the preview branch for review; production deployment is not performed.

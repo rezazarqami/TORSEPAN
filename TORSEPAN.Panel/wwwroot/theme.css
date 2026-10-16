@@ -1,8 +1,8 @@
 /* Approved navy/champagne theme. Loaded after legacy and component styles. */
 :root {
-    --tp-navy: #0c2340;
-    --tp-navy-deep: #061a31;
-    --tp-blue: #163e63;
+    --tp-navy: #031e43;
+    --tp-navy-deep: #00152f;
+    --tp-blue: #073b73;
     --tp-gold: #f8e5ac;
     --tp-paper: #fff;
     --tp-canvas: #edf4fc;
@@ -202,22 +202,22 @@ body .theme-shell { font-family: "Torsepan UI", Tahoma, sans-serif; }
 body .theme-shell *, body .theme-shell *::before, body .theme-shell *::after { box-sizing: border-box; }
 body .theme-shell .theme-icon { display: block; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 body .theme-shell > .main > .topbar {
-    background: radial-gradient(ellipse at 20% -10%, #06417688, transparent 65%), linear-gradient(110deg, #032c55, #02182f 85%);
+    background: radial-gradient(ellipse at 15% 0, #06458b66, transparent 60%), linear-gradient(110deg, #022b60, #00142f 85%);
 }
 body .theme-shell > .main > .topbar::before {
-    inset: 0 auto auto 0; width: 43%; height: 100%; border: 0; border-radius: 0; opacity: 1;
-    background: url('/images/brand/header-architecture.svg') left top / 100% 100% no-repeat;
+    inset: 0 auto auto 0; width: min(32.5%, calc(100% - 248px)); height: auto; aspect-ratio: 273 / 174; border: 0; border-radius: 0; opacity: 1;
+    background: url('/images/brand/header-architecture.png') left top / 100% 100% no-repeat;
 }
 body .theme-shell .topbar .page-title { font-family: inherit; }
 body .theme-shell .topbar .topbar-right {
-    background: linear-gradient(105deg, #003155aa, #02182fbf); border-color: #a9c0e1b3;
+    background: linear-gradient(105deg, #002755ed, #00132ff5); border-color: #a9c0e1b3;
     box-shadow: inset 0 1px 0 #ffffff12;
 }
 body .theme-shell .topbar .user-name, body .theme-shell .topbar .user-role { white-space: normal; overflow-wrap: anywhere; }
 body .theme-shell .theme-hero {
     isolation: isolate; overflow: visible;
     border: 1px solid #b2e6ff;
-    background: radial-gradient(ellipse at 0 0, #146d9e5c, transparent 50%), linear-gradient(115deg, #073759, #021e3c 77%);
+    background: radial-gradient(ellipse at 0 0, #0754a052, transparent 50%), linear-gradient(115deg, #032d5c, #001733 77%);
     box-shadow: 0 0 2px #efffff, 0 0 8px #40b8ff88, 0 6px 23px #2b9dff4d, inset 0 0 14px #63bfff1c;
 }
 body .theme-shell .theme-hero::before {
@@ -241,13 +241,13 @@ body .theme-shell .production-entry-card { margin: 0 0 8px !important; }
 body .theme-shell .entry-accent { display: block; width: 27px; height: 3px; margin: 0 auto 7px; background: #1687dd; border-radius: 9px; box-shadow: 0 1px 3px #1b87d93b; }
 body .theme-shell .production-entry-card .input-group { margin: 0 auto; gap: 0; max-width: none; }
 body .theme-shell .production-entry-card .input-group .btn {
-    background: radial-gradient(ellipse at 0 0, #14679e, transparent 75%), linear-gradient(120deg, #053c70, #032447);
+    background: radial-gradient(ellipse at 0 0, #0756a5aa, transparent 75%), linear-gradient(120deg, #033871, #001b40);
     color: white; border: 1px solid #236393; box-shadow: 0 7px 14px #0a355829, inset 0 1px 1px #72c7ff33;
 }
 body .theme-shell .production-entry-card .input-group .form-control { text-align: right; }
 body .theme-shell .dashboard-tab { font-family: inherit; }
 body .theme-shell .dashboard-tab.active {
-    background: radial-gradient(ellipse at 0 0, #155d8f55, transparent 70%), linear-gradient(125deg, #0b4675, #05274e);
+    background: radial-gradient(ellipse at 0 0, #0a51a055, transparent 70%), linear-gradient(125deg, #04376d, #001a3e);
     border-color: #2d6391; box-shadow: inset 0 1px 1px #86c4fb26, 0 6px 13px #0d41681a;
 }
 body .theme-shell .dashboard-tab span { color: #071d52; }
@@ -322,7 +322,7 @@ body .theme-shell .theme-hero::after { background: radial-gradient(ellipse 19px 
     body .theme-shell .topbar .topbar-right {
         display: grid; grid-template-columns: minmax(0,1fr) 60px 78px;
         min-height: 48px; padding: 5px 0; gap: 0;
-        background: linear-gradient(105deg, #063052f2, #021a35f5);
+        background: linear-gradient(105deg, #022853f5, #00142ff8);
     }
     body .theme-shell .topbar .user-box-clean {
         align-self: stretch; height: 100%; min-width: 0; padding-inline: 38px 9px; gap: 9px;

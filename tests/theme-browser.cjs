@@ -23,6 +23,11 @@ const output=process.env.THEME_SCREENSHOTS;
     assert.equal(await page.locator('.topbar .header-notification a[href="/notifications"]').count(),1);
     assert.equal(await page.locator('.topbar').getByText('آنلاین',{exact:true}).count(),0);
     if(width<=768) {
+     const corner=await page.locator('.topbar').evaluate(n=>{
+      const art=getComputedStyle(n,'::before'),brand=n.querySelector('.topbar-title-block').getBoundingClientRect();
+      return {right:n.getBoundingClientRect().left+parseFloat(art.width),brandLeft:brand.left};
+     });
+     assert(corner.right<=corner.brandLeft-2,`${name}: architectural corner intrudes into brand at ${width}px`);
      const rail=page.locator('.mobile-nav-rail');const before=await rail.boundingBox();assert.equal(before.width,25);assert.equal(before.y,0);assert.equal(before.height,844);
      await page.locator('.content').evaluate(n=>{n.style.scrollBehavior='auto';n.scrollTop=n.scrollHeight});assert.deepEqual(await rail.boundingBox(),before,'rail moves during scroll');
      await rail.click();await page.locator('.sidebar.mobile-open').waitFor();assert.equal(await rail.getAttribute('aria-expanded'),'true');
