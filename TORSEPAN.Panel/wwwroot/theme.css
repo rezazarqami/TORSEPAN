@@ -316,8 +316,8 @@ body .theme-shell .theme-hero::after { background: radial-gradient(ellipse 19px 
 @media(max-width:768px) { body .theme-shell .dashboard-hero h1 { font-size: 16.7px; letter-spacing: 1.15px; } }
 /* Match the reference header alignment and preserve real photograph/card overlap. */
 @media(max-width:768px) {
-    body .layout.theme-shell > .main > .topbar { padding-inline: 5px 11px; }
-    body .theme-shell .topbar .topbar-left { padding-inline-start: 53px; }
+    body .layout.theme-shell > .main > .topbar { padding-inline: 11px; gap: 3px; }
+    body .theme-shell .topbar .topbar-left { padding-inline-start: 47px; }
     body .theme-shell .topbar .page-title-main { font-size: 15.3px; }
     body .theme-shell .topbar .topbar-workshop-mark { transform: scale(1.3); }
     body .theme-shell .topbar .topbar-right {
@@ -418,3 +418,13 @@ body .theme-shell { --bs-success-rgb: 3,30,67; --bs-success: #031e43; }
 body .theme-shell .btn-success { --bs-btn-hover-bg: #00152f; --bs-btn-active-bg: #00152f; --bs-btn-hover-border-color: #00152f; --bs-btn-active-border-color: #00152f; }
 
 body .theme-shell .btn-outline-success { --bs-btn-color: #031e43; --bs-btn-border-color: #031e43; --bs-btn-hover-bg: #031e43; --bs-btn-hover-border-color: #031e43; --bs-btn-active-bg: #00152f; --bs-btn-active-border-color: #00152f; }
+
+/* Blend the replacement photograph into the canvas without moving the summary card. */
+body .theme-shell .workshop-panorama {
+    position: relative;
+}
+body .theme-shell .workshop-panorama::after {
+    content: ""; position: absolute; inset: auto 0 0; height: 65px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, #edf4fc00, #edf4fc38 35%, #edf4fccc 78%, var(--tp-canvas));
+}
