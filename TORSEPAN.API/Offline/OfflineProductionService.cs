@@ -22,8 +22,8 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         await LockAsync(ct);
         var existing = await db.OfflineDevices.SingleOrDefaultAsync(ct);
-        if (existing is not null && (existing.OwnerId != owner || existing.DeviceId != device))
-            throw new OfflineProblem("device", "قبلاً یک گوشی برای ثبت آفلاین تعیین شده است؛ تعویض گوشی نیاز به بررسی صف قبلی دارد.");
+        if (existing is not null && existing.OwnerId != owner)
+            throw new OfflineProblem("device", "ثبت آفلاین برای حساب مدیر دیگری فعال شده است.");
         if (existing is null)
         {
             db.OfflineDevices.Add(new OfflineDevice { DeviceId = device, OwnerId = owner, EnrolledUtc = DateTime.UtcNow });
@@ -37,14 +37,15 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         if (device == Guid.Empty) throw new OfflineProblem("invalid", "شناسه گوشی معتبر نیست.", 400);
         var enrolled = await db.OfflineDevices.AsNoTracking().SingleOrDefaultAsync(ct);
         var registered = enrolled is not null;
-        return new { allowed = !registered || enrolled!.OwnerId == owner && enrolled.DeviceId == device, registered };
+        return new { allowed = !registered || enrolled!.OwnerId == owner, registered };
     }
 
     private async Task<OfflineDevice> DeviceAsync(Guid owner, Guid device, CancellationToken ct)
     {
+        if (device == Guid.Empty) throw new OfflineProblem("invalid", "شناسه گوشی معتبر نیست.", 400);
         var enrolled = await db.OfflineDevices.AsNoTracking().SingleOrDefaultAsync(ct);
-        if (enrolled is null || enrolled.OwnerId != owner || enrolled.DeviceId != device)
-            throw new OfflineProblem("device", "این حساب و گوشی برای ثبت آفلاین فعال نشده‌اند.", 403);
+        if (enrolled is null || enrolled.OwnerId != owner)
+            throw new OfflineProblem("device", "این حساب مدیر برای ثبت آفلاین فعال نشده است.", 403);
         return enrolled;
     }
 

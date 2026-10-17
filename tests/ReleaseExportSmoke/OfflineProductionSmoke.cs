@@ -63,11 +63,18 @@ internal static class OfflineProductionSmoke
         Check(await Allowed(registrar.Id,device),"first administrator phone may activate offline");
         await service.EnrollAsync(registrar.Id,device,default);
         Check(await Allowed(registrar.Id,device),"registered administrator phone may open offline");
-        Check(!await Allowed(registrar.Id,Guid.NewGuid()),"second phone cannot open offline with the same administrator");
+        var replacementDevice=Guid.NewGuid();
+        Check(await Allowed(registrar.Id,replacementDevice),"same administrator can open offline from another installation");
         Check(!await Allowed(Guid.NewGuid(),device),"another account cannot open offline on the registered phone");
         await service.EnrollAsync(registrar.Id,device,default);
         async Task Problem(Func<Task> action,string code){try{await action();throw new Exception("Expected "+code);}catch(OfflineProblem error){Check(error.Code==code,"rejects "+code);db.ChangeTracker.Clear();}}
-        await Problem(()=>service.EnrollAsync(registrar.Id,Guid.NewGuid(),default),"device");
+        var originalEnrollment=await db.OfflineDevices.AsNoTracking().SingleAsync();
+        await service.EnrollAsync(registrar.Id,replacementDevice,default);
+        var retainedEnrollment=await db.OfflineDevices.AsNoTracking().SingleAsync();
+        Check(retainedEnrollment.DeviceId==device && retainedEnrollment.EnrolledUtc==originalEnrollment.EnrolledUtc,"installation change preserves enrollment audit and timestamp");
+        Check((await service.SnapshotAsync(registrar.Id,replacementDevice,default)).DeviceId==replacementDevice,"snapshot uses requesting installation identity");
+        await Problem(()=>service.EnrollAsync(outsider.Id,replacementDevice,default),"device");
+        await Problem(()=>service.SnapshotAsync(registrar.Id,Guid.Empty,default),"invalid");
         await Problem(()=>service.SnapshotAsync(outsider.Id,device,default),"device");
         outsider.SetRole("Tuner"); db.Update(outsider); await db.SaveChangesAsync(); db.ChangeTracker.Clear();
         var snapshot=await service.SnapshotAsync(registrar.Id,device,default);
