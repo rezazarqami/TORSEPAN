@@ -6,15 +6,14 @@
 @using System.Globalization
 
 <PageTitle>TORSEPAN · WORKSHOP</PageTitle>
-<section class="dashboard-hero" aria-labelledby="dashboard-title">
-    <h1 id="dashboard-title" class="dashboard-kicker">TORSEPAN · WORKSHOP</h1>
-    <p>نمای یکپارچهٔ ورود به عملیات، صف‌های آماده و عملکرد کارگاه</p>
-    <div class="dashboard-hero-stats">
-        <span><strong>@(_loading ? "—" : _dashboard.Queues.Count(x=>x.Codes.Count>0).ToString())</strong> صف فعال</span>
+<div class="workshop-panorama" role="img" aria-label="نمای کارگاه تورسپن در غروب"></div>
+<PageHero CssClass="dashboard-hero" HeadingId="dashboard-title" Title="TORSEPAN · WORKSHOP" Description="نمای یکپارچهٔ ورود به عملیات، صف‌های آماده و عملکرد کارگاه">
+    <div class="theme-stats dashboard-statistics">
+        <span class="theme-stat"><span class="stat-copy"><strong>@(_loading ? "—" : _dashboard.Queues.Count(x=>x.Codes.Count>0).ToString())</strong><small>صف فعال</small></span><ThemeIcon Name="users" /></span>
         <i aria-hidden="true"></i>
-        <span><strong>@(_loading ? "—" : _dashboard.Queues.Sum(x=>x.Codes.Count).ToString())</strong> کد منتظر</span>
+        <span class="theme-stat"><span class="stat-copy"><strong>@(_loading ? "—" : _dashboard.Queues.Sum(x=>x.Codes.Count).ToString())</strong><small>کد منتظر</small></span><ThemeIcon Name="clock" /></span>
     </div>
-</section>
+</PageHero>
 @if (_loading)
 {
     <div class="text-center mt-5"><div class="spinner-border text-primary"></div></div>
@@ -28,7 +27,7 @@ else
     }
     <div class="card shadow-sm mb-3 production-entry-card">
         <div class="card-body">
-            <div class="dashboard-section-intro"><span class="dashboard-eyebrow">شروع کار</span><h4 class="fw-bold mb-2">ورود به عملیات تولید</h4></div>
+            <div class="dashboard-section-intro"><span class="entry-accent" aria-hidden="true"></span><h4 class="fw-bold mb-2">ورود به عملیات تولید</h4></div>
             <div class="input-group input-group-lg">
                 <input class="form-control" placeholder="کد کاسه یا ساز را وارد کنید"
                        @bind="_productionCode" @bind:event="oninput" @onkeydown="OpenProductionOnEnter" />
@@ -38,9 +37,9 @@ else
     </div>
 
     <nav class="dashboard-tabs" aria-label="بخش‌های داشبورد">
-        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Queues ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Queues ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Queues"><span aria-hidden="true">◇</span><strong>صف‌های تولید</strong></button>
-        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Calendar ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Calendar ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Calendar"><span aria-hidden="true">▦</span><strong>تقویم</strong></button>
-        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Performance ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Performance ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Performance"><span aria-hidden="true">◫</span><strong>خلاصه عملکرد کاربران</strong></button>
+        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Queues ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Queues ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Queues"><span aria-hidden="true"><ThemeIcon Name="layers" /></span><strong>صف‌های تولید</strong></button>
+        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Calendar ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Calendar ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Calendar"><span aria-hidden="true"><ThemeIcon Name="calendar" /></span><strong>تقویم</strong></button>
+        <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Performance ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Performance ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Performance"><span aria-hidden="true"><ThemeIcon Name="chart" /></span><strong>خلاصه عملکرد کاربران</strong></button>
     </nav>
     <div class="dashboard-sections">
     @if (_activeTab == DashboardTab.Queues)

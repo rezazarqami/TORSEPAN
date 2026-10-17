@@ -68,7 +68,7 @@ let browser;
     if(file==='overview-50.html'){
      const items=card.locator('.overview-item');
      assert.equal(await items.count(),50);
-     assert.equal(await items.first().innerText(),'TP-0001\nD Kurd Custom 9\nدر انتظار دیمپل');
+     assert.equal(await items.first().innerText(),'TP-0001\nScale: D Kurd Custom 9\nوضعیت: در انتظار دیمپل');
      assert.equal(await card.locator('.overview-scale').count(),50);
      assert.match(await items.nth(3).innerText(),/فاین/);
      assert.match(await items.nth(4).innerText(),/اتاق چسب/);
