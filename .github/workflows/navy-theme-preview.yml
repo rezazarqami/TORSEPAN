@@ -4,6 +4,7 @@ on:
     paths:
       - 'TORSEPAN.Panel/**'
       - 'tests/theme-*'
+      - 'tests/connection-*'
       - '.github/workflows/navy-theme-preview.yml'
   workflow_dispatch:
 jobs:
@@ -17,6 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Verify background connection recovery state machine
+        run: node tests/connection-recovery.cjs
       - name: Build actual panel
         run: dotnet build TORSEPAN.Panel -c Release -m:1 --nologo
       - name: Install browser tools outside repository
@@ -27,7 +30,7 @@ jobs:
         run: |
           export THEME_PLAYWRIGHT="$RUNNER_TEMP/theme-tools/node_modules/playwright"
           export THEME_SCREENSHOTS="$RUNNER_TEMP/theme-screenshots"
-          THEME_BROWSER_SCRIPTS="tests/theme-browser.cjs tests/theme-all-pages.cjs tests/theme-scrollbar.cjs tests/theme-header-scroll.cjs" bash tests/theme-preview.sh
+          THEME_BROWSER_SCRIPTS="tests/theme-browser.cjs tests/theme-all-pages.cjs tests/theme-scrollbar.cjs tests/theme-header-scroll.cjs tests/connection-browser.cjs" bash tests/theme-preview.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
