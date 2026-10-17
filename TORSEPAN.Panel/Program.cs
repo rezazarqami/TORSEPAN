@@ -155,7 +155,8 @@ app.MapMethods("/api/internal/mobile-offline/{**path}", new[] { "GET", "POST" },
     string path, HttpContext context, IHttpClientFactory factory, CancellationToken ct) =>
 {
     var permitted = context.Request.Method == "POST" ? path is "enroll" or "operations" or "photos"
-        : path.StartsWith("snapshot/", StringComparison.Ordinal) && Guid.TryParse(path[9..], out _);
+        : (path.StartsWith("snapshot/", StringComparison.Ordinal) && Guid.TryParse(path[9..], out _))
+            || (path.StartsWith("access/", StringComparison.Ordinal) && Guid.TryParse(path[7..], out _));
     if (!permitted) { context.Response.StatusCode = 404; return; }
     if (!System.Net.Http.Headers.AuthenticationHeaderValue.TryParse(context.Request.Headers.Authorization, out var auth)
         || auth.Scheme != "Bearer" || string.IsNullOrWhiteSpace(auth.Parameter))
