@@ -6,7 +6,7 @@
 @inject NavigationManager Navigation
 @if (!Embedded) { <PageTitle>افزودن قلم | تورسپن</PageTitle> }
 <section class="material-create @(Embedded ? "embedded" : "")">
- @if (!Embedded) { <h1>افزودن قلم جدید</h1> }
+ @if (!Embedded) { <PageHeader Title="افزودن قلم جدید" SubTitle="ثبت مواد اولیه و اقلام کارگاه" /> }
  <EditForm Model="_model" FormName="CreateMaterial" OnValidSubmit="SaveAsync">
   <DataAnnotationsValidator /><ValidationSummary />
   @if (!string.IsNullOrWhiteSpace(_error)) { <div class="create-error" role="alert">@_error</div> }
