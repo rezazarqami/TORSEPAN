@@ -29,6 +29,7 @@ jobs:
           export THEME_SCREENSHOTS="$RUNNER_TEMP/theme-screenshots"
           bash tests/theme-preview.sh
           THEME_BROWSER_SCRIPT=tests/theme-all-pages.cjs THEME_SCREENSHOTS="$RUNNER_TEMP/theme-all-pages" bash tests/theme-preview.sh
+          THEME_BROWSER_SCRIPT=tests/theme-scrollbar.cjs bash tests/theme-preview.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:

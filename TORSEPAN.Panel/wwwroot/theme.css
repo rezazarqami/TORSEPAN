@@ -378,3 +378,14 @@ body .theme-shell .theme-hero::after { background: radial-gradient(ellipse 19px 
         background: linear-gradient(to bottom, #edf4fc00, #edf4fc18 25%, #edf4fc99 68%, var(--tp-canvas));
     }
 }
+
+/* Do not reserve a desktop scrollbar gutter inside the mobile RTL canvas. */
+@media(max-width:768px) {
+    body .layout.theme-shell > .main > .content {
+        scrollbar-width: none;
+        scrollbar-gutter: auto;
+    }
+    body .layout.theme-shell > .main > .content::-webkit-scrollbar {
+        display: none; width: 0; height: 0;
+    }
+}
