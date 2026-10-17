@@ -20,25 +20,14 @@ public sealed class ScalesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Guid>> Create(CreateScaleCommand command, CancellationToken cancellationToken)
     {
-        var customUsages = new[]
-        {
-            (int)TORSEPAN.Domain.Enums.ScaleUsage.CustomTopBowl,
-            (int)TORSEPAN.Domain.Enums.ScaleUsage.CustomBottomBowl,
-            (int)TORSEPAN.Domain.Enums.ScaleUsage.CustomHandpan
-        };
-        if (!customUsages.Contains(command.Usage) &&
-            !User.IsInRole("Administrator") && !User.IsInRole("ProductionManager"))
-            return Forbid();
         var id = await _mediator.Send(command, cancellationToken);
         return Ok(id);
     }
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> Delete(Guid id, [FromQuery] int usage, CancellationToken cancellationToken)
     { await _mediator.Send(new DeactivateScaleCommand(id, usage), cancellationToken); return NoContent(); }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Administrator,ProductionManager")]
     public async Task<IActionResult> Rename(Guid id, RenameScaleRequest request, CancellationToken cancellationToken)
     { await _mediator.Send(new RenameScaleCommand(id, request.Name), cancellationToken); return NoContent(); }
 }
