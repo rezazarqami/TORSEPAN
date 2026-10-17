@@ -371,3 +371,7 @@ android/.gradle/
 android/build/
 android/app/build/
 android/local.properties
+
+# Full-resolution local visual QA captures, delivered separately.
+docs/previews/navy-dashboard-hd.png
+docs/previews/reference-metrics.json

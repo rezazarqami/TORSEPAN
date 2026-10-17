@@ -1,4 +1,4 @@
-﻿@page "/production/list"
+@page "/production/list"
 
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
@@ -6,8 +6,9 @@
 @inject ProductionService ProductionService
 
 <PageTitle>صف تولید</PageTitle>
+<PageHeader Title="صف تولید" SubTitle="پیگیری سازها و کاسه‌های در حال ساخت" />
 
-<h3 class="mb-4">صف تولید</h3>
+
 
 @if (_loading)
 {
@@ -21,7 +22,7 @@ else if (_items.Count == 0)
 }
 else
 {
-    <table class="table table-striped">
+    <div class="table-responsive"><table class="table table-striped">
 
         <thead>
 
@@ -53,7 +54,7 @@ else
 
         </tbody>
 
-    </table>
+    </table></div>
 }
 
 @code

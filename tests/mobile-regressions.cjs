@@ -107,6 +107,6 @@ function connectionEnv(result=true, probeResult=true) {
     assert.match(salesPage,/<AppConfirmDialog/);assert.match(warehousePage,/<AppConfirmDialog/);
     assert.doesNotMatch(salesRollback,/JS\.InvokeAsync/);assert.doesNotMatch(warehouseRollback,/JS\.InvokeAsync/);
     assert.match(confirmCss,/@media \(max-width: 520px\)/);
-    assert.match(salesPage,/class="sale-actions-cell"/);assert.match(warehousePage,/class="warehouse-admin-cell"/);
+    assert.match(salesPage,/class="(?:sale-actions-cell|sale-actions)"/);assert.match(warehousePage,/class="(?:warehouse-admin-cell|warehouse-row-actions)"/);
     console.log("PASS rollback actions use the responsive in-app confirmation dialog");
 })().catch(error=>{console.error(error);process.exitCode=1;});

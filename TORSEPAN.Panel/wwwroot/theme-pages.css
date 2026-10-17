@@ -1,0 +1,91 @@
+/* Shared extension of the approved mobile theme. The three accepted pages keep their geometry. */
+body .theme-shell .theme-page-intro {
+    font-family: "Torsepan UI", Tahoma, sans-serif;
+    min-height: 0; display: block; text-align: center;
+}
+body .theme-shell .theme-page-intro h1 {
+    color: var(--tp-gold); font: 700 1.7rem/1.65 "Torsepan UI", sans-serif;
+    margin: 13px 0; letter-spacing: -.5px;
+}
+body .theme-shell .theme-page-intro p { color: #edf4ff; font-size: .87rem; line-height: 2; margin: 8px auto; }
+body .theme-shell .theme-page-intro > img {
+    display: block; width: 63px; height: 67px; margin: 16px auto 0; object-fit: contain;
+    filter: grayscale(1) invert(1) contrast(1.35); mix-blend-mode: screen;
+}
+body .theme-shell .theme-page-intro > :is(span,small),
+body .theme-shell .theme-page-intro .edit-hero-copy > small {
+    display: inline-block; padding: 7px 13px; border: 1px solid #a8bedb66; border-radius: 30px;
+    color: var(--tp-gold); background: #ffffff07; font-size: .7rem; letter-spacing: 1px;
+}
+body .theme-shell .theme-page-intro :is(.hero-icon,.edit-hero-icon) { margin: 16px auto 0; color: var(--tp-gold); background: #ffffff12; }
+body .theme-shell .theme-page-intro :is(.hero-stats,.sales-total) { color: #edf4ff; }
+body .theme-shell .theme-page-intro :is(.hero-stats,.sales-total) strong { color: var(--tp-gold); }
+body .theme-shell .theme-page-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+body .theme-shell .content:has(.theme-page-intro) {
+    color: var(--tp-navy);
+    --bs-primary-rgb: 3,30,67;
+    --bs-border-color: var(--tp-line);
+}
+body .theme-shell .content:has(.theme-page-intro) :is(.account-card,.analytics-card,.bowl-form-card,.credentials-card,.event-card,.filters-card,.identity-card,.inventory-card,.management-card,.payroll-calculation-card,.performance-card,.result-card,.scale-card,.shape-edit-card,.design-panel,.management-panel,.production-panel,.registered-rates-panel,.warehouse-content-panel,.report-filter-card,.edit-lookup,.edit-section,.backup-options > article) {
+    background: var(--tp-paper); border: 1px solid var(--tp-line); border-radius: var(--tp-radius);
+    box-shadow: var(--tp-shadow); color: var(--tp-navy); min-width: 0;
+}
+body .theme-shell .content:has(.theme-page-intro) :is(h2,h3,h4,h5,h6) { font-family: inherit; color: var(--tp-navy); font-weight: 700; }
+body .theme-shell .content:has(.theme-page-intro) :is(input,select,textarea,button) { font-family: inherit; }
+body .theme-shell .content:has(.theme-page-intro) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea) {
+    border-color: var(--tp-line); border-radius: 12px; color: var(--tp-navy);
+}
+body .theme-shell .content:has(.theme-page-intro) :is(.account-tabs,.design-tabs,.inventory-tabs,.message-tabs,.production-tabs,.report-tabs,.scale-tabs,.warehouse-tabs,.sales-segments,.payroll-sections) { gap: 8px; }
+body .theme-shell .content:has(.theme-page-intro) :is(.account-tabs,.design-tabs,.inventory-tabs,.message-tabs,.production-tabs,.report-tabs,.scale-tabs,.warehouse-tabs,.sales-segments,.payroll-sections) > :is(button,a) {
+    font-family: inherit; background: white; color: var(--tp-navy); border: 1px solid var(--tp-line);
+    border-radius: 17px; box-shadow: var(--tp-shadow); min-width: 0;
+}
+body .theme-shell .content:has(.theme-page-intro) :is(.account-tabs,.design-tabs,.inventory-tabs,.message-tabs,.production-tabs,.report-tabs,.scale-tabs,.warehouse-tabs,.sales-segments,.payroll-sections) > :is(button,a):is(.active,[aria-selected=true],[aria-pressed=true]) {
+    color: var(--tp-gold); background: radial-gradient(ellipse at 0 0,#0a51a055,transparent 70%),linear-gradient(125deg,#04376d,#001a3e);
+    border-color: #4882b6; box-shadow: inset 0 1px 1px #86c4fb26,0 6px 13px #0d41681a;
+}
+body .theme-shell .content:has(.theme-page-intro) :is(.accounting-summary,.activity-summary) > div {
+    border: 1px solid var(--tp-line); border-radius: 17px; background: #fff; color: var(--tp-muted); box-shadow: var(--tp-shadow);
+}
+body .theme-shell .content:has(.theme-page-intro) :is(.accounting-summary,.activity-summary) strong { color: var(--tp-navy); }
+body .theme-shell .content:has(.theme-page-intro) :is(.table,.table-responsive) { max-width: 100%; }
+body .theme-shell .content:has(.theme-page-intro) .table { --bs-table-border-color: var(--tp-line); --bs-table-striped-bg: #f1f6fc; color: var(--tp-navy); }
+body .theme-shell .content:has(.theme-page-intro) .table thead :is(th,td) { background: #eaf2fc; color: var(--tp-navy); border-color: var(--tp-line); }
+body .theme-shell :is(.scale-dialog,.design-confirm-dialog,.operation-confirm-dialog,.production-delete-dialog,.warehouse-settings-dialog,.warehouse-transfer-dialog,.edit-sale-dialog,.exclusion-dialog,.modal-content) {
+    border-color: var(--tp-line); border-radius: 21px; box-shadow: 0 20px 65px #00152f40; font-family: "Torsepan UI",Tahoma,sans-serif;
+}
+/* Login uses the same palette while keeping its standalone authentication layout. */
+body .login-layout { font-family: "Torsepan UI",Tahoma,sans-serif; background: var(--tp-navy-deep); }
+body .login-layout .login-form-side { background: radial-gradient(ellipse at 0 0,#073b7355,transparent 65%),var(--tp-navy-deep); }
+body .login-layout .login-card-modern { border: 1px solid #a9c0e166; box-shadow: 0 15px 50px #00152f66; }
+body .login-layout :is(.login-card-logo,.modern-login-button) { background: linear-gradient(125deg,var(--tp-blue),var(--tp-navy-deep)); }
+body .login-layout .showcase-kicker { color: var(--tp-gold); }
+@media(max-width:768px) {
+    body .theme-shell .theme-page-intro h1 { font-size: 1.5rem; margin: 13px 0; }
+    body .theme-shell .theme-page-intro p { font-size: .73rem; }
+    body .theme-shell .theme-page-intro > :is(span,small) { font-size: .6rem; }
+    body .theme-shell .content:has(.theme-page-intro) :is(h2,h3,h4) { font-size: 1rem; line-height: 1.7; }
+    body .theme-shell .content:has(.theme-page-intro) :is(.accounting-summary,.activity-summary) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+    body .theme-shell .content:has(.theme-page-intro) :is(.account-tabs,.design-tabs,.inventory-tabs,.message-tabs,.production-tabs,.scale-tabs,.warehouse-tabs,.sales-segments,.payroll-sections) > :is(button,a) { padding: 12px 6px; font-size: .76rem; }
+    body .theme-shell .content:has(.theme-page-intro) .report-tabs { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    body .theme-shell .content:has(.theme-page-intro) :is(.account-card,.bowl-form-card,.scale-card,.design-panel,.edit-lookup,.edit-section,.report-filter-card) { padding: 17px 13px; }
+    body .theme-shell .content:has(.theme-page-intro) .table-responsive { overflow-x: auto; overscroll-behavior-inline: contain; }
+}
+@media print {
+    body .theme-shell .theme-page-intro { box-shadow: none; background: white; color: black; border-color: #aaa; break-inside: avoid; }
+    body .theme-shell .theme-page-intro :is(h1,p,span,small) { color: black; }
+}
+/* Clear legacy decorative offsets before applying the shared edge reflections. */
+body .theme-shell .theme-page-intro::before,
+body .theme-shell .theme-page-intro::after {
+    left: 0; right: 0; top: 0; bottom: 0; width: auto; height: auto;
+    transform: none; border-radius: inherit;
+}
+body .theme-shell .content:has(.theme-page-intro) > .row { margin-inline: 0; }
+body .theme-shell .content:has(.theme-page-intro) :is(.edit-search-controls button,.save-button,.refresh-messages) {
+    background: linear-gradient(125deg,var(--tp-blue),var(--tp-navy)); color: white; border-color: #4882b6; border-radius: 12px;
+}
+body .theme-shell .content:has(.theme-page-intro) .source-track i { background: linear-gradient(90deg,var(--tp-blue),#4882b6); }
+body .theme-shell .warehouse-tab.active::before { background: var(--tp-gold); }
+body .theme-shell .warehouse-tab.active :is(.warehouse-tier-count,.warehouse-tier-mark) { background: var(--tp-gold); color: var(--tp-navy); }
+body .theme-shell .content:has(.theme-page-intro) :is(.warehouse-collection-heading,.payroll-calculation-heading) { background: #f1f6fc; border-color: var(--tp-line); }

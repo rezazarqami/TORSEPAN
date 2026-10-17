@@ -10,15 +10,12 @@
 @implements IAsyncDisposable
 
 <PageTitle>ثبت سفارش | تورسپن</PageTitle>
-<section class="orders-hero">
-    <span class="hero-kicker" dir="ltr">TORSEPAN / CUSTOM ORDERS</span>
-    <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
-    <h1>ثبت و مدیریت سفارش</h1>
+<PageHero CssClass="orders-hero" Eyebrow="TORSEPAN / CUSTOM ORDERS" Title="ثبت و مدیریت سفارش" BrandMark="true">
     @if(!_loading && !_loadFailed)
     {
-        <p class="orders-hero-total"><strong>@_orders.Count(x => !x.IsDraft)</strong> سفارش نهایی شامل <strong>@_orders.Where(x => !x.IsDraft).Sum(x => x.TotalQuantity)</strong> ساز</p>
+        <div class="theme-stats"><span><strong>@_orders.Count(x => !x.IsDraft)</strong> سفارش نهایی</span><i aria-hidden="true"></i><span><strong>@_orders.Where(x => !x.IsDraft).Sum(x => x.TotalQuantity)</strong> ساز</span></div>
     }
-</section>
+</PageHero>
 <nav class="order-tabs" aria-label="بخش‌های سفارش">
     <button class="@(_tab == "list" ? "active" : "")" aria-pressed="@(_tab == "list")" @onclick='() => _tab = "list"'><strong>سفارش‌های نهایی</strong><b>@_orders.Count(x => !x.IsDraft)</b></button>
     <button class="@(_tab == "new" ? "active" : "")" aria-pressed="@(_tab == "new")" @onclick='() => _tab = "new"'><span>+</span><strong>ساخت سفارش</strong></button>

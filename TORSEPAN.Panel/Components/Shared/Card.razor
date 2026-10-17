@@ -1,4 +1,4 @@
-﻿<div class="card shadow-sm border-0 mb-4">
+<div class="card shadow-sm border-0 mb-4 @Class">
 
     @if (!string.IsNullOrWhiteSpace(Title))
     {
@@ -18,6 +18,9 @@
 </div>
 
 @code {
+
+    [Parameter]
+    public string? Class { get; set; }
 
     [Parameter]
     public string Title { get; set; } = "";
