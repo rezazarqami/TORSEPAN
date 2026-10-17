@@ -35,6 +35,25 @@ async Task Verify(Type type, string? method, Func<string,bool> expected)
     }
     Console.WriteLine($"PASS {type.Name}.{method ?? "page"}: allowed and denied roles");
 }
+// Every signed-in workshop role can view and maintain the shared scale catalogue.
+foreach (var method in new[] { "GetAll", "Create", "Rename", "Delete" })
+    await Verify(typeof(ScalesController), method, _ => true);
+// Exercise Create as ordinary users as well: a policy-only check cannot catch
+// an extra in-method role restriction on the shared (all usages) catalogue.
+foreach (var role in roles.Append(""))
+{
+    var identity = new ClaimsIdentity("test");
+    if (role.Length > 0) identity.AddClaim(new Claim(ClaimTypes.Role, role));
+    var controller = new ScalesController(DispatchProxy.Create<MediatR.IMediator, ScaleMediatorProxy>())
+    {
+        ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+        }
+    };
+    var result = await controller.Create(new TORSEPAN.Application.Scales.CreateScaleCommand("D Kurd", 63), default);
+    Check(result.Result is Microsoft.AspNetCore.Mvc.OkObjectResult, $"shared scale registration allowed for {role}");
+}
 bool Sales(string r) => r is "Administrator" or "ProductionManager" or "SalesAdmin";
 bool Marketing(string r) => r is "Administrator" or "ProductionManager" or "Marketer";
 foreach(var method in new[]{"Sales","Sell","SellBulk","UpdateSale"}) await Verify(typeof(ProductionController),method,Sales);
@@ -60,7 +79,7 @@ Check(await authState.RefreshAsync(), "authentication retry succeeds when browse
 var soldHandpan = new Handpan(Guid.NewGuid(), "ROLLBACK-TEST");
 soldHandpan.ChangeStage(ProductionStage.FinishedWarehouse);
 soldHandpan.ChangeStatus(ProductionStatus.Completed);
-soldHandpan.Sell("Test buyer", 100, "Test destination", Guid.NewGuid());
+soldHandpan.Sell("Test buyer", 100, "Test destination", false, Guid.NewGuid());
 soldHandpan.ReturnToWarehouse();
 Check(soldHandpan.Stage == ProductionStage.FinishedWarehouse &&
       soldHandpan.Status == ProductionStatus.Completed &&
@@ -78,5 +97,15 @@ sealed class RestoringBrowserStorage : IJSRuntime
     {
         if (_attempts++ == 0) throw new JSException("Browser tab is still restoring");
         return ValueTask.FromResult(default(TValue)!);
+    }
+}
+
+public class ScaleMediatorProxy : DispatchProxy
+{
+    protected override object? Invoke(MethodInfo? method, object?[]? args)
+    {
+        if (method?.Name == "Send" && args?[0] is TORSEPAN.Application.Scales.CreateScaleCommand)
+            return Task.FromResult(Guid.NewGuid());
+        throw new NotSupportedException(method?.Name);
     }
 }

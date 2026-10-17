@@ -1,0 +1,19 @@
+name: Shared scale access
+on:
+  pull_request:
+    paths:
+      - 'TORSEPAN.API/Controllers/ScalesController.cs'
+      - 'TORSEPAN.Panel/Components/Pages/Scales.razor'
+      - 'TORSEPAN.Panel/Components/Layout/Sidebar.razor'
+      - 'tests/AccessSmoke/**'
+      - '.github/workflows/scales-access.yml'
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify scale access for all signed-in roles and deny anonymous access
+        run: dotnet run --project tests/AccessSmoke/AccessSmoke.csproj -c Release
