@@ -44,7 +44,7 @@ internal static class OfflineProductionSmoke
         var registrar = new User("offline-registrar", "ثبت‌کننده"); var actor = new User("offline-performer", "انجام‌دهنده"); var outsider = new User("outsider", "کاربر");
         var adminRole = new Role("Administrator", "مدیر");
         registrar.UserRoles.Add(new UserRole(registrar.Id, adminRole.Id)); actor.UserRoles.Add(new UserRole(actor.Id,adminRole.Id));
-        var steel=new Material("Steel"); var scale=new Scale("D Kurd 14",ScaleUsage.All);
+        var steel=new Material("Steel"); var scale=new Scale("D Kurd",ScaleUsage.All);
         var top=new Bowl("855",BowlType.Top,true,InstrumentType.Standard,steel.Id); var bottom=new Bowl("196",BowlType.Bottom,false,InstrumentType.Standard,steel.Id);
         top.ChangeStage(ProductionStage.WaitingForDimple);bottom.ChangeStage(ProductionStage.WaitingForDimple);
         db.AddRange(adminRole,registrar,actor,outsider,steel,scale,top,bottom);await db.SaveChangesAsync();db.ChangeTracker.Clear();
@@ -58,7 +58,14 @@ internal static class OfflineProductionSmoke
         services.AddSingleton<IUserRoleRepository,UserRoleRepository>();services.AddSingleton<IRefreshTokenRepository,RefreshTokenRepository>();
         services.AddSingleton<IInventoryAlertService,QuietAlerts>();services.AddSingleton<IUnitOfWork,UnitOfWork>();services.AddMediatR(x=>x.RegisterServicesFromAssembly(typeof(CompleteBowlDimpleCommand).Assembly));
         using var provider=services.BuildServiceProvider();var service=new OfflineProductionService(db,provider.GetRequiredService<IMediator>(),http);
-        var device=Guid.NewGuid();await service.EnrollAsync(registrar.Id,device,default); await service.EnrollAsync(registrar.Id,device,default);
+        var device=Guid.NewGuid();
+        async Task<bool> Allowed(Guid ownerId, Guid phone) => JsonSerializer.SerializeToElement(await service.AccessAsync(ownerId,phone,default)).GetProperty("allowed").GetBoolean();
+        Check(await Allowed(registrar.Id,device),"first administrator phone may activate offline");
+        await service.EnrollAsync(registrar.Id,device,default);
+        Check(await Allowed(registrar.Id,device),"registered administrator phone may open offline");
+        Check(!await Allowed(registrar.Id,Guid.NewGuid()),"second phone cannot open offline with the same administrator");
+        Check(!await Allowed(Guid.NewGuid(),device),"another account cannot open offline on the registered phone");
+        await service.EnrollAsync(registrar.Id,device,default);
         async Task Problem(Func<Task> action,string code){try{await action();throw new Exception("Expected "+code);}catch(OfflineProblem error){Check(error.Code==code,"rejects "+code);db.ChangeTracker.Clear();}}
         await Problem(()=>service.EnrollAsync(registrar.Id,Guid.NewGuid(),default),"device");
         await Problem(()=>service.SnapshotAsync(outsider.Id,device,default),"device");
@@ -67,7 +74,7 @@ internal static class OfflineProductionSmoke
         Check(snapshot.Bowls.Count==2&&snapshot.Passports.Records.Count==2&&snapshot.Users.All(x=>x.Id!=Guid.Empty),"snapshot includes stable bowl identities, passports and safe performer projections");
         Check(snapshot.Users.Single(x=>x.Id==outsider.Id).Roles.SequenceEqual(["Tuner"]),"legacy single-role accounts remain available without exposing account credentials");
         var recorded=DateTime.UtcNow.AddMinutes(-1);
-        OfflineOperation Operation(string code,string action,string version,Guid? previous=null)=>new(Guid.NewGuid(),device,code,action,actor.Id,recorded,version,previous,2,scale.Id);
+        OfflineOperation Operation(string code,string action,string version,Guid? previous=null)=>new(Guid.NewGuid(),device,code,action,actor.Id,recorded,version,previous,2,scale.Id, NoteCount: action == "shape" ? (code == "196" ? 0 : 9) : null);
         var first=Operation("855","dimple",snapshot.Bowls.Single(x=>x.Code=="855").Version);
         var receipt=await service.ApplyAsync(registrar.Id,first,default);
         Check(await db.ProductionEvents.CountAsync()==1&&await db.OfflineReceipts.CountAsync()==1,"offline stage and receipt commit together");
