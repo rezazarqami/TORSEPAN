@@ -10,6 +10,11 @@ namespace TORSEPAN.API.Controllers;
 public sealed class OfflineController(OfflineProductionService service) : ControllerBase
 {
     private Guid Owner => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    [HttpGet("access/{deviceId:guid}")]
+    public Task<IActionResult> Access(Guid deviceId, CancellationToken ct) => Execute(async () => {
+        Response.Headers.CacheControl = "no-store";
+        return Ok(await service.AccessAsync(Owner, deviceId, ct));
+    });
     [HttpPost("enroll")]
     public Task<IActionResult> Enroll(OfflineEnrollment request, CancellationToken ct) => Execute(async () => {
         await service.EnrollAsync(Owner, request.DeviceId, ct); return Ok(new { enabled = true });
