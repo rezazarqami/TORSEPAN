@@ -191,11 +191,11 @@ body .theme-shell .production-entry-card .input-group .form-control { flex: 1 1 
 body .theme-shell .production-entry-card .input-group .btn { flex: 0 0 auto; margin-inline-start: 7px; min-height: 44px; }
 body .theme-shell .order-number, body .theme-shell .order-list-number { background: #e8f1fb; color: var(--tp-navy); }
 body .theme-shell .theme-hero::before { inset-inline: 0; }
-/* One scroll container: legacy mobile styles must not grow the whole document. */
+/* The main canvas scrolls the header and content together inside the viewport. */
 html:has(.theme-shell), body:has(.theme-shell) { height: 100%; overflow: clip; }
 body .layout.theme-shell { display: flex; overflow: clip; }
-body .layout.theme-shell > .main { height: 100%; min-height: 0; overflow: clip; }
-body .layout.theme-shell > .main > .content { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+body .layout.theme-shell > .main { height: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+body .layout.theme-shell > .main > .content { flex: 1 0 auto; min-height: 0; overflow: visible; }
 /* Reference-scale pass: one predictable type scale and deliberate edge lighting. */
 @font-face { font-family: "Torsepan UI"; src: url('/fonts/Vazirmatn-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Torsepan UI"; src: url('/fonts/Vazirmatn-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
@@ -392,8 +392,7 @@ body .theme-shell .theme-hero::after { background: radial-gradient(ellipse 19px 
 }
 
 /* Header and page share one scroll surface; the independent navigation rail stays fixed. */
-body .layout.theme-shell > .main { overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth; scrollbar-color: #9eafc5 transparent; }
-body .layout.theme-shell > .main > .content { flex: 1 0 auto; overflow: visible; }
+body .layout.theme-shell > .main { scroll-behavior: smooth; scrollbar-color: #9eafc5 transparent; }
 body .layout.theme-shell > .main > .topbar { position: relative; inset: auto; flex-shrink: 0; }
 /* All standard pages blend their light canvas behind the floating user toolbar. */
 body .theme-shell > .main:not(:has(.workshop-panorama)) > .topbar::after {
