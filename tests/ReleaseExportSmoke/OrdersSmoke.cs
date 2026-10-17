@@ -117,7 +117,7 @@ internal static class OrdersSmoke
             "unlinked loose bowl has no customer label");
         var early = (await orders.GetAsync(default)).Single();
         Check(early.ProductionStage == "در انتظار شیپ" && early.CompletedOperations.Contains("دیمپل کاسه رو") && !early.CompletedOperations.Contains("شیپ کاسه رو"), "live bowl stage and only successful operations are displayed");
-        Check(early.Lines[0].Instruments[0].ScaleName == scale.Name, "overview exposes the assigned bowl actual scale");
+        Check(early.Lines[0].Instruments[0].ScaleName == top.FormatScaleName(scale.Name), "overview exposes the assigned bowl actual scale");
         var second = await orders.CreateAsync(new("خانم موسوی", scale.Id, 60), user.Id, default);
         await Reject(() => orders.AssignCodeAsync(second, top.ProductionCode, user.Id, default), "one instrument cannot be assigned to two orders");
         var assembly = new HandpanAssembly(top.Id, bottom.Id);
@@ -128,7 +128,7 @@ internal static class OrdersSmoke
         db.Add(assembly); db.Add(handpan); await db.SaveChangesAsync();
         var afterAssembly = (await orders.GetAsync(default)).Single(x => x.Id == id);
         Check(afterAssembly.ProductionStage == "در انتظار فاین‌تیون" && order.HandpanId is null, "pre-assembly code automatically follows the resulting handpan");
-        Check(afterAssembly.Lines[0].Instruments[0].ScaleName == scale.Name, "overview keeps actual instrument scale after assembly");
+        Check(afterAssembly.Lines[0].Instruments[0].ScaleName == handpan.FormatScaleName(scale.Name), "overview keeps actual instrument scale after assembly");
         Check(CustomerOrderService.StageTitle(ProductionStage.Sold) == "ارسال‌شده", "sold instruments are labelled dispatched only in order presentation");
         var fractionalMessage = OrderReminderProcessor.BuildMessage(order, 1, order.DueAtUtc.AddDays(-4.35));
         Check(fractionalMessage.Contains("زمان باقی‌مانده: 5 روز") && !System.Text.RegularExpressions.Regex.IsMatch(fractionalMessage, @"\d+[.,]\d+ روز"), "Telegram days are whole numbers and a partial remaining day rounds up");
