@@ -44,7 +44,7 @@ internal static class OfflineProductionSmoke
         var registrar = new User("offline-registrar", "ثبت‌کننده"); var actor = new User("offline-performer", "انجام‌دهنده"); var outsider = new User("outsider", "کاربر");
         var adminRole = new Role("Administrator", "مدیر");
         registrar.UserRoles.Add(new UserRole(registrar.Id, adminRole.Id)); actor.UserRoles.Add(new UserRole(actor.Id,adminRole.Id));
-        var steel=new Material("Steel"); var scale=new Scale("D Kurd 14",ScaleUsage.All);
+        var steel=new Material("Steel"); var scale=new Scale("D Kurd",ScaleUsage.All);
         var top=new Bowl("855",BowlType.Top,true,InstrumentType.Standard,steel.Id); var bottom=new Bowl("196",BowlType.Bottom,false,InstrumentType.Standard,steel.Id);
         top.ChangeStage(ProductionStage.WaitingForDimple);bottom.ChangeStage(ProductionStage.WaitingForDimple);
         db.AddRange(adminRole,registrar,actor,outsider,steel,scale,top,bottom);await db.SaveChangesAsync();db.ChangeTracker.Clear();
@@ -65,7 +65,7 @@ internal static class OfflineProductionSmoke
         Check(await Allowed(registrar.Id,device),"registered administrator phone may open offline");
         Check(!await Allowed(registrar.Id,Guid.NewGuid()),"second phone cannot open offline with the same administrator");
         Check(!await Allowed(Guid.NewGuid(),device),"another account cannot open offline on the registered phone");
-         await service.EnrollAsync(registrar.Id,device,default);
+        await service.EnrollAsync(registrar.Id,device,default);
         async Task Problem(Func<Task> action,string code){try{await action();throw new Exception("Expected "+code);}catch(OfflineProblem error){Check(error.Code==code,"rejects "+code);db.ChangeTracker.Clear();}}
         await Problem(()=>service.EnrollAsync(registrar.Id,Guid.NewGuid(),default),"device");
         await Problem(()=>service.SnapshotAsync(outsider.Id,device,default),"device");
