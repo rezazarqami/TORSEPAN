@@ -1,6 +1,8 @@
 namespace TORSEPAN.Domain.Entities;
 
-// A singleton row deliberately limits the workshop to one offline registrar.
+// A singleton row selects the workshop's administrator account for offline registration.
+// DeviceId retains the first installation for audit/backward compatibility, not authorization.
+// Each operation still records its installation ID for receipts and dependency isolation.
 public sealed class OfflineDevice
 {
     public int Id { get; set; } = 1;
