@@ -58,7 +58,7 @@ body .theme-shell :is(.scale-dialog,.design-confirm-dialog,.operation-confirm-di
 body .login-layout { font-family: "Torsepan UI",Tahoma,sans-serif; background: var(--tp-navy-deep); }
 body .login-layout .login-form-side { background: radial-gradient(ellipse at 0 0,#073b7355,transparent 65%),var(--tp-navy-deep); }
 body .login-layout .login-card-modern { border: 1px solid #a9c0e166; box-shadow: 0 15px 50px #00152f66; }
-body .login-layout :is(.login-card-logo,.login-submit) { background: linear-gradient(125deg,var(--tp-blue),var(--tp-navy-deep)); }
+body .login-layout :is(.login-card-logo,.modern-login-button) { background: linear-gradient(125deg,var(--tp-blue),var(--tp-navy-deep)); }
 body .login-layout .showcase-kicker { color: var(--tp-gold); }
 @media(max-width:768px) {
     body .theme-shell .theme-page-intro h1 { font-size: 1.5rem; margin: 13px 0; }
