@@ -55,6 +55,28 @@ final class OfflineSync {
             return new Reply(status,json);
         } finally { connection.disconnect(); }
     }
+    boolean canOpen() {
+        try {
+            String token = store.get("token");
+            if (token.isEmpty()) return false;
+            JSONObject claims = new JSONObject(new String(android.util.Base64.decode(token.split("\\.")[1],
+                android.util.Base64.URL_SAFE | android.util.Base64.NO_WRAP | android.util.Base64.NO_PADDING), StandardCharsets.UTF_8));
+            String owner = claims.optString("sub", claims.optString("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"));
+            Object roles = claims.opt("role");
+            if (roles == null) roles = claims.opt("http://schemas.microsoft.com/ws/2008/06/identity/claims/role");
+            boolean admin = "Administrator".equals(roles);
+            if (roles instanceof JSONArray) for (int i=0;i<((JSONArray)roles).length();i++)
+                admin |= "Administrator".equals(((JSONArray)roles).optString(i));
+            if (!admin || owner.isEmpty()) return false;
+            try {
+                Reply reply = request("access/" + store.device(), null);
+                return reply.status == 200 && reply.body.optBoolean("allowed", false);
+            } catch (java.io.IOException unavailable) {
+                // A previously enrolled phone remains usable without connectivity, behind the device lock.
+                return "yes".equals(store.get("enrolled")) && owner.equals(store.get("owner"));
+            }
+        } catch (Exception invalid) { return false; }
+    }
     void enroll() throws Exception {
         synchronized (SYNC) {
             Reply reply = request("enroll", new JSONObject().put("deviceId",store.device()));

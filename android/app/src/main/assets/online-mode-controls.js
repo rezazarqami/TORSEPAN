@@ -1,26 +1,42 @@
 (() => {
-  const attach = () => {
-    const host = document.querySelector('.topbar-left');
-    const title = host?.querySelector('.topbar-title-block');
-    if (!host || !title) return;
-    const existing = host.querySelector('.app-mode-controls');
-    if (existing) { if (existing.parentElement !== host) title.after(existing); return; }
-    const controls = document.createElement('nav');
-    controls.className = 'app-mode-controls';
-    controls.setAttribute('aria-label', 'حالت کار برنامه');
-    const online = document.createElement('span'); online.textContent = '● آنلاین';
-    const offline = document.createElement('a'); offline.textContent = 'ثبت آفلاین / صف عملیات';
-    offline.href = 'torsepan-app://offline';
-    controls.append(online, offline); title.after(controls);
+  // Injected only by the Android shell. The server decides account/device eligibility.
+  const device = window.torsepanOfflineDevice;
+  if (!device || window.torsepanOfflineMenu) return;
+  window.torsepanOfflineMenu = true;
+  document.querySelectorAll('.app-mode-controls').forEach(node => node.remove());
+  document.getElementById('app-mode-style')?.remove();
+  let token = '', allowed = false, generation = 0;
+  const render = () => {
+    const existing = document.getElementById('offline-mode-menu');
+    const menu = document.querySelector('.sidebar-menu');
+    if (!allowed || !menu) { existing?.remove(); return; }
+    if (existing) return;
+    const link = document.createElement('a');
+    link.id = 'offline-mode-menu'; link.href = 'torsepan-app://offline';
+    const icon = document.createElement('span'); icon.textContent = '⇩'; icon.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span'); label.textContent = 'حالت آفلاین / صف عملیات';
+    link.append(icon, label);
+    menu.insertBefore(link, menu.querySelector('.sidebar-logout'));
   };
-  if (!document.getElementById('app-mode-style')) {
-    const style = document.createElement('style'); style.id = 'app-mode-style';
-    style.textContent = "\n/* Android mode controls belong to the left of the brand/title, within the existing header row. */\n.topbar-left:has(.app-mode-controls){min-width:0;gap:8px}\n.topbar-left .topbar-title-block:has(.app-mode-controls){display:contents}\n.topbar-left .page-title{flex-shrink:0}\n.topbar-left .app-mode-controls{display:flex;flex:0 0 auto;align-items:center;justify-content:center;gap:7px;margin:0 0 0 0;padding:0;border:0;font-size:10px;line-height:1.5;direction:rtl}\n.topbar-left .app-mode-controls span{color:#9be1c2;white-space:nowrap;font-size:10px}\n.topbar-left .app-mode-controls a{display:block;color:#e3eff8;text-decoration:none;border:1px solid #ffffff30;border-radius:9px;padding:5px 8px;background:#ffffff0d;line-height:1.45;text-align:center;font-size:10px}\n@media(max-width:768px){\n body .layout>.main>.topbar:has(.app-mode-controls) .topbar-left{grid-column:1/-1;grid-row:1;width:100%;min-width:0;gap:8px}\n body .layout>.main>.topbar:has(.app-mode-controls) .topbar-right{grid-column:1;grid-row:2}\n body .layout>.main>.topbar:has(.app-mode-controls) .mobile-menu-toggle{grid-column:2;grid-row:2}\n .topbar-left .app-mode-controls{flex-direction:column;gap:3px;width:105px;margin-inline-start:auto}\n .topbar-left .app-mode-controls span{font-size:9px;line-height:1.2}\n .topbar-left .app-mode-controls a{width:105px;max-width:100%;padding:4px 5px;font-size:9px;white-space:normal}\n .topbar-left .page-title-main{white-space:nowrap}\n}\n@media(max-width:350px){.topbar-left .app-mode-controls,.topbar-left .app-mode-controls a{width:94px}.topbar-left .app-mode-controls a{font-size:8.5px}}\n";
-    document.head.append(style);
-  }
-  attach();
-  if (!window.torsepanModeObserver) {
-    window.torsepanModeObserver = new MutationObserver(attach);
-    window.torsepanModeObserver.observe(document.body, {childList:true,subtree:true});
-  }
+  const refresh = async () => {
+    const current = localStorage.getItem('access_token') || '';
+    const version = ++generation;
+    if (current !== token || !current) { allowed = false; token = current; render(); }
+    if (!current) return;
+    try {
+      const response = await fetch('/api/internal/mobile-offline/access/' + encodeURIComponent(device), {
+        headers: { Authorization: 'Bearer ' + current }, cache: 'no-store'
+      });
+      const access = response.ok ? await response.json() : { allowed: false };
+      if (version !== generation || current !== (localStorage.getItem('access_token') || '')) return;
+      allowed = access.allowed === true; render();
+    } catch { if (version === generation) { allowed = false; render(); } }
+  };
+  new MutationObserver(() => {
+    if (token !== (localStorage.getItem('access_token') || '')) refresh();
+    else render();
+  }).observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('storage', refresh);
+  setInterval(refresh, 15000);
+  refresh();
 })();

@@ -72,7 +72,7 @@ public final class MainActivity extends Activity {
         recoveryToolbar = toolbar;
         toolbar.setVisibility(View.GONE);
         Button online = new Button(this); online.setText("آنلاین");
-        Button local = new Button(this); local.setText("ثبت آفلاین / صف عملیات");
+        Button local = new Button(this); local.setVisibility(View.GONE); local.setText("ثبت آفلاین / صف عملیات");
         toolbar.addView(online, new LinearLayout.LayoutParams(0, -2, 1));
         toolbar.addView(local, new LinearLayout.LayoutParams(0, -2, 2));
         root.addView(toolbar); root.addView(browser, new LinearLayout.LayoutParams(-1, 0, 1));
@@ -167,7 +167,13 @@ public final class MainActivity extends Activity {
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) { onlineLoadFailed = false; }
 
             @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
-                if (request.isForMainFrame()) { onlineLoadFailed = true; recoveryToolbar.setVisibility(View.VISIBLE); }
+                if (request.isForMainFrame()) {
+                    onlineLoadFailed = true; recoveryToolbar.setVisibility(View.VISIBLE);
+                    captureToken(true, () -> offlineWorker.execute(() -> {
+                        boolean allowed = offlineSync.canOpen();
+                        runOnUiThread(() -> local.setVisibility(allowed ? View.VISIBLE : View.GONE));
+                    }));
+                }
             }
 
             @Override public void onPageFinished(WebView view, String url) {
@@ -177,7 +183,7 @@ public final class MainActivity extends Activity {
                     java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
                     byte[] buffer = new byte[4096]; int count;
                     while ((count = stream.read(buffer)) != -1) output.write(buffer, 0, count);
-                    view.evaluateJavascript(output.toString("UTF-8"), null);
+                    view.evaluateJavascript("window.torsepanOfflineDevice=" + JSONObject.quote(offlineStore.device()) + ";" + output.toString("UTF-8"), null);
                 } catch (Exception ignored) { }
                 // The panel creates payroll PDFs as blob: URLs, which Android's DownloadManager cannot read.
                 view.evaluateJavascript("(function(){if(!window.torsepanReports)return;window.torsepanReports.download=function(name,bytes){" +
@@ -311,6 +317,18 @@ public final class MainActivity extends Activity {
     }
 
     private void unlockLocal() {
+        captureToken(true, () -> offlineWorker.execute(() -> {
+            boolean allowed = offlineSync.canOpen();
+            runOnUiThread(() -> {
+                if (allowed) confirmLocalUnlock();
+                else {
+                    if (localVisible) showOnline();
+                    Toast.makeText(this, "حالت آفلاین فقط برای حساب ادمین و گوشی مجاز در دسترس است.", Toast.LENGTH_LONG).show();
+                }
+            });
+        }));
+    }
+    private void confirmLocalUnlock() {
         KeyguardManager guard = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         if (!guard.isDeviceSecure()) {
             Toast.makeText(this, "برای حفاظت از اطلاعات آفلاین، ابتدا قفل یا رمز گوشی را فعال کنید.", Toast.LENGTH_LONG).show(); return;

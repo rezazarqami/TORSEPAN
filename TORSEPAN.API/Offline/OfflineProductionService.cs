@@ -32,6 +32,14 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         await tx.CommitAsync(ct);
     }
 
+    public async Task<object> AccessAsync(Guid owner, Guid device, CancellationToken ct)
+    {
+        if (device == Guid.Empty) throw new OfflineProblem("invalid", "شناسه گوشی معتبر نیست.", 400);
+        var enrolled = await db.OfflineDevices.AsNoTracking().SingleOrDefaultAsync(ct);
+        var registered = enrolled is not null;
+        return new { allowed = !registered || enrolled!.OwnerId == owner && enrolled.DeviceId == device, registered };
+    }
+
     private async Task<OfflineDevice> DeviceAsync(Guid owner, Guid device, CancellationToken ct)
     {
         var enrolled = await db.OfflineDevices.AsNoTracking().SingleOrDefaultAsync(ct);

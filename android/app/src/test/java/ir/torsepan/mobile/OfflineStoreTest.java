@@ -32,6 +32,29 @@ public class OfflineStoreTest {
     private JSONObject op(String code,String action) throws Exception {
         return new JSONObject().put("code",code).put("action",action).put("performerId",UUID.randomUUID().toString()).put("expectedVersion","snapshot");
     }
+    private String accessToken(String owner, Object roles) throws Exception {
+        JSONObject claims = new JSONObject().put("sub",owner).put("role",roles);
+        return "header." + android.util.Base64.encodeToString(claims.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+            android.util.Base64.URL_SAFE | android.util.Base64.NO_WRAP | android.util.Base64.NO_PADDING) + ".signature";
+    }
+    @Test public void offlineEntryRequiresAdminAndServerDeviceApproval() throws Exception {
+        OfflineStore store=create(UUID.randomUUID()+".db");setup(store);
+        store.put("token",accessToken("owner","Administrator"));
+        OfflineSync approved=new OfflineSync(context(),store,(path,body)->{
+            assertEquals("access/"+store.device(),path);
+            return new OfflineSync.Reply(200,new JSONObject().put("allowed",true));
+        });
+        assertTrue(approved.canOpen());
+        assertFalse(new OfflineSync(context(),store,(path,body)->new OfflineSync.Reply(200,new JSONObject().put("allowed",false))).canOpen());
+        assertFalse(new OfflineSync(context(),store,(path,body)->new OfflineSync.Reply(403,new JSONObject())).canOpen());
+        OfflineSync disconnected=new OfflineSync(context(),store,(path,body)->{throw new java.io.IOException("offline");});
+        assertTrue(disconnected.canOpen());
+        store.put("token",accessToken("other-admin",new JSONArray().put("Administrator")));
+        assertFalse(disconnected.canOpen());
+        store.put("token",accessToken("owner","Tuner"));assertFalse(approved.canOpen());
+        store.put("token","");assertFalse(approved.canOpen());
+        store.close();
+    }
     @Test public void queueSurvivesCloseAndDependenciesSpanBothBowls() throws Exception {
         String name=UUID.randomUUID()+".db"; OfflineStore store=create(name);setup(store);
         String first=store.enqueue(op("855","tune").toString());
