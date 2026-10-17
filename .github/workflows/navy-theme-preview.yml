@@ -28,11 +28,13 @@ jobs:
           export THEME_PLAYWRIGHT="$RUNNER_TEMP/theme-tools/node_modules/playwright"
           export THEME_SCREENSHOTS="$RUNNER_TEMP/theme-screenshots"
           bash tests/theme-preview.sh
+          THEME_BROWSER_SCRIPT=tests/theme-all-pages.cjs THEME_SCREENSHOTS="$RUNNER_TEMP/theme-all-pages" bash tests/theme-preview.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: navy-theme-mobile-previews
           path: |
             ${{ runner.temp }}/theme-screenshots
+            ${{ runner.temp }}/theme-all-pages
             /tmp/torsepan-theme-panel.log
             /tmp/torsepan-theme-fixture.log

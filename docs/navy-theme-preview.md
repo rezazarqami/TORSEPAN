@@ -83,3 +83,7 @@ On dashboard mobile layouts, the top edge of the workshop scene is now extended 
 The light page canvas fades upward behind the profile toolbar. The initial interpretation incorrectly joined the navy introduction cards to the header; that change is reverted. Both cards retain their original 10px side insets, 13px gap below the header, 21px upper corner radii, borders, glow, dimensions and background. Only a 64px decorative gradient behind the toolbar blends the canvas into the navy header. The approved dashboard photo transition remains unchanged.
 
 Browser checks now guard the two cards' original placement, width, border and radius at mobile widths, alongside the existing layout/menu/route interactions. Actual high-resolution captures were visually inspected. Preview branch only; no production deployment.
+
+## Accepted screens and rollout
+
+The three reviewed screens are now accepted. See [navy-theme-rollout.md](navy-theme-rollout.md) for release-branch preparation, remaining-page implementation, validation scope and the unresolved authenticated Liara deployment step.

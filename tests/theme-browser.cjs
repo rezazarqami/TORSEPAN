@@ -64,10 +64,10 @@ const output=process.env.THEME_SCREENSHOTS;
      await page.locator('.order-tabs button').first().click();await page.locator('.order-list-toggle').first().waitFor();
     }
     if(name==='export') {
-     const warehouses=page.locator('.warehouse-card');await warehouses.nth(1).click();await page.getByText('این انبار خالی است',{exact:true}).waitFor();
+     const warehouses=page.locator('.warehouse-card');await warehouses.nth(1).click();await page.getByText(/^(این انبار خالی است|موردی پیدا نشد)$/).waitFor();
      await warehouses.first().click();await page.locator('.inventory-item').waitFor();
-     await page.locator('.export-tools input.form-control').fill('no-match');await page.getByText('این انبار خالی است',{exact:true}).waitFor();
-     await page.locator('.export-tools input.form-control').fill('');await page.locator('.inventory-item').waitFor();
+     await page.locator('.export-tools input.form-control').fill('no-match');await page.locator('.export-tools input.form-control').press('Enter');await page.getByText(/^(این انبار خالی است|موردی پیدا نشد)$/).waitFor();
+     await page.locator('.export-tools input.form-control').fill('');await page.locator('.export-tools input.form-control').press('Enter');await page.locator('.inventory-item').waitFor();
      await page.locator('.item-select input').check();await page.locator('.ship-selected').click();await page.locator('.shipment-dialog').waitFor();
      await page.getByRole('button',{name:'انصراف',exact:true}).click();await page.locator('.shipment-dialog').waitFor({state:'hidden'});
     }

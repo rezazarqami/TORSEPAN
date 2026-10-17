@@ -372,7 +372,7 @@ body .theme-shell .theme-hero::after { background: radial-gradient(ellipse 19px 
 }
 /* Fade the light page canvas behind the toolbar; retain each hero card unchanged. */
 @media(max-width:768px) {
-    body .theme-shell > .main:has(.orders-hero, .export-hero) > .topbar::after {
+    body .theme-shell > .main:has(.orders-hero, .export-hero, .theme-page-intro) > .topbar::after {
         content: ""; position: absolute; inset: auto 0 0; height: 64px;
         z-index: -2; pointer-events: none;
         background: linear-gradient(to bottom, #edf4fc00, #edf4fc18 25%, #edf4fc99 68%, var(--tp-canvas));

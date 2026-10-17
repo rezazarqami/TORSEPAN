@@ -18,6 +18,16 @@ http.createServer(async(req,res)=>{
  else if(path.endsWith('/designs/types'))data=[{id:id(3),name:'ساده'}];
  else if(path.endsWith('/export-warehouse'))data=url.searchParams.has('empty')?[]:[{id:id(30),productionCode:'TEST-EXPORT-01',itemType:'bowl',itemKind:'کاسه رو',detail:'داده آزمایشی',location:4}];
  else if(path.endsWith('/me/profile'))data={id:id(1),userName:'theme-preview',fullName:'کاربر آزمایشی',roles:['Administrator']};
+ else if(path.endsWith('/bowls'))data={items:[],totalItems:0,page:1,pageSize:20};
+ else if(path.endsWith('/bowls/suggested-code'))data={productionCode:'TEST-001',code:'TEST-001'};
+ else if(path.endsWith('/materials'))data=[{id:id(4),name:'NITRIDE',category:4,quantity:24,topBowlQuantity:12,bottomBowlQuantity:12},{id:id(5),name:'بسته‌بندی آزمایشی',category:3,quantity:10}];
+ else if(path.endsWith('/accounting/summary'))data={cashIn:12500000,cashOut:2500000,receivables:3000000,payables:1000000,overdue:1};
+ else if(path.endsWith('/payroll')||path.endsWith('/production/report')||path.endsWith('/management-reports/production')||path.endsWith('/management-reports/inventory')||path.endsWith('/sales-attribution/options')||path.endsWith('/sales-attribution/report'))data={from:'2026-10-01T00:00:00Z',to:'2026-10-17T00:00:00Z'};
+ else if(path.endsWith('/me/activity')||path.endsWith('/me/payroll')||path.endsWith('/notifications/conversations'))data={from:'2026-10-01T00:00:00Z',to:'2026-10-17T00:00:00Z'};
+ else if(path.endsWith('/notifications/announcements'))data={total:0,page:1,pageSize:20,items:[]};
+ else if(path.endsWith('/instrument-warehouses'))data=[1,2,3].map(n=>({id:n,name:['درجه یک','درجه دو','درجه سه'][n-1],version:id(n+60)}));
+ else if(path.endsWith('/auth/users'))data=[{id:id(1),userName:'theme-preview',fullName:'همکار آزمایشی',isActive:true}];
+ else if(path.includes('/auth/users/'))data={id:id(1),userName:'theme-preview',fullName:'همکار آزمایشی',roles:[]};
  else if(path.endsWith('/notifications'))data={total:0,page:1,pageSize:20,items:[]};
  res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(data));
 }).listen(5169,'127.0.0.1',()=>console.log('Isolated theme fixture listening on 5169'));
