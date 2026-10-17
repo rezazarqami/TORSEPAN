@@ -77,3 +77,7 @@ Validation: Panel Release build passed (three existing application warnings). Ac
 ## Profile-toolbar transition into workshop photograph
 
 On dashboard mobile layouts, the top edge of the workshop scene is now extended behind the profile/home/message toolbar using a masked reflected edge. The transition fades from the header navy to the photograph at the exposed left/right margins; the toolbar remains a separate live element above it. The existing photograph scale, visible framing, summary overlap, header height and scroll geometry are preserved. The effect is scoped to the dashboard; orders and export retain their plain shared headers. Browser checks at 360, 390, 768 and 1280px cover the existing menu, layout and route interactions. The actual high-resolution capture was visually checked at the toolbar margins. Production remains unchanged.
+
+## Orders and export introduction/header blend
+
+The mobile orders/export hero surfaces now extend to the full content width and begin at the header boundary. The former white gap and illuminated top-card outline are removed. A matching blue-navy surface fades behind the profile toolbar, leaving it visually floating above the continuous introduction. The bottom rounded corners and blue reflection remain. This change is scoped to the two introduction classes; the approved workshop-photo fade is unchanged. Browser checks passed for dashboard, orders and export at 360, 390, 768 and 1280px, with no runtime or missing asset errors. Actual page captures were inspected. Preview branch only; no production deployment.

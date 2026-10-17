@@ -370,3 +370,30 @@ body .theme-shell .theme-hero::after { background: radial-gradient(ellipse 19px 
         background: linear-gradient(105deg, #022853f5, #00142ff8);
     }
 }
+/* Internal page introductions flow behind the same floating profile toolbar. */
+@media(max-width:768px) {
+    body .theme-shell > .main:has(.orders-hero, .export-hero) {
+        --tp-intro-surface: linear-gradient(110deg, #052e60, #001733 80%);
+    }
+    body .theme-shell > .main:has(.orders-hero, .export-hero) > .topbar::after {
+        content: ""; position: absolute; inset: auto 0 0; height: 64px;
+        z-index: -2; pointer-events: none; background: var(--tp-intro-surface);
+        mask-image: linear-gradient(to bottom, transparent 20%, #000);
+    }
+    body .theme-shell > .main:has(.orders-hero, .export-hero) > .content {
+        background: linear-gradient(to bottom, #001733 0, transparent 180px);
+    }
+    body .theme-shell .orders-hero, body .theme-shell .export-hero {
+        margin: -13px -10px 17px; padding-top: 21px;
+        border: 0; border-radius: 0 0 21px 21px;
+        background: var(--tp-intro-surface);
+        box-shadow: 0 8px 16px #1a96ff33, inset 0 -1px 0 #a9ddff99;
+    }
+    body .theme-shell .orders-hero::before, body .theme-shell .export-hero::before {
+        background: none;
+    }
+    body .theme-shell .orders-hero::after, body .theme-shell .export-hero::after {
+        background: radial-gradient(ellipse 85px 26px at 100% 100%, #299dff66, transparent 90%);
+        box-shadow: none;
+    }
+}
