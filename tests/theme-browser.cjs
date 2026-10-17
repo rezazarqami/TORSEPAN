@@ -28,6 +28,16 @@ const output=process.env.THEME_SCREENSHOTS;
       return {right:n.getBoundingClientRect().left+parseFloat(art.width),brandLeft:brand.left};
      });
      assert(corner.right<=corner.brandLeft-2,`${name}: architectural corner intrudes into brand at ${width}px`);
+     if(name==='orders'||name==='export') {
+      const card=await page.locator('.theme-hero').evaluate(n=>{
+       const r=n.getBoundingClientRect(),h=document.querySelector('.topbar').getBoundingClientRect(),s=getComputedStyle(n);
+       return {left:r.left,right:r.right,gap:r.top-h.bottom,topBorder:s.borderTopWidth,radius:s.borderTopLeftRadius,mainWidth:document.querySelector('.main').clientWidth};
+      });
+      assert.equal(card.left,10,'intro card must retain side inset');
+      assert.equal(card.right,card.mainWidth-10,'intro card must retain width');
+      assert.equal(card.gap,13,'intro card must retain original vertical placement');
+      assert.equal(card.topBorder,'1px');assert.equal(card.radius,'21px');
+     }
      const rail=page.locator('.mobile-nav-rail');const before=await rail.boundingBox();assert.equal(before.width,25);assert.equal(before.y,0);assert.equal(before.height,844);
      await page.locator('.content').evaluate(n=>{n.style.scrollBehavior='auto';n.scrollTop=n.scrollHeight});assert.deepEqual(await rail.boundingBox(),before,'rail moves during scroll');
      await rail.click();await page.locator('.sidebar.mobile-open').waitFor();assert.equal(await rail.getAttribute('aria-expanded'),'true');
