@@ -19,12 +19,12 @@ public sealed record OfflineOperation(Guid OperationId, Guid DeviceId, string Co
     Guid? DesignTypeId = null, TORSEPAN.API.Controllers.AdminProductionEditRequest? Edit = null,
     Dictionary<string,Guid?>? EditScales = null, string? Image = null, string? Thumbnail = null, string? ImageHash = null, List<OfflineLocalEventUserUpdate>? LocalEventUsers=null,
     string? WorkspaceModule=null,string? WorkspaceAction=null,System.Text.Json.JsonElement? WorkspaceData=null,
-    string? WorkspaceExpectedVersion=null,Guid? WorkspacePreviousOperationId=null, int? QualityWarehouseId=null);
+    string? WorkspaceExpectedVersion=null,Guid? WorkspacePreviousOperationId=null, int? QualityWarehouseId=null, int? NoteCount=null);
 public sealed record OfflineLocalEventUserUpdate(Guid OperationId,Guid UserId);
 public sealed record OfflineUser(Guid Id, string Name, string[] Roles);
 public sealed record OfflineScale(Guid Id, string Name, int Usage);
 public sealed record OfflineBowl(string Code, Guid Id, int Type, bool HasNotes, bool IsCustom, Guid? ScaleId,
-    int Stage, string StageName, string Version, string? PairCode, string? InstrumentCode, bool IsRejected, int QualityWarehouseId=1, int? PackagingExportLocation=null);
+    int Stage, string StageName, string Version, string? PairCode, string? InstrumentCode, bool IsRejected, int QualityWarehouseId=1, int? PackagingExportLocation=null, int? NoteCount=null, int? InstrumentNoteCount=null, Guid? InstrumentScaleId=null, Guid? LegacyScaleId=null);
 public sealed record OfflineSnapshot(int Schema, Guid DeviceId, Guid OwnerId, DateTime CapturedUtc,
     IReadOnlyList<OfflineBowl> Bowls, IReadOnlyList<OfflineUser> Users,
     IReadOnlyList<OfflineScale> Scales, PassportSnapshot Passports,
