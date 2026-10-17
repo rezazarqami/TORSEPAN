@@ -1,20 +1,20 @@
-﻿@page "/users"
+@page "/users"
 @attribute [Authorize(Roles = "Administrator,ProductionManager")]
 @using Microsoft.AspNetCore.Authorization
 
 @inject NavigationManager Navigation
 
-<PageTitle>Users</PageTitle>
+<PageTitle>کاربران</PageTitle>
 
-<PageHeader Title="Users"
-            SubTitle="User Management">
+<PageHeader Title="کاربران"
+            SubTitle="مدیریت کاربران و دسترسی‌ها">
 
     <Actions>
 
-        <PrimaryButton Text="Users List"
+        <PrimaryButton Text="فهرست کاربران"
                        OnClick="OpenUsers" />
 
-        <PrimaryButton Text="New User"
+        <PrimaryButton Text="ثبت کاربر"
                        OnClick="NewUser" />
 
     </Actions>
@@ -27,7 +27,7 @@
 
         <Card>
 
-            <h4>Total Users</h4>
+            <h4>تعداد کاربران</h4>
 
             <h2>1</h2>
 
@@ -39,7 +39,7 @@
 
         <Card>
 
-            <h4>Active Users</h4>
+            <h4>کاربران فعال</h4>
 
             <h2>1</h2>
 
@@ -51,7 +51,7 @@
 
         <Card>
 
-            <h4>Inactive Users</h4>
+            <h4>کاربران غیرفعال</h4>
 
             <h2>0</h2>
 
@@ -63,7 +63,7 @@
 
 <Card Class="mt-4">
 
-    <p>Select one of the actions above.</p>
+    <p>برای مدیریت اعضا یکی از گزینه‌های بالا را انتخاب کنید.</p>
 
 </Card>
 

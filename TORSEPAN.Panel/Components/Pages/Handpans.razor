@@ -1,4 +1,4 @@
-﻿@page "/handpans"
+@page "/handpans"
 
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
@@ -7,10 +7,11 @@
 @inject NavigationManager Navigation
 
 <PageTitle>هنگدرام‌ها</PageTitle>
+<PageHeader Title="هنگدرام‌ها" SubTitle="فهرست سازها و اطلاعات تولید" />
 
 <div class="d-flex justify-content-between mb-3">
 
-    <h3>هنگدرام‌ها</h3>
+
 
     <button class="btn btn-primary"
             @onclick="CreateNew">
@@ -31,7 +32,7 @@ else if (_items.Count == 0)
 }
 else
 {
-    <table class="table table-striped">
+    <div class="table-responsive"><table class="table table-striped">
 
         <thead>
 
@@ -68,7 +69,7 @@ else
 
         </tbody>
 
-    </table>
+    </table></div>
 }
 
 @code

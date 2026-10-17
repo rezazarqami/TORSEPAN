@@ -1,3 +1,4 @@
+@import url("/theme-palette.css");
 /* Approved navy/champagne theme. Loaded after legacy and component styles. */
 :root {
     --tp-navy: #031e43;
@@ -372,7 +373,7 @@ body .theme-shell .theme-hero::after { background: radial-gradient(ellipse 19px 
 }
 /* Fade the light page canvas behind the toolbar; retain each hero card unchanged. */
 @media(max-width:768px) {
-    body .theme-shell > .main:has(.orders-hero, .export-hero) > .topbar::after {
+    body .theme-shell > .main:has(.orders-hero, .export-hero, .theme-page-intro) > .topbar::after {
         content: ""; position: absolute; inset: auto 0 0; height: 64px;
         z-index: -2; pointer-events: none;
         background: linear-gradient(to bottom, #edf4fc00, #edf4fc18 25%, #edf4fc99 68%, var(--tp-canvas));
@@ -389,3 +390,32 @@ body .theme-shell .theme-hero::after { background: radial-gradient(ellipse 19px 
         display: none; width: 0; height: 0;
     }
 }
+
+/* Header and page share one scroll surface; the independent navigation rail stays fixed. */
+body .layout.theme-shell > .main { overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth; scrollbar-color: #9eafc5 transparent; }
+body .layout.theme-shell > .main > .content { flex: 1 0 auto; overflow: visible; }
+body .layout.theme-shell > .main > .topbar { position: relative; inset: auto; flex-shrink: 0; }
+/* All standard pages blend their light canvas behind the floating user toolbar. */
+body .theme-shell > .main:not(:has(.workshop-panorama)) > .topbar::after {
+    content: ""; position: absolute; inset: auto 0 0; height: 64px;
+    z-index: -2; pointer-events: none;
+    background: linear-gradient(to bottom, #edf4fc00, #edf4fc18 25%, #edf4fc99 68%, var(--tp-canvas));
+}
+body .theme-shell :is(.report-tab,.dashboard-tab,.warehouse-tab,.production-tab,.scale-tab,.design-tab,.inventory-tab,.message-tab,.account-tab).active :is(b,strong,small,span) { color: var(--tp-gold); }
+body .theme-shell :is(.btn-success,.run-report,.save-button,.refresh-messages) { background: linear-gradient(125deg,var(--tp-blue),var(--tp-navy-deep)); border-color: var(--tp-navy); color: white; }
+body .theme-shell .hall-stock { background: #edf4fc; border-color: var(--tp-line); }
+body .theme-shell .hall-stock .hall-stock-grid > div { background: linear-gradient(125deg,var(--tp-blue),var(--tp-navy-deep)); border-color: var(--tp-navy); }
+body .theme-shell .hall-stock-grid :is(dt,dd) { color: white; }
+body .theme-shell :is(.hall-stock-eyebrow,.report-filter-card > header small,.analytics-card > header small) { color: var(--tp-navy); }
+@media(max-width:768px) {
+    body .layout.theme-shell > .main { scrollbar-width: none; scrollbar-gutter: auto; }
+    body .layout.theme-shell > .main::-webkit-scrollbar { display: none; width: 0; height: 0; }
+}
+@media print {
+    body .layout.theme-shell, body .layout.theme-shell > .main { height: auto; overflow: visible; }
+}
+
+body .theme-shell { --bs-success-rgb: 3,30,67; --bs-success: #031e43; }
+body .theme-shell .btn-success { --bs-btn-hover-bg: #00152f; --bs-btn-active-bg: #00152f; --bs-btn-hover-border-color: #00152f; --bs-btn-active-border-color: #00152f; }
+
+body .theme-shell .btn-outline-success { --bs-btn-color: #031e43; --bs-btn-border-color: #031e43; --bs-btn-hover-bg: #031e43; --bs-btn-hover-border-color: #031e43; --bs-btn-active-bg: #00152f; --bs-btn-active-border-color: #00152f; }
