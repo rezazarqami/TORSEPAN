@@ -347,3 +347,26 @@ body .theme-shell .theme-hero::after { background: radial-gradient(ellipse 19px 
     body .theme-shell .topbar .user-box-clean { padding-inline-start: 28px; gap: 8px; }
     body .theme-shell .topbar .page-title-main { font-size: 14.5px; }
 }
+/* The dashboard photograph continues behind the floating profile toolbar. */
+@media(max-width:768px) {
+    body .theme-shell > .main:has(.workshop-panorama) {
+        --tp-header-photo-overlap: 64px;
+        --tp-workshop-scene-height: calc((100vw - var(--tp-rail)) / 1.85 + 28px);
+    }
+    body .theme-shell > .main:has(.workshop-panorama) > .topbar::after {
+        content: ""; position: absolute; inset: auto 0 0; height: var(--tp-header-photo-overlap);
+        z-index: -2; pointer-events: none;
+        background: url('/images/brand/dashboard-workshop.webp') center top / auto var(--tp-workshop-scene-height) no-repeat;
+        filter: saturate(1.14) contrast(1.02);
+        transform: scaleY(-1);
+        mask-image: linear-gradient(to top, transparent 38%, #000 100%);
+    }
+    body .theme-shell .workshop-panorama {
+        background-size: auto var(--tp-workshop-scene-height);
+        background-position: center bottom;
+    }
+    body .theme-shell > .main:has(.workshop-panorama) .topbar-right {
+        position: relative;
+        background: linear-gradient(105deg, #022853f5, #00142ff8);
+    }
+}
