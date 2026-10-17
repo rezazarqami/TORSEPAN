@@ -9,9 +9,17 @@ node tests/theme-preview-fixture.cjs > "$preview_logs/torsepan-theme-fixture.log
 fixture_pid=$!
 Api__BaseUrl=http://127.0.0.1:5169 ASPNETCORE_URLS=http://127.0.0.1:5170 ASPNETCORE_ENVIRONMENT=Development "$preview_dotnet" run --project "$preview_panel" --no-build -c Release --no-launch-profile > "$preview_logs/torsepan-theme-panel.log" 2>&1 &
 panel_pid=$!
-trap 'kill "$fixture_pid" "$panel_pid" 2>/dev/null || true' EXIT
+cleanup() {
+    kill "$fixture_pid" "$panel_pid" 2>/dev/null || true
+    wait "$fixture_pid" 2>/dev/null || true
+    wait "$panel_pid" 2>/dev/null || true
+}
+trap cleanup EXIT
 for attempt in $(seq 1 60); do
     if curl -sf http://127.0.0.1:5170/ > /dev/null; then break; fi
     sleep .5
 done
-node "${THEME_BROWSER_SCRIPT:-tests/theme-browser.cjs}"
+read -r -a preview_scripts <<< "${THEME_BROWSER_SCRIPTS:-${THEME_BROWSER_SCRIPT:-tests/theme-browser.cjs}}"
+for preview_script in "${preview_scripts[@]}"; do
+    node "$preview_script"
+done
