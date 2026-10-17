@@ -63,11 +63,19 @@ internal static class OfflineProductionSmoke
         Check(await Allowed(registrar.Id,device),"first administrator phone may activate offline");
         await service.EnrollAsync(registrar.Id,device,default);
         Check(await Allowed(registrar.Id,device),"registered administrator phone may open offline");
-        Check(!await Allowed(registrar.Id,Guid.NewGuid()),"same administrator on another phone has no offline access");
+        var replacementDevice=Guid.NewGuid();
+        Check(await Allowed(registrar.Id,replacementDevice),"same administrator can use another installation without a singleton phone lock");
         Check(!await Allowed(Guid.NewGuid(),device),"another account on registered phone has no offline access");
         await service.EnrollAsync(registrar.Id,device,default);
         async Task Problem(Func<Task> action,string code){try{await action();throw new Exception("Expected "+code);}catch(OfflineProblem error){Check(error.Code==code,"rejects "+code);db.ChangeTracker.Clear();}}
-        await Problem(()=>service.EnrollAsync(registrar.Id,Guid.NewGuid(),default),"device");
+        var originalEnrollment=await db.OfflineDevices.AsNoTracking().SingleAsync();
+        await service.EnrollAsync(registrar.Id,replacementDevice,default);
+        var retainedEnrollment=await db.OfflineDevices.AsNoTracking().SingleAsync();
+        Check(retainedEnrollment.DeviceId==device && retainedEnrollment.OwnerId==registrar.Id && retainedEnrollment.EnrolledUtc==originalEnrollment.EnrolledUtc,"another installation preserves original enrollment audit and timestamp");
+        Check((await service.SnapshotAsync(registrar.Id,replacementDevice,default)).DeviceId==replacementDevice,"snapshot is addressed to the requesting installation");
+        await Problem(()=>service.EnrollAsync(outsider.Id,replacementDevice,default),"device");
+        await Problem(()=>service.EnrollAsync(registrar.Id,Guid.Empty,default),"invalid");
+        await Problem(()=>service.SnapshotAsync(registrar.Id,Guid.Empty,default),"invalid");
         await Problem(()=>service.SnapshotAsync(outsider.Id,device,default),"device");
         outsider.SetRole("Tuner"); db.Update(outsider); await db.SaveChangesAsync(); db.ChangeTracker.Clear();
         var snapshot=await service.SnapshotAsync(registrar.Id,device,default);
@@ -80,6 +88,8 @@ internal static class OfflineProductionSmoke
         Check(await db.ProductionEvents.CountAsync()==1&&await db.OfflineReceipts.CountAsync()==1,"offline stage and receipt commit together");
         var event1=await db.ProductionEvents.AsNoTracking().SingleAsync();
         Check(event1.UserId==actor.Id&&event1.EventDate==recorded&&receipt.RegistrarId==registrar.Id,"real event time and performer are preserved separately from registrar audit");
+        await service.EnrollAsync(registrar.Id,replacementDevice,default);
+        await Problem(()=>service.ApplyAsync(registrar.Id,first with { DeviceId=replacementDevice },default),"identity");
         var retry=await service.ApplyAsync(registrar.Id,first,default);
         Check(retry.OperationId==receipt.OperationId&&await db.ProductionEvents.CountAsync()==1,"retry after lost response returns receipt without duplicate stage or payroll event");
         await Problem(()=>service.ApplyAsync(registrar.Id,first with { Duration=3 },default),"identity");
@@ -88,7 +98,15 @@ internal static class OfflineProductionSmoke
         Check((await service.BowlAsync("855",default)).Stage==6,"dependent local stage uses prior receipt rather than obsolete snapshot version");
         var bake=Operation("855","bake",first.ExpectedVersion,shape.OperationId);await service.ApplyAsync(registrar.Id,bake,default);
         var tune=Operation("855","tune",first.ExpectedVersion,bake.OperationId);await service.ApplyAsync(registrar.Id,tune,default);
-        var bottomDimple=Operation("196","dimple",snapshot.Bowls.Single(x=>x.Code=="196").Version);await service.ApplyAsync(registrar.Id,bottomDimple,default);
+        var bottomDimple=Operation("196","dimple",snapshot.Bowls.Single(x=>x.Code=="196").Version);
+        var otherPhoneReceipt=await service.ApplyAsync(registrar.Id,bottomDimple with { DeviceId=replacementDevice },default);
+        Check(otherPhoneReceipt.DeviceId==replacementDevice,"operations from another installation retain their own durable receipt identity");
+        await Problem(()=>service.ApplyAsync(registrar.Id,bottomDimple with { OperationId=Guid.NewGuid() },default),"conflict");
+        await Problem(()=>service.ApplyAsync(registrar.Id,Operation("196","shape",bottomDimple.ExpectedVersion,bottomDimple.OperationId),default),"dependency");
+        // A different installation must refresh its base, not borrow the other queue's dependency IDs.
+        var replacementSnapshot=await service.SnapshotAsync(registrar.Id,device,default);
+        bottomDimple=Operation("196","note",replacementSnapshot.Bowls.Single(x=>x.Code=="196").Version) with {Details="same-account installation refresh"};
+        await service.ApplyAsync(registrar.Id,bottomDimple,default);
         var bottomShape=Operation("196","shape",bottomDimple.ExpectedVersion,bottomDimple.OperationId);await service.ApplyAsync(registrar.Id,bottomShape,default);
         var bottomBake=Operation("196","bake",bottomDimple.ExpectedVersion,bottomShape.OperationId);await service.ApplyAsync(registrar.Id,bottomBake,default);
         Check((await service.BowlAsync("196",default)).Stage==10,"bottom without notes skips tuning exactly as online workflow does");
@@ -206,7 +224,7 @@ internal static class OfflineProductionSmoke
         var pgOptions=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused").Options;
         await using var pg=new TORSEPANDbContext(pgOptions);
         var sql=pg.GetService<IMigrator>().GenerateScript("20261006185746_AddOrderComposition");
-        Check(sql.Contains("OfflineDevices")&&sql.Contains("OfflineReceipts")&&sql.Contains("OfflineVersion")&&!sql.Contains("DROP TABLE"),"additive PostgreSQL migration includes singleton device, durable receipts and concurrency tokens");
+        Check(sql.Contains("OfflineDevices")&&sql.Contains("OfflineReceipts")&&sql.Contains("OfflineVersion")&&!sql.Contains("DROP TABLE"),"existing PostgreSQL schema retains enrollment audit, durable receipts and concurrency tokens");
         Check(!pg.Database.HasPendingModelChanges(),"migration snapshot matches current PostgreSQL model");
     }
 }
