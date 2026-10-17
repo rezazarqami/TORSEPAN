@@ -58,7 +58,14 @@ internal static class OfflineProductionSmoke
         services.AddSingleton<IUserRoleRepository,UserRoleRepository>();services.AddSingleton<IRefreshTokenRepository,RefreshTokenRepository>();
         services.AddSingleton<IInventoryAlertService,QuietAlerts>();services.AddSingleton<IUnitOfWork,UnitOfWork>();services.AddMediatR(x=>x.RegisterServicesFromAssembly(typeof(CompleteBowlDimpleCommand).Assembly));
         using var provider=services.BuildServiceProvider();http.HttpContext!.RequestServices=provider;var service=new OfflineProductionService(db,provider.GetRequiredService<IMediator>(),http);
-        var device=Guid.NewGuid();await service.EnrollAsync(registrar.Id,device,default); await service.EnrollAsync(registrar.Id,device,default);
+        var device=Guid.NewGuid();
+        async Task<bool> Allowed(Guid ownerId, Guid phone) => System.Text.Json.JsonSerializer.SerializeToElement(await service.AccessAsync(ownerId,phone,default)).GetProperty("allowed").GetBoolean();
+        Check(await Allowed(registrar.Id,device),"first administrator phone may activate offline");
+        await service.EnrollAsync(registrar.Id,device,default);
+        Check(await Allowed(registrar.Id,device),"registered administrator phone may open offline");
+        Check(!await Allowed(registrar.Id,Guid.NewGuid()),"same administrator on another phone has no offline access");
+        Check(!await Allowed(Guid.NewGuid(),device),"another account on registered phone has no offline access");
+        await service.EnrollAsync(registrar.Id,device,default);
         async Task Problem(Func<Task> action,string code){try{await action();throw new Exception("Expected "+code);}catch(OfflineProblem error){Check(error.Code==code,"rejects "+code);db.ChangeTracker.Clear();}}
         await Problem(()=>service.EnrollAsync(registrar.Id,Guid.NewGuid(),default),"device");
         await Problem(()=>service.SnapshotAsync(outsider.Id,device,default),"device");

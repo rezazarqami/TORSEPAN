@@ -9,8 +9,8 @@ android {
         applicationId 'ir.torsepan.mobile'
         minSdk 29
         targetSdk 34
-        versionCode 7
-        versionName '2.3-header-alignment'
+        versionCode 8
+        versionName '2.4-admin-offline-entry'
     }
 }
 
