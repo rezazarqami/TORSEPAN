@@ -9,10 +9,10 @@
 
 <style>.inline-add{display:grid;grid-template-columns:1fr auto;align-items:end;gap:7px}.inline-add .btn{min-height:44px;border-radius:11px;white-space:nowrap}</style>
 <PageTitle>فروش</PageTitle>
-<section class="sales-hero theme-hero theme-page-intro">
-    <span class="sales-kicker">SALES / TORSEPAN</span>
-    <img class="sales-hero-logo" src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
-    <h1>فروش</h1><div class="sales-total"><strong>@_items.Count</strong> فروش ثبت‌شده</div>
+<section class="sales-hero sales-photo-hero theme-hero theme-page-intro" aria-labelledby="sales-title">
+    <div class="sales-hero-art" aria-hidden="true"></div>
+    <svg class="sales-hero-lines" viewBox="0 0 1000 500" preserveAspectRatio="none" aria-hidden="true"><path d="M340 170 C540 180 575 0 760 0"/><path d="M300 500 C480 380 565 410 710 500"/></svg>
+    <div class="sales-hero-copy"><span class="sales-kicker">SALES / TORSEPAN</span><h1 id="sales-title">فروش</h1></div>
 </section>
 <nav class="sales-segments" aria-label="نوع فروش">
     @for(var segment=0;segment<3;segment++)
