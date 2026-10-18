@@ -27,3 +27,27 @@
 /* Brand mark and separate sale totals, with no decorative numbering. */
 .sales-hero-logo{display:block;width:64px;height:64px;object-fit:contain;filter:grayscale(1) invert(1) contrast(1.35);mix-blend-mode:screen}.sales-segment{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;text-align:center;min-height:102px}.sales-tier-text strong{margin:0}.sales-segment .sales-tier-count{position:static;min-width:36px;height:30px;font-size:.9rem}.sales-tier-text{width:100%}
 @media(max-width:600px){.sales-segment{min-height:104px;padding:13px 6px;gap:10px}.sales-tier-text strong{font-size:clamp(.6rem,2.6vw,.78rem)}.sales-segment .sales-tier-count{height:27px;font-size:.78rem}}
+
+/* Approved photo-to-navy inventory header, applied to sales. */
+
+
+.sales-hero.sales-photo-hero{overflow:hidden;min-height:300px;padding:32px 34px;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;text-align:right;background:#031e43;border:1px solid #8db7d1;border-radius:26px;box-shadow:inset 0 0 22px #66b6e830,0 10px 28px #1b6ea12b}
+.sales-photo-hero.sales-hero::before,.sales-photo-hero.sales-hero::after{display:none}
+.sales-hero-art{position:absolute;inset:0 auto 0 0;width:72%;background:url('/images/sales/handpan-showroom.png') left center / cover no-repeat;pointer-events:none;mask-image:linear-gradient(to right,#000 0%,#000 68%,#000c 80%,transparent 96%);-webkit-mask-image:linear-gradient(to right,#000 0%,#000 68%,#000c 80%,transparent 96%)}
+.sales-hero-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#dfbd65;stroke-width:1;opacity:.4}
+.sales-hero-copy{position:relative;z-index:1;width:36%;margin-left:auto;display:flex;align-items:center;text-align:center;flex-direction:column;gap:12px}
+.sales-photo-hero .sales-kicker{border:0;border-radius:0;padding:0;background:none;color:#f6d994;font:700 .73rem/1.6 Arial,sans-serif;letter-spacing:2px;white-space:nowrap}
+.sales-photo-hero .sales-hero-copy h1{font-size:clamp(1.65rem,3.1vw,2.6rem);line-height:1.5;margin:0;color:#f6d994;letter-spacing:-.6px;font-weight:800}
+.sales-photo-hero .sales-total{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:2px;color:#e2e8f2;font-size:.9rem;font-weight:400}
+.sales-photo-hero .sales-total strong{color:#f6d994;margin:0;font:700 2.2rem/1.4 Arial,sans-serif}
+@media(max-width:600px){
+ .sales-hero.sales-photo-hero{min-height:220px;padding:24px 16px;border-radius:21px;margin-bottom:16px}
+ .sales-hero-copy{width:30%;margin-right:-4px;gap:9px}
+ .sales-photo-hero .sales-kicker{font-size:clamp(.42rem,1.75vw,.64rem);letter-spacing:.65px}
+ .sales-photo-hero .sales-hero-copy h1{font-size:clamp(1.35rem,6vw,2rem);line-height:1.5;white-space:nowrap}
+ .sales-photo-hero .sales-total{margin-top:11px;font-size:.75rem;gap:2px}
+ .sales-photo-hero .sales-total strong{font-size:1.8rem}
+ .sales-hero-art{width:76%;background-size:auto 100%;background-position:-16px center}
+}
+
+.sales-photo-hero .sales-hero-copy{transform:translateY(8px)}
