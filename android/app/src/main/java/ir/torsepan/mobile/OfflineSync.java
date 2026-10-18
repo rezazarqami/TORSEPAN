@@ -263,11 +263,11 @@ final class OfflineSync {
                     }
                     this.store.installSnapshot(replyRequest2.body);
                     this.store.put("message", "ارتباط برقرار شد؛ وضعیت هر عملیات در صف نمایش داده می\u200cشود.");
-                    boolean z = this.store.pending() == 0 && cachePhotos(replyRequest2.body);
-                    if (this.store.pending() == 0 && !z) {
-                        z = false;
-                    }
-                    return z;
+                    // A form may be saved while the snapshot request is in flight.
+                    // installSnapshot preserves its base; arrange another sync for the new row.
+                    if (this.store.pending() != 0) return true;
+                    boolean retryPhotos = cachePhotos(replyRequest2.body);
+                    return this.store.pending() != 0 || retryPhotos;
                 }
                 return false;
             } catch (Exception e) {
