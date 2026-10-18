@@ -1,37 +1,65 @@
 @inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Routing
 @inject NavigationManager Navigation
-@implements IDisposable
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <div class="layout theme-shell">
-    <button type="button" class="mobile-nav-rail" aria-label="@(_mobileMenuOpen ? "بستن منوی اصلی" : "باز کردن منوی اصلی")" aria-controls="main-navigation" aria-expanded="@(_mobileMenuOpen ? "true" : "false")" @onclick="ToggleMobileMenu">
-        <span class="mobile-nav-grip" aria-hidden="true"><i></i><i></i><i></i></span><span class="mobile-nav-label">منو</span>
-    </button>
-    @if (_mobileMenuOpen)
-    {
-        <button type="button" class="mobile-menu-backdrop" aria-label="بستن منوی اصلی" @onclick="CloseMobileMenu"></button>
-    }
-    <aside id="main-navigation" class="sidebar @(_mobileMenuOpen ? "mobile-open" : null)"><Sidebar /></aside>
     <div class="main">
         <header class="topbar"><Topbar /></header>
         <main class="content">@Body<GlobalProductionSearch /></main>
     </div>
+    <nav class="bottom-navigation" aria-label="دسترسی سریع">
+        <button type="button" class="bottom-menu-toggle @(_menuOpen ? "active" : null)" aria-controls="main-navigation" aria-haspopup="dialog" aria-expanded="@(_menuOpen ? "true" : "false")" @onclick="ToggleMenu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/></svg><span>منو</span>
+        </button>
+        <NavLink href="/" Match="NavLinkMatch.All"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h5v-7h4v7h5V10"/></svg><span>داشبورد</span></NavLink>
+        <NavLink href="/bowls/new"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/></svg><span>ثبت کاسه</span></NavLink>
+        <AuthorizeView><NavLink href="/orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 3h3l3 13h11l3-10H6"/><circle cx="9" cy="21" r="1"/><circle cx="18" cy="21" r="1"/></svg><span>ثبت سفارش</span></NavLink></AuthorizeView>
+    </nav>
+    <dialog @ref="_menuDialog" id="main-navigation" class="navigation-dialog" aria-label="منوی اصلی تورسپن" @onclick="CloseMenu">
+        <div class="navigation-panel" @onclick:stopPropagation="true">
+            <header class="navigation-heading">
+                <img src="/images/brand/torsepan-mark-new.webp" alt="" />
+                <div><strong>سامانه مدیریت تولید</strong><span>TORSEPAN</span></div>
+                <button type="button" autofocus data-navigation-close aria-label="بستن منوی اصلی" @onclick="CloseMenu">×</button>
+            </header>
+            <Sidebar />
+        </div>
+    </dialog>
 </div>
 
 @code {
-    private bool IsDashboard => string.IsNullOrEmpty(Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0]);
-    private bool _mobileMenuOpen;
+    private bool _menuOpen;
+    private ElementReference _menuDialog;
+    private IJSObjectReference? _navigationModule;
 
     protected override void OnInitialized() => Navigation.LocationChanged += HandleLocationChanged;
 
-    private void ToggleMobileMenu() => _mobileMenuOpen = !_mobileMenuOpen;
-    private void CloseMobileMenu() => _mobileMenuOpen = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _navigationModule = await JS.InvokeAsync<IJSObjectReference>("import", "./navigation-dialog.js");
+        if (_navigationModule is not null)
+            await _navigationModule.InvokeVoidAsync("setOpen", _menuDialog, _menuOpen);
+    }
+
+    private void ToggleMenu() => _menuOpen = !_menuOpen;
+    private void CloseMenu() => _menuOpen = false;
 
     private void HandleLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        _mobileMenuOpen = false;
+        _menuOpen = false;
         _ = InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose() => Navigation.LocationChanged -= HandleLocationChanged;
+    public async ValueTask DisposeAsync()
+    {
+        Navigation.LocationChanged -= HandleLocationChanged;
+        if (_navigationModule is not null)
+        {
+            try { await _navigationModule.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+    }
 }
