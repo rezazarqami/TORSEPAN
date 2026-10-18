@@ -13,7 +13,7 @@
 </section>
 
 <section class="edit-lookup" aria-labelledby="production-search-title">
-    <header><h2 id="production-search-title">جست‌وجوی شناسنامه</h2><p>با واردکردن کد، اسکیل‌ها و سوابق تولید برای ویرایش نمایش داده می‌شوند.</p></header>
+    <header><h2 id="production-search-title">جست‌وجوی شناسنامه</h2><p>با واردکردن کد، اسکیل‌ها، تعداد نوت و سوابق تولید برای ویرایش نمایش داده می‌شوند.</p></header>
     <EditForm Model="_search" OnValidSubmit="SearchAsync" class="edit-search">
         <label for="production-code">کد ساز یا کاسه</label>
         <div class="edit-search-controls"><InputText id="production-code" @bind-Value="_search.Code" autocomplete="off" placeholder="مثلاً 7113" /><button type="submit" disabled="@_loading">@if(_loading){<span class="spinner-border spinner-border-sm"></span>}else{<span>جست‌وجو</span>}</button></div>
@@ -33,7 +33,7 @@
     </section>
 
     <section class="edit-section">
-        <header><div><small>تنظیمات فنی</small><h3>Scale ساز و کاسه‌ها</h3></div><span>@_record.Bowls.Count کاسه مرتبط</span></header>
+        <header><div><small>تنظیمات فنی</small><h3>Scale و تعداد نوت کاسه‌ها</h3></div><span>@_record.Bowls.Count کاسه مرتبط</span></header>
         <div class="scale-grid">
             @if(_record.HandpanId.HasValue)
             {
@@ -41,7 +41,7 @@
             }
             @foreach(var bowl in _record.Bowls)
             {
-                <article class="scale-card"><div class="card-icon">🥣</div><div class="scale-copy"><small>@bowl.BowlType</small><strong>@bowl.Code</strong><span>@bowl.Material • @bowl.StageTitle</span></div><label><span>Scale این کاسه</span><select @bind="bowl.ScaleId"><option value="">بدون Scale</option>@foreach(var scale in ScalesFor(bowl.BowlType.Contains("رو")?1:2)){<option value="@scale.Id">@scale.Name</option>}</select></label></article>
+                <article class="scale-card"><div class="card-icon">🥣</div><div class="scale-copy"><small>@bowl.BowlType</small><strong>@bowl.Code</strong><span>@bowl.Material • @bowl.StageTitle</span></div><label><span>Scale این کاسه</span><select @bind="bowl.ScaleId"><option value="">بدون Scale</option>@foreach(var scale in ScalesFor(bowl.BowlType.Contains("رو")?1:2)){<option value="@scale.Id">@scale.Name</option>}</select></label><label><span>تعداد نوت ثبت‌شده در شیپ</span><input type="number" min="@(bowl.BowlType=="کاسه رو"?1:0)" step="1" @bind="bowl.NoteCount" placeholder="نامشخص" disabled="@(bowl.BowlType=="کاسه زیر خام")" /><small>خالی: تعداد نوت بدون تغییر می‌ماند</small></label></article>
             }
         </div>
     </section>
@@ -73,7 +73,7 @@
 
 @if(_confirming&&_record is not null)
 {
-    <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>Scale‌ها و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
+    <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>Scale‌ها، تعداد نوت کاسه‌ها و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
 }
 
 @code{
@@ -109,7 +109,13 @@
         finally{_loading=false;}
     }
 
-    private void RequestSave(){if(_record is not null)_confirming=true;}
+    private void RequestSave()
+    {
+        if(_record is null)return;
+        if(_record.Bowls.Any(x=>x.NoteCount<0||(x.BowlType=="کاسه رو"&&x.NoteCount==0)))
+        {_message="تعداد نوت کاسه رو باید مثبت باشد؛ تعداد منفی مجاز نیست.";_messageError=true;return;}
+        _confirming=true;
+    }
     private void CloseConfirmation()=>_confirming=false;
     private async Task SaveAsync()
     {
@@ -117,10 +123,10 @@
         _saving=true;_message=null;
         try
         {
-            var request=new AdminProductionEditRequest(_record.HandpanScaleId,_record.Bowls.Select(x=>new AdminBowlScaleUpdate(x.Id,x.ScaleId)).ToList(),_record.Events.Select(x=>new AdminEventUserUpdate(x.Id,x.UserId)).ToList());
+            var request=new AdminProductionEditRequest(_record.HandpanScaleId,_record.Bowls.Select(x=>new AdminBowlScaleUpdate(x.Id,x.ScaleId,x.NoteCount)).ToList(),_record.Events.Select(x=>new AdminEventUserUpdate(x.Id,x.UserId)).ToList());
             _record=await EditService.UpdateAsync(_record.RequestedCode,request)??_record;_confirming=false;_message="تغییرات شناسنامه با موفقیت ذخیره شد.";_messageError=false;
         }
-        catch{_confirming=false;_message="ذخیره تغییرات انجام نشد. Scale و ثبت‌کننده‌های انتخاب‌شده را دوباره بررسی کنید.";_messageError=true;}
+        catch{_confirming=false;_message="ذخیره تغییرات انجام نشد. Scale، تعداد نوت و ثبت‌کننده‌های انتخاب‌شده را دوباره بررسی کنید.";_messageError=true;}
         finally{_saving=false;}
     }
 

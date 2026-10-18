@@ -37,6 +37,20 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
         var bowls=await db.Bowls.Where(x=>target.BowlIds.Contains(x.Id)).ToListAsync(ct);
         if(bowlUpdates.Any(x=>!target.BowlIds.Contains(x.BowlId)))return BadRequest("کاسه انتخاب‌شده به این ساز تعلق ندارد.");
 
+        foreach(var update in bowlUpdates.Where(x=>x.NoteCount.HasValue))
+        {
+            var bowl=bowls.Single(x=>x.Id==update.BowlId);
+            if(update.NoteCount<0 || (bowl.BowlType==BowlType.Top && update.NoteCount==0) ||
+                (bowl.BowlType==BowlType.Bottom && !bowl.HasNotes && update.NoteCount!=0))
+                return BadRequest("تعداد نوت کاسه رو باید مثبت و کاسه زیر خام باید صفر باشد؛ تعداد منفی مجاز نیست.");
+        }
+        var top=bowls.SingleOrDefault(x=>x.BowlType==BowlType.Top);
+        var bottom=bowls.SingleOrDefault(x=>x.BowlType==BowlType.Bottom);
+        int? UpdatedCount(Bowl bowl)=>bowlUpdates.SingleOrDefault(x=>x.BowlId==bowl.Id)?.NoteCount??bowl.KnownNoteCount;
+        if(target.HandpanId.HasValue && top is not null && bottom is not null &&
+            UpdatedCount(top) is int t && UpdatedCount(bottom) is int b && (long)t+b>int.MaxValue)
+            return BadRequest("مجموع تعداد نوت ساز بیش از حد مجاز است.");
+
         var requestedScaleIds=bowlUpdates.Where(x=>x.ScaleId.HasValue).Select(x=>x.ScaleId!.Value).ToHashSet();
         if(request.HandpanScaleId.HasValue)requestedScaleIds.Add(request.HandpanScaleId.Value);
         var scales=await db.Scales.Where(x=>requestedScaleIds.Contains(x.Id)&&x.IsActive).ToDictionaryAsync(x=>x.Id,ct);
@@ -45,6 +59,7 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
         foreach(var update in bowlUpdates)
         {
             var bowl=bowls.Single(x=>x.Id==update.BowlId);
+            if(update.NoteCount.HasValue)bowl.SetNoteCount(update.NoteCount.Value);
             if(!update.ScaleId.HasValue){bowl.ClearScale();continue;}
             var usage=bowl.BowlType==BowlType.Top?ScaleUsage.TopBowl:ScaleUsage.BottomBowl;
             if(!scales[update.ScaleId.Value].Usage.HasFlag(usage))return BadRequest($"Scale انتخاب‌شده برای {BowlTitle(bowl)} قابل استفاده نیست.");
@@ -60,6 +75,7 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
                 handpan.SetScale(request.HandpanScaleId.Value);
             }
             else handpan.ClearScale();
+            if(bowlUpdates.Any(x=>x.NoteCount.HasValue))handpan.SetNoteCountFromBowls(top!,bottom!);
         }
         else if(request.HandpanScaleId.HasValue)return BadRequest("این کاسه هنوز به ساز تبدیل نشده است.");
 
@@ -90,7 +106,7 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
         var stage=handpan?.Stage??anchor!.Stage;var status=handpan?.Status??anchor!.Status;
         return new AdminProductionEditDto(requestedCode,handpan?.SerialNumber??anchor!.ProductionCode,handpan is null?"کاسه":"ساز",(int)stage,StageTitle(stage),StatusTitle(status),
             handpan?.Id,handpan?.ScaleId,handpan?.Scale?.Name,target.AssemblyId,
-            bowls.Select(x=>new AdminEditableBowlDto(x.Id,x.ProductionCode,BowlTitle(x),x.Material.Name,(int)x.Stage,StageTitle(x.Stage),x.ScaleId,x.Scale?.Name)).ToList(),
+            bowls.Select(x=>new AdminEditableBowlDto(x.Id,x.ProductionCode,BowlTitle(x),x.Material.Name,(int)x.Stage,StageTitle(x.Stage),x.ScaleId,x.Scale?.Name,x.KnownNoteCount)).ToList(),
             events.Select(x=>new AdminEditableEventDto(x.Id,(int)x.Action,ActionTitle(x.Action),x.EventDate,x.UserId,UserName(x.User),
                 x.BowlId.HasValue&&codeByBowl.TryGetValue(x.BowlId.Value,out var bowlCode)?bowlCode:handpan?.SerialNumber??"مونتاژ",DurationTitle(x.Duration),x.Description)).ToList());
     }
@@ -131,8 +147,8 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
 }
 
 public sealed record AdminProductionEditRequest(Guid? HandpanScaleId,List<AdminBowlScaleUpdate>? BowlScales,List<AdminEventUserUpdate>? EventUsers);
-public sealed record AdminBowlScaleUpdate(Guid BowlId,Guid? ScaleId);
+public sealed record AdminBowlScaleUpdate(Guid BowlId,Guid? ScaleId,int? NoteCount=null);
 public sealed record AdminEventUserUpdate(Guid EventId,Guid UserId);
 public sealed record AdminProductionEditDto(string RequestedCode,string Code,string ItemType,int Stage,string StageTitle,string StatusTitle,Guid? HandpanId,Guid? HandpanScaleId,string? HandpanScaleName,Guid? AssemblyId,List<AdminEditableBowlDto> Bowls,List<AdminEditableEventDto> Events);
-public sealed record AdminEditableBowlDto(Guid Id,string Code,string BowlType,string Material,int Stage,string StageTitle,Guid? ScaleId,string? ScaleName);
+public sealed record AdminEditableBowlDto(Guid Id,string Code,string BowlType,string Material,int Stage,string StageTitle,Guid? ScaleId,string? ScaleName,int? NoteCount=null);
 public sealed record AdminEditableEventDto(Guid Id,int Action,string ActionTitle,DateTime EventDate,Guid UserId,string UserName,string RelatedCode,string Duration,string Description);

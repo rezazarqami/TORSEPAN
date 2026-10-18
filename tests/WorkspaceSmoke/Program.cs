@@ -14,6 +14,7 @@ using TORSEPAN.Application.Materials;
 using TORSEPAN.Application.Common.Reporting;
 
 static void Check(bool value,string message){if(!value)throw new Exception(message);Console.WriteLine("PASS "+message);}
+if(args.Contains("--production-note-count-only")){ await ProductionNoteCountSmoke.RunAsync(); return; }
 if(args.Contains("--scale-family-only")){ await ScaleFamilySmoke.RunAsync(); return; }
 if(args.Contains("--remaining-scales-only")) { await RemainingLegacyScalesSmoke.RunAsync(); return; }
 if(args.Contains("--unified-scales-only")) { await UnifiedScalesSmoke.RunAsync(); return; }
