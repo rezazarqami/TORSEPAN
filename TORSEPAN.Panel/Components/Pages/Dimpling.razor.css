@@ -297,3 +297,229 @@
 .tune-workspace .stage-route-action:last-child span { color:#597385; }
 .tune-workspace .stage-route-action:last-child:hover:not(:disabled) { background:#e5f0f4; box-shadow:0 4px 12px rgba(18,54,83,.08); }
 @media(max-width:350px) { .tune-workspace .stage-route-actions { grid-template-columns:1fr; } }
+
+/* Match the production list photo header on both code lookup routes. */
+.process-hero.process-photo-hero{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:flex-start;min-height:300px;padding:32px 34px;margin:0 0 18px;border:1px solid #8db7d1;border-radius:26px;background:#031e43;color:#f6d994;text-align:center;box-shadow:inset 0 0 22px #66b6e830,0 10px 28px #1b6ea12b}
+.process-hero.process-photo-hero::before,.process-hero.process-photo-hero::after{display:none}
+.process-hero-art{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,transparent 0%,transparent 58%,#031e43bf 68%,#031e43 80%),url('/images/production/workshop-hall.png');background-position:center,left center;background-size:100% 100%,cover;background-repeat:no-repeat}
+.process-hero-copy{position:relative;z-index:1;width:36%;margin-left:auto;display:flex;align-items:center;flex-direction:column;gap:12px}
+.process-photo-hero .process-hero-copy > span{padding:0;border:0;border-radius:0;background:none;color:#f6d994;font:700 .73rem/1.6 Arial,sans-serif;letter-spacing:1.3px;white-space:nowrap}
+.process-photo-hero .process-hero-copy h1{margin:0;color:#f6d994;font-size:clamp(1.65rem,3.1vw,2.6rem);line-height:1.5;font-weight:800;letter-spacing:-.6px;white-space:nowrap}
+@media(max-width:600px){.process-hero.process-photo-hero{min-height:220px;padding:24px 16px;border-radius:21px;margin-bottom:16px}.process-hero-art{background-size:100% 100%,auto 100%;background-position:center,left center}.process-hero-copy{width:30%;margin-right:-4px;gap:9px}.process-photo-hero .process-hero-copy > span{font-size:clamp(.42rem,1.75vw,.64rem);letter-spacing:.65px}.process-photo-hero .process-hero-copy h1{font-size:clamp(1rem,4.4vw,1.5rem)}}
+
+/* Navy and gold passport; isolated from the dashboard and production photo header. */
+.production-passport-page.luxury-passport-page.luxury-passport-page{--tp-navy:#edf3f6;--tp-line:#54748d;position:relative;isolation:isolate;display:block;min-width:0;padding:24px;border:1px solid #355775;border-radius:26px;background:#00162c url('/images/production/passport-navy-gold.png') center top/100% auto repeat-y;color:#eaf1f7;box-shadow:0 18px 45px #00102440}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-search-label{color:#f6d994;font-weight:800}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-search{max-width:660px;margin-inline:auto}
+.production-passport-page.luxury-passport-page.luxury-passport-page .instrument-passport{padding:0;margin-top:24px;border:0;border-radius:0;overflow:visible;background:none;box-shadow:none}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-overview{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;align-items:stretch}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.passport-identity,.passport-media,.passport-timeline,.passport-operation){min-width:0;padding:20px;border:1px solid #54748d;border-radius:23px;background:linear-gradient(135deg,#0c304ceF,#00172bf5 75%);box-shadow:inset 0 1px 9px #7cb5d533,0 12px 22px #0009}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-header{margin:0 0 14px;padding:0 0 14px;border-bottom:1px solid #9fb6cc25}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-header>span{color:#b4c6d7;font:600 .7rem/1.6 Arial,sans-serif;letter-spacing:1px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-primary-info{padding:0;gap:9px;border:0;border-radius:0;background:none;color:#f7f5ee}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes{gap:8px;padding:0;direction:rtl}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes>div{padding:12px 9px;background:#16385370;border:1px solid #47698540;border-radius:13px;align-items:flex-start;text-align:right}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong{font-size:1.12rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong span{font-size:.62rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-primary-info span{font-size:.7rem;color:#b4c6d7}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line{direction:rtl;display:flex;align-items:center;justify-content:flex-start;gap:8px;min-height:61px;padding:10px 12px;border:1px solid #52718a30;border-radius:15px;background:linear-gradient(110deg,#1a3a5355,#16395390);text-align:right}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line>span{color:#bdd0df;text-align:right;direction:rtl}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line strong{color:#f7f2e5;text-align:right;font-size:1rem;line-height:1.6}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-scale{flex-direction:column;align-items:flex-start;gap:0}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-scale strong{font-family:Arial,sans-serif;font-size:1.25rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-status strong{color:#f6d994}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-media{padding:12px;display:flex;align-items:flex-start}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-bowl-placeholder{display:flex;min-height:280px;width:100%;gap:15px;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#b4c6d7}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-bowl-placeholder>span{font-size:5rem;line-height:1;color:#e4bf75}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-bowl-placeholder>small{max-width:180px;font-size:.76rem;line-height:1.8}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline{margin-top:26px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:14px}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.passport-timeline h3,.passport-operation-title h3){margin:0;color:#f3f2eb;font-size:1.13rem;font-weight:850;line-height:1.7}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline h3>span{color:#edd395;font-size:1.5rem;vertical-align:middle;margin-left:6px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-toggle{border:1px solid #47789670;border-radius:20px;padding:7px 12px;background:#154362;color:#a7d5f2;font-size:.75rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row{display:grid;grid-template-columns:minmax(95px,.85fr) minmax(0,1.7fr) 100px;gap:14px;align-items:center;padding:15px 2px;border-top:1px solid #a7c0d324}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation{display:flex;align-items:center;gap:10px;min-width:0}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation strong{font-size:.85rem;line-height:1.7;overflow-wrap:anywhere}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#24516e;color:#f5d790;font-size:1.4rem;box-shadow:inset 0 1px 5px #d9eff633}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon[data-action="2"]{background:#087e76}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon[data-action="3"]{background:#6143ab}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon[data-action="4"]{background:#aa353c}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon[data-action="6"]{background:#b57a25}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-people{min-width:0;color:#d0dfeb;overflow-wrap:anywhere;font-size:.85rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-performers{display:flex;flex-direction:column;gap:3px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-people small{display:block;color:#9eb5c9;font-size:.7rem;margin-top:4px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-event-date{color:#afc4d5;direction:ltr;align-items:flex-start;font-size:.8rem;display:flex;flex-direction:column;gap:3px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-event-date small{color:#afc4d5}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-empty{margin:12px 0;color:#aac0d0}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation{margin-top:26px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation-title{display:flex;gap:14px;align-items:center;margin-bottom:18px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation-title>span{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#315575,#09273d);color:#e9c774;font-size:2rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation-title small{color:#aac0d0;font-size:.72rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.stage-workspace,.stage-workspace-body,.stage-workspace-header,.stage-workspace-actions,.packaging-picker,.qc-warehouse-picker,.case-picker){padding:0;margin:0;border:0;background:none;box-shadow:none;color:#d5e3ef;overflow:visible}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-workspace-header{margin-bottom:16px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-workspace-number{display:none}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-workspace-header :is(h4,small){color:#f6d994}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-workspace-header p{color:#a9bfd0;font-size:.8rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-fields{gap:16px}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.form-label,.stage-field>span,.stage-field-title,.packaging-heading h5,.case-picker-title strong,.qc-warehouse-picker h3){color:#d8e5ef}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.form-control,.form-select){min-height:46px;border:1px solid #54748d;border-radius:12px;background-color:#06243b;color:#edf3f6;box-shadow:inset 0 2px 6px #0003}
+.production-passport-page.luxury-passport-page.luxury-passport-page .form-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath fill='none' stroke='%23e6c67c' stroke-width='2' d='m2 3 6 6 6-6'/%3E%3C/svg%3E")}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(input,textarea)::placeholder{color:#8aa4b8;opacity:1;font-size:.8rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.form-control,.form-select):focus{border-color:#e3bf76;outline:2px solid #d5ad5835}
+.production-passport-page.luxury-passport-page.luxury-passport-page textarea.form-control{min-height:105px;line-height:1.9}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-workspace-actions{padding-top:18px}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.stage-submit,.btn-success,.btn-primary){border:1px solid #eac981;background:linear-gradient(115deg,#fae2a2,#cfa557);color:#102b42;box-shadow:0 6px 20px #0003;font-weight:850;border-radius:13px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-submit{width:100%;padding:15px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-submit span{color:#374b54;font-size:.75rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-route-action{background:#0d304a;border-color:#56748d;color:#f0d18b}
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-route-action span{color:#b7cad8}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.alert,.packaging-option,.case-option,.qc-warehouse-option,.export-location-options button){background:#11334ce8;color:#d5e3ef;border:1px solid #4c6c85;border-radius:13px}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.packaging-option,.case-option,.qc-warehouse-option).selected{border-color:#e9c580;background:#22475c}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.packaging-option,.case-option,.qc-warehouse-option) strong{color:#edf2f6}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.packaging-option,.case-option) small{color:#a9c2d4}
+.production-passport-page.luxury-passport-page.luxury-passport-page .packaging-heading p{color:#a9c2d4}
+.production-passport-page.luxury-passport-page.luxury-passport-page .btn-outline-primary{color:#bfdaf0;border-color:#7295ac}
+.production-passport-page.luxury-passport-page.luxury-passport-page .btn-outline-danger{color:#ffb1b8;border-color:#e88892}
+.production-passport-page.luxury-passport-page.luxury-passport-page .text-muted{color:#abc0d1!important}
+.production-passport-page.luxury-passport-page.luxury-passport-page button:focus-visible{outline:2px solid #f4d58b;outline-offset:3px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .photo-gallery{max-width:none;width:100%;margin:0}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-main{height:300px;border:1px solid #53728b;border-radius:17px;background:#00192a}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-main img{object-fit:contain}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumbs{padding-top:10px;gap:8px;direction:ltr}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumb{width:65px;height:65px;min-width:65px;border-radius:12px;border-color:#4f6f85;background:#06243b}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumb.selected{border:2px solid #efd18b;box-shadow:0 0 12px #d4ad5460}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-action{background:#0b2c44;border-color:#42627a;color:#bdd3e3;border-radius:9px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-empty{height:300px;background:#06243b;border:1px dashed #53728b;color:#b4c6d7;flex-direction:column}
+@media(max-width:700px){.production-passport-page.luxury-passport-page.luxury-passport-page{padding:14px 10px;border-radius:22px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-overview{gap:9px;grid-template-columns:1.13fr 1fr}.production-passport-page.luxury-passport-page.luxury-passport-page :is(.passport-identity,.passport-media){padding:9px;border-radius:17px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-header{padding-bottom:8px;margin-bottom:9px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-header>span{font-size:.5rem;letter-spacing:.45px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes{gap:5px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes>div{padding:7px 5px;gap:3px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong{font-size:.75rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-primary-info span{font-size:.58rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong span{font-size:.49rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line{min-height:51px;padding:7px;gap:4px;border-radius:11px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line strong{font-size:.75rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-scale strong{font-size:.95rem}.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-main,.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-empty{height:218px}.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumb{min-width:36px;width:36px;height:42px;border-radius:7px}.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumbs{gap:4px}.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-upload-actions{flex-wrap:wrap}.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-action{font-size:.56rem;padding:5px}.production-passport-page.luxury-passport-page.luxury-passport-page :is(.passport-timeline,.passport-operation){padding:14px 10px;margin-top:20px;border-radius:19px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline h3{font-size:.88rem}.production-passport-page.luxury-passport-page.luxury-passport-page .history-toggle{font-size:.62rem;padding:6px 8px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row{grid-template-columns:88px minmax(0,1fr) 69px;gap:7px;padding:13px 0}.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation{gap:5px}.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon{width:27px;height:27px;font-size:1rem}.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation strong{font-size:.67rem}.production-passport-page.luxury-passport-page.luxury-passport-page .history-people{font-size:.65rem}.production-passport-page.luxury-passport-page.luxury-passport-page .history-people small{font-size:.59rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-event-date{font-size:.62rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation-title h3{font-size:1rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation-title>span{width:42px;height:42px;font-size:1.5rem}.production-passport-page.luxury-passport-page.luxury-passport-page .stage-fields{grid-template-columns:1fr}.production-passport-page.luxury-passport-page.luxury-passport-page .stage-field{grid-column:1/-1}}
+@media(max-width:359px){.production-passport-page.luxury-passport-page.luxury-passport-page .passport-overview{grid-template-columns:1fr}.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-main{height:260px}}
+
+.production-passport-page.luxury-passport-page.luxury-passport-page .stage-workspace-header{display:none}
+
+/* Reference proportions, full surface background and vector details. */
+.production-detail-surface{margin:0 -20px -20px;padding:18px 20px 65px;background:#00172b url('/images/production/passport-navy-gold.png') center top/cover no-repeat;min-height:100vh}
+.production-passport-page.luxury-passport-page.luxury-passport-page{padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+.production-passport-page.luxury-passport-page.luxury-passport-page .instrument-passport{margin-top:18px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-overview{grid-template-columns:1.18fr 1fr;gap:12px;align-items:start}
+.production-passport-page.luxury-passport-page.luxury-passport-page :is(.passport-identity,.passport-media,.passport-timeline,.passport-operation){background:linear-gradient(120deg,#0c3049ed,#00172cf5 73%);border-color:#64869e;border-radius:20px;box-shadow:inset 0 1px 8px #9ed9fa35,0 8px 16px #0008}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-identity{padding:14px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-primary-info{gap:8px;display:flex;flex-direction:column}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes{padding-bottom:2px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes>div{min-height:62px;border:0;border-radius:12px;background:#14375055}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong{font-size:1rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line{display:grid;grid-template-columns:48px minmax(0,1fr) 13px;direction:ltr;align-items:center;gap:12px;min-height:65px;padding:7px 10px;background:linear-gradient(110deg,#1c405b95,#0b2e4655);border:1px solid #42627c35;border-radius:16px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line>div{min-width:0;display:flex;flex-direction:column;gap:3px;text-align:right;direction:rtl}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line small{display:block;color:#aebed0;font-size:.71rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line strong{display:block;text-align:right;font-size:1rem;line-height:1.55;color:#edf2f7;overflow-wrap:anywhere}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-feature-icon{display:grid;place-items:center;width:46px;height:48px;border-radius:16px;color:#ebcc87;background:radial-gradient(circle at 25% 15%,#47637b,#08253c 85%);box-shadow:inset 0 1px 5px #7fa4b455}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-row-chevron{display:block;color:#8ca6bc}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-feature-icon ::deep svg{width:29px;height:29px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-row-chevron ::deep svg{width:12px;height:20px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-status-dot{display:inline-block;width:6px;height:6px;background:#ffdf53;border-radius:50%;box-shadow:0 0 7px #ffdc5670;margin-right:4px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-media{padding:8px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-main{height:268px;border-radius:14px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumbs{justify-content:flex-start;padding-top:10px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumb{width:62px;height:62px;min-width:62px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-upload-actions{opacity:.85;margin-top:8px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .photo-delete{width:16px;height:16px;font-size:13px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline{margin-top:18px;padding:16px 15px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline>header{padding-bottom:12px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline h3{display:flex;align-items:center;gap:8px;font-size:1rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-heading-icon{display:flex;color:#f5ebd4}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-heading-icon ::deep svg{width:25px;height:25px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row{position:relative;grid-template-columns:108px minmax(0,1fr) 90px;gap:10px;min-height:65px;padding:11px 15px 11px 0}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row:before{content:"";position:absolute;right:0;top:0;bottom:0;width:1px;background:#4a91bd70}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row:after{content:"";position:absolute;right:-3px;top:50%;width:7px;height:7px;background:#54b5e8;border-radius:50%;box-shadow:0 0 6px #65c8ff40}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row:nth-of-type(2):after{background:#eeb05d}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row:nth-of-type(3):after{background:#ef5d61}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row:nth-of-type(4):after{background:#926ce8}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row:nth-of-type(5):after{background:#20b897}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation{gap:8px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon{width:36px;height:36px;background:linear-gradient(135deg,#39b1eb,#075dac);color:white}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon[data-action="1"]{background:linear-gradient(135deg,#6b7b8c,#263b50)}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon ::deep svg{width:21px;height:21px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-people{display:flex;align-items:center;gap:8px;flex-direction:row}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-person-icon{display:grid;place-items:center;flex:none;width:23px;height:23px;border-radius:50%;background:#46637a90;color:#e4edf6}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-person-icon ::deep svg{width:15px;height:15px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation{margin-top:18px;padding:18px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .operation-gear ::deep svg{width:29px;height:29px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation-title{margin-bottom:15px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-search .btn{border-radius:12px!important}
+@media(max-width:700px){
+.production-detail-surface{margin-inline:-13px;padding:16px 13px 50px;background-size:100% auto;background-repeat:repeat-y}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-overview{grid-template-columns:1.18fr 1fr;gap:7px;align-items:start}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-identity{padding:8px;border-radius:17px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-media{padding:6px;border-radius:17px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-header{margin-bottom:7px;padding-bottom:7px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-header>span{font-size:.47rem;font-weight:500;letter-spacing:.5px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-primary-info{gap:5px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes{gap:4px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes>div{min-height:44px;padding:5px 4px;gap:2px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong{font-size:.69rem;line-height:1.5}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong span{font-size:.43rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-primary-info .passport-codes span{font-size:.47rem;line-height:1.4}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line{grid-template-columns:32px minmax(0,1fr) 7px;min-height:44px;padding:5px;gap:6px;border-radius:12px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line>div{gap:1px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line small{font-size:.47rem;line-height:1.3}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line strong{font-size:.66rem;line-height:1.5}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-scale strong{font-family:Arial,sans-serif;font-size:.8rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-feature-icon{width:32px;height:34px;border-radius:11px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-feature-icon ::deep svg{width:21px;height:21px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-row-chevron ::deep svg{width:7px;height:13px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-main,.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-empty{height:176px;border-radius:11px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumbs{padding-top:7px;gap:5px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumb{width:40px;height:43px;min-width:40px;border-radius:8px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-action{font-size:.48rem;padding:3px 5px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-upload-actions{margin-top:5px;gap:4px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .photo-gallery [role=status]:empty{display:none}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline{padding:12px 10px;margin-top:15px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline h3{font-size:.8rem;gap:5px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-heading-icon ::deep svg{width:21px;height:21px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-toggle{font-size:.58rem;padding:5px 9px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row{grid-template-columns:88px minmax(0,1fr) 65px;gap:5px;min-height:58px;padding:10px 10px 10px 0}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation strong{font-size:.62rem;font-weight:500}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation{gap:5px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon{width:29px;height:29px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon ::deep svg{width:18px;height:18px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-people{font-size:.61rem;gap:5px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-person-icon{width:18px;height:18px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-person-icon ::deep svg{width:12px;height:12px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-event-date{font-size:.57rem;gap:3px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-people small{font-size:.53rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation{margin-top:15px;padding:13px 12px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation-title h3{font-size:.94rem}
+}
+@media(max-width:359px){.production-passport-page.luxury-passport-page.luxury-passport-page .passport-overview{grid-template-columns:1.18fr 1fr}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line{grid-template-columns:24px minmax(0,1fr) 6px;gap:4px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-feature-icon{width:24px;height:29px}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line strong{font-size:.56rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-scale strong{font-size:.67rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong{font-size:.58rem}.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row{grid-template-columns:76px minmax(0,1fr) 59px}}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-primary-info .passport-feature-icon{color:#eccb82}
+
+/* Match the reference height without clipping variable names or history details. */
+@media(max-width:700px){
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-overview{align-items:start}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-identity{padding:7px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-header{margin-bottom:5px;padding-bottom:5px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-primary-info{gap:4px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes>div{min-height:39px;padding:4px;gap:1px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong{line-height:1.3}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-codes strong span{display:inline}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line{min-height:39px;padding:4px 5px;gap:5px;grid-template-columns:29px minmax(0,1fr) 7px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-feature-icon{height:29px;width:29px;border-radius:10px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-feature-icon ::deep svg{width:19px;height:19px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line>div{gap:0}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line small{line-height:1.25}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line strong{font-size:.64rem;line-height:1.4}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-scale strong{font-size:.78rem}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-main,.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-empty{height:168px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumbs{padding-top:6px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-thumb{height:39px;width:37px;min-width:37px}
+.production-passport-page.luxury-passport-page.luxury-passport-page ::deep .gallery-upload-actions{margin-top:4px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline{padding:10px 9px;margin-top:13px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline>header{padding-bottom:8px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row{min-height:40px;padding-block:6px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon{height:27px;width:27px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation-icon ::deep svg{width:17px;height:17px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-operation strong{line-height:1.4}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-people{line-height:1.4}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-performers{gap:1px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .history-people small{margin-top:1px;font-size:.51rem;line-height:1.3}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-event-date{font-size:.54rem;line-height:1.35;gap:2px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-operation{margin-top:13px}
+}
