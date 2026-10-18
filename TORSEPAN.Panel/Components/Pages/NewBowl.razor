@@ -8,11 +8,9 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>ثبت کاسه</PageTitle>
-<section class="new-bowl-hero theme-hero theme-page-intro" aria-labelledby="new-bowl-title">
-    <span class="hero-eyebrow" dir="ltr">BOWL REGISTRATION</span>
-    <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
-    <h1 id="new-bowl-title">ثبت کاسه جدید</h1>
-    <p>متریال و نوع کاسه را انتخاب کنید؛ کد به‌صورت خودکار پیشنهاد می‌شود.</p>
+<section class="new-bowl-hero bowl-photo-hero theme-hero theme-page-intro" aria-labelledby="new-bowl-title">
+    <div class="bowl-hero-art" aria-hidden="true"></div>
+    <div class="bowl-hero-copy"><span class="hero-eyebrow" dir="ltr">BOWL REGISTRATION</span><h1 id="new-bowl-title">ثبت کاسه</h1></div>
 </section>
 
 <EditForm Model="_model" FormName="CreateBowl" OnValidSubmit="SaveAsync" class="new-bowl-form">
