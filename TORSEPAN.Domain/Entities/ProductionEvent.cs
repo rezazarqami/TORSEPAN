@@ -85,6 +85,12 @@ public class ProductionEvent : Entity
         if (utc.Kind != DateTimeKind.Utc) throw new ArgumentException("UTC occurrence required.", nameof(utc));
         EventDate = utc;
     }
+    public void ChangeEventDate(DateTime utc)
+    {
+        if (utc.Kind != DateTimeKind.Utc || utc == DateTime.MinValue)
+            throw new ArgumentException("A valid UTC event date is required.", nameof(utc));
+        EventDate = utc;
+    }
     public bool IsPayrollExcluded { get; private set; }
     public Guid? PayrollExcludedByUserId { get; private set; }
     public DateTime? PayrollExcludedAtUtc { get; private set; }
