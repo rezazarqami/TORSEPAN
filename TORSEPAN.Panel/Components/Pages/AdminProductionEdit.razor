@@ -1,4 +1,5 @@
 @page "/admin/production-edit"
+@using System.Globalization
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles="Administrator")]
 @using TORSEPAN.Application.Auth.Queries.GetUsers
@@ -22,7 +23,7 @@
 
 @if(!string.IsNullOrWhiteSpace(_message))
 {
-    <div class="edit-message @(_messageError?"error":"success")">@_message</div>
+    <div class="edit-message @(_record is not null?"save-feedback":"") @(_messageError?"error":"success")" role="@(_messageError?"alert":"status")" aria-live="polite"><span>@_message</span><button type="button" aria-label="بستن پیام" @onclick="()=>_message=null">×</button></div>
 }
 
 @if(_record is not null)
@@ -47,7 +48,7 @@
     </section>
 
     <section class="edit-section operations-section">
-        <header><div><small>سابقه تولید</small><h3>ثبت‌کننده مراحل</h3></div><span>@_record.Events.Count عملیات</span></header>
+        <header><div><small>سابقه تولید</small><h3>تاریخ، ساعت و ثبت‌کننده مراحل</h3></div><span>@_record.Events.Count عملیات</span></header>
         @if(_record.Events.Count==0)
         {
             <p class="empty-events">هنوز عملیاتی برای این کد ثبت نشده است.</p>
@@ -57,11 +58,12 @@
             <div class="event-list">
                 @foreach(var item in _record.Events)
                 {
-                    <article class="event-card">
+                    <article class="event-card" @key="item.Id">
                         <div class="event-mark">@ActionIcon(item.Action)</div>
                         <div class="event-title"><strong>@item.ActionTitle</strong><span>@item.RelatedCode</span></div>
                         <div class="event-meta"><span>@PersianDateTime.FormatDateTime(item.EventDate)</span><small>@item.Duration</small></div>
                         <label><span>ثبت‌کننده</span><select @bind="item.UserId">@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</select></label>
+                        <div class="event-date-editor"><label><span>تاریخ ثبت (شمسی)</span><PersianDatePicker @bind-Value="_dates[item.Id].Date" /></label><label><span>ساعت ثبت (به وقت ایران)</span><input type="time" step="1" value="@_dates[item.Id].Time" @onchange="e=>_dates[item.Id].Time=e.Value?.ToString()??string.Empty" disabled="@_saving" /></label></div>
                         @if(!string.IsNullOrWhiteSpace(item.Description)){<p>@item.Description</p>}
                     </article>
                 }
@@ -73,7 +75,7 @@
 
 @if(_confirming&&_record is not null)
 {
-    <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>Scale‌ها، تعداد نوت کاسه‌ها و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
+    <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>Scale‌ها، تعداد نوت کاسه‌ها، تاریخ و ساعت و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
 }
 
 @code{
@@ -93,6 +95,32 @@
     private List<UserDto> _users=[];
     private bool _loading,_saving,_confirming,_messageError;
     private string? _message;
+    private readonly Dictionary<Guid, EventDateDraft> _dates=[];
+    private sealed class EventDateDraft
+    {
+        public DateTime? Date{get;set;}
+        public string Time{get;set;}="";
+        public DateTime OriginalLocal{get;init;}
+    }
+    private void LoadDates()
+    {
+        _dates.Clear();
+        if(_record is null)return;
+        foreach(var item in _record.Events)
+        {
+            var local=PersianDateTime.ToIranTime(item.EventDate);
+            _dates[item.Id]=new(){Date=local.Date,Time=local.ToString("HH:mm:ss",CultureInfo.InvariantCulture),OriginalLocal=local};
+        }
+    }
+    private DateTime? EditedDate(AdminEditableEventDto item)
+    {
+        var draft=_dates[item.Id];
+        if(!draft.Date.HasValue || !TimeOnly.TryParseExact(draft.Time,new[]{"HH:mm","HH:mm:ss"},CultureInfo.InvariantCulture,DateTimeStyles.None,out var time))
+            throw new FormatException("تاریخ و ساعت همه عملیات‌ها را کامل و معتبر وارد کنید.");
+        var local=draft.Date.Value.Date.Add(time.ToTimeSpan());
+        if(local.Date==draft.OriginalLocal.Date && time==TimeOnly.FromDateTime(draft.OriginalLocal.AddTicks(-(draft.OriginalLocal.Ticks%TimeSpan.TicksPerSecond))))return null;
+        return PersianDateTime.FromIranTime(local);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,7 +134,7 @@
         _loading=true;_message=null;_record=null;
         try{_record=await EditService.GetAsync(_search.Code);if(_record is null){_message="ساز یا کاسه‌ای با این کد پیدا نشد.";_messageError=true;}}
         catch{_message="ساز یا کاسه‌ای با این کد پیدا نشد یا بازیابی اطلاعات آن ممکن نیست.";_messageError=true;}
-        finally{_loading=false;}
+        finally{LoadDates();_loading=false;}
     }
 
     private void RequestSave()
@@ -114,7 +142,9 @@
         if(_record is null)return;
         if(_record.Bowls.Any(x=>x.NoteCount<0||(x.BowlType=="کاسه رو"&&x.NoteCount==0)))
         {_message="تعداد نوت کاسه رو باید مثبت باشد؛ تعداد منفی مجاز نیست.";_messageError=true;return;}
-        _confirming=true;
+        try{foreach(var item in _record.Events)EditedDate(item);}
+        catch(FormatException e){_message=e.Message;_messageError=true;return;}
+        _message=null;_confirming=true;
     }
     private void CloseConfirmation()=>_confirming=false;
     private async Task SaveAsync()
@@ -123,10 +153,16 @@
         _saving=true;_message=null;
         try
         {
-            var request=new AdminProductionEditRequest(_record.HandpanScaleId,_record.Bowls.Select(x=>new AdminBowlScaleUpdate(x.Id,x.ScaleId,x.NoteCount)).ToList(),_record.Events.Select(x=>new AdminEventUserUpdate(x.Id,x.UserId)).ToList());
-            _record=await EditService.UpdateAsync(_record.RequestedCode,request)??_record;_confirming=false;_message="تغییرات شناسنامه با موفقیت ذخیره شد.";_messageError=false;
+            var request=new AdminProductionEditRequest(_record.HandpanScaleId,_record.Bowls.Select(x=>new AdminBowlScaleUpdate(x.Id,x.ScaleId,x.NoteCount)).ToList(),_record.Events.Select(x=>new AdminEventUserUpdate(x.Id,x.UserId,EditedDate(x),x.EventDate)).ToList());
+            var updated=await EditService.UpdateAsync(_record.RequestedCode,request);
+            if(updated is null)throw new InvalidOperationException("Empty save response");
+            var order=_record.Events.Select((x,i)=>(x.Id,i)).ToDictionary(x=>x.Id,x=>x.i);
+            updated.Events=updated.Events.OrderBy(x=>order.GetValueOrDefault(x.Id,int.MaxValue)).ToList();
+            _record=updated;LoadDates();_confirming=false;_message="تغییرات شناسنامه با موفقیت ذخیره شد.";_messageError=false;
         }
-        catch{_confirming=false;_message="ذخیره تغییرات انجام نشد. Scale، تعداد نوت و ثبت‌کننده‌های انتخاب‌شده را دوباره بررسی کنید.";_messageError=true;}
+        catch(HttpRequestException e) when(e.StatusCode==System.Net.HttpStatusCode.Conflict)
+        {_confirming=false;_message="تاریخ یکی از عملیات‌ها تغییر کرده است؛ دوباره جست‌وجو کنید و تغییرات را ثبت کنید.";_messageError=true;}
+        catch{_confirming=false;_message="ذخیره تغییرات انجام نشد. Scale، تعداد نوت، تاریخ و ساعت و ثبت‌کننده‌های انتخاب‌شده را دوباره بررسی کنید.";_messageError=true;}
         finally{_saving=false;}
     }
 
