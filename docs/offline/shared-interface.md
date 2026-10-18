@@ -6,7 +6,7 @@ Status: release candidate prepared and validated. No production server deploymen
 
 `TORSEPAN.Panel.Offline` compiles the existing Panel Razor pages, components, models, service contracts and release-panel theme into a packaged Blazor WebAssembly client. It uses `OfflineHttpHandler` and a local adapter instead of a remote Blazor Server circuit. There is no separately designed simplified workflow.
 
-The Android shell opens its encrypted SQLite snapshot immediately once enrolled and initialized. Fingerprint/keyguard confirmation and FLAG_SECURE are removed. Backgrounding and returning from a gallery/camera do not lock or reload the page. Installation ID and existing database/key aliases remain unchanged. Version code 12 updates the prior `.offline` package.
+The Android shell opens its encrypted SQLite snapshot immediately once enrolled and initialized. Fingerprint/keyguard confirmation and FLAG_SECURE are removed. Backgrounding and returning from a gallery/camera do not lock or reload the page. Installation ID and existing database/key aliases remain unchanged. Version code 14 (2.8.2) updates the prior `.offline` package.
 
 Native snapshot refresh and pending uploads run independently of page navigation. Pending operations commit before UI success and keep their original operation IDs across retries; failed/disputed operations stop the queue for review. Background execution remains subject to Android scheduling. Do not uninstall or clear app data while records await server acknowledgment.
 
@@ -26,7 +26,7 @@ Password/authentication changes, Telegram sending, push notification subscriptio
 
 The API changes in this candidate must be deployed before using newly added workspace actions. They reuse original validation and transactional deletion/rollback services. An existing ambient receipt transaction is preserved. Workspace receipts carry refreshed bowl/material versions for subsequent production operations. Local operation IDs, photo IDs, order IDs and line IDs resolve through durable aliases.
 
-New photo/avatar/display metadata is excluded from the legacy workspace fingerprint. Old receipts serialized without nullable `PhotoId` remain replay-compatible. No new database migration is required. Production release must preserve the separate master/deploy-panel/deploy-api branches and follow AGENTS.md; source publication and actual live deployment must be recorded and verified separately. Public GitHub publication was blocked by automatic approval review pending explicit authorization for publishing the new changes to the public repository; no remote branch was updated.
+New photo/avatar/display metadata is excluded from the legacy workspace fingerprint. Old receipts serialized without nullable `PhotoId` remain replay-compatible. No new database migration is required. Production release must preserve the separate master/deploy-panel/deploy-api branches and follow AGENTS.md; source publication and actual live deployment must be recorded and verified separately. Public publication and server deployment were explicitly authorized by the user on 2026-10-18. Source publication is tracked in PR #184. Liara sign-in was declined, so production deployment remains unverified.
 
 ## Validation evidence
 
@@ -67,3 +67,7 @@ The adapter now caches one projected context and one event index per native-data
 `tests/SharedOffline/sync-e2e.cjs` runs the real OfflineController and OfflineProductionService against a separate in-memory SQLite database over loopback HTTP, starting from the adapter's generated request. It checks local queued stage projection across client restart, server commit, deliberately lost acknowledgment, identical replay without duplicate tune, authoritative snapshot refresh and empty acknowledged outbox. This passes independently of production deployment; no production data is changed by the harness.
 
 Browser performance check: with 600 bowls, 6000 events and Chromium CPU throttled by 6x, three menu openings measured 336, 96 and 326 ms. This is a reproducible browser check, not a physical-device timing claim.
+
+## 2.8.2 snapshot download race
+
+The native SQLite regression suite exposed a missed scheduler retry when a form was saved during an in-flight snapshot download. The pending operation and its original snapshot were already preserved correctly. Synchronization now explicitly requests another attempt when new pending work appears during snapshot or photo download.
