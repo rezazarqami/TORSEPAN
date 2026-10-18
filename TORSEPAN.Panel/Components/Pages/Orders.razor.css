@@ -46,3 +46,25 @@ button:focus-visible{outline:3px solid #68bca7;outline-offset:3px}
 /* Three inset lines retain the existing grid, row spacing and code size. */
 .overview-item{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:7px 7px;justify-content:normal}.overview-item .overview-code{width:100%;text-align:center;line-height:1.65}.overview-item .overview-scale,.overview-item .overview-status{display:block;width:100%;min-width:0;text-align:right;direction:rtl;font-size:inherit;font-weight:400;color:#537c6d;line-height:1.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.overview-item .overview-scale{height:1.089rem;line-height:1.089rem}.overview-item .overview-status.dispatched{color:#168052;font-weight:800}
 @media(max-width:480px){.overview-item .overview-scale{height:1.023rem;line-height:1.023rem}}
+
+/* Same approved navy/photo composition as the two warehouse headers. */
+.orders-hero.orders-photo-hero{position:relative;isolation:isolate;overflow:hidden;min-height:300px;padding:32px 34px;display:flex;align-items:center;justify-content:flex-start;text-align:center;background:#031e43;border:1px solid #8db7d1;border-radius:26px;box-shadow:inset 0 0 22px #66b6e830,0 10px 28px #1b6ea12b}
+.orders-hero.orders-photo-hero::before,.orders-hero.orders-photo-hero::after{display:none}
+.orders-hero-art{position:absolute;inset:0;background-image:linear-gradient(to right,transparent 0%,transparent 52%,#031e43bf 64%,#031e43 77%),url('/images/orders/order-workshop.png');background-position:center,left center;background-size:100% 100%,cover;background-repeat:no-repeat;pointer-events:none}
+.orders-hero-copy{position:relative;z-index:1;width:36%;margin-left:auto;display:flex;align-items:center;flex-direction:column;gap:12px}
+.orders-photo-hero .hero-kicker{border:0;border-radius:0;padding:0;background:none;color:#f6d994;font:700 .73rem/1.6 Arial,sans-serif;letter-spacing:2px;white-space:nowrap}
+.orders-photo-hero .orders-hero-copy h1{font-size:clamp(1.65rem,3.1vw,2.6rem);line-height:1.5;margin:0;color:#f6d994;letter-spacing:-.6px;font-weight:800;white-space:nowrap}
+.orders-hero-counts{display:flex;justify-content:center;gap:22px;margin-top:14px;color:#e2e8f2}
+.orders-hero-counts>div{display:flex;align-items:center;flex-direction:column;gap:4px}
+.orders-hero-counts span{font-size:.8rem;white-space:nowrap}
+.orders-hero-counts strong{color:#f6d994;font:700 2rem/1.4 Arial,sans-serif}
+@media(max-width:600px){
+ .orders-hero.orders-photo-hero{min-height:220px;padding:24px 16px;border-radius:21px;margin-bottom:16px}
+ .orders-hero-art{background-size:100% 100%,auto 100%;background-position:center,-24px center}
+ .orders-hero-copy{width:30%;margin-right:-4px;gap:9px}
+ .orders-photo-hero .hero-kicker{font-size:clamp(.42rem,1.75vw,.64rem);letter-spacing:.65px}
+ .orders-photo-hero .orders-hero-copy h1{font-size:clamp(1.25rem,5.3vw,1.8rem)}
+ .orders-hero-counts{gap:15px;margin-top:11px}
+ .orders-hero-counts span{font-size:.59rem}
+ .orders-hero-counts strong{font-size:1.55rem}
+}

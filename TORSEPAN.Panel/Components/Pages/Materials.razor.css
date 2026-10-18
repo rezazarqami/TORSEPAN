@@ -21,3 +21,14 @@
 .inventory-hero,.inventory-workspace,.inventory-hero *,.inventory-workspace *{box-sizing:border-box}
 .inventory-hero,.inventory-workspace{min-width:0}
 .inventory-hero>span,.inventory-hero p{max-width:100%;overflow-wrap:anywhere}
+
+/* Approved photo-to-navy composition used by the inventory and order headers. */
+.inventory-hero.materials-photo-hero{position:relative;isolation:isolate;overflow:hidden;min-height:300px;padding:32px 34px;display:flex;align-items:center;text-align:center;background:#031e43;border:1px solid #8db7d1;border-radius:26px;box-shadow:inset 0 0 22px #66b6e830,0 10px 28px #1b6ea12b;margin-bottom:18px}
+.inventory-hero.materials-photo-hero::before,.inventory-hero.materials-photo-hero::after{display:none}
+.materials-hero-art{position:absolute;inset:0 auto 0 0;width:72%;background:url('/images/materials/material-stockroom.png') left center/cover no-repeat;pointer-events:none;mask-image:linear-gradient(to right,#000 0%,#000 68%,#000c 80%,transparent 96%);-webkit-mask-image:linear-gradient(to right,#000 0%,#000 68%,#000c 80%,transparent 96%)}
+.materials-hero-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;fill:none;stroke:#dfbd65;stroke-width:1;opacity:.4}
+.materials-hero-copy{position:relative;z-index:1;width:36%;margin-left:auto;display:flex;flex-direction:column;align-items:center;gap:12px}
+.materials-photo-hero .materials-kicker{padding:0;border:0;border-radius:0;background:none;color:#f6d994;font:700 .73rem/1.6 Arial,sans-serif;letter-spacing:1.3px;white-space:nowrap}
+.materials-photo-hero .materials-hero-copy h1{margin:0;color:#f6d994;font-size:clamp(1.65rem,3.1vw,2.6rem);font-weight:800;line-height:1.5;letter-spacing:-.6px}
+.materials-hero-copy h1>span{display:block}
+@media(max-width:600px){.inventory-hero.materials-photo-hero{min-height:220px;padding:24px 16px;border-radius:21px;margin-bottom:16px}.materials-hero-copy{width:30%;margin-right:-4px;gap:9px}.materials-photo-hero .materials-kicker{font-size:clamp(.42rem,1.75vw,.64rem);letter-spacing:.65px}.materials-photo-hero .materials-hero-copy h1{font-size:clamp(1.35rem,6vw,2rem)}.materials-hero-art{width:76%;background-size:auto 100%;background-position:left center}}
