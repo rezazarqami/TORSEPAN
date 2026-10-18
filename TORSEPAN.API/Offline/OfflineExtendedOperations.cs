@@ -157,6 +157,12 @@ public sealed partial class OfflineProductionService
                 var result=await new AdminProductionEditsController(db).Update(op.Code,edit,ct);
                 if(result.Result is ObjectResult error && error.StatusCode>=400) throw new OfflineProblem("edit",error.Value?.ToString()??"اصلاح اطلاعات معتبر نیست.",422);
                 break;
+            case "photoDelete":
+                var photoInstrument=await InstrumentAsync(bowl!,ct);
+                var oldPhoto=await db.HandpanPhotos.SingleOrDefaultAsync(x=>x.Id==op.PhotoId&&x.HandpanId==photoInstrument.Id,ct);
+                Require(oldPhoto is not null,"عکس متعلق به این ساز پیدا نشد.");
+                db.HandpanPhotos.Remove(oldPhoto!);db.Entry(photoInstrument).Property(x=>x.OfflineVersion).IsModified=true;
+                break;
             case "photo":
                 var instrument=await InstrumentAsync(bowl!,ct);
                 Require(instrument.Stage>=ProductionStage.WaitingForFinalTune,"عکس پس از خروج از اتاق چسب فعال است.");
@@ -168,7 +174,7 @@ public sealed partial class OfflineProductionService
                 Require(Convert.ToHexString(SHA256.HashData(image)).Equals(op.ImageHash,StringComparison.OrdinalIgnoreCase),"فایل عکس با اثر انگشت ذخیره‌شده مطابقت ندارد.");
                 var photo=new HandpanPhoto(instrument.Id,image,thumbnail,"image/jpeg",op.PerformerId);
                 db.Entry(photo).Property(x=>x.CreatedAt).CurrentValue=op.OccurredUtc;
-                db.HandpanPhotos.Add(photo);db.Entry(instrument).Property(x=>x.OfflineVersion).IsModified=true;
+                db.HandpanPhotos.Add(photo);if(op.PhotoId is {} localPhoto&&localPhoto!=op.OperationId)workspaceAliases[localPhoto]=photo.Id;db.Entry(instrument).Property(x=>x.OfflineVersion).IsModified=true;
                 break;
             default: throw new OfflineProblem("unsupported","عملیات شناخته نشد.",400);
         }

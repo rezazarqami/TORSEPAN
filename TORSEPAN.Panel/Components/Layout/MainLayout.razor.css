@@ -26,29 +26,6 @@
 }
 
 @media (max-width: 768px) {
-    .mobile-menu-toggle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        flex: 0 0 auto;
-        min-height: 36px;
-        padding: 0 9px;
-        border: 1px solid rgba(255,255,255,.22);
-        border-radius: 10px;
-        background: rgba(255,255,255,.1);
-        color: #fff;
-        font-family: inherit;
-        font-size: .72rem;
-        font-weight: 700;
-        cursor: pointer;
-    }
-    .mobile-menu-toggle span:first-child { font-size: 1.1rem; line-height: 1; }
-    .mobile-menu-toggle:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-    .mobile-nav-rail { display: none; }
-}
-
-@media (max-width: 768px) {
     .mobile-nav-rail {
         position: fixed;
         inset: 0 0 0 auto;
@@ -69,9 +46,7 @@
     }
 
     .mobile-nav-rail.is-open {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
+        background: #214b78;
     }
 
     .mobile-nav-grip {

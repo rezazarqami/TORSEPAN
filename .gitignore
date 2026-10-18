@@ -371,3 +371,6 @@ android/.gradle/
 android/build/
 android/app/build/
 android/local.properties
+
+# Packaged shared Blazor UI is produced by the offline build.
+android/app/src/main/assets/panel/

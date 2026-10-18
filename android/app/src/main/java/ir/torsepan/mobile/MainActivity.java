@@ -28,7 +28,11 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.view.View;
 import android.view.WindowManager;
-import android.app.KeyguardManager;
+import android.app.AlertDialog;
+import java.io.InputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import org.json.JSONArray;
 import android.webkit.WebResourceResponse;
 import org.json.JSONObject;
 import java.util.concurrent.Executors;
@@ -51,8 +55,7 @@ public final class MainActivity extends Activity {
     private volatile boolean localVisible;
     private volatile boolean localUnlocked;
     private boolean preferLocal;
-    private static final int OFFLINE_UNLOCK = 1002;
-    private static final String LOCAL = "https://appassets.androidplatform.net/offline/index.html";
+    private static final String LOCAL = "https://appassets.androidplatform.net/";
     private static final int PHOTO_CHOOSER = 1001;
     private ValueCallback<Uri[]> photoCallback;
     private Uri cameraPhoto;
@@ -66,7 +69,7 @@ public final class MainActivity extends Activity {
         browser.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         offlineStore = OfflineStore.get(this);
         offlineSync = new OfflineSync(this, offlineStore);
-        try { preferLocal = offlineStore.get("mode").equals("offline"); } catch(Exception ignored) {}
+        preferLocal = hasLocalWorkshop();
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         LinearLayout toolbar = new LinearLayout(this);
         recoveryToolbar = toolbar;
@@ -79,21 +82,16 @@ public final class MainActivity extends Activity {
         localBrowser = new WebView(this); localBrowser.setVisibility(View.GONE);
         localBrowser.getSettings().setJavaScriptEnabled(true);
         localBrowser.getSettings().setAllowFileAccess(false);
-        localBrowser.getSettings().setAllowContentAccess(false);
+        localBrowser.getSettings().setAllowContentAccess(true);
+        localBrowser.getSettings().setDomStorageEnabled(true);
+        localBrowser.getSettings().setUseWideViewPort(true);
+        localBrowser.getSettings().setLoadWithOverviewMode(true);
         localBrowser.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         localBrowser.addJavascriptInterface(new OfflineBridge(), "OfflineNative");
         // A separate WebView never navigates to remote content. Every non-allowlisted resource is blocked.
-        localBrowser.setWebViewClient(new WebViewClient() {
-            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) { return !LOCAL.equals(request.getUrl().toString()); }
-            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                Uri uri = request.getUrl(); String path = uri.getPath();
-                try {
-                    if ("https".equals(uri.getScheme()) && "appassets.androidplatform.net".equals(uri.getHost()) &&
-                        ("/offline/index.html".equals(path) || "/offline/app.js".equals(path) || "/offline/model.js".equals(path) || "/offline/style.css".equals(path) || "/offline/workspace.js".equals(path)))
-                        return new WebResourceResponse(path.endsWith(".html") ? "text/html" : path.endsWith(".css") ? "text/css" : "application/javascript", "UTF-8", getAssets().open(path.substring(1)));
-                } catch (Exception ignored) { }
-                return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked", java.util.Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));
-            }
+        localBrowser.setWebViewClient(new WebViewClient(){
+            @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){return !isLocal(request.getUrl());}
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){Uri uri=request.getUrl();String path=uri.getPath();try{if(isLocal(uri)&&path!=null&&!path.contains("..")&&!path.contains("\\")){InputStream stream;try{stream=getAssets().open("panel"+(path.equals("/")?"/index.html":path));}catch(FileNotFoundException missing){if(path.startsWith("/api/")||path.substring(path.lastIndexOf('/')+1).contains("."))throw missing;stream=getAssets().open("panel/index.html");}String type=localMime(path);return new WebResourceResponse(type,type.startsWith("text/")||type.contains("javascript")||type.contains("json")?"UTF-8":null,stream);}}catch(Exception ignored){}return new WebResourceResponse("text/plain","UTF-8",403,"Blocked",java.util.Collections.emptyMap(),new ByteArrayInputStream(new byte[0]));}
         });
         root.addView(localBrowser, new LinearLayout.LayoutParams(-1,0,1)); setContentView(root);
         online.setOnClickListener(v -> showOnline());
@@ -114,7 +112,7 @@ public final class MainActivity extends Activity {
                 finishPhotoSelection(null);
                 photoCallback = callback;
                 Uri page = Uri.parse(view.getUrl() == null ? "" : view.getUrl());
-                if (!HOST.equalsIgnoreCase(page.getHost()) || !"https".equalsIgnoreCase(page.getScheme())) {
+                if (!(HOST.equalsIgnoreCase(page.getHost())&&"https".equalsIgnoreCase(page.getScheme())) && !isLocal(page)) {
                     finishPhotoSelection(null);
                     return true;
                 }
@@ -148,6 +146,7 @@ public final class MainActivity extends Activity {
                 return true;
             }
         });
+        localBrowser.setWebChromeClient(browser.getWebChromeClient());
         browser.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
@@ -206,15 +205,11 @@ public final class MainActivity extends Activity {
             } catch (Exception e) { Toast.makeText(this, "دانلود انجام نشد", Toast.LENGTH_SHORT).show(); }
         });
         if (!preferLocal) { if (state == null) browser.loadUrl(HOME); else browser.restoreState(state); }
-        else { localVisible=true; browser.setVisibility(View.GONE); localBrowser.setVisibility(View.VISIBLE); }
+        else { localUnlocked=true;showLocal(); }
     }
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == OFFLINE_UNLOCK) {
-            if (resultCode == RESULT_OK) { localUnlocked = true; showLocal(); }
-            return;
-        }
         if (requestCode == 1003) {
             if(resultCode==RESULT_OK && data!=null && isImageContent(data.getData())) {
                 Uri uri=data.getData();
@@ -261,10 +256,10 @@ public final class MainActivity extends Activity {
             StringBuilder hash=new StringBuilder();for(byte b:java.security.MessageDigest.getInstance("SHA-256").digest(image))hash.append(String.format(java.util.Locale.ROOT,"%02x",b&255));
             org.json.JSONObject op=new org.json.JSONObject(metadata).put("image",Base64.encodeToString(image,Base64.NO_WRAP))
                 .put("thumbnail",Base64.encodeToString(thumbnail,Base64.NO_WRAP)).put("imageHash",hash.toString());
-            offlineStore.enqueue(op.toString());offlineStore.put("photoSelection","");offlineStore.put("message","عکس روی گوشی ذخیره شد؛ تا تأیید سرور در صف می‌ماند.");
+            offlineStore.enqueuePhoto(op.toString());offlineStore.put("photoSelection","");offlineStore.put("message","عکس روی گوشی ذخیره شد؛ تا تأیید سرور در صف می‌ماند.");
             OfflineSync.schedule(this,false);
         }catch(Exception error){try{offlineStore.put("message","ذخیره عکس انجام نشد: "+error.getMessage());}catch(Exception ignored){}}
-        finally { try { getContentResolver().releasePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION); }catch(Exception ignored){}refreshLocal(); runOnUiThread(() -> { if(!isFinishing())unlockLocal(); }); }
+        finally { try { getContentResolver().releasePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION); }catch(Exception ignored){}refreshLocal(); runOnUiThread(() -> { if(!isFinishing())showLocal(); }); }
     }
 
     private boolean isImageContent(Uri uri) {
@@ -316,40 +311,19 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void unlockLocal() {
-        captureToken(true, () -> offlineWorker.execute(() -> {
-            boolean allowed = offlineSync.canOpen();
-            runOnUiThread(() -> {
-                if (allowed) confirmLocalUnlock();
-                else {
-                    if (localVisible) showOnline();
-                    Toast.makeText(this, "حالت آفلاین فقط برای حساب ادمین و گوشی مجاز در دسترس است.", Toast.LENGTH_LONG).show();
-                }
-            });
-        }));
-    }
-    private void confirmLocalUnlock() {
-        KeyguardManager guard = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-        if (!guard.isDeviceSecure()) {
-            Toast.makeText(this, "برای حفاظت از اطلاعات آفلاین، ابتدا قفل یا رمز گوشی را فعال کنید.", Toast.LENGTH_LONG).show(); return;
-        }
-        Intent unlock = guard.createConfirmDeviceCredentialIntent("ثبت آفلاین تورسپن", "برای باز کردن اطلاعات محلی، قفل گوشی را تأیید کنید.");
-        if (unlock != null) startActivityForResult(unlock, OFFLINE_UNLOCK);
-    }
+    private void unlockLocal(){if(hasLocalWorkshop()){localUnlocked=true;showLocal();return;}captureToken(true,()->offlineWorker.execute(()->{boolean allowed=offlineSync.canOpen();runOnUiThread(()->{if(allowed){localUnlocked=true;showLocal();}else new AlertDialog.Builder(this).setTitle("وضعیت اطلاعات گوشی").setMessage(offlineSync.accessMessage()).setPositiveButton("بررسی دوباره",(dialog,which)->unlockLocal()).setNegativeButton("بستن",null).show();});}));}
+    private boolean hasLocalWorkshop(){try{return offlineStore.get("enrolled").equals("yes")&&!offlineStore.get("owner").isEmpty()&&offlineStore.has("snapshot");}catch(Exception e){return false;}}
+    private static boolean isLocal(Uri uri){return "https".equals(uri.getScheme())&&"appassets.androidplatform.net".equals(uri.getHost())&&uri.getPort()==-1;}
+    private static String localMime(String path){if(path.endsWith(".wasm"))return "application/wasm";if(path.endsWith(".js"))return "application/javascript";if(path.endsWith(".css"))return "text/css";if(path.endsWith(".json"))return "application/json";if(path.endsWith(".svg"))return "image/svg+xml";if(path.endsWith(".webp"))return "image/webp";if(path.endsWith(".png"))return "image/png";if(path.endsWith(".jpg"))return "image/jpeg";if(path.endsWith(".woff2"))return "font/woff2";if(path.endsWith(".woff"))return "font/woff";return path.endsWith(".html")||!path.substring(path.lastIndexOf('/')+1).contains(".")?"text/html":"application/octet-stream";}
     private void showLocal() {
         if (!localUnlocked) return;
         preferLocal=true; try { offlineStore.put("mode","offline"); } catch(Exception ignored) {}
         recoveryToolbar.setVisibility(View.GONE);
         localVisible = true; browser.setVisibility(View.GONE); localBrowser.setVisibility(View.VISIBLE);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
-        if (!LOCAL.equals(localBrowser.getUrl())) localBrowser.loadUrl(LOCAL); else refreshLocal();
-    }
-    private void showOnline() {
-        preferLocal=false; try { offlineStore.put("mode","online"); } catch(Exception ignored) {}
-        localVisible = false; localUnlocked = false; localBrowser.setVisibility(View.GONE); browser.setVisibility(View.VISIBLE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
-        if (browser.getUrl() == null) browser.loadUrl(HOME);
+        if (!isLocal(Uri.parse(localBrowser.getUrl()==null?"":localBrowser.getUrl()))) localBrowser.loadUrl(LOCAL); else refreshLocal();
     }
+    private void showOnline(){preferLocal=false;try{offlineStore.put("mode","online");}catch(Exception ignored){}localVisible=false;localUnlocked=false;localBrowser.setVisibility(View.GONE);browser.setVisibility(View.VISIBLE);getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);Uri uri=Uri.parse(browser.getUrl()==null?"":browser.getUrl());if("https".equals(uri.getScheme())&&HOST.equals(uri.getHost())){try{String refresh=offlineStore.get("refresh_token");String script=refresh.isEmpty()?"void 0":"localStorage.setItem('access_token',"+JSONObject.quote(offlineStore.get("token"))+");localStorage.setItem('refresh_token',"+JSONObject.quote(refresh)+");";browser.evaluateJavascript(script,value->browser.loadUrl(HOME));}catch(Exception error){browser.loadUrl(HOME);}}else browser.loadUrl(HOME);}
     private void refreshLocal() {
         runOnUiThread(() -> { if (localVisible && localUnlocked) localBrowser.evaluateJavascript("window.refreshOffline&&window.refreshOffline()",null); });
     }
@@ -359,30 +333,20 @@ public final class MainActivity extends Activity {
         return json.optString("sub", json.optString("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", ""));
     }
     private void captureToken(Runnable done) { captureToken(false,done); }
-    private void captureToken(boolean force,Runnable done) {
-        if (preferLocal && !force) { done.run(); return; }
-        Uri page = Uri.parse(browser.getUrl() == null ? "" : browser.getUrl());
-        if (!"https".equals(page.getScheme()) || !HOST.equals(page.getHost())) { done.run(); return; }
-        browser.evaluateJavascript("localStorage.getItem('access_token')||''", result -> {
-            offlineWorker.execute(() -> {
-                try {
-                    String token = new org.json.JSONTokener(result).nextValue().toString();
-                    String owner = offlineStore.get("owner");
-                    if (token.isEmpty() || !owner.isEmpty() && !owner.equals(tokenOwner(token))) {
-                        offlineStore.put("token", "");
-                        offlineStore.put("message", "برای ارسال یا ثبت جدید، وارد حساب مدیر تعیین‌شده روی این گوشی شوید.");
-                    } else { offlineStore.put("token", token); }
-                } catch (Exception ignored) { }
-                done.run();
-            });
-        });
-    }
+    private void captureToken(boolean force,Runnable done){if(preferLocal&&!force||onlineLoadFailed){done.run();return;}Uri page=Uri.parse(browser.getUrl()==null?"":browser.getUrl());if(!"https".equals(page.getScheme())||!HOST.equals(page.getHost())){done.run();return;}browser.evaluateJavascript("JSON.stringify({token:localStorage.getItem('access_token')||'',refresh:localStorage.getItem('refresh_token')||''})",result->offlineWorker.execute(()->{try{String decoded=new org.json.JSONTokener(result).nextValue().toString();JSONObject value=new JSONObject(decoded);String token=value.optString("token"),refresh=value.optString("refresh"),owner=offlineStore.get("owner");if(token.isEmpty()||!owner.isEmpty()&&!owner.equals(tokenOwner(token))){offlineStore.put("message","برای ارسال وارد حساب مدیر تعیین‌شده شوید.");}else offlineStore.captureBrowserSession(token,refresh);}catch(Exception ignored){}done.run();}));}
     private final class OfflineBridge {
+        private String failure(Exception error){try{return new JSONObject().put("error",error.getMessage()).toString();}catch(Exception ignored){return "{\"error\":\"ذخیره انجام نشد.\"}";}}
+        @JavascriptInterface public String saveBatch(String raw){if(!localUnlocked)return "{\"error\":\"صفحه بسته است.\"}";try{if(raw==null||raw.length()>2000000)throw new IllegalStateException("حجم ثبت گروهی معتبر نیست.");JSONArray ids=offlineStore.enqueueBatch(new JSONArray(raw));try{OfflineSync.schedule(MainActivity.this,false);}catch(RuntimeException ignored){}return new JSONObject().put("ids",ids).toString();}catch(Exception error){return failure(error);}}
+        @JavascriptInterface public String savePhoto(String raw){if(!localUnlocked)return "{\"error\":\"صفحه بسته است.\"}";try{if(raw==null||raw.length()>7400000)throw new IllegalStateException("حجم عکس زیاد است.");String id=offlineStore.enqueuePhoto(raw);try{OfflineSync.schedule(MainActivity.this,false);}catch(RuntimeException ignored){}return new JSONObject().put("id",id).toString();}catch(Exception error){return failure(error);}}
+        @JavascriptInterface public String photoData(String id,boolean thumbnail){if(!localUnlocked)return "";try{return offlineStore.photoData(id,thumbnail);}catch(Exception ignored){return "";}}
+        @JavascriptInterface public void printPage(){if(!localUnlocked)return;runOnUiThread(()->{android.print.PrintManager manager=(android.print.PrintManager)getSystemService(Context.PRINT_SERVICE);manager.print("TORSEPAN",localBrowser.createPrintDocumentAdapter("TORSEPAN"),new android.print.PrintAttributes.Builder().setMediaSize(android.print.PrintAttributes.MediaSize.ISO_A4).build());});}
+        @JavascriptInterface public void backupPhone(){if(!localUnlocked)return;offlineWorker.execute(()->{Uri output=null;try{ContentValues values=new ContentValues();values.put(MediaStore.Downloads.DISPLAY_NAME,"torsepan-phone-"+System.currentTimeMillis()+".zip");values.put(MediaStore.Downloads.MIME_TYPE,"application/zip");values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/Torsepan");values.put(MediaStore.Downloads.IS_PENDING,1);output=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);if(output==null)throw new IOException("Download unavailable");try(OutputStream stream=getContentResolver().openOutputStream(output)){offlineStore.writePhoneBackup(stream);}ContentValues done=new ContentValues();done.put(MediaStore.Downloads.IS_PENDING,0);getContentResolver().update(output,done,null,null);runOnUiThread(()->Toast.makeText(MainActivity.this,"پشتیبان گوشی در Downloads/Torsepan ذخیره شد",Toast.LENGTH_LONG).show());}catch(Exception error){if(output!=null)getContentResolver().delete(output,null,null);runOnUiThread(()->Toast.makeText(MainActivity.this,"ذخیره پشتیبان انجام نشد",Toast.LENGTH_LONG).show());}});}
+
         @JavascriptInterface public void online() { runOnUiThread(() -> showOnline()); }
         @JavascriptInterface public String read() {
             if (!localUnlocked) return "{}";
             try { return offlineStore.view().toString(); }
-            catch (Exception error) { return "{\"message\":\"خواندن اطلاعات محلی انجام نشد؛ اطلاعات را پاک نکنید.\"}"; }
+            catch (Exception error) { return "{\"readError\":true,\"message\":\"خواندن اطلاعات محلی انجام نشد؛ اطلاعات را پاک نکنید.\"}"; }
         }
         @JavascriptInterface public String save(String raw) {
             if (!localUnlocked) return "{\"error\":\"صفحه قفل است.\"}";
@@ -436,25 +400,15 @@ public final class MainActivity extends Activity {
             });
         }
     }
-    @Override protected void onResume() {
-        super.onResume();
-        if (localVisible && !localUnlocked) unlockLocal();
-        if (browser != null) captureToken(() -> offlineWorker.execute(() -> { offlineSync.sync(); refreshLocal(); }));
-    }
-    @Override protected void onStop() {
-        localUnlocked = false; if(localVisible)localBrowser.setVisibility(View.INVISIBLE); super.onStop();
-    }
+    @Override protected void onResume(){super.onResume();if(localVisible&&localUnlocked)refreshLocal();}
+    @Override protected void onStop(){super.onStop();}
 
     @Override protected void onSaveInstanceState(Bundle state) {
         browser.saveState(state);
         super.onSaveInstanceState(state);
     }
 
-    @Override public void onBackPressed() {
-        if (localVisible) { super.onBackPressed(); return; }
-        if (browser.canGoBack()) browser.goBack();
-        else super.onBackPressed();
-    }
+    @Override public void onBackPressed(){if(localVisible&&localBrowser.canGoBack()){localBrowser.goBack();return;}if(!localVisible&&browser.canGoBack()){browser.goBack();return;}super.onBackPressed();}
 
     @Override protected void onDestroy() {
         finishPhotoSelection(null);

@@ -3,6 +3,8 @@ namespace TORSEPAN.Panel.Models;
 public sealed class WarehouseHandpanDto
 {
     public Guid HandpanId { get; set; }
+
+    public IReadOnlyList<string> Notes { get; set; } = [];
     public int QualityWarehouseId { get; set; } = 1;
     public Guid Version { get; set; }
 
@@ -15,7 +17,6 @@ public sealed class WarehouseHandpanDto
     public DateTime? WarehouseEntryDate { get; set; }
     public List<WarehouseOperationDto> Operations { get; set; } = [];
     public List<string> PackagingItems { get; set; } = [];
-    public List<string> Notes { get; set; } = [];
 }
 
 public sealed class WarehouseOperationDto

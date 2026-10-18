@@ -24,12 +24,12 @@ public sealed class ProductionDeletionService(TORSEPANDbContext db) : IProductio
         var bowl = await db.Bowls.SingleOrDefaultAsync(x => x.Id == bowlId, cancellationToken);
         if (bowl is null) return false;
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
         await RestoreBowlStockAsync([bowl], cancellationToken);
         await db.ProductionEvents.Where(x => x.BowlId == bowlId).ExecuteDeleteAsync(cancellationToken);
         await db.Bowls.Where(x => x.Id == bowlId).ExecuteDeleteAsync(cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        if(transaction is not null)await transaction.CommitAsync(cancellationToken);
         return true;
     }
 
@@ -44,7 +44,7 @@ public sealed class ProductionDeletionService(TORSEPANDbContext db) : IProductio
         var handpanId = await db.Handpans.AsNoTracking().Where(x => x.AssemblyId == assemblyId)
             .Select(x => (Guid?)x.Id).SingleOrDefaultAsync(cancellationToken);
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = db.Database.CurrentTransaction is null ? await db.Database.BeginTransactionAsync(cancellationToken) : null;
         await RestoreBowlStockAsync(bowls, cancellationToken);
         await RestorePackagingStockAsync(handpanId, assemblyId, bowlIds, cancellationToken);
 
@@ -56,7 +56,7 @@ public sealed class ProductionDeletionService(TORSEPANDbContext db) : IProductio
         await db.HandpanAssemblies.Where(x => x.Id == assemblyId).ExecuteDeleteAsync(cancellationToken);
         await db.Bowls.Where(x => bowlIds.Contains(x.Id)).ExecuteDeleteAsync(cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        if(transaction is not null)await transaction.CommitAsync(cancellationToken);
         return true;
     }
 

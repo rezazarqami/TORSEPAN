@@ -50,8 +50,8 @@ internal static class OfflineProductionSmoke
         db.AddRange(adminRole,registrar,actor,outsider,steel,scale,top,bottom);await db.SaveChangesAsync();db.ChangeTracker.Clear();
         var http=new HttpContextAccessor { HttpContext=new DefaultHttpContext { User=new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim(ClaimTypes.NameIdentifier,registrar.Id.ToString()),new Claim(ClaimTypes.Role,"Administrator")],"test")) } };
-        var services=new ServiceCollection();services.AddLogging();services.AddSingleton(db);services.AddSingleton<IHttpContextAccessor>(http);
-        services.AddSingleton<IUserContext,UserContext>();services.AddSingleton<IBowlRepository,BowlRepository>();services.AddSingleton<IHandpanRepository,HandpanRepository>();
+        var services=new ServiceCollection();services.AddLogging();services.AddHttpClient();services.AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());services.AddTransient<ManagementReportsController>();services.AddSingleton(new TORSEPAN.API.Services.GuaranteeServiceClient(new HttpClient(new WarrantyHttp()){BaseAddress=new Uri("https://warranty.invalid/")},new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()));services.AddSingleton(db);services.AddSingleton<IHttpContextAccessor>(http);
+        services.AddSingleton<IProductionDeletionService,TORSEPAN.Infrastructure.Services.ProductionDeletionService>();services.AddSingleton<IProductionRollbackService,TORSEPAN.Infrastructure.Services.ProductionRollbackService>();services.AddSingleton<IUserContext,UserContext>();services.AddSingleton<IBowlRepository,BowlRepository>();services.AddSingleton<IHandpanRepository,HandpanRepository>();
         services.AddSingleton<IHandpanAssemblyRepository,HandpanAssemblyRepository>();services.AddSingleton<IMaterialRepository,MaterialRepository>();
         services.AddSingleton<IScaleRepository,ScaleRepository>();services.AddSingleton<IProductionEventRepository,ProductionEventRepository>();
         services.AddSingleton<IUserRepository,UserRepository>();services.AddSingleton<IRoleRepository,RoleRepository>();
@@ -90,6 +90,8 @@ internal static class OfflineProductionSmoke
         Check(event1.UserId==actor.Id&&event1.EventDate==recorded&&receipt.RegistrarId==registrar.Id,"real event time and performer are preserved separately from registrar audit");
         await service.EnrollAsync(registrar.Id,replacementDevice,default);
         await Problem(()=>service.ApplyAsync(registrar.Id,first with { DeviceId=replacementDevice },default),"identity");
+        var legacyPayload=System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(first))!.AsObject();legacyPayload.Remove("PhotoId");
+        var oldReceipt=await db.OfflineReceipts.SingleAsync(x=>x.OperationId==first.OperationId);oldReceipt.PayloadHash=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(legacyPayload.ToJsonString())));await db.SaveChangesAsync();db.ChangeTracker.Clear();
         var retry=await service.ApplyAsync(registrar.Id,first,default);
         Check(retry.OperationId==receipt.OperationId&&await db.ProductionEvents.CountAsync()==1,"retry after lost response returns receipt without duplicate stage or payroll event");
         await Problem(()=>service.ApplyAsync(registrar.Id,first with { Duration=3 },default),"identity");
@@ -138,12 +140,16 @@ internal static class OfflineProductionSmoke
         Check(await db.ProductionEvents.CountAsync(x=>x.Description.Contains("یادداشت آفلاین"))==2,"two distinct offline notes are not lost to online time-based deduplication");
         var designOp=Operation("855","design","old",note2.OperationId) with {DesignTypeId=design.Id};await service.ApplyAsync(registrar.Id,designOp,default);
         byte[] image=[255,216,255,217];
-        var photo=Operation("855","photo","old",designOp.OperationId) with {Image=Convert.ToBase64String(image),Thumbnail=Convert.ToBase64String(image),ImageHash=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(image))};
+        var photo=Operation("855","photo","old",designOp.OperationId) with {Image=Convert.ToBase64String(image),Thumbnail=Convert.ToBase64String(image),ImageHash=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(image)),PhotoId=Guid.NewGuid()};
         await service.ApplyAsync(registrar.Id,photo,default);await service.ApplyAsync(registrar.Id,photo,default);
         Check(await db.HandpanPhotos.CountAsync()==1 && (await db.HandpanPhotos.AsNoTracking().SingleAsync()).CreatedAt==recorded,"photo upload is idempotent and preserves offline capture time");
         Check(!(await db.OfflineReceipts.AsNoTracking().SingleAsync(x=>x.OperationId==photo.OperationId)).PayloadJson.Contains(photo.Image!),"receipt does not duplicate the binary photo payload");
+        var photoReceipt=await db.OfflineReceipts.AsNoTracking().SingleAsync(x=>x.OperationId==photo.OperationId);
+        Check(JsonSerializer.Deserialize<Dictionary<string,string>>(photoReceipt.VersionsJson)!.ContainsKey("alias:"+photo.PhotoId),"photo client identity resolves independently from operation identity");
+        var removePhoto=Operation("855","photoDelete","old",photo.OperationId) with {PhotoId=photo.PhotoId};await service.ApplyAsync(registrar.Id,removePhoto,default);await service.ApplyAsync(registrar.Id,removePhoto,default);
+        Check(await db.HandpanPhotos.CountAsync()==0,"photo deletion resolves its receipt alias and is idempotent");
         var pv=(await db.Materials.AsNoTracking().SingleAsync(x=>x.Id==pack.Id)).OfflineVersion.ToString();
-        var packaging=Operation("855","packaging","old",photo.OperationId) with {MaterialIds=[pack.Id],MaterialVersions=new(){{pack.Id.ToString(),pv}}};
+        var packaging=Operation("855","packaging","old",removePhoto.OperationId) with {MaterialIds=[pack.Id],MaterialVersions=new(){{pack.Id.ToString(),pv}}};
         await service.ApplyAsync(registrar.Id,packaging,default);await service.ApplyAsync(registrar.Id,packaging,default);
         Check((await db.Materials.AsNoTracking().SingleAsync(x=>x.Id==pack.Id)).Quantity==4 && (await service.BowlAsync("855",default)).Stage==18,"packaging consumes two triangular items once and moves instrument to warehouse");
         Check((await service.BowlAsync("855",default)).QualityWarehouseId==3,"offline packaging preserves the selected quality warehouse");
@@ -220,6 +226,33 @@ internal static class OfflineProductionSmoke
         var localOrder=Guid.NewGuid();var localLine=Guid.NewGuid();var draftOp=Workspace("orders","save",new{id=localOrder,customerName="Offline order",durationDays=30,version=1,lines=new[]{new{scaleId=scale.Id,quantity=2,lineId=localLine}}},paymentOp.OperationId);
         var draftReceipt=await service.ApplyAsync(registrar.Id,draftOp,default);db.ChangeTracker.Clear();var orderAliases=JsonSerializer.Deserialize<Dictionary<string,string>>(draftReceipt.VersionsJson)!;var actualOrder=Guid.Parse(orderAliases["alias:"+localOrder]);Check(orderAliases.ContainsKey("alias:"+localLine),"offline order and line identifiers resolve together in one receipt");
         var finalizeOp=Workspace("orders","finalize",new{id=localOrder,version=1},draftOp.OperationId);await service.ApplyAsync(registrar.Id,finalizeOp,default);db.ChangeTracker.Clear();Check(await db.CustomerOrders.AnyAsync(x=>x.Id==actualOrder&&!x.IsDraft),"offline draft finalizes atomically using its prior receipt");
+
+        var threshold=Workspace("materials","threshold",new{id=raw.Id,quantity=1,topQuantity=2,bottomQuantity=3},finalizeOp.OperationId);await service.ApplyAsync(registrar.Id,threshold,default);db.ChangeTracker.Clear();
+        Check((await db.Materials.AsNoTracking().SingleAsync(x=>x.Id==raw.Id)).TopBowlLowStockThreshold==2,"material threshold uses original validation within receipt transaction");
+        var templates=Workspace("materials","templates",new{id=raw.Id,topTemplate="S10000",bottomTemplate="S20000"},threshold.OperationId);await service.ApplyAsync(registrar.Id,templates,default);db.ChangeTracker.Clear();
+        Check((await db.Materials.AsNoTracking().SingleAsync(x=>x.Id==raw.Id)).TopBowlCodeTemplate=="S10000","offline code templates preserve original material validation");
+        var rollback=Workspace("production","rollback",new{code=create2.Code,kind="bowl"},templates.OperationId);var rollbackReceipt=await service.ApplyAsync(registrar.Id,rollback,default);db.ChangeTracker.Clear();await service.ApplyAsync(registrar.Id,rollback,default);
+        var rollbackVersions=JsonSerializer.Deserialize<Dictionary<string,string>>(rollbackReceipt.VersionsJson)!;
+        Check((await service.BowlAsync(create2.Code,default)).Stage==22&&rollbackVersions.ContainsKey(create2.Code)&&rollbackVersions.ContainsKey("material:"+raw.Id),"rollback is idempotent and receipt records refreshed bowl and material versions");
+        var deletion=Workspace("production","delete",new{code=create.Code,kind="bowl"},rollback.OperationId);await service.ApplyAsync(registrar.Id,deletion,default);db.ChangeTracker.Clear();await service.ApplyAsync(registrar.Id,deletion,default);
+        Check(!await db.Bowls.AnyAsync(x=>x.ProductionCode==create.Code),"original deletion service and receipt share one atomic transaction");
+        var shaperRole=new Role("Shaper","شیپر");db.Add(shaperRole);db.Add(new UserRole(actor.Id,shaperRole.Id));await db.SaveChangesAsync();db.ChangeTracker.Clear();workspaceSnapshot=await service.SnapshotAsync(registrar.Id,device,default);
+        var correction=Workspace("shape","contributors",new{code="855",eventId=shape.OperationId,localOperationId=shape.OperationId,expectedDescription="local",stretchUserId=actor.Id});await service.ApplyAsync(registrar.Id,correction,default);db.ChangeTracker.Clear();await service.ApplyAsync(registrar.Id,correction,default);
+        Check(await db.ProductionEvents.AnyAsync(x=>x.Action==ProductionAction.Shape&&x.Description.Contains("Stretch="+actor.Id)),"shape correction resolves prior local operation and shares ambient transaction");
+        var saleUpdate=Workspace("production","saleUpdate",new{code="855",handpanId=sold.Id,soldAt=sold.SoldAt,buyerName="Updated buyer",buyerPhoneNumber="09120000000",price=700,receivedAmount=200,isExportSale=false},correction.OperationId);await service.ApplyAsync(registrar.Id,saleUpdate,default);db.ChangeTracker.Clear();
+        Check(await db.Handpans.AnyAsync(x=>x.Id==sold.Id&&x.BuyerName=="Updated buyer"&&x.SalePrice==700)&&await db.OfflineReceipts.AnyAsync(x=>x.OperationId==saleUpdate.OperationId&&x.WarrantyPending),"sale correction commits accounting before deferred remote warranty retry");
+        var finalSnapshot=await service.SnapshotAsync(registrar.Id,device,default);var legacySections=finalSnapshot.Workspace!.Sections.ToDictionary(x=>x.Key,x=>x.Value);
+        foreach(var section in new[]{"photos","handpanDetails","avatars"})legacySections.Remove(section);
+        var legacyHandpans=System.Text.Json.Nodes.JsonNode.Parse(legacySections["handpans"].GetRawText())!;foreach(var row in legacyHandpans.AsArray())row!.AsObject().Remove("createdAt");legacySections["handpans"]=JsonSerializer.SerializeToElement(legacyHandpans);
+        Check(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(legacySections,new JsonSerializerOptions(JsonSerializerDefaults.Web)))))==finalSnapshot.Workspace.Version,"new photo/avatar display metadata preserves legacy workspace fingerprint");
+        if(Environment.GetEnvironmentVariable("TORSEPAN_OFFLINE_REPORT_FIXTURE_DIR") is {} fixtureDir){
+          Directory.CreateDirectory(fixtureDir);var mediator=provider.GetRequiredService<IMediator>();var controller=provider.GetRequiredService<ManagementReportsController>();var from=DateTime.UtcNow.Date.AddDays(-1);var to=DateTime.UtcNow.Date;
+          var prod=(Microsoft.AspNetCore.Mvc.OkObjectResult)(await controller.Production(from,to,null,null,"all","all")).Result!;var inventory=(Microsoft.AspNetCore.Mvc.OkObjectResult)(await controller.Inventory(from,to)).Result!;
+          var operations=await mediator.Send(new TORSEPAN.Application.ProductionEvents.Queries.GetProductionReport.GetProductionReportQuery(from,to));
+          await File.WriteAllTextAsync(Path.Combine(fixtureDir,"parity.json"),JsonSerializer.Serialize(new{snapshot=finalSnapshot,production=prod.Value,inventory=inventory.Value,operations,from=from.ToString("yyyy-MM-dd"),to=to.ToString("yyyy-MM-dd")},new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        }
+
+        if(Environment.GetEnvironmentVariable("TORSEPAN_OFFLINE_E2E_DIR") is {} e2eDirectory)await OfflineE2EHost.RunAsync(e2eDirectory,db,service,http,provider,registrar.Id,device,steel.Id,scale.Id);
 
         var pgOptions=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused").Options;
         await using var pg=new TORSEPANDbContext(pgOptions);

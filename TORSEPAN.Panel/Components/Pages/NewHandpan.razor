@@ -1,4 +1,4 @@
-﻿@page "/handpans/new"
+@page "/handpans/new"
 
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
@@ -8,8 +8,9 @@
 @inject NavigationManager Navigation
 
 <PageTitle>ثبت هنگدرام</PageTitle>
+<PageHeader Title="ثبت هنگدرام" SubTitle="انتخاب کاسه‌ها و ثبت ساز جدید" />
 
-<h3 class="mb-4">ثبت هنگدرام</h3>
+
 
 @if (_loading)
 {
@@ -95,8 +96,8 @@ else
     {
         var bowls = await BowlService.GetAsync();
 
-        _topBowls.AddRange(bowls.Where(x => x.BowlType == 0));
-        _bottomBowls.AddRange(bowls.Where(x => x.BowlType == 1));
+        _topBowls.AddRange(bowls.Where(x => x.BowlType == 1));
+        _bottomBowls.AddRange(bowls.Where(x => x.BowlType == 2));
 
         _loading = false;
     }

@@ -6,11 +6,11 @@ android {
 
     testOptions { unitTests.includeAndroidResources = true }
     defaultConfig {
-        applicationId 'ir.torsepan.mobile'
+        applicationId 'ir.torsepan.mobile.offline'
         minSdk 29
         targetSdk 34
-        versionCode 8
-        versionName '2.4-admin-offline-entry'
+        versionCode 14
+        versionName '2.8.2-cached-workshop'
     }
 }
 

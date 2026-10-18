@@ -275,6 +275,7 @@ public sealed class ProductionController : ControllerBase
         handpan.SetSaleAttribution(request.LeadSourceId, request.ReferrerId);
         handpan.ActivateWarranty();
         await _db.SaveChangesAsync();
+        if (_db.Database.CurrentTransaction is not null) return Ok(new SellHandpansResponse(true,false,"همگام‌سازی گارانتی در صف است."));
         var warranty = await ActivateWarrantyAsync([handpan.SerialNumber], request);
         return Ok(new SellHandpansResponse(true, warranty.IsActive, warranty.Error));
     }

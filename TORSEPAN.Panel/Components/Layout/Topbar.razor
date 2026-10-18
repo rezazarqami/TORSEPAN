@@ -6,22 +6,15 @@
 
 <div class="topbar-left">
     <img class="topbar-workshop-mark" src="/images/brand/torsepan-mark-new.webp" alt="TORSEPAN" />
-    <div class="topbar-title-block">
-        <div class="page-title"><span class="page-title-main">سامانه مدیریت تولید</span><span class="page-title-brand">TORSEPAN</span></div>
-        <div class="page-subtitle">مدیریت هوشمند کارگاه ساخت هنگدرام</div>
-    </div>
+    <div class="topbar-title-block"><div class="page-title"><span class="page-title-main">سامانه مدیریت تولید</span><span class="page-title-brand">TORSEPAN</span></div></div>
 </div>
-
 <div class="topbar-right">
-    <a class="dashboard-button" href="/" title="بازگشت به داشبورد"><span aria-hidden="true">⌂</span><b>داشبورد</b></a>
-    <button type="button" class="install-app-button" title="افزودن برنامه به صفحه اصلی" aria-label="افزودن برنامه به صفحه اصلی" @onclick="InstallAppAsync">
-        <span class="install-app-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M9.5 5h5M12 8v7m0 0-2.7-2.7M12 15l2.7-2.7M10 18.5h4"/></svg></span>
-        <b>نصب روی گوشی</b>
-    </button>
-    <NotificationBell />
     <a class="user-box user-box-clean" href="/my-account" title="ناحیهٔ کاربری" aria-label="ناحیهٔ کاربری">
+        <svg class="profile-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3z"/></svg>
         <div><div class="user-name">@DisplayName</div><div class="user-role">@UserTitle</div></div>
     </a>
+    <a class="dashboard-button" href="/" title="بازگشت به داشبورد" aria-label="داشبورد"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h5v-7h4v7h5V10"/></svg></a>
+    <div class="header-notification"><NotificationBell /></div>
 </div>
 
 @code {
@@ -59,5 +52,5 @@
         return roles.Select(role => titles.GetValueOrDefault(role, role)).FirstOrDefault() ?? "همکار TORSEPAN";
     }
 
-    private Task InstallAppAsync() => JS.InvokeVoidAsync("torsepanPwa.install").AsTask();
+
 }

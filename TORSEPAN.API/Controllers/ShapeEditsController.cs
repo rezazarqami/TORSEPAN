@@ -34,7 +34,7 @@ public sealed class ShapeEditsController(TORSEPANDbContext db):ControllerBase
         if(request.NoteAreaUserId.HasValue)additions["NoteArea"]=request.NoteAreaUserId.Value;
         if(request.EditUserId.HasValue)additions["Edit"]=request.EditUserId.Value;
         if(additions.Count==0||additions.Values.Any(x=>x==Guid.Empty))return BadRequest(new{Message="حداقل یک انجام‌دهنده را انتخاب کنید."});
-        await using var tx=await db.Database.BeginTransactionAsync(IsolationLevel.Serializable,ct);
+        await using var tx=db.Database.CurrentTransaction is null?await db.Database.BeginTransactionAsync(IsolationLevel.Serializable,ct):null;
         var ids=await ResolveAsync(code,ct);
         var ev=await db.ProductionEvents.SingleOrDefaultAsync(x=>x.Id==request.EventId&&ids.Contains(x.BowlId??Guid.Empty)&&x.Action==ProductionAction.Shape&&x.Result==EventResult.Completed&&!x.Description.StartsWith("NOTE:"),ct);
         if(ev is null)return NotFound(new{Message="عملیات شیپ متعلق به این کد پیدا نشد."});
@@ -44,7 +44,7 @@ public sealed class ShapeEditsController(TORSEPANDbContext db):ControllerBase
         try{ev.AddShapeContributors(additions);}catch(InvalidOperationException e){return Conflict(new{Message=e.Message});}
         var audit=new ProductionEvent(ev.HandpanId,ev.AssemblyId,ev.BowlId,actor,ProductionAction.Created,EventResult.Completed,null,$"NOTE:SHAPE-EDIT:{ev.Id}:{request.ExpectedDescription} => {ev.Description}");
         audit.SetPayrollExcluded(true,actor);db.ProductionEvents.Add(audit);
-        await db.SaveChangesAsync(ct);await tx.CommitAsync(ct);return Ok(new{Saved=true});
+        await db.SaveChangesAsync(ct);if(tx is not null)await tx.CommitAsync(ct);return Ok(new{Saved=true});
     }
     private async Task<List<Guid>> ResolveAsync(string code,CancellationToken ct)
     {

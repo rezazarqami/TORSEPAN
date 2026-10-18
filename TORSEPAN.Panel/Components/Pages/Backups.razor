@@ -1,3 +1,4 @@
+@inject IServiceProvider LocalServices
 @page "/backups"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator")]
 @implements IDisposable
@@ -6,7 +7,8 @@
 @inject IJSRuntime JS
 
 <PageTitle>پشتیبان‌گیری | TORSEPAN</PageTitle>
-<section class="backup-hero"><small>TORSEPAN</small><h1>پشتیبان‌گیری و آرشیو</h1><p>یک نسخه از اطلاعات فعلی کارگاه را روی دستگاه خود نگه دارید.</p></section>
+<section class="backup-hero theme-hero theme-page-intro"><small>TORSEPAN</small><h1>پشتیبان‌گیری و آرشیو</h1><p>یک نسخه از اطلاعات فعلی کارگاه را روی دستگاه خود نگه دارید.</p></section>
+@if(LocalServices.GetService(typeof(ILocalDataRefresh)) is not null){<article class="card p-4"><h2>پشتیبان اطلاعات گوشی</h2><p>اطلاعات دریافت‌شده، عکس‌های موجود روی گوشی و ثبت‌های در صف. بکاپ کامل سرور هنگام اتصال تهیه می‌شود.</p><button class="btn btn-primary" @onclick="BackupPhoneAsync">ذخیرهٔ پشتیبان گوشی</button></article>}
 <div class="backup-options">
     <article><span class="backup-icon">↓</span><h2>بکاپ کامل همراه عکس‌ها</h2><p>تمام اطلاعات دیتابیس، عکس‌های ساز و پیش‌نمایش‌ها در یک فایل قابل بازیابی.</p><button class="btn btn-primary" disabled="@(_busy || _downloading)" @onclick='() => StartAsync("full")'>دریافت بکاپ کامل</button></article>
     <article><span class="backup-icon">PDF</span><h2>آرشیو شناسنامه‌ها و موجودی</h2><p>ریز سوابق سازها و کاسه‌ها، مراحل تولید، آماده QC، بسته‌بندی، انبار و فروش؛ همراه موجودی فعلی مواد اولیه.</p><button class="btn btn-primary" disabled="@(_busy || _downloading)" @onclick='() => StartAsync("pdf")'>تهیه گزارش PDF</button></article>
@@ -29,6 +31,7 @@
 <p class="backup-note">بکاپ شبانهٔ تلگرام مستقل است و همچنان بدون عکس ارسال می‌شود. PDF برای خواندن سوابق است؛ بازیابی نرم‌افزار با بکاپ کامل انجام می‌شود.</p>
 
 @code {
+    private Task BackupPhoneAsync()=>JS.InvokeVoidAsync("OfflinePanel.backup").AsTask();
     private Job? _job;
     private bool _busy, _downloading;
     private string? _message;

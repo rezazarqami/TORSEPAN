@@ -26,11 +26,13 @@ public sealed class OfflineWarrantySyncWorker(IServiceScopeFactory scopes, ILogg
         var receipts=await db.OfflineReceipts.Where(x=>x.WarrantyPending).OrderBy(x=>x.AcceptedUtc).Take(50).ToListAsync(ct);
         foreach(var receipt in receipts){
             var op=JsonSerializer.Deserialize<OfflineOperation>(receipt.PayloadJson)!;
-            var bowl=await db.Bowls.AsNoTracking().SingleOrDefaultAsync(x=>x.ProductionCode==op.Code,ct);
+            var code=op.WorkspaceModule=="production"&&op.WorkspaceAction=="saleUpdate"?op.WorkspaceData!.Value.GetProperty("code").GetString():op.Code;
+            var saleUtc=op.WorkspaceModule=="production"&&op.WorkspaceAction=="saleUpdate"?op.WorkspaceData!.Value.GetProperty("soldAt").GetDateTime():receipt.OccurredUtc;
+            var bowl=await db.Bowls.AsNoTracking().SingleOrDefaultAsync(x=>x.ProductionCode==code,ct);
             var a=bowl is null?null:await db.HandpanAssemblies.AsNoTracking().SingleOrDefaultAsync(x=>x.TopBowlId==bowl.Id||x.BottomBowlId==bowl.Id,ct);
             var h=a is null?null:await db.Handpans.AsNoTracking().SingleOrDefaultAsync(x=>x.AssemblyId==a.Id,ct);
             // A returned/resold item must not be reactivated for an obsolete buyer.
-            if(h is null || h.Stage!=ProductionStage.Sold || h.SoldAt!=receipt.OccurredUtc){receipt.WarrantyPending=false;await db.SaveChangesAsync(ct);continue;}
+            if(h is null || h.Stage!=ProductionStage.Sold || h.SoldAt!=saleUtc){receipt.WarrantyPending=false;await db.SaveChangesAsync(ct);continue;}
             var result=await guarantee.ActivateAsync(h.SerialNumber,h.BuyerName??"ثبت از فروش",h.BuyerPhoneNumber??"","",ct);
             if(result.IsActive){receipt.WarrantyPending=false;await db.SaveChangesAsync(ct);}
         }

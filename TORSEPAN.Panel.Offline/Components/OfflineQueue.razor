@@ -1,0 +1,7 @@
+@page "/offline-queue"
+@using Microsoft.JSInterop
+@using System.Text.Json
+@inject IJSRuntime JS
+<h1>صف ارسال گوشی</h1><p>ثبت‌ها تا دریافت تأیید سرور روی گوشی می‌مانند.</p><button @onclick="SyncAsync">ارسال اطلاعات</button><button @onclick="RetryAsync">بررسی دوباره</button>
+@if(_rows is not null){foreach(var row in _rows.Value.EnumerateArray()){<div class="card p-3 m-2"><span>@row.GetProperty("code").GetString()</span><span>@row.GetProperty("state").GetString()</span><p>@row.GetProperty("message").GetString()</p></div>}}
+@code{private JsonElement? _rows;protected override async Task OnInitializedAsync()=>await LoadAsync();private async Task LoadAsync()=>_rows=await JS.InvokeAsync<JsonElement>("OfflinePanel.queue");private async Task SyncAsync(){await JS.InvokeVoidAsync("OfflinePanel.sync");await LoadAsync();}private async Task RetryAsync(){await JS.InvokeVoidAsync("OfflinePanel.retry");await LoadAsync();}}

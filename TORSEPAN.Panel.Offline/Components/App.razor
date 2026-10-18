@@ -1,0 +1,29 @@
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using TORSEPAN.Panel.Components.Layout
+@using TORSEPAN.Panel.Services
+@inject IJSRuntime JS
+@inject OfflineDataRefresh Refresh
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+<details class="offline-sync-strip"><summary>@_message.Split(" · آخرین دریافت")[0]</summary><p>@_message</p><div><a href="/offline-queue">صف ارسال</a><button @onclick="SyncAsync">ارسال و دریافت اطلاعات</button><button @onclick="OnlineAsync">ورود به نسخهٔ وب</button></div>@if(!string.IsNullOrEmpty(_error)){<p role="alert">@_error</p>}</details>
+@if(_ready){
+<ErrorBoundary @ref="_boundary"><ChildContent>
+<Router AppAssembly="@typeof(App).Assembly"><Found Context="route"><AuthorizeRouteView RouteData="route" DefaultLayout="typeof(MainLayout)"><NotAuthorized><p>دسترسی این حساب به صفحه فعال نیست.</p></NotAuthorized></AuthorizeRouteView><FocusOnNavigate RouteData="route" Selector="h1"/></Found><NotFound><LayoutView Layout="typeof(MainLayout)"><p>صفحه پیدا نشد.</p></LayoutView></NotFound></Router>
+</ChildContent><ErrorContent><div class="alert alert-warning">باز کردن این صفحه کامل نشد. ثبت‌های ذخیره‌شده در صف گوشی باقی می‌مانند.<button @onclick="Recover">تلاش دوباره</button><a href="/">داشبورد</a></div></ErrorContent></ErrorBoundary>
+}else{<div class="card p-4 m-3"><h1>دریافت اولیهٔ کارگاه</h1><p>@_message</p><button @onclick="ActivateAsync">فعال‌سازی و دریافت اطلاعات</button><button @onclick="OnlineAsync">ورود به حساب در وب</button></div>}
+@code{
+ private bool _ready;private string _message="در حال خواندن اطلاعات گوشی…",_error="",_revision="";private ErrorBoundary? _boundary;private readonly CancellationTokenSource _stop=new();private Task? _poll;
+ protected override async Task OnInitializedAsync(){Navigation.LocationChanged+=Changed;await UpdateAsync();_poll=PollAsync();}
+ private void Changed(object? sender,LocationChangedEventArgs e)=>_boundary?.Recover();
+ private void Recover()=>_boundary?.Recover();
+ private async Task UpdateAsync(){try{var s=await JS.InvokeAsync<Status>("OfflinePanel.status");_ready=s.Ready;_message=s.Message;_error=s.Error??"";if(_revision!=""&&_revision!=s.Revision)Refresh.Notify();_revision=s.Revision??"";}catch(Exception){_error="خواندن اطلاعات محلی کامل نشد؛ اطلاعات برنامه را پاک نکنید.";}}
+ private async Task PollAsync(){try{using var timer=new PeriodicTimer(TimeSpan.FromSeconds(3));while(await timer.WaitForNextTickAsync(_stop.Token))await InvokeAsync(async()=>{await UpdateAsync();StateHasChanged();});}catch(OperationCanceledException){}}
+ private async Task SyncAsync(){await JS.InvokeVoidAsync("OfflinePanel.sync");await UpdateAsync();}
+ private async Task ActivateAsync(){await JS.InvokeVoidAsync("OfflinePanel.activate");await UpdateAsync();}
+ private async Task OnlineAsync()=>await JS.InvokeVoidAsync("OfflinePanel.online");
+ public async ValueTask DisposeAsync(){Navigation.LocationChanged-=Changed;_stop.Cancel();if(_poll is not null)await _poll;_stop.Dispose();}
+ public record Status(bool Ready,string Message,string? Error,string? Revision);
+}
