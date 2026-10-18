@@ -25,6 +25,7 @@ public sealed class AdminEditableBowlDto
     public int Stage{get;set;}
     public string StageTitle{get;set;}="";
     public Guid? ScaleId{get;set;}
+    public int? NoteCount{get;set;}
     public string? ScaleName{get;set;}
 }
 
@@ -42,5 +43,5 @@ public sealed class AdminEditableEventDto
 }
 
 public sealed record AdminProductionEditRequest(Guid? HandpanScaleId,List<AdminBowlScaleUpdate> BowlScales,List<AdminEventUserUpdate> EventUsers);
-public sealed record AdminBowlScaleUpdate(Guid BowlId,Guid? ScaleId);
+public sealed record AdminBowlScaleUpdate(Guid BowlId,Guid? ScaleId,int? NoteCount=null);
 public sealed record AdminEventUserUpdate(Guid EventId,Guid UserId);
