@@ -8,10 +8,9 @@
 @inject NavigationManager Navigation
 
 <PageTitle>مدیریت تولید | تورسپن</PageTitle>
-<section class="production-hero theme-hero theme-page-intro">
-    <span class="production-kicker" dir="ltr">PRODUCTION MANAGEMENT</span>
-    <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
-    <h1>مدیریت تولید</h1><p>کاسه‌ها و سازها؛ اطلاعات فنی، وضعیت ساخت و سوابق عملیات در یک نگاه</p>
+<section class="production-hero production-photo-hero theme-hero theme-page-intro" aria-labelledby="production-title">
+    <div class="production-hero-art" aria-hidden="true"></div>
+    <div class="production-hero-copy"><span dir="ltr">PRODUCTION</span><h1 id="production-title">تولید</h1></div>
 </section>
 <div class="production-toolbar"><p>فهرست تولید را بررسی کنید یا کاسهٔ جدید ثبت کنید.</p><button type="button" class="btn btn-primary" @onclick="NewBowl">＋ ثبت کاسه</button></div>
 <nav class="production-tabs" aria-label="بخش‌های تولید">
