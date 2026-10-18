@@ -10,7 +10,7 @@
     else if (_photos.Count == 0) { <div class="gallery-empty"><span>📷</span><small>بدون عکس</small></div> }
     else
     {
-        <button type="button" class="gallery-main" title="نمایش بزرگ عکس" @onclick="OpenPreview">@if(_mainUrl is not null){<img src="@_mainUrl" alt="عکس ساز" />}<span class="gallery-zoom-hint">⛶</span></button>
+        <button type="button" class="gallery-main" title="نمایش بزرگ عکس" @onclick="OpenPreview">@if(_mainUrl is not null){<img src="@_mainUrl" alt="عکس ساز" />}<span class="gallery-zoom-hint"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" /></svg></span></button>
         <div class="gallery-thumbs">
             @foreach(var photo in _photos)
             {
