@@ -5,17 +5,22 @@
 @inject IJSRuntime JS
 
 <PageTitle>انبار صادراتی</PageTitle>
-<PageHero CssClass="warehouse-hero export-hero" Eyebrow="EXPORT INVENTORY" Title="انبار صادراتی" Description="مدیریت یکپارچه سازها و کاسه‌های آماده ارسال در ایران و انبارهای خارجی">
-    <Icon><svg viewBox="0 0 24 24"><path d="m21 3-7 18-3-8-8-3Z M11 13 21 3"/></svg></Icon>
-    <ChildContent><div class="theme-stats"><span><strong>@_items.Count</strong> موجودی کل</span><i aria-hidden="true"></i><span><strong>@Warehouses.Length</strong> مقصد فعال</span></div></ChildContent>
-</PageHero>
+<section class="warehouse-hero export-hero export-photo-hero theme-hero theme-page-intro" aria-labelledby="export-inventory-title">
+    <div class="export-hero-art" aria-hidden="true"></div>
+    <svg class="export-hero-lines" viewBox="0 0 1000 500" preserveAspectRatio="none" aria-hidden="true"><path d="M340 170 C540 180 575 0 760 0"/><path d="M300 500 C480 380 565 410 710 500"/></svg>
+    <div class="export-hero-copy">
+        <span class="hero-kicker">EXPORT INVENTORY</span>
+        <h1 id="export-inventory-title">انبار صادراتی</h1>
+        <div class="hero-stats"><span>موجودی کل</span><strong>@_items.Count</strong></div>
+    </div>
+</section>
 
-<div class="warehouse-dashboard">
+<nav class="warehouse-dashboard destination-picker" aria-label="مقصدهای انبار صادراتی">
     @foreach(var warehouse in Warehouses)
     {
-        <button class="warehouse-card @(_activeLocation==warehouse.Id?"active":"")" @onclick="()=>SelectWarehouseAsync(warehouse.Id)"><span class="warehouse-flag">@warehouse.Code</span><div><small>انبار صادراتی</small><strong>@warehouse.Name</strong></div><b>@_items.Count(x=>x.Location==warehouse.Id)</b>@if(_activeLocation==warehouse.Id){<em>در حال نمایش</em>}</button>
+        <button type="button" class="warehouse-card @(_activeLocation==warehouse.Id?"active":"")" aria-pressed="@(_activeLocation==warehouse.Id?"true":"false")" @onclick="()=>SelectWarehouseAsync(warehouse.Id)"><span class="destination-name"><strong>@warehouse.Name</strong><small>(@_items.Count(x=>x.Location==warehouse.Id))</small></span><img class="destination-flag" src="@($"/images/flags/{warehouse.Code.ToLowerInvariant()}.svg")" alt="" aria-hidden="true" width="38" height="26" /></button>
     }
-</div>
+</nav>
 
 <div class="export-tools">
     <form class="export-search-form" @onsubmit="ApplySearchAsync" @onsubmit:preventDefault="true">

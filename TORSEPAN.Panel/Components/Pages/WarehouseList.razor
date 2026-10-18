@@ -7,11 +7,14 @@
 @inject SalesAttributionService AttributionService
 @inject IJSRuntime JS
 <PageTitle>انبار سازها</PageTitle>
-<section class="warehouse-hero instrument-hero theme-hero theme-page-intro">
-    <span class="hero-kicker">INSTRUMENT INVENTORY</span>
-    <div class="hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 10 12 4l9 6v10H3V10Z"/><path d="M8 20v-7h8v7M8 9h8M10 16h4"/></svg></div>
-    <h1>انبار سازها</h1>
-    <div class="hero-stats"><span><strong>@_items.Count</strong> موجودی کل</span></div>
+<section class="warehouse-hero instrument-hero inventory-photo-hero theme-hero theme-page-intro" aria-labelledby="inventory-title">
+    <div class="inventory-hero-art" aria-hidden="true"><div></div><div></div><div></div></div>
+    <svg class="inventory-hero-lines" viewBox="0 0 1000 500" preserveAspectRatio="none" aria-hidden="true"><path d="M340 170 C540 180 575 0 760 0"/><path d="M300 500 C480 380 565 410 710 500"/></svg>
+    <div class="inventory-hero-copy">
+        <span class="hero-kicker">INSTRUMENT INVENTORY</span>
+        <h1 id="inventory-title">انبار سازها</h1>
+        <div class="hero-stats"><span>موجودی کل</span><strong>@_items.Count</strong></div>
+    </div>
     @if (_canManage) { <details class="warehouse-menu hero-menu"><summary aria-label="گزینه‌های مدیریت انبار">⋯</summary><div><button @onclick="OpenWarehouseManagement">مدیریت انبارها</button></div></details> }
 </section>
 @if (!string.IsNullOrWhiteSpace(_notice)) { <div class="warehouse-notice" role="status">✓ @_notice <button aria-label="بستن پیام" @onclick="()=>_notice=null">×</button></div> }
