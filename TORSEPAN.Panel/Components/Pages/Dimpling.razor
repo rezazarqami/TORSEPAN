@@ -14,7 +14,10 @@
 @inject IJSRuntime JS
 
 <PageTitle>تولید</PageTitle>
-<PageHeader Title="عملیات تولید" SubTitle="ثبت مراحل، اطلاعات فنی و سوابق ساز و کاسه" />
+<section class="process-hero process-photo-hero theme-hero theme-page-intro" aria-labelledby="process-title">
+    <div class="process-hero-art" aria-hidden="true"></div>
+    <div class="process-hero-copy"><span dir="ltr">PRODUCTION</span><h1 id="process-title">عملیات تولید</h1></div>
+</section>
 
 @if (!string.IsNullOrWhiteSpace(_successMessage))
 {
@@ -78,11 +81,12 @@
     </div>
 }
 
-<div class="card production-passport-page">
-    <label class="form-label passport-search-label" for="passport-code">کد ساز را وارد کنید</label>
+<div class="production-detail-surface">
+<div class="card production-passport-page luxury-passport-page">
+    <label class="form-label passport-search-label" for="passport-code">کد ساز یا کاسه را وارد کنید</label>
     <div class="input-group passport-search mb-3">
         <input id="passport-code" class="form-control"
-               placeholder="کد ساز را وارد کنید"
+               placeholder="کد ساز یا کاسه را وارد کنید"
                @bind="_productionCode"
                @bind:event="oninput"
                @onkeydown="HandleKeyDown" />
@@ -100,7 +104,9 @@
     {
         var isHandpan = !string.IsNullOrWhiteSpace(_bowl.HandpanCode);
         <div class="instrument-passport @(isHandpan ? "handpan-file" : "bowl-file")">
-            <div class="passport-header"><span>TORSEPAN · @(isHandpan ? "INSTRUMENT ID" : "BOWL ID")</span><div class="passport-logo"><img src="/images/brand/torsepan-logo.webp" alt="لوگوی TORSEPAN" /></div></div>
+            <div class="passport-overview">
+                <section class="passport-identity" aria-label="شناسنامه ساز یا کاسه">
+            <div class="passport-header"><span>TORSEPAN · @(isHandpan ? "INSTRUMENT ID" : "BOWL ID")</span></div>
             <div class="passport-primary-info">
                 <div class="passport-codes">
                     <div><span>@(isHandpan ? "کد ساز" : "کد کاسه")</span><strong><bdi>@(isHandpan ? _bowl.HandpanCode : _bowl.ProductionCode)</bdi></strong></div>
@@ -113,57 +119,61 @@
                         <div class="passport-bottom-code"><span>نوع کاسه</span><strong>@BowlTypeText(_bowl.BowlType)</strong></div>
                     }
                 </div>
-                <div class="passport-info-line passport-scale"><span lang="en">Scale:</span><strong dir="auto">@_bowl.ScaleName</strong></div>
-                @if (_bowl.IsHandpanScale) { <div class="passport-info-line"><span>نت رو: @(_bowl.TopNoteCount?.ToString() ?? "نامشخص") · نت زیر: @(_bowl.BottomNoteCount?.ToString() ?? "نامشخص")</span></div> }
-                @if(!string.IsNullOrWhiteSpace(_bowl.OrderCustomerName))
-                {
-                    <div class="passport-info-line passport-order"><strong>سفارش @_bowl.OrderCustomerName</strong></div>
-                }
-                <div class="passport-info-line"><span lang="en">Design:</span><strong dir="auto">@_bowl.DesignName</strong></div>
-                <div class="passport-info-line passport-status"><span lang="en">Status:</span><strong dir="auto">@StageText(_bowl.Stage)</strong></div>
+                <div class="passport-info-line passport-scale"><span class="passport-feature-icon"><PassportIcon Kind="music" /></span><div><small>Scale</small><strong dir="auto">@_bowl.ScaleName</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
+                <div class="passport-info-line"><span class="passport-feature-icon"><PassportIcon Kind="design" /></span><div><small>Design</small><strong dir="auto">@_bowl.DesignName</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
+                <div class="passport-info-line"><span class="passport-feature-icon"><PassportIcon Kind="notes" /></span><div><small>تعداد نت</small><strong>@(_bowl.IsHandpanScale ? $"نت رو: {_bowl.TopNoteCount?.ToString() ?? "نامشخص"} · نت زیر: {_bowl.BottomNoteCount?.ToString() ?? "نامشخص"}" : _bowl.NoteCount?.ToString() ?? "نامشخص")</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
+                <div class="passport-info-line passport-status"><span class="passport-feature-icon"><PassportIcon Kind="status" /></span><div><small>وضعیت <i class="passport-status-dot"></i></small><strong>@StageText(_bowl.Stage)</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
+                @if (!string.IsNullOrWhiteSpace(_bowl.OrderCustomerName)) { <div class="passport-info-line passport-order"><strong>سفارش @_bowl.OrderCustomerName</strong></div> }
+
             </div>
-            @if (_bowl.History.Count > 0)
-            {
-                <div class="card bg-light border-0 mt-3 passport-history">
-                    <div class="card-body py-3">
-                        <strong>مراحل انجام‌شده تا این لحظه</strong>
-                        <div class="passport-history-wrap mt-2">
-                            <table class="table table-sm align-middle mb-0 passport-history-table">
-                                <colgroup><col class="history-stage" /><col class="history-worker" /><col class="history-date" /></colgroup>
-                                <thead><tr><th scope="col">مرحله</th><th scope="col">انجام‌دهنده</th><th scope="col">تاریخ</th></tr></thead>
-                                <tbody>
-                                @foreach (var item in _bowl.History)
+                </section>
+                <section class="passport-media" aria-label="عکس‌های ساز">
+                    @if (_bowl.HandpanId.HasValue)
+                    {
+                        <HandpanPhotoGallery HandpanId="@_bowl.HandpanId.Value" />
+                    }
+                    else
+                    {
+                        <div class="passport-bowl-placeholder"><span aria-hidden="true">◒</span><strong>شناسنامه کاسه</strong><small>تصاویر پس از تشکیل ساز در این بخش قرار می‌گیرند.</small></div>
+                    }
+                </section>
+            </div>
+            <section class="passport-timeline" aria-labelledby="history-title">
+                <header><h3 id="history-title"><span class="history-heading-icon"><PassportIcon Kind="clock" /></span> سوابق انجام کار</h3>
+                    @if (_bowl.History.Count > 6) { <button type="button" class="history-toggle" aria-expanded="@_showAllHistory" @onclick="() => _showAllHistory = !_showAllHistory">@(_showAllHistory ? "نمایش کمتر" : "نمایش همه")</button> }
+                </header>
+                @if (_bowl.History.Count == 0) { <p class="history-empty">هنوز سابقه‌ای ثبت نشده است.</p> }
+                @foreach (var item in _bowl.History.OrderByDescending(x => x.PerformedAt).Take(_showAllHistory ? int.MaxValue : 6))
+                {
+                    <article class="passport-timeline-row">
+                        <div class="history-operation"><span class="history-operation-icon" data-action="@item.Action" aria-hidden="true"><PassportIcon Kind="@HistoryIcon(item.Action)" /></span><strong>@item.ActionTitle</strong></div>
+                        <div class="history-people"><span class="history-person-icon"><PassportIcon Kind="user" /></span><div>
+                            @if (item.BowlPerformers.Count > 0)
+                            {
+                                @foreach (var part in item.BowlPerformers)
                                 {
-                                    <tr><td>@item.ActionTitle</td><td>
-                                        @if (item.BowlPerformers.Count > 0)
-                                        {
-                                            @foreach (var part in item.BowlPerformers)
-                                            {
-                                                <div class="mb-2"><div class="passport-performers">@foreach (var performer in PerformerNames(part.PerformedBy)){<span>@part.Label: @performer</span>}</div>
-                                                @if (!string.IsNullOrWhiteSpace(part.Details)){<small class="d-block text-muted mt-1">@part.Details</small>}</div>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <div class="passport-performers">@foreach(var performer in PerformerNames(item.PerformedBy)){<span>@performer</span>}</div>@if(!string.IsNullOrWhiteSpace(item.Details)){<small class="d-block text-muted mt-1">@item.Details</small>}
-                                        }
-                                    </td><td><time class="passport-event-date" datetime="@item.PerformedAt.ToString("O")"><span>@PersianDateTime.FormatDate(item.PerformedAt)</span><small>@PersianDateTime.FormatTime(item.PerformedAt)</small></time></td></tr>
+                                    <div class="passport-performers">@foreach (var performer in PerformerNames(part.PerformedBy)) { <span>@part.Label: @performer</span> }</div>
+                                    @if (!string.IsNullOrWhiteSpace(part.Details)) { <small>@part.Details</small> }
                                 }
-                                </tbody>
-                            </table>
+                            }
+                            else
+                            {
+                                <div class="passport-performers">@foreach (var performer in PerformerNames(item.PerformedBy)) { <span>@performer</span> }</div>
+                                @if (!string.IsNullOrWhiteSpace(item.Details)) { <small>@item.Details</small> }
+                            }
                         </div>
-                    </div>
-                </div>
-            }
+                        </div>
+                        <time class="passport-event-date" datetime="@item.PerformedAt.ToString("O")"><span>@PersianDateTime.FormatDate(item.PerformedAt)</span><small>@PersianDateTime.FormatTime(item.PerformedAt)</small></time>
+                    </article>
+                }
+            </section>
 
             @if (_bowl.InstrumentNotes.Count > 0)
             {
                 <div class="alert alert-warning instrument-note-display mt-3"><strong>یادداشت مهم این ساز</strong><ul class="mb-0 mt-2">@foreach(var note in _bowl.InstrumentNotes){<li>@note</li>}</ul></div>
             }
-            @if (_bowl.HandpanId.HasValue && _bowl.Stage >= 12)
-            {
-                <section class="passport-photo-panel"><header><strong>تصاویر ساز</strong></header><div class="passport-photo-body"><HandpanPhotoGallery HandpanId="@_bowl.HandpanId.Value" /></div></section>
-            }
+            <section class="passport-operation" aria-label="عملیات مرحله جاری">
+                <div class="passport-operation-title"><span class="operation-gear"><PassportIcon Kind="gear" /></span><div><small>مرحله جاری</small><h3>@StageActionTitle(_bowl.Stage)</h3></div></div>
             @if (_bowl.Stage is >= 4 and <= 11)
             {
                 @if (_bowl.Notes.Count > 0)
@@ -432,8 +442,11 @@
             {
                 <div class="alert alert-success mt-3 mb-0">این کاسه در انبار صادراتی است.</div>
             }
+            </section>
         </div>
     }
+</div>
+
 </div>
 
 @if (_showPassportSale && _bowl?.HandpanId is Guid saleHandpanId)
@@ -452,6 +465,10 @@
 }
 
 @code {
+    private bool _showAllHistory;
+    private static string StageActionTitle(int stage) => stage switch { 2 => "ثبت دیمپل", 4 => "ثبت شیپ", 6 => "ثبت پخت", 8 => "ثبت تیون", 10 => "ثبت چسب", 11 => "خروج از اتاق چسب", 12 => "ثبت فاین تیون", 14 => "ثبت کنترل کیفیت", 16 => "ثبت بسته‌بندی", 21 => "ثبت بسته‌بندی صادراتی", 18 or 20 or 22 => "پرونده و وضعیت ساز", _ => StageText(stage) };
+    private static string HistoryIcon(int action) => action switch { 1 => "document", 2 => "dots", 3 => "hammer", 4 => "fire", 5 => "cube", 6 or 7 => "notes", 8 => "status", 9 => "cube", _ => "document" };
+
     [SupplyParameterFromQuery(Name = "code")]
     public string? Code { get; set; }
 
@@ -532,12 +549,13 @@
     {
         if (string.IsNullOrWhiteSpace(_productionCode))
         {
-            _error = "کد ساز را وارد کنید.";
+            _error = "کد ساز یا کاسه را وارد کنید.";
             return;
         }
 
         await ExecuteAsync(async () =>
         {
+            _showAllHistory = false;
             _pairedProductionCode = string.Empty;
             _successMessage = null;
             _showQcRejection = false;
