@@ -1,3 +1,5 @@
+> Historical production-only offline implementation. For the shared cached workshop candidate and current authentication/lifecycle behavior, see [shared-interface.md](offline/shared-interface.md).
+
 # Single-phone offline production — prepared, not published
 
 The Android 1.2 source includes a separate, bundled local interface. The current Blazor Server panel remains online; caching its HTML would not make its event handlers work offline.

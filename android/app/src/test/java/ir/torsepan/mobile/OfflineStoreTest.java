@@ -153,4 +153,19 @@ public class OfflineStoreTest {
         store.close();context().deleteDatabase(name);
     }
 
+
+    @Test public void largeEncryptedValuesDoNotDependOnCursorWindow() throws Exception {
+        String name=UUID.randomUUID()+".db";OfflineStore store=create(name);String text=new String(new char[3_000_000]).replace('\0','x');store.put("large",text);assertEquals(text,store.get("large"));store.close();context().deleteDatabase(name);
+    }
+    @Test public void failedSecondBatchItemRollsBackFirstCommit() throws Exception {
+        String name=UUID.randomUUID()+".db";OfflineStore store=create(name);setup(store);
+        try{store.enqueueBatch(new JSONArray().put(op("855","tune")).put(new JSONObject().put("action","tune")));fail("invalid second item must fail batch");}catch(org.json.JSONException expected){}
+        assertEquals(0,store.operations().length());store.close();context().deleteDatabase(name);
+    }
+    @Test public void staleBrowserCaptureDoesNotOverwriteRotatedNativeSession() throws Exception {
+        String name=UUID.randomUUID()+".db";OfflineStore store=create(name);store.captureBrowserSession("browser-old","refresh-old");store.saveSession("native-new","refresh-new");store.captureBrowserSession("browser-old","refresh-old");assertEquals("native-new",store.get("token"));assertEquals("refresh-new",store.get("refresh_token"));store.close();context().deleteDatabase(name);
+    }
+    @Test public void photoClientIdentityDiffersFromDurableOperationIdentity() throws Exception {
+        String name=UUID.randomUUID()+".db";OfflineStore store=create(name);setup(store);String photo=UUID.randomUUID().toString();String returned=store.enqueuePhoto(op("855","photo").put("photoId",photo).put("image","image").put("thumbnail","thumb").toString());assertEquals(photo,returned);assertNotEquals(photo,store.operations().getJSONObject(0).getString("id"));assertEquals("data:image/jpeg;base64,image",store.photoData(photo,false));store.close();context().deleteDatabase(name);
+    }
 }

@@ -19,7 +19,7 @@ public sealed record OfflineOperation(Guid OperationId, Guid DeviceId, string Co
     Guid? DesignTypeId = null, TORSEPAN.API.Controllers.AdminProductionEditRequest? Edit = null,
     Dictionary<string,Guid?>? EditScales = null, string? Image = null, string? Thumbnail = null, string? ImageHash = null, List<OfflineLocalEventUserUpdate>? LocalEventUsers=null,
     string? WorkspaceModule=null,string? WorkspaceAction=null,System.Text.Json.JsonElement? WorkspaceData=null,
-    string? WorkspaceExpectedVersion=null,Guid? WorkspacePreviousOperationId=null, int? QualityWarehouseId=null, int? NoteCount=null);
+    string? WorkspaceExpectedVersion=null,Guid? WorkspacePreviousOperationId=null, int? QualityWarehouseId=null, int? NoteCount=null, Guid? PhotoId=null);
 public sealed record OfflineLocalEventUserUpdate(Guid OperationId,Guid UserId);
 public sealed record OfflineUser(Guid Id, string Name, string[] Roles);
 public sealed record OfflineScale(Guid Id, string Name, int Usage);

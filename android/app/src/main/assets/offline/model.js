@@ -3,7 +3,7 @@
   'use strict';
   const labels={2:'در انتظار دیمپل',4:'در انتظار شیپ',6:'در انتظار پخت',8:'در انتظار تیون',10:'در انتظار چسب',11:'اتاق چسب',12:'در انتظار فاین‌تیون',14:'در انتظار QC',16:'در انتظار بسته‌بندی',18:'انبار',20:'فروخته‌شده',21:'در انتظار بسته‌بندی صادرات',22:'انبار صادرات'};
   const actions={2:'dimple',4:'shape',6:'bake',8:'tune',10:'glue',11:'release',12:'finalTune',14:'qc',16:'packaging',21:'exportPackaging',18:'sell',22:'ship'};
-  const names={dimple:'ثبت دیمپل',shape:'ثبت شیپ',bake:'ثبت پخت',tune:'ثبت تیون',glue:'ثبت چسب و مونتاژ',release:'خروج از اتاق چسب',finalTune:'ثبت فاین‌تیون',qc:'ثبت کنترل کیفیت',create:'ساخت کاسه',stock:'تغییر موجودی',packaging:'بسته‌بندی',sell:'فروش ساز',ship:'ارسال کاسه صادراتی',note:'یادداشت',photo:'عکس ساز',design:'دیزاین',edit:'اصلاح شناسنامه',tuneExport:'تیون صادراتی',exportRoute:'ارسال به بسته‌بندی صادرات',returnGlue:'بازگشت به چسب',exportPackaging:'بسته‌بندی صادرات',warehouseTransfer:'انتقال انبار'};
+  const names={dimple:'ثبت دیمپل',shape:'ثبت شیپ',bake:'ثبت پخت',tune:'ثبت تیون',glue:'ثبت چسب و مونتاژ',release:'خروج از اتاق چسب',finalTune:'ثبت فاین‌تیون',qc:'ثبت کنترل کیفیت',create:'ساخت کاسه',stock:'تغییر موجودی',packaging:'بسته‌بندی',sell:'فروش ساز',ship:'ارسال کاسه صادراتی',note:'یادداشت',photo:'عکس ساز',photoDelete:'حذف عکس ساز',design:'دیزاین',edit:'اصلاح شناسنامه',tuneExport:'تیون صادراتی',exportRoute:'ارسال به بسته‌بندی صادرات',returnGlue:'بازگشت به چسب',exportPackaging:'بسته‌بندی صادرات',warehouseTransfer:'انتقال انبار'};
   const roles={dimple:['Dimpler','Shaper'],shape:['Shaper'],bake:['Workshop'],tune:['Tuner'],glue:['Workshop'],release:['Workshop'],finalTune:['FineTuner'],qc:['QualityControl'],packaging:['Workshop'],exportPackaging:['Workshop'],sell:['SalesAdmin'],ship:['SalesAdmin'],create:[],stock:[],edit:[],warehouseTransfer:[],note:['*'],photo:['*'],design:['*'],tuneExport:['Tuner'],exportRoute:['Workshop'],returnGlue:['Workshop']};
   function project(snapshot, rows) {
     if(!snapshot) return [];
@@ -13,6 +13,13 @@
       const op=row.body;
       if(op.action==='create')bowls.push({code:op.code,id:row.id,type:op.bowlType,hasNotes:op.bowlType===1||op.hasNotes,materialId:op.materialId,isCustom:false,scaleId:null,
         stage:op.bowlType===2&&!op.hasNotes?6:2,stageName:labels[op.bowlType===2&&!op.hasNotes?6:2],version:'new',pairCode:null,instrumentCode:null,localHistory:[]});
+      if(op.action==='workspace'&&op.workspaceModule==='production'){const d=op.workspaceData||{},targets=bowls.filter(b=>(d.codes||[d.code]).includes(b.code));
+       if(op.workspaceAction==='delete'){for(let i=bowls.length-1;i>=0;i--)if(targets.includes(bowls[i]))bowls.splice(i,1);}
+       if(op.workspaceAction==='rollback')for(const b of targets){b.stage=d.targetStage;b.stageName=labels[d.targetStage];b.isRejected=false;if(d.detach){b.pairCode=null;b.instrumentCode=null;b.instrumentScaleId=null;b.instrumentNoteCount=null;}if(d.resetScale){b.scaleId=null;b.legacyScaleId=null;b.noteCount=null;b.isCustom=false;}b.localHistory.push(row);}
+       if(op.workspaceAction==='assemble'){const top=bowls.find(b=>b.code===d.topCode),bottom=bowls.find(b=>b.code===d.bottomCode);if(top&&bottom){top.pairCode=bottom.code;bottom.pairCode=top.code;for(const b of [top,bottom]){b.instrumentCode=d.serialNumber;b.stage=1;b.stageName='ثبت‌شده';}}}
+       if(op.workspaceAction==='exportLocation')for(const b of targets)b.packagingExportLocation=d.location;
+       continue;
+      }
       const b=bowls.find(x=>x.code===op.code); if(!b)continue;
       const action=op.action;
       if(action==='qc'&&op.approved||action==='warehouseTransfer')for(const target of bowls.filter(x=>x.code===b.code||x.code===b.pairCode))target.qualityWarehouseId=op.qualityWarehouseId||1;
@@ -51,6 +58,7 @@
     for(const row of rows){const op=row.body,m=items.find(x=>x.id===op.materialId);
       if(op.action==='create'&&m){const key=op.bowlType===1?'topQuantity':'bottomQuantity';m[key]--;}
       if(op.action==='stock'&&m){for(const key of m.category===4?['topQuantity','bottomQuantity']:['quantity'])m[key]=op.setAbsolute?op[key]:(m[key]+op[key]);}
+      if(op.workspaceModule==='production')for(const r of op.workspaceData.restoreMaterials||[]){const item=items.find(x=>x.id===r.id);if(item)for(const k of ['quantity','topQuantity','bottomQuantity'])item[k]+=(r[k]||0);}
       if(op.action==='packaging')for(const id of op.materialIds||[]){const item=items.find(x=>x.id===id);if(item)item.quantity-=requiredQuantity(item.name);}
     }
     return items;

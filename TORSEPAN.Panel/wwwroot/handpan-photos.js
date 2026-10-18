@@ -3,6 +3,7 @@ window.handpanPhotos = (() => {
     const retryCounts = new Map(), retryTimers = new Map();
     const status = (id, text) => { const el = document.getElementById(id+"-status"); if (el) el.textContent = text; };
     async function sendPhoto(id, handpanId, form, signal) {
+        if(window.OfflinePanel)return window.OfflinePanel.uploadPhoto(handpanId,form);
         let token = localStorage.getItem("access_token") || "";
         const send = () => fetch("/api/internal/handpans/" + encodeURIComponent(handpanId) + "/photos", {
             method:"POST", headers:{Authorization:"Bearer " + token}, body:form, signal
@@ -65,7 +66,7 @@ window.handpanPhotos = (() => {
                 context.drawImage(bitmap,sx,sy,sw,sh,0,0,w,h);
                 return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("تبدیل عکس انجام نشد.")),type,q));
             };
-            let full=await render(2400,2400,.86,false,"image/webp");
+            let full=await render(2400,2400,.86,false,window.OfflinePanel?"image/jpeg":"image/webp");
             // Some mobile browsers decode images but cannot encode WebP.
             if(full.type!=="image/webp")full=await render(2400,2400,.86,false,"image/jpeg");
             const thumb=await render(320,320,.8,true,full.type);
@@ -79,7 +80,7 @@ window.handpanPhotos = (() => {
         if(!pending.has(id)||!refs.has(id)||notifying.has(id)||window.torsepanConnection?.connected===false)return;
         notifying.add(id);const photoId=pending.get(id);
         try{
-            await refs.get(id).invokeMethodAsync("CameraUploaded",photoId);
+            await refs.get(id).invokeMethodAsync(window.OfflinePanel?"LocalPhotoUploaded":"CameraUploaded",photoId);
             if(pending.get(id)===photoId)pending.delete(id);
             retryCounts.delete(id);clearTimeout(retryTimers.get(id));retryTimers.delete(id);
             status(id,"عکس با موفقیت ثبت شد.");
@@ -98,8 +99,8 @@ window.handpanPhotos = (() => {
     document.addEventListener("visibilitychange",()=>{if(!document.hidden)for(const id of pending.keys())void notify(id);});
     return {
         get hasPending(){return busy.size>0||pending.size>0;},
-        register(id,ref){refs.set(id,ref);void notify(id);},
-        unregister(id){refs.delete(id);pending.delete(id);retryCounts.delete(id);clearTimeout(retryTimers.get(id));retryTimers.delete(id);},
+        register(id,ref){refs.set(id,ref);const input=document.getElementById(id);if(input)input.onchange=()=>upload(input,input.dataset.handpanId,id.includes("camera")?1:8);void notify(id);},
+        unregister(id){const input=document.getElementById(id);if(input)input.onchange=null;refs.delete(id);pending.delete(id);retryCounts.delete(id);clearTimeout(retryTimers.get(id));retryTimers.delete(id);},
         uploadCamera:(input,handpanId)=>upload(input,handpanId,1),
         uploadGallery:(input,handpanId)=>upload(input,handpanId,8)
     };

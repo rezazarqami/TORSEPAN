@@ -120,7 +120,11 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Verify offline production, atomic receipts and concurrency protection
-        run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --offline-only
+        run: |
+          TORSEPAN_OFFLINE_REPORT_FIXTURE_DIR="$RUNNER_TEMP/offline-reports" dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --offline-only
+          node tests/SharedOffline/report-parity.cjs "$RUNNER_TEMP/offline-reports/parity.json"
+          dotnet build tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Debug
+          node tests/SharedOffline/sync-e2e.cjs
   docker:
     runs-on: ubuntu-latest
     strategy:

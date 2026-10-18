@@ -145,12 +145,15 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         var auditPayload=auditNode.ToJsonString();
         if(auditPayload.Length>262144)throw new OfflineProblem("payload","اطلاعات عملیات بیش از حد طولانی است.",400);
         var hash = Hash(JsonSerializer.Serialize(op));
+        var legacyNode=System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(op))!.AsObject();legacyNode.Remove("PhotoId");
+        var legacyHash=op.PhotoId is null?Hash(legacyNode.ToJsonString()):hash;
+
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         await LockAsync(ct);
         var prior = await db.OfflineReceipts.AsNoTracking().SingleOrDefaultAsync(x => x.OperationId == op.OperationId, ct);
         if (prior is not null)
         {
-            if (prior.DeviceId != op.DeviceId || prior.RegistrarId != owner || prior.PayloadHash != hash)
+            if (prior.DeviceId != op.DeviceId || prior.RegistrarId != owner || (prior.PayloadHash != hash && prior.PayloadHash != legacyHash))
                 throw new OfflineProblem("identity", "شناسه عملیات با محتوای متفاوت تکرار شده است.");
             await tx.CommitAsync(ct);
             return prior; // Receipt lookup precedes stage validation: lost response retries are safe.
@@ -158,7 +161,7 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         op=await ResolveWorkspaceIdsAsync(op,ct);
         using var alerts = new TORSEPAN.Application.Materials.InventoryAlertBatch();
         var action = op.Action;
-        var role = action switch { "dimple" => "Dimpler", "shape" => "Shaper", "bake" or "glue" or "release" => "Workshop", "tune" => "Tuner", "finalTune" => "FineTuner", "qc" => "QualityControl", "packaging" or "exportPackaging" => "Workshop", "sell" or "ship" => "SalesAdmin", "tuneExport" => "Tuner", "exportRoute" or "returnGlue" => "Workshop", "create" or "stock" or "edit" or "workspace" => "Administrator", "warehouseTransfer" => "Administrator", "note" or "photo" or "design" => "*", _ => "" };
+        var role = action switch { "dimple" => "Dimpler", "shape" => "Shaper", "bake" or "glue" or "release" => "Workshop", "tune" => "Tuner", "finalTune" => "FineTuner", "qc" => "QualityControl", "packaging" or "exportPackaging" => "Workshop", "sell" or "ship" => "SalesAdmin", "tuneExport" => "Tuner", "exportRoute" or "returnGlue" => "Workshop", "create" or "stock" or "edit" or "workspace" => "Administrator", "warehouseTransfer" => "Administrator", "note" or "photo" or "photoDelete" or "design" => "*", _ => "" };
         if (role == "") throw new OfflineProblem("unsupported", "این عملیات در نسخه آفلاین پشتیبانی نمی‌شود.", 400);
         var performer = await db.Users.AsNoTracking().Where(x => x.Id == op.PerformerId)
             .Select(x => new { x.IsActive, x.IsDeleted, x.Role, Assigned = x.UserRoles.Select(r => r.Role.Name).ToArray() }).SingleOrDefaultAsync(ct);
@@ -231,11 +234,13 @@ public sealed partial class OfflineProductionService(TORSEPANDbContext db, IMedi
         }
         foreach(var e in db.ChangeTracker.Entries<ProductionEvent>().Where(x=>!known.Contains(x.Entity.Id)&&x.Entity.UserId==op.PerformerId))versions["performerEvent:"+e.Entity.Id]=e.Entity.Id.ToString();
         if(action=="workspace"&&op.WorkspaceModule=="materials"&&op.WorkspaceData?.TryGetProperty("id",out var mid)==true){var local=mid.GetGuid();var actual=workspaceAliases.GetValueOrDefault(local,local);var m=await db.Materials.AsNoTracking().SingleOrDefaultAsync(x=>x.Id==actual,ct);if(m is not null)versions["material:"+actual]=m.OfflineVersion.ToString();}
+        if(action=="workspace"&&op.WorkspaceModule=="production")foreach(var material in await db.Materials.AsNoTracking().ToListAsync(ct))versions["material:"+material.Id]=material.OfflineVersion.ToString();
+        if(action=="workspace"&&op.WorkspaceData?.TryGetProperty("code",out var codeNode)==true){var code=codeNode.GetString();if(!string.IsNullOrEmpty(code)&&await db.Bowls.AnyAsync(x=>x.ProductionCode==code,ct)){var changed=await BowlAsync(code,ct);versions[changed.Code]=changed.Version;if(changed.PairCode is not null){var pair=await BowlAsync(changed.PairCode,ct);versions[pair.Code]=pair.Version;}}}
         versions["workspace"]=(await WorkspaceAsync(owner,ct)).Version;
         foreach(var alias in workspaceAliases)if(alias.Value!=Guid.Empty)versions["alias:"+alias.Key]=alias.Value.ToString();
 
         var receipt = new OfflineReceipt { OperationId = op.OperationId, DeviceId = op.DeviceId, RegistrarId = owner,
-            PerformerId = op.PerformerId, PayloadJson = auditPayload, PayloadHash = hash, VersionsJson = JsonSerializer.Serialize(versions), OccurredUtc = utc, AcceptedUtc = DateTime.UtcNow, WarrantyPending = action=="sell" };
+            PerformerId = op.PerformerId, PayloadJson = auditPayload, PayloadHash = hash, VersionsJson = JsonSerializer.Serialize(versions), OccurredUtc = utc, AcceptedUtc = DateTime.UtcNow, WarrantyPending = action=="sell" || action=="workspace"&&op.WorkspaceModule=="production"&&op.WorkspaceAction=="saleUpdate" };
         db.OfflineReceipts.Add(receipt);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);

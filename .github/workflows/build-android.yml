@@ -2,9 +2,9 @@ name: Build Torsepan Android APK
 
 on:
   push:
-    paths: ["android/**", ".github/workflows/build-android.yml"]
+    paths: ["TORSEPAN.Panel/**", "TORSEPAN.Panel.Offline/**", "TORSEPAN.Application/**", "TORSEPAN.Domain/**", "ops/build-shared-offline.sh", "tests/SharedOffline/**", "android/**", ".github/workflows/build-android.yml"]
   pull_request:
-    paths: ["android/**", ".github/workflows/build-android.yml"]
+    paths: ["TORSEPAN.Panel/**", "TORSEPAN.Panel.Offline/**", "TORSEPAN.Application/**", "TORSEPAN.Domain/**", "ops/build-shared-offline.sh", "tests/SharedOffline/**", "android/**", ".github/workflows/build-android.yml"]
   workflow_dispatch:
 
 jobs:
@@ -16,6 +16,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
@@ -33,9 +36,23 @@ jobs:
           THEME_PLAYWRIGHT="$RUNNER_TEMP/offline-tools/node_modules/playwright" node tests/offline-menu.cjs
       - name: Verify offline projection
         run: node android/tests-offline.cjs
+      - name: Verify native transport refresh and acknowledgment contracts
+        run: |
+          curl -fsSL https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar -o "$RUNNER_TEMP/torsepan-json.jar"
+          TORSEPAN_JSON_JAR="$RUNNER_TEMP/torsepan-json.jar" tests/NativeSyncTransport/run.sh
       - name: Verify durable native outbox and lost-response retry
         working-directory: android
         run: gradle :app:testDebugUnitTest --no-daemon
+      - name: Verify shared offline form contracts
+        run: |
+          node --test tests/SharedOffline/adapter.cjs
+          node tests/SharedOffline/performance.cjs
+      - name: Package shared workshop interface
+        run: ops/build-shared-offline.sh
+      - name: Verify bundled shared assets
+        run: node tests/SharedOffline/package.cjs
+      - name: Verify packaged shared pages and offline tune
+        run: TORSEPAN_PLAYWRIGHT="$RUNNER_TEMP/offline-tools/node_modules/playwright" node tests/SharedOffline/browser.cjs
       - name: Build installable APK
         working-directory: android
         run: gradle :app:assembleDebug --no-daemon

@@ -23,8 +23,15 @@ public sealed partial class OfflineProductionService {
   Put("events",await db.ProductionEvents.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.BowlId,x.AssemblyId,x.HandpanId,x.UserId,Action=(int)x.Action,Result=(int)x.Result,x.Duration,x.Description,x.EventDate,x.IsPayrollExcluded}).ToListAsync(ct));
   Put("bowls",await db.Bowls.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.ProductionCode,x.MaterialId,BowlType=(int)x.BowlType,x.ScaleId,x.LegacyScaleId,x.NoteCount,x.IsCustomScale,Stage=(int)x.Stage}).ToListAsync(ct));
   Put("assemblies",await db.HandpanAssemblies.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.TopBowlId,x.BottomBowlId}).ToListAsync(ct));
-  Put("handpans",await db.Handpans.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.SerialNumber,x.AssemblyId,x.ScaleId,Stage=(int)x.Stage,x.QualityWarehouseId,x.ExportWarehouseLocation,x.SoldAt,x.BuyerName,x.BuyerPhoneNumber,x.SalePrice,x.SaleLeadSourceId,x.SalesReferrerId}).ToListAsync(ct));
+  Put("handpans",await db.Handpans.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.SerialNumber,x.AssemblyId,x.ScaleId,Stage=(int)x.Stage,x.QualityWarehouseId,x.ExportWarehouseLocation,x.SoldAt,x.BuyerName,x.BuyerPhoneNumber,x.SalePrice,x.SaleLeadSourceId,x.SalesReferrerId,x.CreatedAt}).ToListAsync(ct));
   Put("messages",await db.WorkshopMessages.AsNoTracking().Where(x=>x.SenderId==owner||x.Broadcast||db.WorkshopMessageReceipts.Any(r=>r.MessageId==x.Id&&r.RecipientId==owner)).OrderBy(x=>x.Id).Select(x=>new{x.Id,x.SenderId,x.Title,x.Body,x.Broadcast,x.CreatedAt,ReadAt=db.WorkshopMessageReceipts.Where(r=>r.MessageId==x.Id&&r.RecipientId==owner).Select(r=>r.ReadAt).SingleOrDefault(),RecipientIds=x.SenderId==owner?db.WorkshopMessageReceipts.Where(r=>r.MessageId==x.Id).Select(r=>r.RecipientId).ToList():new List<Guid>{owner}}).ToListAsync(ct));
-  return new(Hash(JsonSerializer.Serialize(w,WebJson)),w);
+  // New display/cache metadata does not invalidate queued operations from older APKs.
+  var versionSections=w.ToDictionary(x=>x.Key,x=>x.Value);
+  if(versionSections.TryGetValue("handpans",out var oldHandpans)){var n=System.Text.Json.Nodes.JsonNode.Parse(oldHandpans.GetRawText())!;foreach(var row in n.AsArray())row!.AsObject().Remove("createdAt");versionSections["handpans"]=JsonSerializer.SerializeToElement(n,WebJson);}
+  var version=Hash(JsonSerializer.Serialize(versionSections,WebJson));
+  Put("photos",await db.HandpanPhotos.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.HandpanId,x.CreatedAt,ImageBytes=x.Image.Length,ThumbnailBytes=x.Thumbnail.Length}).ToListAsync(ct));
+  Put("handpanDetails",await db.Handpans.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.SaleDestination,x.IsExportSale,x.SoldByUserId,x.WarrantyActivatedAt,x.UpdatedAt}).ToListAsync(ct));
+  Put("avatars",await db.Users.AsNoTracking().Where(x=>!x.IsDeleted&&x.AvatarPng!=null).OrderBy(x=>x.Id).Select(x=>new{x.Id,x.AvatarVersion,PngBase64=x.AvatarPng}).ToListAsync(ct));
+  return new(version,w);
  }
 }

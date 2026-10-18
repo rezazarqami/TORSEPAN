@@ -1015,6 +1015,76 @@ body .layout>.main>.topbar{position:sticky;top:0;z-index:1050;flex:0 0 70px;heig
     body .layout > .main > .content { padding-top: 16px; }
 }
 
+@media (max-width: 768px) {
+    body .layout > .main > .topbar .header-notification .notification-bell {
+        width: 38px !important;
+        height: 38px !important;
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 10px !important;
+        background: rgba(255,255,255,.1);
+        color: #fff;
+        box-shadow: none;
+    }
+    body .layout > .main > .topbar .dashboard-button,
+    body .layout > .main > .topbar .install-app-button {
+        box-sizing: border-box;
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px;
+        min-height: 38px;
+    }
+}
+
+/* The side handle stays reachable while scrolling; the drawer starts under the fixed header. */
+@media (max-width: 768px) {
+    body .layout > .main {
+        box-sizing: border-box;
+        width: calc(100% - 25px);
+        max-width: calc(100% - 25px);
+        margin-right: 25px;
+        padding-top: 106px;
+    }
+    body .layout > .main > .topbar {
+        position: fixed;
+        inset: 0 0 auto 0;
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: 48px 42px;
+    }
+    body .layout > .main > .topbar .topbar-left,
+    body .layout > .main > .topbar .topbar-right {
+        grid-column: 1;
+    }
+    body .layout > .main > .topbar .topbar-right { grid-row: 2; }
+    body .layout > .mobile-nav-rail {
+        position: fixed;
+        inset: 106px 0 0 auto;
+        z-index: 1044;
+        width: 25px;
+        height: calc(100dvh - 106px);
+        border-radius: 0;
+        background: #0b2443;
+    }
+    body .layout > .sidebar,
+    body .layout > .sidebar.mobile-open {
+        position: fixed;
+        inset: 106px 25px 0 auto !important;
+        z-index: 1041;
+        box-sizing: border-box;
+        width: min(62vw, 230px);
+        min-width: 0;
+        max-width: calc(100vw - 25px);
+        height: calc(100dvh - 106px) !important;
+        margin: 0;
+        border-radius: 0 0 0 14px !important;
+        background: #0b2443;
+    }
+    body .layout .mobile-menu-backdrop {
+        inset: 106px 25px 0 0;
+        z-index: 1038;
+    }
+}
+
 /* Android mode controls belong to the left of the brand/title, within the existing header row. */
 .topbar-left:has(.app-mode-controls){min-width:0;gap:8px}
 .topbar-left .topbar-title-block:has(.app-mode-controls){display:contents}
@@ -1032,3 +1102,69 @@ body .layout>.main>.topbar{position:sticky;top:0;z-index:1050;flex:0 0 70px;heig
  .topbar-left .page-title-main{white-space:nowrap}
 }
 @media(max-width:350px){.topbar-left .app-mode-controls,.topbar-left .app-mode-controls a{width:94px}.topbar-left .app-mode-controls a{font-size:8.5px}}
+
+/* Workshop photograph belongs only to the dashboard route. Keep the original
+   composition intact; overlays blend its sky into the navy header. */
+body .layout > .main.dashboard-scene {
+    --dashboard-navy: #092b49;
+    background: #edf1f5;
+    isolation: isolate;
+    position: relative;
+}
+body .layout > .main.dashboard-scene::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: clamp(490px, 63vw, 1100px);
+    z-index: -1;
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, var(--dashboard-navy) 0px, var(--dashboard-navy) 80px, rgba(9,43,73,.85) 86px, rgba(9,43,73,.5) 92px, rgba(9,43,73,.15) 98px, rgba(9,43,73,0) 104px, rgba(237,241,245,0) 74%, #edf1f5 100%),
+        url('/images/brand/dashboard-workshop.webp') center 80px / 100% auto no-repeat,
+        var(--dashboard-navy);
+}
+body .layout > .main.dashboard-scene > .topbar {
+    background: var(--dashboard-navy);
+    box-shadow: none;
+    border-bottom: 0;
+}
+body .dashboard-scene .dashboard-hero {
+    margin-top: clamp(240px, 36vw, 540px);
+    background: linear-gradient(120deg,rgba(9,43,73,.86),rgba(14,79,94,.82));
+    backdrop-filter: blur(3px);
+    border-color: rgba(255,255,255,.42);
+}
+@media(max-width:768px) {
+    body .layout > .main.dashboard-scene {
+        width: calc(100% - 25px);
+        max-width: calc(100% - 25px);
+        margin-right: 25px;
+    }
+    body .layout > .main.dashboard-scene > .topbar {
+        border-bottom: 0;
+    }
+    body .layout > .main.dashboard-scene::before {
+        top: 70px;
+        height: calc((100vw - 25px) * .5625 + 140px);
+        background:
+            linear-gradient(180deg, #092b49 0px, #092b49 36px, rgba(9,43,73,.85) 42px, rgba(9,43,73,.5) 48px, rgba(9,43,73,.15) 54px, rgba(9,43,73,0) 60px, rgba(237,241,245,0) 72%, #edf1f5 100%),
+            url('/images/brand/dashboard-workshop.webp') center 36px / 100% auto no-repeat,
+            #092b49;
+    }
+    body .dashboard-scene .dashboard-hero {
+        margin-top: calc((100vw - 25px) * .5625 - 50px);
+        padding: 12px 14px;
+        border-radius: 20px;
+    }
+    body .dashboard-scene .dashboard-hero .dashboard-kicker {
+        font-size: 1rem;
+        padding: 5px 14px;
+    }
+    body .dashboard-scene .dashboard-hero p {
+        margin-top: 6px;
+        font-size: .7rem;
+    }
+    body .dashboard-scene .dashboard-hero-stats {
+        margin-top: 12px;
+    }
+}

@@ -1,0 +1,1 @@
+package android.content;public class Context{public Context getApplicationContext(){return this;}public Object getSystemService(String name){return new android.app.job.JobScheduler();}public java.io.File getFilesDir(){return new java.io.File("/tmp");}}
