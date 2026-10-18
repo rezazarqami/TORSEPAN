@@ -1,0 +1,20 @@
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">@((MarkupString)Path)</svg>
+@code {
+    [Parameter] public string Kind { get; set; } = "status";
+    private string Path => Kind switch {
+        "music" => "<path d='M9 18V5l11-2v13M9 8l11-2'/><ellipse cx='6' cy='18' rx='3' ry='2.5'/><ellipse cx='17' cy='16' rx='3' ry='2.5'/>",
+        "design" => "<path d='M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-3.7 1.4 1.4 0 0 1 .7-2.6H17A4 4 0 0 0 21 11a9 9 0 0 0-9-8Z'/><circle cx='7' cy='10' r='.8'/><circle cx='10' cy='6.5' r='.8'/><circle cx='15' cy='7' r='.8'/><circle cx='18' cy='10.5' r='.8'/>",
+        "notes" => "<path d='M5 3v18M12 3v18M19 3v18'/><rect x='3' y='7' width='4' height='5' rx='1'/><rect x='10' y='12' width='4' height='5' rx='1'/><rect x='17' y='5' width='4' height='5' rx='1'/>",
+        "copy" => "<rect x='8' y='7' width='12' height='15' rx='2'/><path d='M15 7V3H4v15h4'/>",
+        "clock" => "<path d='M3 11a9 9 0 1 1 2 7M3 5v6h6'/><path d='M12 7v5l3 2'/>",
+        "user" => "<circle cx='12' cy='8' r='4'/><path d='M4 21a8 8 0 0 1 16 0'/>",
+        "cube" => "<path d='m12 2 9 5v10l-9 5-9-5V7Zm0 10 9-5M12 12 3 7M12 12v10M7 4l10 6'/>",
+        "fire" => "<path d='M13 2c1 6-5 6-3 12-3-1-3-4-3-4-7 9 2 15 8 11 6-4 5-10-2-19Z'/>",
+        "hammer" => "<path d='m3 20 10-10M10 5l4-3 7 7-3 4-3-3-3 3-5-5 3-3Z'/>",
+        "dots" => "<circle cx='6' cy='5' r='1'/><circle cx='12' cy='5' r='1'/><circle cx='18' cy='5' r='1'/><circle cx='6' cy='12' r='1'/><circle cx='12' cy='12' r='1'/><circle cx='18' cy='12' r='1'/><circle cx='6' cy='19' r='1'/><circle cx='12' cy='19' r='1'/><circle cx='18' cy='19' r='1'/>",
+        "document" => "<path d='M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h8'/>",
+        "chevron" => "<path d='m9 5 7 7-7 7'/>",
+        "gear" => "<path d='m9 3 1-2h4l1 2 3 2 3 1v4l-2 2 1 3-1 3-3 1-2 3h-4l-1-2-3-1-3-2v-4l2-2-1-3 1-3Z'/><circle cx='12' cy='12' r='4'/>",
+        _ => "<path d='M12 3a9 9 0 1 0 9 9'/><path d='M15 3h6v6M21 3l-7 7'/>",
+    };
+}
