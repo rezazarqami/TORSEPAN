@@ -10,7 +10,7 @@
 
 <PageTitle>گزارش‌های مدیریتی</PageTitle>
 <style>.report-tabs{grid-template-columns:repeat(4,1fr)!important}.source-report-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:14px}.source-bars{display:grid;gap:12px;padding:18px}.source-bars article{display:grid;grid-template-columns:minmax(110px,1fr) 2fr 55px;align-items:center;gap:12px}.source-bars article>div:first-child{display:flex;justify-content:space-between;gap:8px}.source-bars span{color:#788995;font-size:.7rem}.source-bars b{color:#176a53;text-align:left}.source-track{overflow:hidden;height:11px;border-radius:999px;background:#e8eef1}.source-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#1b7963,#3bae86)}@@media(max-width:800px){.source-report-grid{grid-template-columns:1fr}.report-tabs{grid-template-columns:repeat(2,1fr)!important}.source-bars article{grid-template-columns:1fr}.source-bars b{text-align:right}}</style>
-<section class="report-hero theme-hero theme-page-intro"><small>مرکز تحلیل</small><h1>TORSEPAN</h1><p>نمای یکپارچه از عملیات، تولید و موجودی کارگاه</p></section>
+<section class="report-hero reports-photo-hero theme-hero theme-page-intro" aria-labelledby="reports-title"><div class="reports-hero-art" aria-hidden="true"></div><div class="reports-hero-copy"><span class="reports-kicker" dir="ltr">MANAGEMENT REPORTS</span><h1 id="reports-title">گزارش‌ها</h1></div></section>
 <nav class="report-tabs">
     <button class="@TabClass("operations")" @onclick='()=>SwitchTab("operations")'><i>01</i><span><b>گزارش عملیات</b><small>کارکرد اعضای کارگاه</small></span></button>
     <button class="@TabClass("production")" @onclick='()=>SwitchTab("production")'><i>02</i><span><b>گزارش تولید</b><small>تحلیل سازها و مراحل</small></span></button>

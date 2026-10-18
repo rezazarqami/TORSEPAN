@@ -53,3 +53,12 @@
 .design-hero,.design-layout,.design-hero *,.design-layout *{box-sizing:border-box}
 .design-hero,.design-layout{min-width:0}
 .design-hero>span,.design-hero p{max-width:100%;overflow-wrap:anywhere}
+
+/* Photo header matching the approved inventory banners. */
+.design-hero.design-photo-hero{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:flex-start;min-height:300px;padding:32px 34px;margin:0 0 18px;border:1px solid #8db7d1;border-radius:26px;background:#031e43;color:#f6d994;text-align:center;box-shadow:inset 0 0 22px #66b6e830,0 10px 28px #1b6ea12b}
+.design-hero.design-photo-hero::before,.design-hero.design-photo-hero::after{display:none}
+.design-hero-art{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,transparent 0%,transparent 45%,#031e43bf 63%,#031e43 76%),url('/images/designs/design-studio.png');background-position:center,left center;background-size:100% 100%,cover;background-repeat:no-repeat}
+.design-hero-copy{position:relative;z-index:1;width:36%;margin-left:auto;display:flex;align-items:center;flex-direction:column;gap:12px}
+.design-photo-hero .design-hero-copy > span{padding:0;border:0;border-radius:0;background:none;color:#f6d994;font:700 .73rem/1.6 Arial,sans-serif;letter-spacing:1.3px;white-space:nowrap}
+.design-photo-hero .design-hero-copy h1{margin:0;color:#f6d994;font-size:clamp(1.65rem,3.1vw,2.6rem);line-height:1.5;font-weight:800;letter-spacing:-.6px;white-space:nowrap}
+@media(max-width:600px){.design-hero.design-photo-hero{min-height:220px;padding:24px 16px;border-radius:21px;margin-bottom:16px}.design-hero-art{background-size:100% 100%,auto 100%;background-position:center,left center}.design-hero-copy{width:30%;margin-right:-4px;gap:9px}.design-photo-hero .design-hero-copy > span{font-size:clamp(.42rem,1.75vw,.64rem);letter-spacing:.65px}.design-photo-hero .design-hero-copy h1{font-size:clamp(1.35rem,6vw,2rem)}}
