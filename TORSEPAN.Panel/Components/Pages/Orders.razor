@@ -10,12 +10,17 @@
 @implements IAsyncDisposable
 
 <PageTitle>ثبت سفارش | تورسپن</PageTitle>
-<PageHero CssClass="orders-hero" Eyebrow="TORSEPAN / CUSTOM ORDERS" Title="ثبت و مدیریت سفارش" BrandMark="true">
-    @if(!_loading && !_loadFailed)
-    {
-        <div class="theme-stats"><span><strong>@_orders.Count(x => !x.IsDraft)</strong> سفارش نهایی</span><i aria-hidden="true"></i><span><strong>@_orders.Where(x => !x.IsDraft).Sum(x => x.TotalQuantity)</strong> ساز</span></div>
-    }
-</PageHero>
+<section class="orders-hero orders-photo-hero theme-hero" aria-labelledby="orders-title">
+    <div class="orders-hero-art" aria-hidden="true"></div>
+    <div class="orders-hero-copy">
+        <span class="hero-kicker">CUSTOM ORDERS</span>
+        <h1 id="orders-title">ثبت سفارش</h1>
+        @if(!_loading && !_loadFailed)
+        {
+            <div class="orders-hero-counts"><div><span>سفارش نهایی</span><strong>@_orders.Count(x => !x.IsDraft)</strong></div><div><span>ساز</span><strong>@_orders.Where(x => !x.IsDraft).Sum(x => x.TotalQuantity)</strong></div></div>
+        }
+    </div>
+</section>
 <nav class="order-tabs" aria-label="بخش‌های سفارش">
     <button class="@(_tab == "list" ? "active" : "")" aria-pressed="@(_tab == "list")" @onclick='() => _tab = "list"'><strong>سفارش‌های نهایی</strong><b>@_orders.Count(x => !x.IsDraft)</b></button>
     <button class="@(_tab == "new" ? "active" : "")" aria-pressed="@(_tab == "new")" @onclick='() => _tab = "new"'><span>+</span><strong>ساخت سفارش</strong></button>
