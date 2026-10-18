@@ -83,11 +83,24 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
         var events=await db.ProductionEvents.Where(x=>eventIds.Contains(x.Id)).ToListAsync(ct);
         var allowedEvents=await RelatedEventIdsAsync(target,ct);
         if(events.Count!=eventIds.Count||eventIds.Any(x=>!allowedEvents.Contains(x)))return BadRequest("یکی از عملیات‌ها به این ساز تعلق ندارد.");
+        foreach(var update in eventUpdates.Where(x=>x.EventDate.HasValue))
+        {
+            if(update.EventDate!.Value.Kind!=DateTimeKind.Utc || update.EventDate.Value==DateTime.MinValue)
+                return BadRequest("تاریخ و ساعت معتبر با منطقه زمانی لازم است.");
+            var current=events.Single(x=>x.Id==update.EventId);
+            if(update.ExpectedEventDate.HasValue && current.EventDate!=update.ExpectedEventDate.Value)
+                return Conflict("تاریخ این عملیات تغییر کرده است؛ دوباره جست‌وجو کنید.");
+        }
         var userIds=eventUpdates.Select(x=>x.UserId).ToHashSet();
         var validUsers=await db.Users.Where(x=>userIds.Contains(x.Id)).Select(x=>x.Id).ToListAsync(ct);
         if(validUsers.Count!=userIds.Count)return BadRequest("یکی از ثبت‌کننده‌های انتخاب‌شده معتبر نیست.");
         var eventUsers=eventUpdates.ToDictionary(x=>x.EventId,x=>x.UserId);
-        foreach(var productionEvent in events)productionEvent.ChangeUser(eventUsers[productionEvent.Id]);
+        foreach(var productionEvent in events)
+        {
+            productionEvent.ChangeUser(eventUsers[productionEvent.Id]);
+            var update=eventUpdates.Single(x=>x.EventId==productionEvent.Id);
+            if(update.EventDate.HasValue)productionEvent.ChangeEventDate(update.EventDate.Value);
+        }
 
         await db.SaveChangesAsync(ct);
         return Ok(await BuildDtoAsync(normalized,target,ct));
@@ -148,7 +161,7 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
 
 public sealed record AdminProductionEditRequest(Guid? HandpanScaleId,List<AdminBowlScaleUpdate>? BowlScales,List<AdminEventUserUpdate>? EventUsers);
 public sealed record AdminBowlScaleUpdate(Guid BowlId,Guid? ScaleId,int? NoteCount=null);
-public sealed record AdminEventUserUpdate(Guid EventId,Guid UserId);
+public sealed record AdminEventUserUpdate(Guid EventId,Guid UserId,DateTime? EventDate=null,DateTime? ExpectedEventDate=null);
 public sealed record AdminProductionEditDto(string RequestedCode,string Code,string ItemType,int Stage,string StageTitle,string StatusTitle,Guid? HandpanId,Guid? HandpanScaleId,string? HandpanScaleName,Guid? AssemblyId,List<AdminEditableBowlDto> Bowls,List<AdminEditableEventDto> Events);
 public sealed record AdminEditableBowlDto(Guid Id,string Code,string BowlType,string Material,int Stage,string StageTitle,Guid? ScaleId,string? ScaleName,int? NoteCount=null);
 public sealed record AdminEditableEventDto(Guid Id,int Action,string ActionTitle,DateTime EventDate,Guid UserId,string UserName,string RelatedCode,string Duration,string Description);

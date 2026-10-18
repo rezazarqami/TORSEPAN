@@ -48,6 +48,38 @@ internal static class ProductionNoteCountSmoke
         Check(saved.Result is OkObjectResult && notedInstrument.NoteCount==13,"noted bottom count contributes to instrument total");
         Check((await api.Update(notedInstrument.SerialNumber,new(null,[new(notedTop.Id,null,int.MaxValue)],[]),default)).Result is BadRequestObjectResult,"overflowing instrument total is rejected before persistence");
         Check((await db.Bowls.AsNoTracking().SingleAsync(x=>x.Id==notedTop.Id)).NoteCount==10,"invalid batch leaves persisted count unchanged");
+        var user=new User("date-editor", "Date editor");db.Add(user);
+        var operation=new ProductionEvent(null,null,top.Id,user.Id,ProductionAction.Shape,EventResult.Completed,OperationDuration.Over60,"Shape completed");
+        var original=new DateTime(2026,10,17,22,15,12,DateTimeKind.Utc).AddTicks(1234560);
+        operation.ChangeEventDate(original);db.Add(operation);await db.SaveChangesAsync();
+        var desired=new DateTime(2026,10,15,20,40,10,DateTimeKind.Utc);
+        saved=await api.Update(top.ProductionCode,new(null,[],[new(operation.Id,user.Id,desired,original)]),default);
+        Check(saved.Result is OkObjectResult && (await db.ProductionEvents.AsNoTracking().SingleAsync(x=>x.Id==operation.Id)).EventDate==desired,"event timestamp edit persists through bowl-code endpoint");
+        Check(operation.Action==ProductionAction.Shape && operation.Duration==OperationDuration.Over60 && operation.Description=="Shape completed","timestamp edit preserves operation details");
+        await api.Update(handpan.SerialNumber,new(null,[],[new(operation.Id,user.Id)]),default);
+        Check(operation.EventDate==desired,"requests without date preserve timestamp");
+        Check((await api.Update(handpan.SerialNumber,new(null,[],[new(operation.Id,user.Id,desired.AddDays(-1),original)]),default)).Result is ConflictObjectResult,"stale timestamp edits are rejected");
+        Check((await api.Update(handpan.SerialNumber,new(null,[],[new(operation.Id,user.Id,DateTime.SpecifyKind(desired,DateTimeKind.Unspecified))]),default)).Result is BadRequestObjectResult,"timezone-free timestamp is rejected");
+        var assemblyEvent=new ProductionEvent(null,assembly.Id,null,user.Id,ProductionAction.Glue,EventResult.Completed,null,"assembly");
+        var instrumentEvent=new ProductionEvent(handpan.Id,null,null,user.Id,ProductionAction.Sale,EventResult.Completed,null,"sale");
+        db.AddRange(assemblyEvent,instrumentEvent);await db.SaveChangesAsync();
+        saved=await api.Update(handpan.SerialNumber,new(null,[],[new(assemblyEvent.Id,user.Id,desired),new(instrumentEvent.Id,user.Id,desired)]),default);
+        Check(saved.Result is OkObjectResult && assemblyEvent.EventDate==desired && instrumentEvent.EventDate==desired,"dates editable for assembly and instrument operations as well as bowls");
+        var local=TORSEPAN.Panel.Services.PersianDateTime.ToIranTime(desired);
+        Check(local.Hour==0 && local.Minute==10 && local.Day==16 && TORSEPAN.Panel.Services.PersianDateTime.FromIranTime(local)==desired,"Iran local editing converts across UTC date boundary without drift");
+        var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
+        var page=new TORSEPAN.Panel.Components.Pages.AdminProductionEdit();
+        var row=new TORSEPAN.Panel.Models.AdminEditableEventDto{Id=operation.Id,EventDate=original};
+        typeof(TORSEPAN.Panel.Components.Pages.AdminProductionEdit).GetField("_record",flags)!.SetValue(page,new TORSEPAN.Panel.Models.AdminProductionEditDto{Events=[row]});
+        typeof(TORSEPAN.Panel.Components.Pages.AdminProductionEdit).GetMethod("LoadDates",flags)!.Invoke(page,null);
+        var unchanged=typeof(TORSEPAN.Panel.Components.Pages.AdminProductionEdit).GetMethod("EditedDate",flags)!.Invoke(page,[row]);
+        Check(unchanged is null,"untouched editor preserves original subsecond timestamp");
+        var dates=(System.Collections.IDictionary)typeof(TORSEPAN.Panel.Components.Pages.AdminProductionEdit).GetField("_dates",flags)!.GetValue(page)!;
+        var draft=dates[operation.Id]!;
+        draft.GetType().GetProperty("Date")!.SetValue(draft,null);
+        typeof(TORSEPAN.Panel.Components.Pages.AdminProductionEdit).GetMethod("RequestSave",flags)!.Invoke(page,null);
+        Check(typeof(TORSEPAN.Panel.Components.Pages.AdminProductionEdit).GetField("_messageError",flags)!.GetValue(page) is true &&
+            typeof(TORSEPAN.Panel.Components.Pages.AdminProductionEdit).GetField("_confirming",flags)!.GetValue(page) is false,"incomplete date shows validation feedback before submission");
         var foreign=new Bowl("FOREIGN",BowlType.Top,true,InstrumentType.Standard,material.Id);db.Add(foreign);await db.SaveChangesAsync();
         Check((await api.Update(handpan.SerialNumber,new(null,[new(foreign.Id,null,8)],[]),default)).Result is BadRequestObjectResult,"foreign bowl count cannot be edited through another instrument");
     }

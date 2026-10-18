@@ -18,7 +18,10 @@ public static class PersianDateTime
         return includeTime ? $"{date} {iran:HH:mm}" : date;
     }
 
-    private static DateTime ToIranTime(DateTime value)
+    public static DateTime FromIranTime(DateTime value) =>
+        TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(value, DateTimeKind.Unspecified), IranTimeZone);
+
+    public static DateTime ToIranTime(DateTime value)
     {
         var utc = value.Kind switch
         {

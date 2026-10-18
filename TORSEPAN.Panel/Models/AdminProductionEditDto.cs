@@ -44,4 +44,4 @@ public sealed class AdminEditableEventDto
 
 public sealed record AdminProductionEditRequest(Guid? HandpanScaleId,List<AdminBowlScaleUpdate> BowlScales,List<AdminEventUserUpdate> EventUsers);
 public sealed record AdminBowlScaleUpdate(Guid BowlId,Guid? ScaleId,int? NoteCount=null);
-public sealed record AdminEventUserUpdate(Guid EventId,Guid UserId);
+public sealed record AdminEventUserUpdate(Guid EventId,Guid UserId,DateTime? EventDate=null,DateTime? ExpectedEventDate=null);
