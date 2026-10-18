@@ -1,0 +1,82 @@
+/* The page fills the space previously reserved for the navigation rail. */
+body .layout.theme-shell { --tp-rail: 0px; --tp-dock-height: 82px; display: block; }
+body .layout.theme-shell > .main {
+    width: 100%; max-width: none; height: 100%; margin: 0; padding: 0;
+    flex: 1 1 auto; scrollbar-gutter: auto;
+}
+body .layout.theme-shell > .main > .content {
+    padding-bottom: calc(var(--tp-dock-height) + env(safe-area-inset-bottom, 0px) + 26px);
+}
+/* Keep the approved image at viewport proportions, rather than stretching it
+   over the entire instrument history. The same canvas sits behind the header. */
+body .layout.theme-shell > .main:has(.process-photo-hero) {
+    background: #00172b url('/images/production/passport-navy-gold.png') center top / cover no-repeat;
+}
+body .layout.theme-shell > .main:has(.process-photo-hero) > .topbar { background: transparent; backdrop-filter: none; isolation: auto; z-index: auto; }
+body .layout.theme-shell > .main:has(.process-photo-hero) > .topbar::before,
+body .layout.theme-shell > .main:has(.process-photo-hero) > .topbar::after { display: none; }
+body .layout.theme-shell .content .production-detail-surface {
+    margin: 0; padding: 0 0 21px; min-height: 0; background: none;
+}
+/* Four equal touch targets, in the reference's left-to-right order. */
+body .theme-shell .bottom-navigation {
+    position: fixed; z-index: 1045; inset: auto 0 0; direction: ltr;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-height: var(--tp-dock-height); padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    border: 1px solid #749fc6; border-radius: 24px 24px 0 0;
+    background: radial-gradient(ellipse at 35% 0, #b7914840, transparent 35%), linear-gradient(110deg, #03284e, #00142b 80%);
+    box-shadow: inset 0 1px 3px #c3e6ff55, 0 -6px 24px #00152f30;
+}
+body .theme-shell .bottom-navigation > :is(a,button) {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; min-width: 0; min-height: 64px; padding: 4px;
+    border: 0; border-radius: 0; border-inline-end: 1px solid #8aa9c33b;
+    background: transparent; color: #e9f0fa; text-decoration: none; font: inherit; cursor: pointer;
+}
+body .theme-shell .bottom-navigation > :last-child { border-inline-end: 0; }
+body .theme-shell .bottom-navigation svg { width: 27px; height: 27px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+body .theme-shell .bottom-navigation span { direction: rtl; font-size: .76rem; line-height: 1.6; }
+body .theme-shell .bottom-navigation .active { color: #f8e5ac; }
+body .theme-shell .bottom-navigation .active svg { filter: drop-shadow(0 0 7px #e5bd6970); }
+body .theme-shell .bottom-navigation .active::after { content: ''; position: absolute; bottom: -4px; width: 5px; height: 5px; border-radius: 50%; background: #f8e5ac; box-shadow: 0 0 8px #f8e5ac; }
+body .theme-shell .navigation-dialog {
+    position: fixed; inset: 0; box-sizing: border-box; width: min(490px, calc(100vw - 28px));
+    height: min(860px, calc(100dvh - 32px - env(safe-area-inset-bottom, 0px)));
+    max-width: none; max-height: none; margin: auto; padding: 0;
+    overflow: hidden; color: #edf4ff; border: 1px solid #6199c6; border-radius: 25px;
+    background: radial-gradient(ellipse at 0 100%, #bb914342, transparent 30%), linear-gradient(125deg, #073359, #001831 65%);
+    box-shadow: inset 0 1px 6px #a9dfff66, 0 22px 70px #0009;
+}
+body .theme-shell .navigation-dialog::backdrop { background: #000c1d99; backdrop-filter: blur(5px); }
+body .theme-shell .navigation-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+body .theme-shell .navigation-heading { flex: 0 0 auto; display: flex; align-items: center; gap: 13px; padding: 20px 18px; }
+body .theme-shell .navigation-heading img { width: 51px; height: 60px; object-fit: contain; filter: grayscale(1) invert(1) contrast(1.35); mix-blend-mode: screen; }
+body .theme-shell .navigation-heading > div { flex: 1; text-align: center; }
+body .theme-shell .navigation-heading strong { display: block; font-size: .95rem; font-weight: 700; }
+body .theme-shell .navigation-heading > div > span { display: block; margin-top: 7px; font: 700 .7rem Arial, sans-serif; letter-spacing: 4px; }
+body .theme-shell .navigation-heading button { width: 40px; height: 40px; flex: 0 0 40px; padding: 0; border: 1px solid #74a2c43b; border-radius: 50%; background: #ffffff08; color: #dce9f7; font: 300 30px/1 Arial, sans-serif; cursor: pointer; }
+body .theme-shell .navigation-panel .sidebar-menu { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 6px; margin: 0; padding: 0 15px 12px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #c1d6e7 transparent; }
+body .theme-shell .navigation-panel .sidebar-menu > :is(a,button) {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 14px; min-height: 67px; margin: 0; white-space: normal; padding: 9px 15px;
+    border: 1px solid #34557355; border-radius: 16px; background: #00244770; color: #ecf2fa; text-decoration: none; text-align: right; font: inherit; transform: none;
+}
+body .theme-shell .navigation-panel .sidebar-menu > :is(a,button):hover { background: #16466b80; }
+body .theme-shell .navigation-panel .sidebar-menu > a.active { border-color: #ddc181; background: linear-gradient(100deg, #a98c4d66, #062749 65%); box-shadow: inset 0 0 14px #f2d19020, 0 0 10px #edc56c25; }
+body .theme-shell .navigation-panel .sidebar-menu > a::after { content: '‹'; display: block; width: auto; height: auto; margin-inline-start: auto; background: none; color: #e6cb88; font: 300 29px/1 Arial, sans-serif; }
+body .theme-shell .navigation-panel .sidebar-menu > :is(a,button) > span:first-child { flex: 0 0 32px; width: 32px; text-align: center; font-size: 1.6rem; }
+body .theme-shell .navigation-panel .sidebar-menu .navigation-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+body .theme-shell .navigation-copy strong { font-size: .95rem; font-weight: 700; }
+body .theme-shell .navigation-copy small { color: #9fb3c8; font-size: .7rem; }
+body .theme-shell .navigation-panel .sidebar-footer { display: block; flex: 0 0 auto; margin: 0; padding: 13px; border-top: 1px solid #608aab40; color: #b5c8db; text-align: center; font-size: .73rem; letter-spacing: 3px; }
+@media(min-width:769px) {
+    body .theme-shell .bottom-navigation { left: 50%; right: auto; width: min(760px, 100%); transform: translateX(-50%); }
+}
+@media(max-width:370px) {
+    body .theme-shell .navigation-heading { gap: 8px; padding: 16px 12px; }
+    body .theme-shell .navigation-heading strong { font-size: .8rem; }
+    body .theme-shell .bottom-navigation span { font-size: .69rem; }
+}
+@media print { body .theme-shell .bottom-navigation, body .theme-shell .navigation-dialog { display: none; } }
+
+body .theme-shell .navigation-panel .sidebar-menu::-webkit-scrollbar { display: block; width: 4px; }
+body .theme-shell .navigation-panel .sidebar-menu::-webkit-scrollbar-thumb { border-radius: 8px; background: #c1d6e7; }
