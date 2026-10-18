@@ -22,3 +22,12 @@
 .scale-card input { min-height:44px; margin-top:6px; background:#f8fafb; }
 .scale-create .btn { min-height:44px; box-shadow:none; }
 @media(max-width:700px) { .scale-tabs button { padding:10px 5px; } .scale-card { padding:13px; } .scale-row { padding:9px; gap:8px; } }
+
+/* Photo header matching the approved workshop banners. */
+.scales-hero.scales-photo-hero{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:flex-start;min-height:300px;padding:32px 34px;margin:0 0 18px;border:1px solid #8db7d1;border-radius:26px;background:#031e43;color:#f6d994;text-align:center;box-shadow:inset 0 0 22px #66b6e830,0 10px 28px #1b6ea12b}
+.scales-hero.scales-photo-hero::before,.scales-hero.scales-photo-hero::after{display:none}
+.scales-hero-art{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,transparent 0%,transparent 58%,#031e43bf 68%,#031e43 80%),url('/images/scales/scale-management.png');background-position:center,left center;background-size:100% 100%,cover;background-repeat:no-repeat}
+.scales-hero-copy{position:relative;z-index:1;width:36%;margin-left:auto;display:flex;align-items:center;flex-direction:column;gap:12px}
+.scales-photo-hero .scales-hero-copy > span{padding:0;border:0;border-radius:0;background:none;color:#f6d994;font:700 .73rem/1.6 Arial,sans-serif;letter-spacing:1.3px;white-space:nowrap}
+.scales-photo-hero .scales-hero-copy h1{margin:0;color:#f6d994;font-size:clamp(1.45rem,2.7vw,2.35rem);line-height:1.5;font-weight:800;letter-spacing:-.6px;white-space:nowrap}
+@media(max-width:600px){.scales-hero.scales-photo-hero{min-height:220px;padding:24px 16px;border-radius:21px;margin-bottom:16px}.scales-hero-art{background-size:100% 100%,auto 100%;background-position:center,left center}.scales-hero-copy{width:30%;margin-right:-4px;gap:9px}.scales-photo-hero .scales-hero-copy > span{font-size:clamp(.42rem,1.75vw,.64rem);letter-spacing:.65px}.scales-photo-hero .scales-hero-copy h1{font-size:clamp(.92rem,4.15vw,1.4rem)}}
