@@ -7,11 +7,9 @@
 @inject ScaleService ScaleService
 
 <PageTitle>مدیریت اسکیل‌ها | تورسپن</PageTitle>
-<section class="scales-hero theme-hero theme-page-intro">
-    <span dir="ltr">SCALE MANAGEMENT</span>
-    <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
-    <h1>مدیریت اسکیل‌ها</h1>
-    <p>فهرست مشترک اسکیل‌ها برای کاسه‌ها و سازها</p>
+<section class="scales-hero scales-photo-hero theme-hero theme-page-intro" aria-labelledby="scales-title">
+    <div class="scales-hero-art" aria-hidden="true"></div>
+    <div class="scales-hero-copy"><span dir="ltr">SCALE MANAGEMENT</span><h1 id="scales-title">مدیریت اسکیل‌ها</h1></div>
 </section>
 <nav class="scale-tabs" aria-label="بخش‌های مدیریت اسکیل">
     <button type="button" class="@(!_createTab ? "active" : null)" aria-pressed="@(!_createTab)" disabled="@_busy" @onclick="() => SelectTab(false)"><strong>اسکیل‌ها</strong></button>
