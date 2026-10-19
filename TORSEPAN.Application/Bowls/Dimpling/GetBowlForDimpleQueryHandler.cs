@@ -100,14 +100,17 @@ public sealed class GetBowlForDimpleQueryHandler
                         x.Description != "Released from glue room" &&
                         ((x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value)) ||
                          (handpanId.HasValue && x.HandpanId == handpanId)))
-            .GroupBy(x => new { x.Action, PackagingKind = x.Action == ProductionAction.Packaging ? (x.BowlId.HasValue ? 2 : 1) : 0 })
+            .GroupBy(x => new { x.Action, PackagingKind = x.Action == ProductionAction.Packaging ? (x.BowlId.HasValue ? 2 : 1) : 0, RegistrationBowlId = x.Action == ProductionAction.Created ? x.BowlId : null })
             .Select(group => new BowlStageHistoryDto
             {
-                BowlPerformers = group.Key.Action is ProductionAction.Shape or ProductionAction.Tune
+                BowlPerformers = group.Key.Action is ProductionAction.Shape or ProductionAction.Tune or ProductionAction.Furnace
                     ? BowlPerformers(group, group.Key.Action, topBowlId, bottomBowlId, users)
                     : [],
                 Action = (int)group.Key.Action,
-                ActionTitle = ActionTitle(group.Key.Action, group.Key.PackagingKind),
+                ActionTitle = group.Key.Action == ProductionAction.Created && group.Key.RegistrationBowlId.HasValue
+                    ? group.Key.RegistrationBowlId == topBowlId ? "ثبت کاسه رو"
+                        : group.Key.RegistrationBowlId == bottomBowlId ? "ثبت کاسه زیر" : "ثبت اولیه"
+                    : ActionTitle(group.Key.Action, group.Key.PackagingKind),
                 PerformedBy = string.Join("، ", group.Select(x =>
                         string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)
                     .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct()),
@@ -173,6 +176,7 @@ public sealed class GetBowlForDimpleQueryHandler
 
     private static string ActionTitle(ProductionAction action, int packagingKind) => action switch
     {
+        ProductionAction.Created => "ثبت اولیه",
         ProductionAction.Dimple => "دیمپل",
         ProductionAction.Shape => "شیپ",
         ProductionAction.Furnace => "پخت",
