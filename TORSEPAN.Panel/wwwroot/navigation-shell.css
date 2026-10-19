@@ -80,3 +80,73 @@ body .theme-shell .navigation-panel .sidebar-footer { display: block; flex: 0 0 
 
 body .theme-shell .navigation-panel .sidebar-menu::-webkit-scrollbar { display: block; width: 4px; }
 body .theme-shell .navigation-panel .sidebar-menu::-webkit-scrollbar-thumb { border-radius: 8px; background: #c1d6e7; }
+
+/* Registration uses one fixed architectural canvas, including behind the brand. */
+body .layout.theme-shell > .main:has(.new-bowl-page){position:relative;isolation:isolate;background:#00172b}
+body .layout.theme-shell > .main:has(.new-bowl-page)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:#00172b url('/images/production/passport-navy-gold.png') center top / cover no-repeat}
+body .layout.theme-shell > .main:has(.new-bowl-page) > .topbar{background:transparent;backdrop-filter:none;isolation:auto;z-index:auto}
+body .layout.theme-shell > .main:has(.new-bowl-page) > .topbar::before,
+body .layout.theme-shell > .main:has(.new-bowl-page) > .topbar::after{display:none}
+body .layout.theme-shell > .main:has(.new-bowl-page) > .content{padding-top:8px;padding-bottom:calc(var(--tp-dock-height) + env(safe-area-inset-bottom,0px) + 16px);background:transparent}
+@media(max-width:600px) and (max-height:760px){body .layout.theme-shell > .main:has(.new-bowl-page) > .content{padding-bottom:calc(var(--tp-dock-height) + env(safe-area-inset-bottom,0px) + 8px)}}
+
+/* Shared navy workspaces; wrappers intentionally exclude the photo headers. */
+body .layout.theme-shell > .main:has(.navy-workspace-page){position:relative;isolation:isolate;background:#00172b}
+body .layout.theme-shell > .main:has(.navy-workspace-page)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:#00172b url('/images/production/passport-navy-gold.png') center top / cover no-repeat}
+body .layout.theme-shell > .main:has(.navy-workspace-page) > .topbar{background:transparent;backdrop-filter:none;isolation:auto;z-index:auto}
+body .layout.theme-shell > .main:has(.navy-workspace-page) > .topbar::before,body .layout.theme-shell > .main:has(.navy-workspace-page) > .topbar::after{display:none}
+/* These wrappers start after each photographic hero; hero geometry is untouched. */
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page{--tp-paper:#03203b;--tp-navy:#edf4fc;--tp-muted:#adc2d5;--tp-line:#385b78;--bs-body-color:#edf4fc;--bs-body-bg:#041d34;color:#edf4fc;min-width:0}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.scale-card,.design-panel,.production-panel,.order-panel,.order-summary,.order-editor,.scale-dialog,.design-confirm-dialog,.production-delete-dialog,.code-dialog){background:linear-gradient(135deg,#03203bf2,#001329f5);color:#edf4fc;border:1px solid #486c8b;box-shadow:inset 0 1px 5px #c6e8ff20,0 12px 28px #0005}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.scale-list,.scale-row,.design-option,.registered-designs,.bowl-summary,.production-filters,.production-item,.production-card,.production-row-summary,.production-card-details,.order-card,.order-list-toggle,.composition-line,.specification-row,.instrument-slot,.overview-item,.summary-lines,.management-tools,.empty-state,.scale-empty,.production-empty,.orders-loading,.order-metrics>div){background:#05213b;color:#e9f1fa;border-color:#31516d}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(h2,h3,h4,h5,h6,strong,label,summary,.option-name,.field-label,.section-title,.scale-name,.item-code,.card-code,.card-scale,.order-list-name,.panel-heading,.line-heading,.specification-scale,.overview-code){color:#edf4fc}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(p,small,.field-hint,.form-hint,.panel-caption,.production-page-caption,.production-row-kind,.order-list-date,.order-dates,.summary-note,.list-footnote){color:#adc2d5}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea){color:#f2f6fb!important;background-color:#041d34!important;border-color:#3d5b75!important;color-scheme:dark}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(input,textarea)::placeholder{color:#a5bbcf;opacity:1}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(input[type=checkbox],input[type=radio]){accent-color:#d9ba71}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.design-tabs,.scale-tabs,.production-tabs,.order-tabs,.management-tools)>:is(button,a){background:#041d34;color:#dbe7f2;border:1px solid #3d5b75;box-shadow:none}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.design-tabs,.scale-tabs,.production-tabs,.order-tabs,.management-tools)>:is(button,a).active{background:linear-gradient(110deg,#51452d88,#072542 75%);color:#f8dda0;border-color:#b69b60;box-shadow:inset 0 1px 3px #f5dba222}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.design-tabs,.scale-tabs,.production-tabs,.order-tabs) :is(b,small){background:#183a55;color:inherit}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.btn,.scale-actions button,.item-details-toggle,.card-expand,.production-page-button,.order-list-chevron,.order-card-actions button,.code-section-toggle,.management-tools button){background:#123550;color:#e3effa;border-color:#3c5e7c}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.btn-primary,.create-order,.register-button,.editor-submit){background:linear-gradient(110deg,#f8e3a2,#d2aa58);color:#09213b;border-color:#d5b66e}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.btn-primary,.create-order,.register-button,.editor-submit):disabled{opacity:.5}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.btn-outline-danger,.delete-order,.remove-line){background:#4e203155;color:#ffb9bc;border-color:#9b5263}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.btn-outline-warning,.time-badge,.deadline-preview){background:#5b472555;color:#f7d793;border-color:#947642}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.selected,.design-option.selected){background:#3e382666;border-color:#baa064}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page .design-option.disabled{background:#102c4055;opacity:.65}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.section-title small,.order-list-number,.slot-number,.summary-total,.line-count,.order-quantity-summary,.assigned-code-summary){background:#173850;color:#f2d594;border-color:#3d5b75}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.table,.table th,.table td){--bs-table-bg:transparent;--bs-table-color:#e5eef8;--bs-table-striped-bg:#092944;--bs-table-border-color:#31516d;background-color:transparent;color:#e5eef8;border-color:#31516d}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page .table thead :is(th,td){background:#0a2b47;color:#cee0ef}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.app-message.success,.order-notice.success,.scale-notice.success){background:#0e3b32;color:#b8efda;border-color:#407b69}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.app-message.error,.order-notice.error,.scale-notice.error,.field-error){background:#442132;color:#ffbfc4;border-color:#925066}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(button,a,input,select,textarea):focus-visible{outline:2px solid #e5c681;outline-offset:2px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.design-options,.history-list){scrollbar-color:#6d8ca7 #031b31}
+@media(max-width:600px){
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .design-tabs{gap:8px;margin-bottom:8px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .design-tabs button{min-height:40px;padding:6px;font-size:.74rem}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .registration-panel{display:flex;flex-direction:column;gap:0;padding:10px;height:calc(100dvh - 506px);min-height:220px;max-height:420px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .code-search{gap:6px;flex-shrink:0}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .code-search :is(.btn,input){height:40px;min-height:40px;padding:6px 9px;font-size:.74rem}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .section-title{margin:7px 0 4px;font-size:.74rem;flex-shrink:0}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .field-hint{margin:3px 0 5px;font-size:.62rem;line-height:1.5;flex-shrink:0}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .design-options{flex:1;min-height:42px;max-height:none;grid-auto-rows:min-content;gap:5px;padding:2px;overflow:auto}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .option-check{min-height:38px;padding:5px 7px;gap:6px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .option-name{font-size:.7rem;line-height:1.5}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .option-check input{width:16px;height:16px;flex-basis:16px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .register-button{flex-shrink:0;min-height:42px;margin-top:7px;padding:7px;font-size:.76rem}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .bowl-summary{padding:4px 7px;margin-top:5px;font-size:.68rem;flex-shrink:0}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .registered-designs{margin-top:4px;padding:0 7px;flex-shrink:0}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .registered-designs summary{min-height:28px;font-size:.65rem}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .history-list{max-height:80px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-designs .app-message{padding:4px 7px;margin-top:4px;font-size:.64rem;max-height:50px;overflow:auto;flex-shrink:0}
+}
+/* Keep action meanings and form captions readable above legacy component rules. */
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.btn-primary.btn-primary,.create-order.create-order,.register-button.register-button,.editor-submit.editor-submit){background:linear-gradient(110deg,#f8e3a2,#d2aa58);color:#09213b;border-color:#d5b66e}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.btn-outline-danger.btn-outline-danger,.delete-order.delete-order,.remove-line.remove-line){background:#4e203155;color:#ffb9bc;border-color:#9b5263}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.order-fields,.line-fields,.duration-field,.order-date-field,.rate-editor,.scale-create,.scale-edit) label>span,
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.section-kicker,.order-fields>label,.duration-field>label,.line-fields>label){color:#b8cddd}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-workspace-page :is(.scale-card>header,.production-heading,.order-panel>header,.order-summary>header){border-color:#31516d}
+body .layout.theme-shell > .main:has(.navy-workspace-page) > .content > .card{background:linear-gradient(135deg,#03203bf2,#001329f5);border:1px solid #486c8b!important;color:#edf4fc}
+body .layout.theme-shell > .main:has(.navy-workspace-page) > .content > .card input{background:#041d34;color:#f2f6fb;border-color:#3d5b75}
+body .layout.theme-shell > .main:has(.navy-workspace-page) > .content > .card input::placeholder{color:#a5bbcf}
+body .layout.theme-shell > .main:has(.navy-workspace-page) > .content > .card .btn-primary{background:linear-gradient(110deg,#f8e3a2,#d2aa58);color:#09213b;border-color:#d5b66e}
