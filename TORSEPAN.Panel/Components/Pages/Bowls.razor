@@ -12,6 +12,7 @@
     <div class="production-hero-art" aria-hidden="true"></div>
     <div class="production-hero-copy"><span dir="ltr">PRODUCTION</span><h1 id="production-title">تولید</h1></div>
 </section>
+<div class="navy-workspace-page navy-bowls">
 <div class="production-toolbar"><p>فهرست تولید را بررسی کنید یا کاسهٔ جدید ثبت کنید.</p><button type="button" class="btn btn-primary" @onclick="NewBowl">＋ ثبت کاسه</button></div>
 <nav class="production-tabs" aria-label="بخش‌های تولید">
     <button type="button" class="@(_tab == "bowls" ? "active" : "")" aria-pressed="@(_tab == "bowls")" disabled="@(_deleting || _rollingBack)" @onclick='() => _tab = "bowls"'><span aria-hidden="true">◒</span><div><strong>کاسه‌ها</strong><small>کاسه رو و کاسه زیر</small></div><b>@(_loading ? "…" : _bowlTotalItems.ToString())</b></button>
@@ -150,6 +151,8 @@ else
 {
     <div class="production-delete-notice" role="status"><span>@_deleteNotice</span><button type="button" aria-label="بستن پیام" @onclick="() => _deleteNotice = null">×</button></div>
 }
+
+</div>
 
 @code {
     private BowlDto? _rollbackBowl;

@@ -11,6 +11,7 @@
     <div class="scales-hero-art" aria-hidden="true"></div>
     <div class="scales-hero-copy"><span dir="ltr">SCALE MANAGEMENT</span><h1 id="scales-title">مدیریت اسکیل‌ها</h1></div>
 </section>
+<div class="navy-workspace-page navy-scales">
 <nav class="scale-tabs" aria-label="بخش‌های مدیریت اسکیل">
     <button type="button" class="@(!_createTab ? "active" : null)" aria-pressed="@(!_createTab)" disabled="@_busy" @onclick="() => SelectTab(false)"><strong>اسکیل‌ها</strong></button>
     <button type="button" class="@(_createTab ? "active" : null)" aria-pressed="@_createTab" disabled="@_busy" @onclick="() => SelectTab(true)"><strong>ثبت اسکیل جدید</strong></button>
@@ -71,6 +72,8 @@ else
 {
     <div class="scale-overlay"><section class="scale-dialog" role="dialog" aria-modal="true" aria-labelledby="scale-delete-title"><h2 id="scale-delete-title">حذف اسکیل</h2><p>اسکیل «@_deleting.Name» از فهرست انتخاب حذف شود؟ اطلاعات سازها و کاسه‌های قبلی حفظ می‌شود.</p><div class="scale-actions"><button type="button" class="btn btn-danger" disabled="@_busy" @onclick="DeleteAsync">تأیید حذف</button><button type="button" class="btn btn-light" disabled="@_busy" @onclick="() => _deleting = null">انصراف</button></div></section></div>
 }
+</div>
+
 @code {
     private readonly List<ScaleDto> _scales = [];
     private bool _createTab;

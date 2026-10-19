@@ -8,7 +8,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>ثبت کاسه</PageTitle>
-<section class="new-bowl-hero bowl-photo-hero theme-hero theme-page-intro" aria-labelledby="new-bowl-title">
+<div class="new-bowl-page">
+<section class="new-bowl-hero bowl-photo-hero theme-hero" aria-labelledby="new-bowl-title">
     <div class="bowl-hero-art" aria-hidden="true"></div>
     <div class="bowl-hero-copy"><span class="hero-eyebrow" dir="ltr">BOWL REGISTRATION</span><h1 id="new-bowl-title">ثبت کاسه</h1></div>
 </section>
@@ -58,13 +59,17 @@
                     <div><span>آخرین کد ثبت‌شده</span><strong dir="ltr">@_lastCode</strong></div>
                     <div class="suggested"><span>کد پیشنهادی بعدی</span><strong dir="ltr">@_suggestedCode</strong></div>
                 </div>
-                <button type="button" class="use-code-button" @onclick="UseSuggestedCode"><span>✓</span> استفاده از کد پیشنهادی</button>
+                @if (_model.ProductionCode != _suggestedCode)
+                {
+                    <button type="button" class="use-code-button" @onclick="UseSuggestedCode"><span>✓</span> استفاده از کد پیشنهادی</button>
+                }
             }
         </div>
 
         <button class="btn btn-primary submit-bowl" type="submit" disabled="@(_saving || _refreshing || string.IsNullOrWhiteSpace(_model.ProductionCode))">@if(_saving){<span class="spinner-border spinner-border-sm"></span>} ثبت کاسه</button>
     </section>
 </EditForm>
+</div>
 
 @code {
     private (Guid Value, string Text)[] MaterialOptions => new[] { (Guid.Empty, "متریال را انتخاب کنید") }.Concat(_materials.Select(x => (x.Id, x.Name))).ToArray();
