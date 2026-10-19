@@ -24,8 +24,8 @@ body .theme-shell .bottom-navigation {
     display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
     min-height: var(--tp-dock-height); padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
     border: 1px solid #749fc6; border-radius: 24px 24px 0 0;
-    background: radial-gradient(ellipse at 35% 0, #b7914840, transparent 35%), linear-gradient(110deg, #03284e, #00142b 80%);
-    box-shadow: inset 0 1px 3px #c3e6ff55, 0 -6px 24px #00152f30;
+    background: radial-gradient(ellipse at 35% 0, #b7914826, transparent 35%), linear-gradient(110deg, #022043, #000f25 80%);
+    box-shadow: inset 0 1px 2px #c3e6ff30, 0 -6px 24px #00152f45;
 }
 body .theme-shell .bottom-navigation > :is(a,button) {
     position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -44,7 +44,7 @@ body .theme-shell .navigation-dialog {
     height: min(860px, calc(100dvh - 32px - env(safe-area-inset-bottom, 0px)));
     max-width: none; max-height: none; margin: auto; padding: 0;
     overflow: hidden; color: #edf4ff; border: 1px solid #6199c6; border-radius: 25px;
-    background: radial-gradient(ellipse at 0 100%, #bb914342, transparent 30%), linear-gradient(125deg, #073359, #001831 65%);
+    background: radial-gradient(ellipse at 0 100%, #bb914342, transparent 30%), linear-gradient(125deg, #042646, #001329 65%);
     box-shadow: inset 0 1px 6px #a9dfff66, 0 22px 70px #0009;
 }
 body .theme-shell .navigation-dialog::backdrop { background: #000c1d99; backdrop-filter: blur(5px); }

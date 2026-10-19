@@ -30,11 +30,24 @@ await renderer.Dispatcher.InvokeAsync(async () =>
     var html = WebUtility.HtmlDecode(view.ToHtmlString());
     Check(!System.Text.RegularExpressions.Regex.IsMatch(html, "<h3[^>]*>شناسنامه ساز</h3>") && !html.Contains("برگرفته از") && !html.Contains("دیمپل ←"), "redundant headings and stage strip removed");
     Check(!html.Contains("passport-order"), "unlinked instrument has no order row");
-    Check(html.Contains("passport-codes") && html.Contains("196") && html.Contains("(اسیدی)") && html.Contains("D Kurd 14") && html.Contains("Design") && html.Contains("Status"), "passport has both codes, bottom design, scale, design and status");
+    Check(html.Contains("passport-codes") && html.Contains("196") && html.Contains("(اسیدی)") && html.Contains("D Kurd 14") && html.Contains("Design") && html.Contains("passport-status"), "passport has both codes, bottom design, scale, design and status");
     Check(html.Contains("شیپ کاسه رو: شایان نجفی") && html.Contains("شیپ کاسه زیر: محمدرضا رنجبر"), "separate bowl attribution is preserved");
-    Check(html.Contains("passport-event-date") && html.Contains("تاریخ</th>"), "history retains dates and times in its dedicated column");
-    Check(html.Contains("تصاویر ساز") && !html.Contains("عکس‌های شناسنامه") && !html.Contains("اختیاری"), "photo panel has one heading and still renders camera and gallery");
+    Check(html.Contains("passport-event-date") && html.Contains("1405/"), "history retains dates and times in its dedicated column");
+    Check(html.Contains("عکس‌های ساز") && html.Contains("handpan-no-photo.png") && html.Contains("بدون عکس"), "photo panel has one heading and still renders camera and gallery");
     Check(html.Contains("دوربین") && html.Contains("گالری"), "optional photo upload remains available");
+    Check(!html.Contains("<small>تعداد نت</small>") && html.Contains("(9+5)"), "note count is under scale rather than a separate row");
+    foreach (var (top, bottom, scale, title, split) in new (int?,int?,string,string,string)[] {
+        (9,3,"D Minor 9","D Minor 12","(9+3)"),
+        (9,0,"D Minor 12","D Minor 9","(9+0)"),
+        (null,3,"D Minor — تعداد نت نامشخص","D Minor — تعداد نت نامشخص","(نامشخص+3)") })
+    {
+        var notesView = await renderer.RenderComponentAsync<PassportPreview>(ParameterView.FromDictionary(new Dictionary<string,object?> {
+            [nameof(PassportPreview.TopCount)] = top, [nameof(PassportPreview.BottomCount)] = bottom, [nameof(PassportPreview.ScaleTitle)] = scale }));
+        var notesHtml = WebUtility.HtmlDecode(notesView.ToHtmlString());
+        Check(notesHtml.Contains(title) && notesHtml.Contains(split) && notesHtml.Contains("class=\"passport-note-breakdown\" dir=\"ltr\""), "scale total and ordered breakdown: " + split);
+    }
+    var icon = await renderer.RenderComponentAsync<PassportIcon>(ParameterView.FromDictionary(new Dictionary<string,object?> { [nameof(PassportIcon.Kind)] = "status" }));
+    Check(icon.ToHtmlString().Contains("stroke-dasharray") && !icon.ToHtmlString().Contains("l-7 7"), "status uses a circular ring without an arrow");
     var navigation = (FixtureNavigation)provider.GetRequiredService<NavigationManager>();
     foreach (var route in new[] { "/dimpling", "/production/process", "/production/process/?code=855" })
     {
@@ -48,7 +61,7 @@ await renderer.Dispatcher.InvokeAsync(async () =>
             [nameof(PassportPreview.BowlType)] = type, [nameof(PassportPreview.CustomerName)] = "امید همدانی" }));
         var linkedHtml = WebUtility.HtmlDecode(linked.ToHtmlString());
         Check(linkedHtml.Contains("سفارش امید همدانی") && linkedHtml.IndexOf("passport-order") > linkedHtml.IndexOf("passport-scale") &&
-            linkedHtml.IndexOf("passport-order") < linkedHtml.IndexOf("Design:"), "linked passport shows customer directly below scale for type " + type);
+            linkedHtml.IndexOf("passport-order") > linkedHtml.IndexOf("passport-status"), "linked passport retains customer after technical details for type " + type);
     }
     navigation.Set("/sales");
     Check((await renderer.RenderComponentAsync<GlobalProductionSearch>()).ToHtmlString().Contains("بررسی مرحله"), "global search retained on other pages");
@@ -59,7 +72,7 @@ await renderer.Dispatcher.InvokeAsync(async () =>
         var bowlHtml = WebUtility.HtmlDecode(bowlView.ToHtmlString());
         Check(bowlHtml.Contains("BOWL ID") && bowlHtml.Contains("passport-primary-info") && bowlHtml.Contains("کد کاسه") && bowlHtml.Contains("SS-00090"), "loose bowl uses the same branded blue passport card");
         Check(bowlHtml.Contains(type == 1 ? "کاسه رو" : "کاسه زیر") && !bowlHtml.Contains("کاسه بالا") && !bowlHtml.Contains("production-highlights"), "bowl type labels are explicit and legacy highlights removed");
-        Check(bowlHtml.Contains("Scale:") && bowlHtml.Contains("Design:") && bowlHtml.Contains("Status:"), "shared information rows include label separators");
+        Check(bowlHtml.Contains("Scale") && bowlHtml.Contains("Design") && bowlHtml.Contains("passport-status"), "shared information rows include label separators");
         if (Environment.GetEnvironmentVariable("PASSPORT_PREVIEW_PATH") is { } bowlPath) await File.WriteAllTextAsync(bowlPath + ".bowl-" + type + ".html", bowlView.ToHtmlString());
     }
 
@@ -68,10 +81,13 @@ static void Check(bool value, string message) { if (!value) throw new Exception(
 public sealed class PassportPreview : Dimpling
 {
     [Parameter] public int BowlType { get; set; }
+    [Parameter] public int? TopCount { get; set; } = 9;
+    [Parameter] public int? BottomCount { get; set; } = 5;
+    [Parameter] public string ScaleTitle { get; set; } = "D Kurd 14";
     [Parameter] public string? CustomerName { get; set; }
     protected override Task OnInitializedAsync()
     {
-        var record = new DimpleBowlDto { OrderCustomerName = CustomerName, HandpanId = Guid.NewGuid(), HandpanCode = "855", BottomBowlCode = "196", BottomDesignName = "اسیدی", DesignName = "ساده", ScaleName = "D Kurd 14", Stage = 18 };
+        var record = new DimpleBowlDto { OrderCustomerName = CustomerName, HandpanId = Guid.NewGuid(), HandpanCode = "855", BottomBowlCode = "196", BottomDesignName = "اسیدی", DesignName = "ساده", ScaleName = ScaleTitle, TopNoteCount = TopCount, BottomNoteCount = BottomCount, IsHandpanScale = true, Stage = 18 };
         if (BowlType != 0)
         {
             record.HandpanId = null; record.HandpanCode = ""; record.ProductionCode = "SS-00090";
