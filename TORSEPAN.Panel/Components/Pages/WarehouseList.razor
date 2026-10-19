@@ -17,12 +17,12 @@
     </div>
     @if (_canManage) { <details class="warehouse-menu hero-menu"><summary aria-label="گزینه‌های مدیریت انبار">⋯</summary><div><button @onclick="OpenWarehouseManagement">مدیریت انبارها</button></div></details> }
 </section>
+<div class="navy-workspace-page navy-warehouse navy-instruments">
 @if (!string.IsNullOrWhiteSpace(_notice)) { <div class="warehouse-notice" role="status">✓ @_notice <button aria-label="بستن پیام" @onclick="()=>_notice=null">×</button></div> }
 <nav class="warehouse-tabs" role="tablist" aria-label="انبارهای ساز">
     @foreach (var warehouse in _warehouses)
     {
         <button type="button" id="warehouse-tab-@warehouse.Id" role="tab" aria-selected="@(_activeWarehouseId==warehouse.Id?"true":"false")" tabindex="@(_activeWarehouseId==warehouse.Id?0:-1)" @onkeydown="e=>WarehouseTabKeyAsync(warehouse.Id,e)" aria-controls="warehouse-inventory" class="warehouse-tab tier-@warehouse.Id @(_activeWarehouseId==warehouse.Id?"active":null)" @onclick="()=>SelectWarehouse(warehouse.Id)">
-            <span class="warehouse-tier-mark" aria-hidden="true">@("0"+warehouse.Id)</span>
             <span class="warehouse-tier-text"><small>انبار سازها</small><strong dir="auto">@warehouse.Name</strong></span>
             <b class="warehouse-tier-count" aria-label="@($"{_items.Count(x=>x.QualityWarehouseId==warehouse.Id)} ساز")">@_items.Count(x=>x.QualityWarehouseId==warehouse.Id)</b>
         </button>
@@ -161,6 +161,8 @@ else
         </section>
     </div>
 }
+
+</div>
 
 @code {
     [SupplyParameterFromQuery(Name="sell")] public Guid? SellHandpanId { get; set; }

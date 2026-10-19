@@ -150,3 +150,98 @@ body .layout.theme-shell > .main:has(.navy-workspace-page) > .content > .card{ba
 body .layout.theme-shell > .main:has(.navy-workspace-page) > .content > .card input{background:#041d34;color:#f2f6fb;border-color:#3d5b75}
 body .layout.theme-shell > .main:has(.navy-workspace-page) > .content > .card input::placeholder{color:#a5bbcf}
 body .layout.theme-shell > .main:has(.navy-workspace-page) > .content > .card .btn-primary{background:linear-gradient(110deg,#f8e3a2,#d2aa58);color:#09213b;border-color:#d5b66e}
+
+/* Navy inventory workspaces: photo headers stay outside these wrappers. */
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.warehouse-tab,.warehouse-card,.warehouse-content-panel,.inventory-card,.selected-inventory,.inventory-pane,.inventory-item,.stock-item,.stock-details,.sale-dialog,.warehouse-settings-dialog,.warehouse-transfer-dialog,.inventory-gallery-dialog,.shipment-dialog,.location-dialog,.card){background:linear-gradient(135deg,#03203bf2,#001329f5);color:#edf4fc;border-color:#486c8b;box-shadow:inset 0 1px 4px #c6e8ff12,0 10px 24px #0003}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.warehouse-collection-heading,.active-warehouse-banner,.selected-inventory-heading,.warehouse-filter-bar,.warehouse-selection-bar,.stock-bowls,.warehouse-notes,.warehouse-packaging,.warehouse-history,.warehouse-settings-list,.supply-item,.selected-stock,.inventory-categories){background:#07243e;color:#e5eef8;border-color:#31516d;box-shadow:none}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.warehouse-tier-text strong,.warehouse-tier-text small,.destination-name strong,.destination-name small,.collection-label,.collection-count,.stock-code,.stock-material,.stock-scale,.inventory-card h2,.inventory-card header small,.inventory-field,.selected-stock b,.supply-item b,.active-warehouse-banner strong,.active-warehouse-banner small,.selected-inventory-heading p,.warehouse-selection-bar>span,.stock-entry,.stock-entry bdi,.text-muted,.item-main p,.item-main small,.item-main strong,.inventory-empty){color:#c8d9e9!important}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.warehouse-tier-count,.collection-count,.active-warehouse-banner>b,.location-badge,.selected-inventory-heading>span,.shipment-codes span,.transfer-codes span){background:#173b56;color:#f3d78f;border-color:#3d5b75}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.warehouse-tab.active,.warehouse-card.active,.inventory-tabs a.active,.inventory-tabs button.active,.inventory-categories button.active,.location-choices button.active){background:linear-gradient(110deg,#51452d88,#072542 75%);color:#f8dda0;border-color:#b69b60;box-shadow:inset 0 1px 3px #f5dba222}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tab.active .warehouse-tier-count{background:#e4c47d;color:#09213b}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tab.active::before{display:none}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.inventory-tabs a,.inventory-categories button,.warehouse-filter-toggle,.gallery-open,.stock-expand,.row-transfer,.transfer-selected,.choice-row button,.location-choices button,.warehouse-menu>div){background:#0c2c47;color:#dce9f5;border-color:#3d5b75;box-shadow:none}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.ship-selected,.bulk-sale-button,.btn-success){background:linear-gradient(110deg,#f8e3a2,#d2aa58);color:#09213b;border-color:#d5b66e}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.ship-selected,.bulk-sale-button):disabled{opacity:.45}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.bowl-overview th,.bowl-overview td){color:#dce9f5;border-color:#25445f;background:transparent}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .bowl-overview th{background:#0b2c46;color:#adc3d7}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .supplies-grid .supply-item{background:#0b2b45}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse :is(.bowl-overview td.low-stock,.supply-item.low-stock,.supply-item.low-stock b){background:#442132;color:#ffbfc4!important}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .inventory-notice{background:#0b2b45;color:#c8d9e9}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .inventory-notice.success{background:#0e3b32;color:#b8efda}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .inventory-notice.error{background:#442132;color:#ffbfc4}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tab,.warehouse-tab:last-child{grid-template-columns:minmax(0,1fr) auto;align-items:center;min-height:78px;gap:8px;padding:12px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tier-count,.warehouse-tab:last-child .warehouse-tier-count{position:static;min-width:30px;height:30px;border-radius:9px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tier-text,.warehouse-tab:last-child .warehouse-tier-text{padding-top:0}
+@media(max-width:600px){
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tabs{gap:8px;margin-bottom:12px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tab,.warehouse-tab:last-child{grid-template-columns:1fr;justify-items:center;text-align:center;gap:7px;min-height:90px;padding:10px 4px}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tier-count,.warehouse-tab:last-child .warehouse-tier-count{grid-row:1;min-width:28px;height:26px;font-size:.78rem}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tier-text small{display:none}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-tier-text strong{font-size:clamp(.65rem,2.8vw,.85rem);margin:0}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse .warehouse-collection-heading{margin-bottom:8px}
+}
+
+/* Dashboard operations use the approved navy canvas; photograph markup is untouched. */
+body .layout.theme-shell > .main:has(.workshop-panorama){position:relative;isolation:isolate;background:#00172b}
+body .layout.theme-shell > .main:has(.workshop-panorama)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:#00172b url('/images/production/passport-navy-gold.png') center top / cover no-repeat}
+body .layout.theme-shell > .main:has(.workshop-panorama) > .content{background:transparent}
+body .layout.theme-shell .main .content .production-entry-card,
+body .layout.theme-shell .main .content .queue-column>.card{background:linear-gradient(135deg,#03203bf0,#001329f5);color:#edf4fc;border:1px solid #486c8b!important;border-radius:20px!important;box-shadow:inset 0 1px 5px #c6e8ff18,0 12px 28px #0004!important}
+body .layout.theme-shell .main .content .production-entry-card .card-body{padding:12px!important}
+body .layout.theme-shell .main .content .production-entry-card h4{font-size:.92rem;color:#edf4fc;margin:0!important}
+body .layout.theme-shell .main .content .production-entry-card .input-group{margin-top:9px;gap:6px;flex-wrap:nowrap}
+body .layout.theme-shell .main .content .production-entry-card input{background:#041d34;color:#edf4fc;border:1px solid #385b78;min-height:38px;font-size:.75rem}
+body .layout.theme-shell .main .content .production-entry-card input::placeholder{color:#adc2d5;opacity:1}
+body .layout.theme-shell .main .content .production-entry-card .btn{background:linear-gradient(110deg,#f8e3a2,#d2aa58);color:#09213b;border-color:#d5b66e;font-size:.77rem;padding-inline:20px!important}
+body .layout.theme-shell .main .content .dashboard-tab{background:linear-gradient(135deg,#062640ed,#00172bf5);color:#c5d7e8;border:1px solid #315674;box-shadow:inset 0 1px 4px #c6e8ff10}
+body .layout.theme-shell .main .content .dashboard-tab span{color:#adc6de;background:transparent}
+body .layout.theme-shell .main .content .dashboard-tab.active{background:linear-gradient(135deg,#0b2e47,#00172b);border-color:#e5c77e;color:#f2d58e;box-shadow:0 0 8px #e5c77e22,inset 0 1px 4px #c6e8ff12}
+body .layout.theme-shell .main .content .dashboard-tab.active :is(span,strong){color:#f2d58e}
+body .layout.theme-shell .main .content .queue-column .card-body{padding:12px}
+body .layout.theme-shell .main .content .queue-heading{position:relative;padding-top:13px;gap:4px;margin-bottom:12px}
+body .layout.theme-shell .main .content .queue-heading::before{content:"";position:absolute;top:0;left:calc(50% - 17px);width:34px;height:3px;border-radius:4px;background:#e5c77e}
+body .layout.theme-shell .main .content .queue-heading :is(h4,p,.dashboard-eyebrow){color:#edf4fc}
+body .layout.theme-shell .main .content .queue-heading h4{font-size:1.08rem;margin-top:4px}
+body .layout.theme-shell .main .content .queue-heading p{color:#adc2d5;font-size:.72rem}
+body .layout.theme-shell .main .content .queue-heading .dashboard-eyebrow{align-self:flex-end;color:#adc2d5;font-size:.65rem}
+body .layout.theme-shell .main .content .queue-heading .queue-refresh{margin-top:6px;min-height:32px;padding:5px 11px;border:1px solid #8f865c;border-radius:10px;background:#0a2c45;color:#e9cf8b;font-size:.7rem}
+body .layout.theme-shell .main .content .ready-queue .dashboard-code{display:inline-flex;justify-content:center;align-items:center;margin:0;padding:3px 7px!important;border-radius:7px;font:500 .71rem/1.3 Arial,sans-serif!important;min-width:32px;max-width:100%;background:#143c5a;color:#cce3f7}
+body .layout.theme-shell .main .content .ready-queue .dashboard-code::before{display:none}
+body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-green{background:#123b59;color:#c2e4ff}
+body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-orange{background:#514620;color:#f4dfa0}
+body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-purple{background:#35265c;color:#dacdfd}
+body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-red{background:#542335;color:#ffc3c9}
+body .layout.theme-shell .main .content .ready-queue .text-muted{color:#adc2d5!important}
+/* Keep the shared stage lookup dark under every page's legacy form rules. */
+body .layout.theme-shell .main .content .global-production-search .global-production-code.global-production-code{background:#041d34!important;color:#f2f6fb!important;border-color:#385b78;border-radius:10px}
+body .layout.theme-shell .main .content .global-production-search .global-production-code::placeholder{color:#adc2d5;opacity:1}
+
+/* Profile toolbar: account options right, identity centre, messages left. */
+body .layout.theme-shell .topbar .topbar-right.profile-toolbar{display:grid;grid-template-columns:48px minmax(0,1fr) 48px;align-items:center;gap:8px;min-height:62px;padding:8px 12px;border:1px solid #6485a0;border-radius:19px;background:linear-gradient(110deg,#03223df5,#00132af5);box-shadow:inset 0 1px 4px #c6e8ff12,0 8px 24px #0003;overflow:visible}
+body .layout.theme-shell .topbar .profile-toolbar .user-box-clean{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;padding:0;margin:0;min-width:0;border:0;background:transparent;box-shadow:none;text-decoration:none;color:#edf4fc}
+body .layout.theme-shell .topbar .profile-toolbar .profile-icon{flex:none;width:31px;height:31px;padding:3px;border-radius:50%;background:#d7e1ed;color:#0b2747;fill:none;stroke:currentColor;stroke-width:1.7;box-shadow:0 0 9px #c8e8ff22}
+body .layout.theme-shell .topbar .profile-toolbar .user-box-clean>div{min-width:0;text-align:right}
+body .layout.theme-shell .topbar .profile-toolbar .user-name{font-size:.87rem;font-weight:800;color:#f0f5fb;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
+body .layout.theme-shell .topbar .profile-toolbar .user-role{font-size:.64rem;line-height:1.6;color:#bbccdd;white-space:normal;overflow-wrap:anywhere;margin-top:2px}
+body .layout.theme-shell .topbar .profile-toolbar .header-notification{display:grid;place-items:center;padding:0;border:0;border-inline-start:1px solid #34536f;min-height:36px}
+body .layout.theme-shell .topbar .profile-toolbar .notification-bell{width:34px;height:34px;border:1px solid #385773;border-radius:10px;background:#12324c;color:#eff5fb;box-shadow:inset 0 1px 4px #d2e9ff12}
+body .layout.theme-shell .topbar .profile-toolbar .notification-bell svg{width:22px;height:22px}
+.profile-area-menu{position:relative;align-self:center;z-index:30}
+.profile-area-menu>summary{display:flex;align-items:center;justify-content:center;gap:3px;min-height:44px;list-style:none;cursor:pointer;color:#ebcf86}
+.profile-area-menu>summary::-webkit-details-marker{display:none}
+.profile-area-symbol{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 5px #e4bc5e66)}
+.profile-area-chevron{width:12px;height:12px;fill:none;stroke:#b3c6db;stroke-width:1.7}
+.profile-area-menu>nav{position:absolute;inset-inline-start:0;top:calc(100% + 8px);display:flex;flex-direction:column;min-width:150px;padding:6px;border:1px solid #486c8b;border-radius:12px;background:#031c33;box-shadow:0 10px 24px #0006}
+.profile-area-menu>nav a{padding:10px;color:#e5eef8;text-decoration:none;font-size:.77rem;border-radius:7px;white-space:nowrap}
+.profile-area-menu>nav a:hover{background:#143750;color:#f3d78f}
+@media(max-width:380px){body .layout.theme-shell .topbar .topbar-right.profile-toolbar{grid-template-columns:40px minmax(0,1fr) 40px;padding:7px 9px;gap:6px}body .layout.theme-shell .topbar .profile-toolbar .user-box-clean{gap:7px}body .layout.theme-shell .topbar .profile-toolbar .user-name{font-size:.8rem}}
+
+/* Continue the dashboard canvas behind the brand; retain the photo hero and toolbar. */
+body .layout.theme-shell > .main:has(.workshop-panorama) > .topbar{background:transparent;backdrop-filter:none}
+body .layout.theme-shell > .main:has(.workshop-panorama) > .topbar::before,
+body .layout.theme-shell > .main:has(.workshop-panorama) > .topbar::after{display:none}
+/* Muted solid queue chips match the approved reference, without bright fills. */
+body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-green{background:#12334b;color:#b7cede}
+body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-orange{background:#403b25;color:#d8cd93}
+body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-purple{background:#30264d;color:#c6b8e0}
+body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-red{background:#472636;color:#dbb0b8}
