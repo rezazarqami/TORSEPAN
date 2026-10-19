@@ -21,6 +21,7 @@
         }
     </div>
 </section>
+<div class="navy-workspace-page navy-orders">
 <nav class="order-tabs" aria-label="بخش‌های سفارش">
     <button class="@(_tab == "list" ? "active" : "")" aria-pressed="@(_tab == "list")" @onclick='() => _tab = "list"'><strong>سفارش‌های نهایی</strong><b>@_orders.Count(x => !x.IsDraft)</b></button>
     <button class="@(_tab == "new" ? "active" : "")" aria-pressed="@(_tab == "new")" @onclick='() => _tab = "new"'><span>+</span><strong>ساخت سفارش</strong></button>
@@ -185,6 +186,8 @@ else
 }
 <AppConfirmDialog IsOpen="@(_finalizeOrder is not null)" Title="تأیید نهایی سفارش" Message="@FinalizeMessage" ConfirmText="تأیید و ثبت سفارش" Busy="@_saving" Error="@_finalizeError" OnConfirm="FinalizeAsync" OnCancel="CancelFinalize" />
 <AppConfirmDialog IsOpen="@(_deleteOrder is not null)" Title="حذف سفارش" Message="@DeleteMessage" ConfirmText="حذف سفارش" Danger="true" Busy="@_deleting" Error="@_deleteError" OnConfirm="DeleteAsync" OnCancel="CloseDelete" />
+
+</div>
 
 @code {
     private const int InstrumentScaleUsage = (int)(ScaleUsage.Handpan | ScaleUsage.CustomHandpan);
