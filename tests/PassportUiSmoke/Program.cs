@@ -63,6 +63,12 @@ await renderer.Dispatcher.InvokeAsync(async () =>
         Check(linkedHtml.Contains("سفارش امید همدانی") && linkedHtml.IndexOf("passport-order") > linkedHtml.IndexOf("passport-scale") &&
             linkedHtml.IndexOf("passport-order") > linkedHtml.IndexOf("passport-status"), "linked passport retains customer after technical details for type " + type);
     }
+    foreach (var stage in new[] { 2, 4, 8, 10, 12 })
+    {
+        var stageView = await renderer.RenderComponentAsync<PassportPreview>(ParameterView.FromDictionary(new Dictionary<string, object?> { [nameof(PassportPreview.Stage)] = stage }));
+        var stageHtml = WebUtility.HtmlDecode(stageView.ToHtmlString());
+        Check(!stageHtml.Contains("<select class=" + '"' + "form-select" + '"' + ">") && stageHtml.Contains("compact-picker-trigger"), "stage uses themed picker: " + stage);
+    }
     navigation.Set("/sales");
     Check((await renderer.RenderComponentAsync<GlobalProductionSearch>()).ToHtmlString().Contains("بررسی مرحله"), "global search retained on other pages");
     if (Environment.GetEnvironmentVariable("PASSPORT_PREVIEW_PATH") is { } path) await File.WriteAllTextAsync(path, view.ToHtmlString());
@@ -72,6 +78,7 @@ await renderer.Dispatcher.InvokeAsync(async () =>
         var bowlHtml = WebUtility.HtmlDecode(bowlView.ToHtmlString());
         Check(bowlHtml.Contains("BOWL ID") && bowlHtml.Contains("passport-primary-info") && bowlHtml.Contains("کد کاسه") && bowlHtml.Contains("SS-00090"), "loose bowl uses the same branded blue passport card");
         Check(bowlHtml.Contains(type == 1 ? "کاسه رو" : "کاسه زیر") && !bowlHtml.Contains("کاسه بالا") && !bowlHtml.Contains("production-highlights"), "bowl type labels are explicit and legacy highlights removed");
+        Check(bowlHtml.Contains("handpan-no-photo.png") && bowlHtml.Contains("بدون عکس") && !bowlHtml.Contains("gallery-upload-actions"), "loose bowl placeholder has sample photo and no upload controls");
         Check(bowlHtml.Contains("Scale") && bowlHtml.Contains("Design") && bowlHtml.Contains("passport-status"), "shared information rows include label separators");
         if (Environment.GetEnvironmentVariable("PASSPORT_PREVIEW_PATH") is { } bowlPath) await File.WriteAllTextAsync(bowlPath + ".bowl-" + type + ".html", bowlView.ToHtmlString());
     }
@@ -80,6 +87,7 @@ await renderer.Dispatcher.InvokeAsync(async () =>
 static void Check(bool value, string message) { if (!value) throw new Exception(message); Console.WriteLine("PASS " + message); }
 public sealed class PassportPreview : Dimpling
 {
+    [Parameter] public int Stage { get; set; } = 18;
     [Parameter] public int BowlType { get; set; }
     [Parameter] public int? TopCount { get; set; } = 9;
     [Parameter] public int? BottomCount { get; set; } = 5;
@@ -87,7 +95,7 @@ public sealed class PassportPreview : Dimpling
     [Parameter] public string? CustomerName { get; set; }
     protected override Task OnInitializedAsync()
     {
-        var record = new DimpleBowlDto { OrderCustomerName = CustomerName, HandpanId = Guid.NewGuid(), HandpanCode = "855", BottomBowlCode = "196", BottomDesignName = "اسیدی", DesignName = "ساده", ScaleName = ScaleTitle, TopNoteCount = TopCount, BottomNoteCount = BottomCount, IsHandpanScale = true, Stage = 18 };
+        var record = new DimpleBowlDto { OrderCustomerName = CustomerName, HandpanId = Guid.NewGuid(), HandpanCode = "855", BottomBowlCode = "196", BottomDesignName = "اسیدی", DesignName = "ساده", ScaleName = ScaleTitle, TopNoteCount = TopCount, BottomNoteCount = BottomCount, IsHandpanScale = true, Stage = Stage };
         if (BowlType != 0)
         {
             record.HandpanId = null; record.HandpanCode = ""; record.ProductionCode = "SS-00090";

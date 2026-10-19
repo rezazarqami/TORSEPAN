@@ -560,3 +560,14 @@
  .production-passport-page.luxury-passport-page.luxury-passport-page .passport-scale strong{font-size:.8rem}
  .production-passport-page.luxury-passport-page.luxury-passport-page .passport-timeline-row{grid-template-columns:84px minmax(0,1fr) 61px;gap:4px}
 }
+
+/* Compact search and the same honest placeholder for unassembled bowls. */
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-search-label{font-size:.82rem;margin-bottom:8px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-search{gap:8px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-search :is(input,.btn){min-height:44px!important;height:44px!important;padding:8px 13px!important;font-size:.86rem!important;border-radius:12px!important}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-search .btn{min-width:88px!important}
+.production-passport-page.luxury-passport-page.luxury-passport-page .bowl-no-photo{position:relative;display:block;padding:0;overflow:hidden;min-height:230px;height:100%}
+.bowl-no-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:34% center}
+.production-passport-page.luxury-passport-page.luxury-passport-page .bowl-no-photo strong{position:absolute;inset:auto 0 0;padding:30px 8px 16px;background:linear-gradient(transparent,#001329e8);color:#fff;text-align:center;font-size:1rem;text-shadow:0 2px 4px #000}
+/* Never tile the single decorative arrow on remaining native selects. */
+.production-passport-page select.form-select{background-repeat:no-repeat!important;background-size:16px 12px!important;background-position:left 12px center!important}
