@@ -23,14 +23,11 @@
         <div class="bowl-fields">
             <label class="field-card">
                 <span class="field-title"><b>۱</b> متریال</span>
-                <InputSelect class="form-select" @bind-Value="_model.MaterialId" @bind-Value:after="RefreshSuggestionAsync">
-                    <option value="@Guid.Empty">متریال را انتخاب کنید</option>
-                    @foreach(var material in _materials){<option value="@material.Id">@material.Name</option>}
-                </InputSelect>
+                <CompactPicker TValue="Guid" @bind-Value="_model.MaterialId" @bind-Value:after="RefreshSuggestionAsync" Options="MaterialOptions" Title="انتخاب متریال" />
             </label>
             <label class="field-card">
                 <span class="field-title"><b>۲</b> نوع کاسه</span>
-                <InputSelect class="form-select" @bind-Value="_model.BowlType" @bind-Value:after="RefreshSuggestionAsync"><option value="1">کاسه رو</option><option value="2">کاسه زیر</option></InputSelect>
+                <CompactPicker TValue="int" @bind-Value="_model.BowlType" @bind-Value:after="RefreshSuggestionAsync" Options="BowlTypeOptions" Title="نوع کاسه" />
             </label>
         </div>
 
@@ -70,6 +67,8 @@
 </EditForm>
 
 @code {
+    private (Guid Value, string Text)[] MaterialOptions => new[] { (Guid.Empty, "متریال را انتخاب کنید") }.Concat(_materials.Select(x => (x.Id, x.Name))).ToArray();
+    private static readonly (int Value, string Text)[] BowlTypeOptions = [(1, "کاسه رو"), (2, "کاسه زیر")];
     private readonly CreateBowlRequest _model=new(); private readonly List<MaterialDto> _materials=[];
     private string? _error; private string _lastCode="—",_suggestedCode="",_template=""; private bool _refreshing,_saving;
     protected override async Task OnInitializedAsync(){_model.HasNotes=true;_model.BowlType=1;_model.InstrumentType=1;_materials.AddRange((await MaterialService.GetAsync()).Where(x=>x.Category==4));_model.ProductionCode="";}
