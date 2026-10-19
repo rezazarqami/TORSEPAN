@@ -9,6 +9,7 @@
     <div class="design-hero-art" aria-hidden="true"></div>
     <div class="design-hero-copy"><span dir="ltr">DESIGN STUDIO</span><h1 id="design-title">ثبت دیزاین</h1></div>
 </section>
+<div class="navy-workspace-page navy-designs">
 <div class="design-layout" dir="rtl">
  @if (_canManage)
  {
@@ -89,6 +90,8 @@
  }
 </div>
 @if (_confirm) { <div class="design-confirm-overlay" role="presentation" @onclick="() => { if (!_busy) _confirm=false; }"><section class="design-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="design-confirm-title" dir="rtl" @onclick:stopPropagation><div class="confirm-symbol">✓</div><h3 id="design-confirm-title">@_confirmTitle</h3><p>@_confirmText</p><div class="confirm-actions"><button class="btn btn-outline-secondary" disabled="@_busy" @onclick="() => _confirm=false">انصراف</button><button class="btn btn-success" disabled="@_busy" @onclick="ConfirmAsync">@(_busy?"در حال ثبت…":"تأیید و ثبت")</button></div></section></div> }
+
+</div>
 
 @code {
  private List<DesignTypeDto> _types=[]; private List<DesignUserDto> _users=[]; private readonly Dictionary<Guid,DesignSelection> _selections=[]; private readonly Dictionary<Guid,decimal> _rates=[],_exportRates=[]; private readonly Dictionary<Guid,string> _names=[];
