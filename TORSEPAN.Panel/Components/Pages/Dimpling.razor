@@ -119,9 +119,10 @@
                         <div class="passport-bottom-code"><span>نوع کاسه</span><strong>@BowlTypeText(_bowl.BowlType)</strong></div>
                     }
                 </div>
-                <div class="passport-info-line passport-scale"><span class="passport-feature-icon"><PassportIcon Kind="music" /></span><div><small>Scale</small><strong dir="auto">@_bowl.ScaleName</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
+                <div class="passport-info-line passport-scale"><span class="passport-feature-icon"><PassportIcon Kind="music" /></span><div><small>Scale</small><strong dir="auto">@PassportScaleTitle</strong>
+                    @if (isHandpan) { <span class="passport-note-breakdown" dir="ltr" aria-label="@($"نت کاسه رو: {_bowl.TopNoteCount?.ToString() ?? "نامشخص"}؛ نت کاسه زیر: {_bowl.BottomNoteCount?.ToString() ?? "نامشخص"}")">(@(_bowl.TopNoteCount?.ToString() ?? "نامشخص")+@(_bowl.BottomNoteCount?.ToString() ?? "نامشخص"))</span> }
+                </div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
                 <div class="passport-info-line"><span class="passport-feature-icon"><PassportIcon Kind="design" /></span><div><small>Design</small><strong dir="auto">@_bowl.DesignName</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
-                <div class="passport-info-line"><span class="passport-feature-icon"><PassportIcon Kind="notes" /></span><div><small>تعداد نت</small><strong>@(_bowl.IsHandpanScale ? $"نت رو: {_bowl.TopNoteCount?.ToString() ?? "نامشخص"} · نت زیر: {_bowl.BottomNoteCount?.ToString() ?? "نامشخص"}" : _bowl.NoteCount?.ToString() ?? "نامشخص")</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
                 <div class="passport-info-line passport-status"><span class="passport-feature-icon"><PassportIcon Kind="status" /></span><div><small>وضعیت <i class="passport-status-dot"></i></small><strong>@StageText(_bowl.Stage)</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
                 @if (!string.IsNullOrWhiteSpace(_bowl.OrderCustomerName)) { <div class="passport-info-line passport-order"><strong>سفارش @_bowl.OrderCustomerName</strong></div> }
 
@@ -466,6 +467,20 @@
 
 @code {
     private bool _showAllHistory;
+    private string PassportScaleTitle
+    {
+        get
+        {
+            if (_bowl is null) return string.Empty;
+            if (string.IsNullOrWhiteSpace(_bowl.HandpanCode) || _bowl.TopNoteCount is not int top || _bowl.BottomNoteCount is not int bottom)
+                return _bowl.ScaleName;
+            var name = System.Text.RegularExpressions.Regex.Replace(_bowl.ScaleName, @"\s*[—–-]\s*تعداد نت نامشخص\s*$", "");
+            var family = TORSEPAN.Domain.Entities.ScaleFamilyNames.Parse(name).FamilyName;
+            return string.IsNullOrWhiteSpace(family) || family is "نامشخص" or "تعیین نشده" or "بدون اسکیل"
+                ? $"{top + bottom} نت" : $"{family} {top + bottom}";
+        }
+    }
+
     private static string StageActionTitle(int stage) => stage switch { 2 => "ثبت دیمپل", 4 => "ثبت شیپ", 6 => "ثبت پخت", 8 => "ثبت تیون", 10 => "ثبت چسب", 11 => "خروج از اتاق چسب", 12 => "ثبت فاین تیون", 14 => "ثبت کنترل کیفیت", 16 => "ثبت بسته‌بندی", 21 => "ثبت بسته‌بندی صادراتی", 18 or 20 or 22 => "پرونده و وضعیت ساز", _ => StageText(stage) };
     private static string HistoryIcon(int action) => action switch { 1 => "document", 2 => "dots", 3 => "hammer", 4 => "fire", 5 => "cube", 6 or 7 => "notes", 8 => "status", 9 => "cube", _ => "document" };
 
