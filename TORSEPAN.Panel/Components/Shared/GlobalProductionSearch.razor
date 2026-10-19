@@ -1,18 +1,24 @@
 @inject NavigationManager Navigation
-@if (!IsMessages && !IsDashboard && !IsBowlRegistration && !IsDesignRegistration && !IsMaterialInventory && !IsProductionPassport)
+@implements IDisposable
+@if (!IsExcluded)
 {
-<div class="card border-0 shadow-sm mb-4"><div class="card-body py-3"><div class="input-group">
-<input class="form-control" placeholder="کد کاسه یا ساز را وارد کنید" @bind="_code" @bind:event="oninput" @onkeydown="OnKeyDown" />
-<button class="btn btn-primary px-4" @onclick="Open">بررسی مرحله</button>
-</div></div></div>
+    <form class="global-production-search" role="search" aria-label="بررسی مرحلهٔ کاسه یا ساز" @onsubmit="Open" @onsubmit:preventDefault="true">
+        <input class="global-production-code" aria-label="کد کاسه یا ساز" placeholder="کد کاسه یا ساز را وارد کنید" @bind="_code" @bind:event="oninput" />
+        <button type="submit">بررسی مرحله</button>
+    </form>
 }
 @code {
- private bool IsProductionPassport => new[] { "/dimpling", "/production/process" }.Contains(new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/'), StringComparer.OrdinalIgnoreCase);
- private string _code=""; private bool IsDashboard => new Uri(Navigation.Uri).AbsolutePath == "/";
- private bool IsBowlRegistration => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/bowls/new", StringComparison.OrdinalIgnoreCase);
- private bool IsDesignRegistration => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/designs", StringComparison.OrdinalIgnoreCase);
- private bool IsMaterialInventory { get { var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/'); return path.Equals("/materials", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/warehouse/materials", StringComparison.OrdinalIgnoreCase) || path.Equals("/materials/new", StringComparison.OrdinalIgnoreCase); } }
- private bool IsMessages => new[] { "/my-activity", "/my-account" }.Contains(new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/'), StringComparer.OrdinalIgnoreCase) || new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals("/notifications", StringComparison.OrdinalIgnoreCase);
- private void Open(){if(!string.IsNullOrWhiteSpace(_code)) Navigation.NavigateTo($"/production/process?code={Uri.EscapeDataString(_code.Trim())}");}
- private void OnKeyDown(KeyboardEventArgs e){if(e.Key=="Enter") Open();}
+    private string _code = "";
+    private bool IsExcluded => new[] { "", "/dimpling", "/production/process", "/my-activity", "/my-account", "/notifications" }.Contains(new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/'), StringComparer.OrdinalIgnoreCase);
+    protected override void OnInitialized() => Navigation.LocationChanged += LocationChanged;
+    private void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        _code = "";
+        _ = InvokeAsync(StateHasChanged);
+    }
+    private void Open()
+    {
+        if (!string.IsNullOrWhiteSpace(_code)) Navigation.NavigateTo($"/production/process?code={Uri.EscapeDataString(_code.Trim())}");
+    }
+    public void Dispose() => Navigation.LocationChanged -= LocationChanged;
 }

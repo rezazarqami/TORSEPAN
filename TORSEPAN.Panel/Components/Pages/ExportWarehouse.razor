@@ -14,6 +14,7 @@
         <div class="hero-stats"><span>موجودی کل</span><strong>@_items.Count</strong></div>
     </div>
 </section>
+<div class="navy-workspace-page navy-warehouse navy-export">
 
 <nav class="warehouse-dashboard destination-picker" aria-label="مقصدهای انبار صادراتی">
     @foreach(var warehouse in Warehouses)
@@ -102,6 +103,8 @@ else
 }
 
 <AppConfirmDialog IsOpen="@(_deleteCandidate is not null)" Title="حذف کاسه صادراتی" Message="@DeleteMessage" ConfirmText="حذف برای همیشه" Error="@_deleteError" Busy="@_deleting" OnConfirm="ConfirmDeleteAsync" OnCancel="CancelDelete" />
+
+</div>
 
 @code {
     private List<ExportWarehouseItemDto> _items = [];
