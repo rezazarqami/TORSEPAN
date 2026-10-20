@@ -245,3 +245,16 @@ body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-green{b
 body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-orange{background:#403b25;color:#d8cd93}
 body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-purple{background:#30264d;color:#c6b8e0}
 body .layout.theme-shell .main .content .ready-queue .dashboard-code.age-red{background:#472636;color:#dbb0b8}
+
+/* Reference wordmark replaces only the logo/title region, within its existing height. */
+@font-face{font-family:"Torsepan Header";src:url('/fonts/Vazirmatn-Bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
+body .layout.theme-shell .topbar .topbar-left.wordmark-header{justify-content:flex-start;align-items:center;gap:0;padding-inline:20px 0}
+body .layout.theme-shell .topbar .wordmark-header .topbar-title-block{flex:0 1 auto;min-width:0;max-width:100%;text-align:right}
+body .layout.theme-shell .topbar .wordmark-header .page-title{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;margin:0;letter-spacing:0}
+body .layout.theme-shell .topbar .wordmark-header .page-title-main{font-family:"Torsepan Header","Vazirmatn",Tahoma,sans-serif;font-size:clamp(18px,2.2vw,28px);font-weight:700;line-height:1.5;letter-spacing:0;white-space:nowrap;color:#e8c88d;background:linear-gradient(110deg,#c79957 0%,#f6e5c0 50%,#e6c58a 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 1px 2px #0005)}
+body .layout.theme-shell .topbar .wordmark-header .page-title-brand{position:relative;display:block;width:100%;margin:0;padding-inline:26px;font:400 14px/1.4 Arial,sans-serif;letter-spacing:7px;color:#dfbd85;text-align:center;text-indent:7px}
+body .layout.theme-shell .topbar .wordmark-header .page-title-brand::before,
+body .layout.theme-shell .topbar .wordmark-header .page-title-brand::after{content:"";position:absolute;top:50%;width:22px;height:1px;background:linear-gradient(90deg,transparent,#dab66a,transparent);box-shadow:0 0 3px #e9bb5955}
+body .layout.theme-shell .topbar .wordmark-header .page-title-brand::before{left:0}
+body .layout.theme-shell .topbar .wordmark-header .page-title-brand::after{right:0}
+@media(max-width:768px){body .layout.theme-shell .topbar .topbar-left.wordmark-header{height:55px;padding-inline:12px 0}body .layout.theme-shell .topbar .wordmark-header .page-title{gap:3px}body .layout.theme-shell .topbar .wordmark-header .page-title-main{font-size:clamp(16px,4.4vw,21px)}body .layout.theme-shell .topbar .wordmark-header .page-title-brand{font-size:11.5px;letter-spacing:5.5px;text-indent:5.5px;padding-inline:25px}}
