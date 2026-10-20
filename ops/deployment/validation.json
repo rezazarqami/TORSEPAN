@@ -11,7 +11,7 @@
   "offline_publish": "PASS GitHub Actions 39445753896; packaged assets, browser tests, native tests and APK build succeeded",
   "staging": "isolated local Kestrel/SQLite end-to-end offline sync passed; GitHub isolated browser tests passed",
   "database_backup": "not required for this release by user instruction; no schema or data change",
-  "production_configuration": "cutover target: both GitHub connections on master, manual publication; verify live history after release",
+  "production_configuration": "cutover target: master is development source; both GitHub connections use current at the same tested master SHA, manual publication; verify live history after release",
   "candidate_published": true,
   "apk_artifact_id": 12277240794,
   "shared_ui_build_run": 39444818122,

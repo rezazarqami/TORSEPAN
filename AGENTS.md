@@ -3,13 +3,17 @@
 ## One source, two live services
 
 The approved 2026-10-20 consolidation uses `master` as the single integrated
-source for both products. Verify the actual source branch in Liara before every
+source for both products. `current` is a shared release pointer to an exact,
+tested master commit; it must never contain product-specific commits. It is
+used because Liara's branch picker exposes only an initial subset of this
+repository's many branches and does not list master for a new selection.
+Verify the actual source branch in Liara before every
 release; do not infer deployment from a GitHub push or a green workflow.
 
 | Product | Liara app | Runtime selector | Source |
 | --- | --- | --- | --- |
-| Panel | torsepan | TORSEPAN_SERVICE=panel | master |
-| API | torsepan-api | TORSEPAN_SERVICE=api | master |
+| Panel | torsepan | TORSEPAN_SERVICE=panel | current |
+| API | torsepan-api | TORSEPAN_SERVICE=api | current |
 
 The root `Dockerfile` builds both products into separate directories.
 `start-service.sh` selects the correct assembly using the already configured
@@ -37,7 +41,9 @@ short-lived and merge tested work into master once.
 3. Run meaningful affected-product tests before release. Build the root Docker
    image when deployment inputs change. The regular CI Docker matrix includes
    the unified runtime as well as the two dedicated recipes.
-4. Publish only the affected Liara app(s) from the tested master commit using
+4. Advance `current` once to the tested master commit using a non-forced ref
+   update with an expected previous SHA. Both products use the same source tree;
+   never cherry-pick or copy files to current. Publish only the affected app(s) using
    their GitHub integration's manual deployment control. The named
    `Dockerfile.panel`/`Dockerfile.api` and `liara.panel.json`/`liara.api.json`
    remain available for explicit CLI builds, with the correct --app and

@@ -69,16 +69,21 @@ not contain a production deployment step or any production credentials.
 
 ## Unified operational model
 
-Both services publish from `master`. Their existing `TORSEPAN_SERVICE` settings
+All development happens on `master`. Both services publish from `current`, a
+shared release pointer to the exact approved master commit, never a separately
+edited code branch. Their existing `TORSEPAN_SERVICE` settings
 select panel or API in the shared root image; no credentials or production data
 are moved. The root Dockerfile preserves product build options and uses Liara's
 NuGet mirror by default. CI overrides the package source with the upstream feed.
 Dedicated Dockerfiles remain available for explicit CLI builds.
 
 Disable direct automatic publication for both GitHub connections and keep the
-source branch set to master. After affected-product tests, use the selected
+source branch set to current. After affected-product tests, advance current
+once to the approved master commit and use the selected
 app's manual deployment control in Liara. This avoids publishing API for a
-panel-only change, without storing a new Liara account token in GitHub.
+panel-only change, without storing a new Liara account token in GitHub. The current pointer also
+avoids Liara's limited branch picker, which does not expose master after the
+repository accumulated more than 100 older branch names.
 
 The deployment classifier compares against each product's last verified deployed
 SHA. Panel changes also require offline/Android checks because the offline
