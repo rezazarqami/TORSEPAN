@@ -274,3 +274,11 @@ body .layout.theme-shell .main .content .navy-dashboard-panels .calendar-day.sel
 body .layout.theme-shell .main .content .navy-dashboard-panels .operation-chip{background:#0b2b45;color:#dce9f5;border-color:#31516d}
 body .layout.theme-shell .main .content .navy-dashboard-panels .operation-chip b{background:#173b56;color:#f1d391}
 body .layout.theme-shell .main .content .navy-dashboard-panels .monthly-table :is(table,th,td){--bs-table-bg:transparent;--bs-table-color:#dce9f5;--bs-table-border-color:#31516d;background:transparent;color:#dce9f5;border-color:#31516d}
+
+/* Hall inventory footer shares the navy dashboard surface, including its captions. */
+body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock{background:linear-gradient(135deg,#052640,#02192e);border:1px solid #385b78;color:#edf4fc;box-shadow:inset 0 1px 4px #c6e8ff12}
+body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock :is(.hall-stock-eyebrow,h5){color:#e8d19c}
+body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock :is(.hall-stock-heading p,.hall-stock-note){color:#b7cbdc}
+body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock .hall-stock-grid>div{background:#0a2a44;border:1px solid #31516d;box-shadow:none}
+body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock .hall-stock-grid dt{color:#d6e3ee}
+body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock .hall-stock-grid dd{color:#f1d390}

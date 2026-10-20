@@ -571,3 +571,7 @@
 .production-passport-page.luxury-passport-page.luxury-passport-page .bowl-no-photo strong{position:absolute;inset:auto 0 0;padding:30px 8px 16px;background:linear-gradient(transparent,#001329e8);color:#fff;text-align:center;font-size:1rem;text-shadow:0 2px 4px #000}
 /* Never tile the single decorative arrow on remaining native selects. */
 .production-passport-page select.form-select{background-repeat:no-repeat!important;background-size:16px 12px!important;background-position:left 12px center!important}
+
+/* Order names are text-only, not the icon/content/chevron grid used by other rows. */
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line.passport-order{display:block;direction:rtl;text-align:right;min-height:0;padding:10px 12px}
+.production-passport-page.luxury-passport-page.luxury-passport-page .passport-info-line.passport-order>strong{display:block;width:100%;min-width:0;max-width:100%;color:#edf4fc;font-size:.82rem;line-height:1.8;white-space:normal;word-break:normal;overflow-wrap:break-word;text-align:right}
