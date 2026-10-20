@@ -6,19 +6,30 @@ ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     NuGetAudit=false
 
 COPY ["TORSEPAN.API/TORSEPAN.API.csproj", "TORSEPAN.API/"]
+COPY ["TORSEPAN.Panel/TORSEPAN.Panel.csproj", "TORSEPAN.Panel/"]
 COPY ["TORSEPAN.Application/TORSEPAN.Application.csproj", "TORSEPAN.Application/"]
 COPY ["TORSEPAN.Domain/TORSEPAN.Domain.csproj", "TORSEPAN.Domain/"]
 COPY ["TORSEPAN.Infrastructure/TORSEPAN.Infrastructure.csproj", "TORSEPAN.Infrastructure/"]
 RUN dotnet restore "TORSEPAN.API/TORSEPAN.API.csproj" \
       --source "https://package-mirror.liara.ir/repository/nuget/index.json" \
       --disable-parallel
+RUN dotnet restore "TORSEPAN.Panel/TORSEPAN.Panel.csproj" \
+      --source "https://package-mirror.liara.ir/repository/nuget/index.json" \
+      --disable-parallel
 
 COPY TORSEPAN.API/ TORSEPAN.API/
+COPY TORSEPAN.Panel/ TORSEPAN.Panel/
 COPY TORSEPAN.Application/ TORSEPAN.Application/
 COPY TORSEPAN.Domain/ TORSEPAN.Domain/
 COPY TORSEPAN.Infrastructure/ TORSEPAN.Infrastructure/
 RUN dotnet publish "TORSEPAN.API/TORSEPAN.API.csproj" \
-      -c Release -o /app/publish --no-restore \
+      -c Release -o /app/publish/api --no-restore \
+      /p:UseAppHost=false \
+      /p:RunAnalyzers=false \
+      /p:DebugType=None \
+      /p:DebugSymbols=false
+RUN dotnet publish "TORSEPAN.Panel/TORSEPAN.Panel.csproj" \
+      -c Release -o /app/publish/panel --no-restore \
       /p:UseAppHost=false \
       /p:RunAnalyzers=false \
       /p:DebugType=None \
@@ -43,5 +54,6 @@ ENV ASPNETCORE_URLS=http://0.0.0.0:8080 \
     ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
 COPY --from=build /app/publish .
+COPY start-service.sh /app/start-service.sh
 USER $APP_UID
-ENTRYPOINT ["dotnet", "TORSEPAN.API.dll"]
+ENTRYPOINT ["/bin/sh", "/app/start-service.sh"]

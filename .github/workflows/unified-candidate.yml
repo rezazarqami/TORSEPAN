@@ -29,7 +29,9 @@ jobs:
       - name: Verify frozen live source and offline preservation
         run: python ops/deployment/verify_baseline.py
       - name: Verify service selection
-        run: python tests/deployment-impact.py
+        run: |
+          python tests/deployment-impact.py
+          python tests/service-entrypoint.py
       - name: Compile live panel and API with isolated build outputs
         run: |
           dotnet build TORSEPAN.Panel/TORSEPAN.Panel.csproj -c Release
@@ -42,3 +44,17 @@ jobs:
           dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --offline-only
       - name: Verify existing offline client behavior
         run: node android/tests-offline.cjs
+      - name: Build production image with both preserved products
+        run: docker build --file Dockerfile --tag torsepan-unified:check .
+      - name: Confirm image contains both apps and selects one at runtime
+        run: |
+          docker run --rm --entrypoint /bin/sh torsepan-unified:check -c 'test -f /app/api/TORSEPAN.API.dll && test -f /app/panel/TORSEPAN.Panel.dll'
+          docker run -d --name unified-panel-check -e TORSEPAN_SERVICE=panel torsepan-unified:check
+          trap 'docker rm -f unified-panel-check' EXIT
+          for attempt in $(seq 1 30); do
+            docker logs unified-panel-check > /tmp/panel-start.log 2>&1
+            if grep -q 'Now listening on:' /tmp/panel-start.log; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/panel-start.log
+          exit 1

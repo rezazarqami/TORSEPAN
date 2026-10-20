@@ -19,7 +19,7 @@ def classify(paths):
             targets.add('android')
         elif path in ('Dockerfile.panel', 'Dockerfile.panel.dockerignore', 'liara.panel.json'):
             targets.add('panel')
-        elif path in ('Dockerfile', '.dockerignore', 'liara.json', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', 'global.json', 'NuGet.Config', 'nuget.config') or path.startswith(('.github/workflows/', 'ops/deployment/')):
+        elif path in ('Dockerfile', 'start-service.sh', '.dockerignore', 'liara.json', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', 'global.json', 'NuGet.Config', 'nuget.config') or path.startswith(('.github/workflows/', 'ops/deployment/')):
             targets.update(('panel', 'api', 'android'))
         elif not path.startswith(('docs/', 'tests/')) and path not in ('AGENTS.md', 'README.md', '.gitignore', '.gitattributes'):
             # Unknown build inputs must be reviewed, never silently skipped.
