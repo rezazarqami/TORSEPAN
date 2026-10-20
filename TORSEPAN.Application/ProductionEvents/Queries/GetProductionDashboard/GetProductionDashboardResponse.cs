@@ -27,6 +27,7 @@ public sealed class GetProductionDashboardResponse
 
 public sealed class MonthlyUserOperationResponse
 {
+    public IReadOnlyList<string> Codes { get; set; } = [];
     public string UserName { get; set; } = string.Empty;
     public string Operation { get; set; } = string.Empty;
     public int Count { get; set; }
