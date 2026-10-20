@@ -337,8 +337,8 @@
                         { <div class="qc-export-options" role="group" aria-label="مقصد صادراتی">@foreach(var location in ExportLocations){<button type="button" aria-pressed="@(_exportWarehouseLocation==location.Id ? "true" : "false")" class="@ExportLocationClass(location.Id)" @onclick="()=>_exportWarehouseLocation=location.Id">@location.Name</button>}</div> }
                     </section>
                     <div class="qc-actions">
-                        <button class="btn btn-success" disabled="@(_loading || (_sendToExportWarehouse ? !_exportWarehouseLocation.HasValue : !_qualityWarehouseId.HasValue))" @onclick="ApproveQualityControlAsync">QC تأیید شد</button>
-                        <button class="btn btn-outline-danger" disabled="@_loading" @onclick="ShowQualityControlRejection">QC تأیید نشد</button>
+                        <button class="btn btn-success qc-approve" disabled="@(_loading || (_sendToExportWarehouse ? !_exportWarehouseLocation.HasValue : !_qualityWarehouseId.HasValue))" @onclick="ApproveQualityControlAsync">QC تأیید شد</button>
+                        <button class="btn btn-warning qc-reject" disabled="@_loading" @onclick="ShowQualityControlRejection">QC تأیید نشد</button>
                     </div>
 
                     @if (_showQcRejection)
