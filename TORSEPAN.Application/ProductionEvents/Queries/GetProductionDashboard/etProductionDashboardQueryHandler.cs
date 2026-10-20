@@ -37,7 +37,9 @@ public sealed class GetProductionDashboardQueryHandler
             .ToDictionary(x => x.Key, x => x.Max(e => e.EventDate));
         var events = allEvents.Where(x => x.EventDate >= monthStartUtc).ToList();
         var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Design, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune, ProductionAction.QualityCheck, ProductionAction.Packaging };
-        List<MonthlyUserOperationResponse> Summarize(IEnumerable<TORSEPAN.Domain.Entities.ProductionEvent> source) => source.Where(x => tracked.Contains(x.Action) &&
+        var bowlCodes = bowls.ToDictionary(x => x.Id, x => x.ProductionCode);
+        var handpanCodes = allHandpans.ToDictionary(x => x.Id, x => x.SerialNumber);
+        List<MonthlyUserOperationResponse> Summarize(IEnumerable<TORSEPAN.Domain.Entities.ProductionEvent> source, bool includeCodes = false) => source.Where(x => tracked.Contains(x.Action) &&
                                         !x.Description.StartsWith("NOTE:") &&
                                         x.Description != "Released from glue room")
             .GroupBy(x => new
@@ -61,13 +63,14 @@ public sealed class GetProductionDashboardQueryHandler
                     : x.Key.Action == ProductionAction.Design
                         ? x.Count()
                         : x.Count(),
+                Codes = includeCodes ? DailyOperationCodes.Build(x, bowlCodes, handpanCodes) : [],
                 DisplayOrder=x.Key.DisplayOrder
             })
             .Where(x => x.Count > 0)
             .OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ThenBy(x => x.Operation).ToList();
         var monthly = Summarize(events);
         var selectedStartUtc = DateTime.SpecifyKind(selectedTehran.AddHours(-3.5), DateTimeKind.Utc);
-        var daily = Summarize(allEvents.Where(x => x.EventDate >= selectedStartUtc && x.EventDate < selectedStartUtc.AddDays(1)));
+        var daily = Summarize(allEvents.Where(x => x.EventDate >= selectedStartUtc && x.EventDate < selectedStartUtc.AddDays(1)), includeCodes: true);
         var firstDay = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
 
         return new GetProductionDashboardResponse

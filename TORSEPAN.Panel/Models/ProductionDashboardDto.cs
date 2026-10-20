@@ -49,6 +49,7 @@ public sealed class ProductionDashboardDto
 
 public sealed class MonthlyUserOperationDto
 {
+    public List<string> Codes { get; set; } = [];
     public string UserName { get; set; } = string.Empty;
     public string Operation { get; set; } = string.Empty;
     public int Count { get; set; }

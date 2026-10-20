@@ -164,3 +164,9 @@
 .queue-refresh{display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .queue-refresh svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 @media(max-width:600px){.ready-queue{padding:9px;border-radius:14px}.ready-queue-summary{gap:7px}.ready-queue-summary strong{font-size:.8rem}.ready-queue-icon{width:23px;height:23px}.ready-queue-count{font-size:.77rem;min-width:28px;height:22px}.ready-queue-codes .queue-code-group,.ready-queue-codes .queue-code-list{gap:4px}}
+.daily-operation-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:8px;margin-top:7px}
+.daily-operation{min-width:0;padding:9px;border:1px solid #31516d;border-radius:12px;background:#05213b}
+.daily-operation .operation-chip{display:flex;justify-content:space-between}
+.daily-operation-codes{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;min-width:0}
+.daily-operation-codes bdi{padding:3px 7px;background:#12344e;color:#c9ddec;border-radius:6px;font:500 .72rem/1.5 Arial,sans-serif;overflow-wrap:anywhere;max-width:100%}
+.daily-operation-codes small{color:#adc2d5;font-size:.68rem}

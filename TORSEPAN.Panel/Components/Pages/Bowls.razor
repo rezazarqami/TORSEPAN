@@ -52,7 +52,7 @@ else if (_tab == "bowls")
                             <button type="button" class="card-expand" aria-label="@($"جزئیات و عملیات کاسه {bowl.ProductionCode}")" aria-expanded="@_expandedBowls.Contains(bowl.Id)" @onclick="() => ToggleBowlDetails(bowl.Id)">@(_expandedBowls.Contains(bowl.Id) ? "−" : "+")</button>
                             <strong class="card-code"><bdi dir="ltr">@bowl.ProductionCode</bdi></strong>
                             <small class="production-row-kind">@(bowl.BowlType == 1 ? "کاسه رو" : "کاسه زیر")</small>
-                            <span class="card-stage">@StageText(bowl.Stage)</span>
+                            <div class="production-row-info"><span class="card-stage">@StageText(bowl.Stage)</span><small class="production-row-scale">اسکیل: <bdi>@(string.IsNullOrWhiteSpace(bowl.ScaleName) ? "—" : bowl.ScaleName)</bdi></small></div>
                         </div>
                         @if (_expandedBowls.Contains(bowl.Id))
                         {
@@ -99,7 +99,7 @@ else
                             <button type="button" class="card-expand" aria-label="@($"جزئیات و عملیات ساز {handpan.SerialNumber}")" aria-expanded="@_expandedHandpans.Contains(handpan.Id)" @onclick="() => ToggleHandpanDetails(handpan.Id)">@(_expandedHandpans.Contains(handpan.Id) ? "−" : "+")</button>
                             <strong class="card-code"><bdi dir="ltr">@handpan.SerialNumber</bdi></strong>
                             <small class="production-row-kind">ساز</small>
-                            <span class="card-stage">@StageText(handpan.Stage)</span>
+                            <div class="production-row-info"><span class="card-stage">@StageText(handpan.Stage)</span><small class="production-row-scale">اسکیل: <bdi>@(string.IsNullOrWhiteSpace(handpan.ScaleName) ? "—" : handpan.ScaleName)</bdi></small></div>
                         </div>
                         @if (_expandedHandpans.Contains(handpan.Id))
                         {
