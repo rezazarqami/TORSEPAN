@@ -8,6 +8,8 @@
 @inject IUserService UserService
 
 <PageTitle>ویرایش اطلاعات تولید</PageTitle>
+<div class="navy-management-page">
+
 
 <section class="edit-hero theme-hero theme-page-intro">
     <div class="edit-hero-copy"><small>ابزار اختصاصی مدیر سیستم</small><h1>ویرایش شناسنامه تولید</h1><p>کد ساز یا کاسه را وارد کنید؛ اطلاعات در هر مرحله‌ای از تولید، انبار یا فروش قابل بازیابی است.</p></div>
@@ -77,6 +79,9 @@
 {
     <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>Scale‌ها، تعداد نوت کاسه‌ها، تاریخ و ساعت و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
 }
+
+
+</div>
 
 @code{
     [SupplyParameterFromQuery(Name = "code")] public string? InitialCode { get; set; }

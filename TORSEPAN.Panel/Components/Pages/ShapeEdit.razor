@@ -2,6 +2,8 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles="Administrator,Shaper")]
 @inject BowlService BowlService
 <PageTitle>ویرایش شیپ</PageTitle>
+<div class="navy-management-page">
+
 <section class="shape-edit-hero theme-hero theme-page-intro"><span>TORSEPAN / SHAPE</span><h1>ویرایش شیپ</h1><p>ثبت انجام‌دهندهٔ کشش، دورنوت و Edit برای شیپ‌های انجام‌شده</p></section>
 <form class="shape-search" @onsubmit="SearchAsync" @onsubmit:preventDefault="true"><label for="shape-code">کد ساز یا کاسه</label><div><input id="shape-code" class="form-control" @bind="_code" placeholder="مثلاً 850 یا SS-00086" disabled="@_busy" /><button class="btn btn-primary" type="submit" disabled="@_busy">@(_busy?"در حال بررسی…":"جست‌وجو")</button></div></form>
 @if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger" role="alert">@_error</div>}
@@ -13,6 +15,9 @@
  <div class="shape-parts">@foreach(var part in _parts){var saved=row.Contributors.FirstOrDefault(x=>x.Key==part.Key);<label><span>@part.Label</span>@if(saved is not null){<div class="shape-saved">توسط @saved.Name <small>ثبت‌شده</small></div>}else{<select class="form-select" disabled="@_busy" value="@Selection(row.EventId,part.Key)" @onchange="e=>Select(row.EventId,part.Key,e.Value?.ToString())"><option value="">ثبت نشده — بدون تغییر</option>@foreach(var user in _shapers){<option value="@user.Id">@(string.IsNullOrWhiteSpace(user.FullName)?user.UserName:user.FullName)</option>}</select>}</label>}</div>
  <footer><small>فقط موارد انتخاب‌شده به شناسنامه اضافه می‌شوند.</small><button class="btn btn-primary" disabled="@(_busy||!HasSelection(row.EventId))" @onclick="()=>SaveAsync(row)">ثبت انجام‌دهنده‌ها</button></footer></section>
 }
+
+</div>
+
 @code{
  private string _code="",_resolvedCode="";private bool _busy,_searched;private string? _error,_notice;private List<ShapeEditDto> _rows=[];private IReadOnlyList<ShaperDto> _shapers=[];private readonly Dictionary<(Guid,string),Guid> _selected=[];
  private readonly (string Key,string Label)[] _parts=[("Stretch","کشش"),("NoteArea","دورنوت"),("Edit","Edit")];

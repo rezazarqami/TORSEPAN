@@ -8,6 +8,8 @@
 @inject NavigationManager Navigation
 
 <PageTitle>محاسبه دستمزد تولید</PageTitle>
+<div class="navy-management-page">
+
 <PageHeader Title="محاسبه دستمزد تولید" SubTitle="محاسبه دستمزد اعضا بر اساس عملیات ثبت‌شده" />
 
 <nav class="payroll-sections" aria-label="بخش‌های دستمزد تولید">
@@ -197,6 +199,9 @@ else
                   Busy="@_confirmBusy"
                   OnConfirm="ConfirmAsync"
                   OnCancel="CloseConfirmation" />
+
+
+</div>
 
 @code {
     private PayrollDto _payroll = new();

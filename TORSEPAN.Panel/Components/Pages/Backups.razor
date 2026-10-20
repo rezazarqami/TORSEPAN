@@ -6,6 +6,8 @@
 @inject IJSRuntime JS
 
 <PageTitle>پشتیبان‌گیری | TORSEPAN</PageTitle>
+<div class="navy-management-page">
+
 <section class="backup-hero theme-hero theme-page-intro"><small>TORSEPAN</small><h1>پشتیبان‌گیری و آرشیو</h1><p>یک نسخه از اطلاعات فعلی کارگاه را روی دستگاه خود نگه دارید.</p></section>
 <div class="backup-options">
     <article><span class="backup-icon">↓</span><h2>بکاپ کامل همراه عکس‌ها</h2><p>تمام اطلاعات دیتابیس، عکس‌های ساز و پیش‌نمایش‌ها در یک فایل قابل بازیابی.</p><button class="btn btn-primary" disabled="@(_busy || _downloading)" @onclick='() => StartAsync("full")'>دریافت بکاپ کامل</button></article>
@@ -27,6 +29,9 @@
 }
 @if (_message is not null) { <p class="backup-error" role="alert">@_message</p> }
 <p class="backup-note">بکاپ شبانهٔ تلگرام مستقل است و همچنان بدون عکس ارسال می‌شود. PDF برای خواندن سوابق است؛ بازیابی نرم‌افزار با بکاپ کامل انجام می‌شود.</p>
+
+
+</div>
 
 @code {
     private Job? _job;

@@ -11,6 +11,8 @@
 @inject AuthenticationStateProvider AuthenticationState
 
 <PageTitle>کاربران</PageTitle>
+<div class="navy-management-page">
+
 
 <PageHeader Title="کاربران"
             SubTitle="فهرست اعضای کارگاه">
@@ -102,6 +104,9 @@
 <AppConfirmDialog IsOpen="@(_deleteUser is not null)" Title="حذف کاربر" Danger="true"
                   Message="@DeleteMessage" ConfirmText="حذف حساب کاربر" Busy="@_deleting" Error="@_deleteError"
                   OnConfirm="DeleteAsync" OnCancel="CancelDelete" />
+
+
+</div>
 
 @code
 {

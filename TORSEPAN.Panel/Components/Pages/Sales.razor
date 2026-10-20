@@ -9,6 +9,8 @@
 
 <style>.inline-add{display:grid;grid-template-columns:1fr auto;align-items:end;gap:7px}.inline-add .btn{min-height:44px;border-radius:11px;white-space:nowrap}</style>
 <PageTitle>فروش</PageTitle>
+<div class="navy-management-page">
+
 <section class="sales-hero sales-photo-hero theme-hero theme-page-intro" aria-labelledby="sales-title">
     <div class="sales-hero-art" aria-hidden="true"></div>
     <svg class="sales-hero-lines" viewBox="0 0 1000 500" preserveAspectRatio="none" aria-hidden="true"><path d="M340 170 C540 180 575 0 760 0"/><path d="M300 500 C480 380 565 410 710 500"/></svg>
@@ -155,6 +157,9 @@ else
     <footer><button class="btn btn-light" disabled="@_saving" @onclick="CloseEdit">انصراف</button><button class="btn btn-primary" disabled="@_saving" @onclick="SaveEdit">ذخیره تغییرات</button></footer>
 </section></div>
 }
+
+
+</div>
 
 @code{
     private List<SaleItemDto> _items=[];private List<TORSEPAN.Panel.Models.AccountingPartyDto> _parties=[];private readonly HashSet<Guid> _expanded=[];private readonly HashSet<Guid> _detailsLoading=[];private readonly HashSet<Guid> _detailErrors=[];private readonly HashSet<Guid> _rollingBack=[];private readonly Dictionary<Guid,WarehouseHandpanDto> _details=[];private bool _loading=true,_saving,_isExportSale;private int _saleSegment;private string _search="",_buyer="",_buyerPhone="",_destination="",_newSource="",_newReferrer="";private SaleItemDto?_editing;private SaleItemDto?_rollbackCandidate;private decimal?_price,_receivedAmount;private Guid?_partyId,_leadSourceId,_referrerId;private string?_editError;private string?_rollbackError;private SalesAttributionOptionsDto _attribution=new();

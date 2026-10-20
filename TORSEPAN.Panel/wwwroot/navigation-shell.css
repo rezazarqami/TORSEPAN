@@ -282,3 +282,120 @@ body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock :is(.
 body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock .hall-stock-grid>div{background:#0a2a44;border:1px solid #31516d;box-shadow:none}
 body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock .hall-stock-grid dt{color:#d6e3ee}
 body .layout.theme-shell .main .content .navy-dashboard-panels .hall-stock .hall-stock-grid dd{color:#f1d390}
+
+
+/* Remaining management pages share the existing navy canvas and surfaces.
+   Screen-only paint leaves printable reports and exported PDFs unchanged. */
+@media screen {
+body .layout.theme-shell > .main:has(.navy-management-page) {
+    position:relative; isolation:isolate; background:#00172b;
+}
+body .layout.theme-shell > .main:has(.navy-management-page)::before {
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:#00172b url('/images/production/passport-navy-gold.png') center top / cover no-repeat;
+}
+body .layout.theme-shell > .main:has(.navy-management-page) > .topbar {
+    background:transparent; backdrop-filter:none;
+}
+body .layout.theme-shell > .main:has(.navy-management-page) > .topbar::before,
+body .layout.theme-shell > .main:has(.navy-management-page) > .topbar::after { display:none; }
+body .layout.theme-shell > .main:has(.navy-management-page) > .content { background:transparent; }
+body .layout.theme-shell .main .content .navy-management-page {
+    min-width:0; color:#edf4fc;
+    --bs-body-color:#edf4fc; --bs-body-bg:#041d34;
+    --bs-border-color:#385b78; --bs-secondary-color:#adc2d5;
+}
+body .layout.theme-shell .main .content .navy-management-page > .row { margin-inline:0; }
+body .layout.theme-shell .main .content .navy-management-page :is(.card,.account-card,.payroll-calculation-card,.rate-manager,.registered-rates-panel,.payroll-analytics,.report-filter-card,.analytics-card,.result-card,.performance-card,.donut-card,.trend-chart,.edit-lookup,.identity-card,.edit-section,.scale-card,.event-card,.shape-search,.shape-edit-card,.backup-options>article,.backup-status,.edit-sale-dialog,.modal-content,.confirm-dialog,.app-confirm-dialog) {
+    background:linear-gradient(135deg,#03203bf2,#001329f5); color:#edf4fc;
+    border:1px solid #486c8b; box-shadow:inset 0 1px 4px #c6e8ff12,0 10px 24px #0003;
+}
+body .layout.theme-shell .main .content .navy-management-page .card { border:1px solid #486c8b!important; }
+body .layout.theme-shell .main .content .navy-management-page :is(h2,h3,h4,h5,h6,strong,b,label,legend,dt,dd) { color:#edf4fc; }
+body .layout.theme-shell .main .content .navy-management-page :is(p,small,.text-muted,.form-text,.empty-cell,.report-loading,.sold-detail-loading,.no-timed-operation,.backup-note,.due-field) { color:#adc2d5; }
+body .layout.theme-shell .main .content .navy-management-page .text-muted { color:#adc2d5!important; }
+body .layout.theme-shell .main .content .navy-management-page :is(.payroll-calculation-heading,.payroll-calculation-actions,.rate-manager-header,.rates-toggle,.shape-edit-card>header,.sales-collection-heading,.sales-stock-details,.untimed-operations,.marketing-activity-form,.party-item,.stage-filter,.rate-amount,.accounting-summary>div,.metric-row article,.user-analysis-grid article,.stock-grid article,.outflow-grid article,.sales-stock-item,.export-bowl-counts>div,.trend-summary>span) {
+    background:#07243e; color:#dce9f5; border-color:#31516d; box-shadow:none;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.card-header,.position-absolute.bg-white) {
+    background:#07243e!important; color:#edf4fc; border-color:#385b78!important;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.report-filter-card>header,.result-card>header,.performance-user,.edit-section>header,.edit-section>footer,.event-card,.shape-edit-card>footer,.edit-sale-dialog>header,.edit-sale-dialog>footer,.modal-header,.modal-footer,.untimed-operations,.marketing-activity-form) { border-color:#31516d; }
+body .layout.theme-shell .main .content .navy-management-page :is(.payroll-sections,.sales-segments) { background:transparent; border-color:#31516d; box-shadow:none; }
+body .layout.theme-shell .main .content .navy-management-page :is(.payroll-section-tab,.report-tab,.sales-segment) {
+    background:linear-gradient(135deg,#062640ed,#00172bf5); color:#c5d7e8;
+    border:1px solid #315674; box-shadow:inset 0 1px 4px #c6e8ff10;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.payroll-section-tab,.report-tab,.sales-segment).active,
+body .layout.theme-shell .main .content .navy-management-page :is(.party-item.active,.stage-filter:has(input:checked)) {
+    background:linear-gradient(110deg,#51452d88,#072542 75%);
+    color:#f8dda0; border-color:#b69b60; box-shadow:inset 0 1px 3px #f5dba222;
+}
+body .layout.theme-shell .main .content .navy-management-page .sales-segment.active::before { display:none; }
+body .layout.theme-shell .main .content .navy-management-page :is(.payroll-section-tab,.report-tab,.sales-segment).active :is(strong,b) { color:#f8dda0; }
+body .layout.theme-shell .main .content .navy-management-page :is(.section-icon,.report-tab>i,.sales-tier-count,.sales-segment strong.sales-tier-count,.backup-icon,.card-icon,.event-mark,.confirm-icon,.rate-manager-icon,.stage-pill,.operation-pill,.destination-pill,.sold-packaging span,.performance-user>span,.registered-rates-heading>span,.payroll-analytics header>span,.analytics-card>header>span,.result-card>header>span,.sales-collection-heading>span,.trend-head>span,.rates-toggle small,.stock-grid span) {
+    background:#173b56; color:#f3d78f; border-color:#3d5b75; box-shadow:none;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea,.form-control,.compact-picker-trigger,.multi-picker summary) {
+    background-color:#041d34!important; color:#f2f6fb!important;
+    border-color:#3d5b75!important; color-scheme:dark;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(input,textarea)::placeholder { color:#a5bbcf; opacity:1; }
+body .layout.theme-shell .main .content .navy-management-page :is(input[type=checkbox],input[type=radio]) { accent-color:#d9ba71; color-scheme:dark; }
+body .layout.theme-shell .main .content .navy-management-page :is(input,select,textarea):disabled { opacity:.65; }
+body .layout.theme-shell .main .content .navy-management-page :is(button,a,input,select,textarea,summary):focus-visible {
+    outline:2px solid #e5c77e; outline-offset:3px;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.btn-light,.btn-secondary,.btn-outline-secondary,.btn-outline-primary,.payroll-history,.payroll-performance,.secondary-button,.app-confirm-cancel,.sales-stock-expand,.edit-sale-dialog header button,.pdf-button) {
+    background:#123550; color:#e3effa; border-color:#3c5e7c;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.btn-primary,.run-report,.payroll-calculate,.save-button,.edit-search-controls button,.app-confirm-submit:not(.danger)) {
+    background:linear-gradient(110deg,#f8e3a2,#d2aa58); color:#09213b; border-color:#d5b66e;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.btn-primary,.run-report,.payroll-calculate,.save-button,.edit-search-controls button,.app-confirm-submit:not(.danger)):hover {
+    background:#f0d390; color:#09213b;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.btn-success) { background:#15523e; color:#d5f6e8; border-color:#438b70; }
+body .layout.theme-shell .main .content .navy-management-page :is(.btn-outline-success) { background:#103b32; color:#b8efda; border-color:#438b70; }
+body .layout.theme-shell .main .content .navy-management-page :is(.btn-danger,.btn-outline-danger) { background:#542335; color:#ffc3c9; border-color:#a2596c; }
+body .layout.theme-shell .main .content .navy-management-page :is(.btn-warning,.btn-outline-warning) { background:#403b25; color:#f4dfa0; border-color:#97864e; }
+body .layout.theme-shell .main .content .navy-management-page :is(button,.btn):disabled { opacity:.45; }
+body .layout.theme-shell .main .content .navy-management-page :is(.multi-picker,.multi-picker>span,.filter-grid>label>span,.rate-field label,.stage-filter span,.sales-tier-text strong,.sales-stock-code,.sales-stock-scale,.sales-facts dd,.stock-grid strong,.stock-grid b,.outflow-grid span,.source-bars b,.timed-operation>strong,.donut-legend span,.donut-legend b,.donut span,.trend-labels span,.trend-summary b) { color:#dce9f5; }
+body .layout.theme-shell .main .content .navy-management-page :is(.multi-picker .picker-menu,.compact-picker-dialog) { background:#031c33; color:#edf4fc; border-color:#486c8b; }
+body .layout.theme-shell .main .content .navy-management-page :is(.multi-picker .picker-menu label:hover,.compact-picker-options button:hover) { background:#173b56; }
+body .layout.theme-shell .main .content .navy-management-page :is(.sales-stock-material,.sales-stock-date,.sales-facts dt,.source-bars span,.donut-legend em,.trend-head small,.shape-edit-card header span,.filter-grid>label>span,.rate-field label span,.rate-manager-header small,.edit-section header small,.identity-card small,.registered-rates-heading small,.payroll-calculation-heading small) { color:#adc2d5; }
+body .layout.theme-shell .main .content .navy-management-page :is(.rates-toggle:hover,.rates-toggle.open,.stage-filter:hover,.stage-filter:focus-within) { background:#123550; border-color:#b69b60; }
+body .layout.theme-shell .main .content .navy-management-page .rates-toggle strong { color:#f3d78f; }
+body .layout.theme-shell .main .content .navy-management-page :is(.table,.table thead,.table tbody,.table tr,.table th,.table td) {
+    --bs-table-bg:transparent; --bs-table-color:#dce9f5;
+    --bs-table-border-color:#31516d; --bs-table-striped-bg:#ffffff06;
+    --bs-table-striped-color:#edf4fc; --bs-table-hover-bg:#173b56;
+    --bs-table-hover-color:#edf4fc; --bs-table-accent-bg:transparent;
+    background-color:transparent; color:#dce9f5; border-color:#31516d;
+}
+body .layout.theme-shell .main .content .navy-management-page .table thead :is(th,td) { background:#0b2c46; color:#adc3d7; }
+body .layout.theme-shell .main .content .navy-management-page :is(.table-light,.table-success,.payroll-user-total) { background:#103b32!important; color:#b8efda; }
+body .layout.theme-shell .main .content .navy-management-page :is(.payroll-rates-table,.payroll-result-table tbody tr) { background:#05213b; border-color:#31516d; }
+body .layout.theme-shell .main .content .navy-management-page .payroll-number { background:#0b2b45!important; }
+body .layout.theme-shell .main .content .navy-management-page .payroll-line-total { background:#103b32!important; color:#b8efda; }
+body .layout.theme-shell .main .content .navy-management-page .payroll-number::before { color:#adc2d5; }
+body .layout.theme-shell .main .content .navy-management-page :is(.shape-saved,.timed-operation>span,.untimed-operations span,.trend-summary>span) { background:#0b2b45; color:#dce9f5; border-color:#31516d; }
+body .layout.theme-shell .main .content .navy-management-page .donut::after { background:#05213b; }
+body .layout.theme-shell .main .content .navy-management-page .metric-row article::after { background:#173b56; }
+body .layout.theme-shell .main .content .navy-management-page .grid-line { stroke:#31516d; }
+body .layout.theme-shell .main .content .navy-management-page .trend-line { stroke:#7fc4df; }
+body .layout.theme-shell .main .content .navy-management-page .trend-dot { fill:#05213b; stroke:#7fc4df; }
+body .layout.theme-shell .main .content .navy-management-page .line-stage text { fill:#dce9f5; }
+body .layout.theme-shell .main .content .navy-management-page .source-track { background:#173b56; }
+body .layout.theme-shell .main .content .navy-management-page .source-track i { background:linear-gradient(90deg,#d2aa58,#f8e3a2); }
+body .layout.theme-shell .main .content .navy-management-page :is(.alert-info,.alert-light) { background:#0b2b45; color:#c8d9e9; border-color:#385b78; }
+body .layout.theme-shell .main .content .navy-management-page :is(.alert-success,.rate-success,.report-message.success,.edit-message.success) { background:#0e3b32; color:#b8efda; border-color:#438b70; }
+body .layout.theme-shell .main .content .navy-management-page :is(.alert-warning) { background:#403b25; color:#f4dfa0; border-color:#97864e; }
+body .layout.theme-shell .main .content .navy-management-page :is(.alert-danger,.backup-error,.edit-error,.app-confirm-error,.report-message.error,.edit-message.error) { background:#442132; color:#ffbfc4; border-color:#a2596c; }
+body .layout.theme-shell .main .content .navy-management-page :is(.alert,.report-message,.edit-message,.app-confirm-error) :is(p,small,strong,b) { color:inherit; }
+body .layout.theme-shell .main .content .navy-management-page :is(.positive,.up,.text-success,.warranty-status.active) { color:#b8efda!important; }
+body .layout.theme-shell .main .content .navy-management-page :is(.negative,.down,.text-danger,.warranty-status.inactive) { color:#ffbfc4!important; }
+body .layout.theme-shell .main .content .navy-management-page .warranty-status.active { background:#0e3b32; }
+body .layout.theme-shell .main .content .navy-management-page .warranty-status.inactive { background:#442132; }
+body .layout.theme-shell .main .content .navy-management-page .theme-page-intro p { color:#edf4ff; }
+}
