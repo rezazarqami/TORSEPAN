@@ -1,0 +1,85 @@
+name: Approved repository branch cleanup
+
+on:
+  push:
+    branches: [master]
+    paths: [.github/workflows/branch-cleanup.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: approved-branch-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Freeze all branch history before deletion
+        run: |
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*'
+          mkdir -p "$RUNNER_TEMP/branch-recovery"
+          git for-each-ref --format='%(refname) %(objectname) %(symref)' refs/remotes/origin > "$RUNNER_TEMP/branch-recovery/refs.txt"
+          git bundle create "$RUNNER_TEMP/branch-recovery/torsepan-before-cleanup.bundle" --all
+          git bundle verify "$RUNNER_TEMP/branch-recovery/torsepan-before-cleanup.bundle" > "$RUNNER_TEMP/branch-recovery/verification.txt" 2>&1
+      - name: Retain recovery archive outside the branch list
+        uses: actions/upload-artifact@v4
+        with:
+          name: torsepan-branch-recovery-${{ github.run_id }}
+          path: ${{ runner.temp }}/branch-recovery/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Delete obsolete branches after archive succeeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          RECOVERY_DIR: ${{ runner.temp }}/branch-recovery
+          KEEP_BRANCHES: master current
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error
+          from pathlib import Path
+          root=Path(os.environ['RECOVERY_DIR'])
+          keep=set(os.environ['KEEP_BRANCHES'].split())
+          assert 'master' in keep
+          frozen={}
+          for line in (root/'refs.txt').read_text().splitlines():
+              fields=line.split()
+              if len(fields)==2:
+                  name=fields[0].removeprefix('refs/remotes/origin/')
+                  frozen[name]=fields[1]
+          assert 'master' in frozen and 'current' in frozen
+          headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+          base='https://api.github.com/repos/'+os.environ['GH_REPOSITORY']
+          def call(route,method='GET'):
+              req=urllib.request.Request(base+route,headers=headers,method=method)
+              try:
+                  with urllib.request.urlopen(req) as response:
+                      raw=response.read()
+                      return json.loads(raw) if raw else None
+              except urllib.error.HTTPError as error:
+                  raise RuntimeError('GitHub request failed with status '+str(error.code)) from None
+          result={'kept':sorted(keep),'deleted':[],'changed_and_preserved':[]}
+          for branch,sha in sorted(frozen.items()):
+              if branch in keep: continue
+              suffix='/heads/'+urllib.parse.quote(branch,safe='')
+              current=call('/git/ref'+suffix)['object']['sha']
+              if current!=sha:
+                  result['changed_and_preserved'].append(branch)
+                  continue
+              call('/git/refs'+suffix,'DELETE')
+              result['deleted'].append(branch)
+          (root/'result.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps({'deleted':len(result['deleted']),'kept':result['kept'],'changed_and_preserved':result['changed_and_preserved']}))
+          assert not result['changed_and_preserved'],'Concurrent branch edits were preserved; review before declaring cleanup complete'
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: torsepan-cleanup-result-${{ github.run_id }}
+          path: ${{ runner.temp }}/branch-recovery/result.json
+          if-no-files-found: ignore
