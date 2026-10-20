@@ -1,0 +1,44 @@
+name: Verify unified live baseline
+
+on:
+  push:
+    branches: [prepare/unified-live-baseline-20261020]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'ops/deployment/**'
+      - 'tests/deployment-impact.py'
+      - '.github/workflows/unified-candidate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  preserve-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify frozen live source and offline preservation
+        run: python ops/deployment/verify_baseline.py
+      - name: Verify service selection
+        run: python tests/deployment-impact.py
+      - name: Compile live panel and API with isolated build outputs
+        run: |
+          dotnet build TORSEPAN.Panel/TORSEPAN.Panel.csproj -c Release
+          dotnet build TORSEPAN.API/TORSEPAN.API.csproj -c Release
+          dotnet publish TORSEPAN.Panel.Offline/TORSEPAN.Panel.Offline.csproj -c Release -p:WasmBuildNative=false
+      - name: Verify existing API behavior and UI
+        run: |
+          dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --export-workflow-only
+          dotnet run --project tests/PassportUiSmoke/PassportUiSmoke.csproj -c Release
+          dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --offline-only
+      - name: Verify existing offline client behavior
+        run: node android/tests-offline.cjs

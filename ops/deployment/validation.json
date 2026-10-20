@@ -1,0 +1,16 @@
+{
+  "panel_build": "pass; 3 pre-existing warnings",
+  "api_build": "pass; 13 pre-existing warnings",
+  "baseline_source_preservation": "pass",
+  "impact_tests": 6,
+  "export_checks": 17,
+  "offline_server_checks": 75,
+  "passport_ui_checks": 32,
+  "offline_javascript": "pass",
+  "production_ui_legacy": "fails obsolete hero assertion; Bowls.razor unchanged from live baseline",
+  "offline_publish": "blocked: local out-of-process MSBuild WebAssembly task host",
+  "staging": "not deployed",
+  "database_backup": "requested but archive not verified",
+  "production_configuration": "unchanged",
+  "candidate_published": false
+}

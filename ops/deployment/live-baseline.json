@@ -1,0 +1,42 @@
+{
+  "verified_at": "2026-10-20",
+  "repository": "rezazarqami/TORSEPAN",
+  "source": "Liara current deployment history, observed after authenticated sign-in",
+  "panel": {
+    "app": "torsepan",
+    "release": "v270",
+    "branch": "deploy-panel",
+    "sha": "a7efc5474fc94eb27a897992acb0dbfc02b7c3ba",
+    "image": "registry.c1.liara.ir/apps/6a7790794e2594c5a6671b14:uk3rjkdizgb3",
+    "dockerfile": "Dockerfile"
+  },
+  "api": {
+    "app": "torsepan-api",
+    "release": "v248",
+    "branch": "master",
+    "sha": "045668d5678be2a9e1c0e5fc71d55ae305b08e32",
+    "image": "registry.c1.liara.ir/apps/6a779e5b0c05b08a25ad56e6:2khutyp1aw5g",
+    "dockerfile": "Dockerfile"
+  },
+  "database_backup": {
+    "status": "requested_not_verified",
+    "provider": "Liara manual backup",
+    "database": "torsepan-db"
+  },
+  "production_cutover": false,
+  "offline_preserved_from": "045668d5678be2a9e1c0e5fc71d55ae305b08e32",
+  "offline_overrides": [
+    "Components/Layout/Sidebar.razor",
+    "Components/Pages/Backups.razor",
+    "Components/Pages/Dashboard.razor",
+    "Components/Pages/NewHandpan.razor",
+    "Components/Pages/PayrollTable.razor",
+    "Components/Pages/Reports.razor",
+    "Components/Shared/HandpanPhotoGallery.razor",
+    "wwwroot/handpan-photos.js",
+    "Components/Pages/Backups.razor.css",
+    "Components/Pages/Dashboard.razor.css",
+    "Components/Pages/Reports.razor.css",
+    "Components/Shared/HandpanPhotoGallery.razor.css"
+  ]
+}

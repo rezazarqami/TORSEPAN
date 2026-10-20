@@ -1,0 +1,109 @@
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+@inject HandpanPhotoService PhotoService
+@inject TORSEPAN.Panel.Services.ApiClient Api
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<section class="photo-gallery">
+    @if (_loading) { <div class="gallery-empty"><div class="spinner-border spinner-border-sm"></div></div> }
+    else if (_photos.Count == 0) {
+        <div class="gallery-empty gallery-photo-placeholder">
+            <img src="/images/production/handpan-no-photo.png" alt="تصویر نمونهٔ هنگ‌درام؛ این ساز هنوز عکس ندارد" />
+            <span class="gallery-no-photo-label">بدون عکس</span>
+        </div>
+    }
+    else
+    {
+        <button type="button" class="gallery-main" title="نمایش بزرگ عکس" @onclick="OpenPreview">@if(_mainUrl is not null){<img src="@_mainUrl" alt="عکس ساز" />}<span class="gallery-zoom-hint"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" /></svg></span></button>
+        <div class="gallery-thumbs">
+            @foreach(var photo in _photos)
+            {
+                <button type="button" class="gallery-thumb @(photo.Id==_selectedId?"selected":"")" @onclick="()=>SelectAsync(photo.Id)">
+                    @if(_thumbs.TryGetValue(photo.Id,out var url)){<img src="@url" alt="تصویر کوچک ساز" />}
+                    <span class="photo-delete" title="حذف عکس" @onclick:stopPropagation @onclick="()=>DeleteAsync(photo)">×</span>
+                </button>
+            }
+        </div>
+    }
+    <div class="gallery-upload-actions">
+        <label class="gallery-action" title="گرفتن عکس با دوربین">
+            <span>📷</span> <span data-camera-label>دوربین</span>
+            <input id="@CameraInputId" class="gallery-file-input" type="file" accept="image/*" capture="environment"
+                   data-handpan-id="@HandpanId" />
+        </label>
+        <label class="gallery-action" title="انتخاب از گالری">
+            <span>🖼️</span> <span data-gallery-label>گالری</span>
+            <input id="@GalleryInputId" class="gallery-file-input" type="file" multiple accept="image/*"
+                   data-handpan-id="@HandpanId" />
+        </label>
+    </div>
+    <div id="@(GalleryInputId + "-status")" class="small mt-2" role="status" aria-live="polite"></div>
+    <div id="@(CameraInputId + "-status")" class="small mt-2" role="status" aria-live="polite"></div>
+    @if(!string.IsNullOrWhiteSpace(_error)){<div class="text-danger small mt-2">@_error</div>}
+</section>
+@if(_showPreview && _mainUrl is not null)
+{
+    <div class="photo-preview-backdrop" role="presentation" @onclick="ClosePreview">
+        <div class="photo-preview-dialog" role="dialog" aria-modal="true" aria-label="نمایش بزرگ عکس ساز" @onclick:stopPropagation>
+            <button type="button" class="photo-preview-close" title="بستن" @onclick="ClosePreview">×</button>
+            <img src="@_mainUrl" alt="نمایش بزرگ عکس ساز" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid HandpanId { get; set; }
+    private readonly Dictionary<Guid,string> _thumbs=[]; private List<HandpanPhotoDto> _photos=[];
+    private Guid _loadedId,_selectedId; private string? _mainUrl,_error; private bool _loading,_showPreview;
+    private string GalleryInputId => $"handpan-photo-gallery-{HandpanId:N}";
+    private string CameraInputId => $"handpan-photo-camera-{HandpanId:N}";
+    private DotNetObjectReference<HandpanPhotoGallery>? _cameraReference;
+    private string? _registeredInput;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_registeredInput == CameraInputId) return;
+        if (_registeredInput is not null)
+        {
+            await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput);
+            await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput.Replace("camera", "gallery"));
+        }
+        _cameraReference ??= DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("handpanPhotos.register", CameraInputId, _cameraReference);
+        await JS.InvokeVoidAsync("handpanPhotos.register", GalleryInputId, _cameraReference);
+        _registeredInput = CameraInputId;
+    }
+    [JSInvokable]
+    public async Task LocalPhotoUploaded(Guid photoId){await LoadAsync();if(_photos.Any(x=>x.Id==photoId))await SelectAsync(photoId);}
+    [JSInvokable]
+    public Task<bool> RenewPhotoSession(string? failedAccessToken) =>
+        Api.RefreshAfterUnauthorizedAsync(failedAccessToken);
+    [JSInvokable]
+    public async Task CameraUploaded(Guid photoId)
+    {
+        await LoadAsync();
+        if (_error is not null || !_photos.Any(x => x.Id == photoId))
+            throw new InvalidOperationException("Gallery refresh has not completed.");
+        await SelectAsync(photoId);
+        await InvokeAsync(StateHasChanged);
+    }
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_registeredInput is not null)
+            {
+                await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput);
+                await JS.InvokeVoidAsync("handpanPhotos.unregister", _registeredInput.Replace("camera", "gallery"));
+            }
+        }
+        catch (JSDisconnectedException) { }
+        _cameraReference?.Dispose();
+    }
+    protected override async Task OnParametersSetAsync(){if(HandpanId==Guid.Empty||HandpanId==_loadedId)return;_loadedId=HandpanId;await LoadAsync();}
+    private async Task LoadAsync(){_loading=true;_error=null;try{_photos=await PhotoService.ListAsync(HandpanId);_thumbs.Clear();foreach(var p in _photos)_thumbs[p.Id]=await PhotoService.DataUrlAsync(HandpanId,p.Id,true);if(_photos.Count>0)await SelectAsync(_photos[0].Id);}catch{_error="بارگذاری عکس‌ها انجام نشد.";}finally{_loading=false;}}
+    private async Task SelectAsync(Guid id){_selectedId=id;_mainUrl=await PhotoService.DataUrlAsync(HandpanId,id,false);}
+    private void OpenPreview()=>_showPreview=true;
+    private void ClosePreview()=>_showPreview=false;
+    private async Task DeleteAsync(HandpanPhotoDto photo){if(!await JS.InvokeAsync<bool>("confirm","این عکس حذف شود؟"))return;await PhotoService.DeleteAsync(HandpanId,photo.Id);_photos.Remove(photo);_thumbs.Remove(photo.Id);if(_selectedId==photo.Id){_mainUrl=null;if(_photos.Count>0)await SelectAsync(_photos[0].Id);}}
+}

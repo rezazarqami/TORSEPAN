@@ -1,0 +1,112 @@
+@page "/handpans/new"
+
+@using TORSEPAN.Panel.Models
+@using TORSEPAN.Panel.Services.Api
+
+@inject HandpanService HandpanService
+@inject BowlService BowlService
+@inject NavigationManager Navigation
+
+<PageTitle>ثبت هنگدرام</PageTitle>
+<PageHeader Title="ثبت هنگدرام" SubTitle="انتخاب کاسه‌ها و ثبت ساز جدید" />
+
+
+
+@if (_loading)
+{
+    <div class="spinner-border"></div>
+}
+else
+{
+    <EditForm Model="_model"
+              OnValidSubmit="SaveAsync">
+
+        <DataAnnotationsValidator />
+
+        <ValidationSummary />
+
+        <div class="mb-3">
+
+            <label class="form-label">کاسه بالا</label>
+
+            <InputSelect class="form-select"
+                         @bind-Value="_model.TopBowlId">
+
+                <option value="@Guid.Empty">انتخاب کنید...</option>
+
+                @foreach (var bowl in _topBowls)
+                {
+                    <option value="@bowl.Id">
+                        @bowl.ProductionCode
+                    </option>
+                }
+
+            </InputSelect>
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">کاسه پایین</label>
+
+            <InputSelect class="form-select"
+                         @bind-Value="_model.BottomBowlId">
+
+                <option value="@Guid.Empty">انتخاب کنید...</option>
+
+                @foreach (var bowl in _bottomBowls)
+                {
+                    <option value="@bowl.Id">
+                        @bowl.ProductionCode
+                    </option>
+                }
+
+            </InputSelect>
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">Serial Number</label>
+
+            <InputText class="form-control"
+                       @bind-Value="_model.SerialNumber" />
+
+        </div>
+
+        <button class="btn btn-primary"
+                type="submit">
+            ثبت
+        </button>
+
+    </EditForm>
+}
+
+@code
+{
+    private readonly CreateHandpanRequest _model = new();
+
+    private readonly List<BowlDto> _topBowls = [];
+
+    private readonly List<BowlDto> _bottomBowls = [];
+
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var bowls = await BowlService.GetAsync();
+
+        _topBowls.AddRange(bowls.Where(x => x.BowlType == 1));
+        _bottomBowls.AddRange(bowls.Where(x => x.BowlType == 2));
+
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        var id = await HandpanService.CreateAsync(_model);
+
+        if (id.HasValue)
+            Navigation.NavigateTo("/handpans");
+    }
+}
