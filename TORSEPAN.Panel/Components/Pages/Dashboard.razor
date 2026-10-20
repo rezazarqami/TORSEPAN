@@ -41,7 +41,7 @@ else
         <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Calendar ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Calendar ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Calendar"><span aria-hidden="true"><ThemeIcon Name="calendar" /></span><strong>تقویم</strong></button>
         <button type="button" class="dashboard-tab @(_activeTab == DashboardTab.Performance ? "active" : "")" aria-current="@(_activeTab == DashboardTab.Performance ? "page" : null)" @onclick="() => _activeTab = DashboardTab.Performance"><span aria-hidden="true"><ThemeIcon Name="chart" /></span><strong>خلاصه عملکرد کاربران</strong></button>
     </nav>
-    <div class="dashboard-sections">
+    <div class="dashboard-sections navy-dashboard-panels">
     @if (_activeTab == DashboardTab.Queues)
     {
     <div class="queue-column">
@@ -151,7 +151,7 @@ else
                 {
                     @foreach(var user in DailyUsers)
                     {
-                        <div class="daily-user"><strong>@user.UserName</strong><div class="operation-list">@foreach(var op in user.Operations){<span class="operation-chip"><span>@op.Operation</span><b>@op.Count</b></span>}</div></div>
+                        <div class="daily-user"><strong>@user.UserName</strong><div class="daily-operation-list">@foreach(var op in user.Operations){<section class="daily-operation"><div class="operation-chip"><span>@op.Operation</span><b>@op.Count</b></div><div class="daily-operation-codes" aria-label="کدهای عملیات @op.Operation">@if(op.Codes.Count == 0){<small>کدها در دسترس نیست</small>}else{@foreach(var operationCode in op.Codes){<bdi dir="ltr">@operationCode</bdi>}}</div></section>}</div></div>
                     }
                 }
             </div>
