@@ -38,7 +38,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           RECOVERY_DIR: ${{ runner.temp }}/branch-recovery
-          KEEP_BRANCHES: master current
+          KEEP_BRANCHES: master
         run: |
           python3 - <<'PY'
           import os,json,urllib.request,urllib.parse,urllib.error
@@ -65,7 +65,7 @@ jobs:
                   raise RuntimeError('GitHub request failed with status '+str(error.code)) from None
           result={'kept':sorted(keep),'deleted':[],'changed_and_preserved':[]}
           for branch,sha in sorted(frozen.items()):
-              if branch in keep: continue
+              if branch in keep or branch != 'current': continue
               suffix='/heads/'+urllib.parse.quote(branch,safe='')
               current=call('/git/ref'+suffix)['object']['sha']
               if current!=sha:
