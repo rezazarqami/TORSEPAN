@@ -134,7 +134,9 @@ jobs:
             dockerfile: Dockerfile.api
           - name: panel
             dockerfile: Dockerfile.panel
+          - name: unified
+            dockerfile: Dockerfile
     steps:
       - uses: actions/checkout@v4
       - name: Build ${{ matrix.name }}
-        run: docker build --file "${{ matrix.dockerfile }}" --tag "torsepan-${{ matrix.name }}:check" .
+        run: docker build --build-arg TORSEPAN_NUGET_SOURCE=https://api.nuget.org/v3/index.json --file "${{ matrix.dockerfile }}" --tag "torsepan-${{ matrix.name }}:check" .

@@ -30,12 +30,12 @@
         <label class="gallery-action" title="گرفتن عکس با دوربین">
             <span>📷</span> <span data-camera-label>دوربین</span>
             <input id="@CameraInputId" class="gallery-file-input" type="file" accept="image/*" capture="environment"
-                   data-handpan-id="@HandpanId" />
+                   onchange="handpanPhotos.uploadCamera(this, '@HandpanId')" />
         </label>
         <label class="gallery-action" title="انتخاب از گالری">
             <span>🖼️</span> <span data-gallery-label>گالری</span>
             <input id="@GalleryInputId" class="gallery-file-input" type="file" multiple accept="image/*"
-                   data-handpan-id="@HandpanId" />
+                   onchange="handpanPhotos.uploadGallery(this, '@HandpanId')" />
         </label>
     </div>
     <div id="@(GalleryInputId + "-status")" class="small mt-2" role="status" aria-live="polite"></div>
@@ -73,8 +73,6 @@
         await JS.InvokeVoidAsync("handpanPhotos.register", GalleryInputId, _cameraReference);
         _registeredInput = CameraInputId;
     }
-    [JSInvokable]
-    public async Task LocalPhotoUploaded(Guid photoId){await LoadAsync();if(_photos.Any(x=>x.Id==photoId))await SelectAsync(photoId);}
     [JSInvokable]
     public Task<bool> RenewPhotoSession(string? failedAccessToken) =>
         Api.RefreshAfterUnauthorizedAsync(failedAccessToken);

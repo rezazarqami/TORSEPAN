@@ -1,0 +1,107 @@
+@inject IServiceProvider Services
+@inject IJSRuntime ThemeJS
+@inject IAuthService AuthenticationService
+@inject NavigationManager Navigation
+
+<nav class="sidebar-menu">
+
+    <NavLink href="/" Match="NavLinkMatch.All">
+        <span>🏠</span>
+        <span class="navigation-copy"><strong>داشبورد</strong><small>نمای کلی سیستم</small></span>
+    </NavLink>
+
+    <NavLink href="/bowls/new">
+        <span>🥣</span>
+        <span class="navigation-copy"><strong>ثبت کاسه</strong><small>افزودن کاسه جدید</small></span>
+    </NavLink>
+
+    <AuthorizeView>
+        <NavLink href="/orders">
+            <span>📝</span>
+            <span class="navigation-copy"><strong>ثبت سفارش</strong><small>مدیریت سفارش‌های مشتریان</small></span>
+        </NavLink>
+    </AuthorizeView>
+
+    <NavLink href="/bowls">
+        <span>⚙️</span>
+        <span class="navigation-copy"><strong>تولید</strong><small>مدیریت عملیات تولید</small></span>
+    </NavLink>
+
+    <NavLink href="/designs">
+        <span>🎨</span>
+        <span class="navigation-copy"><strong>دیزاین</strong><small>طراحی و الگوها</small></span>
+    </NavLink>
+
+    <AuthorizeView>
+    <NavLink href="/scales">
+        <span>🎵</span>
+        <span class="navigation-copy"><strong>Scale‌ها</strong><small>مدیریت و تنظیم اسکیل‌ها</small></span>
+    </NavLink>
+    </AuthorizeView>
+
+
+
+    <NavLink href="/warehouse/list">
+        <span>📦</span>
+        <span class="navigation-copy"><strong>انبار سازها</strong><small>مدیریت موجودی سازها</small></span>
+    </NavLink>
+
+    <NavLink href="/warehouse/materials">
+        <span>🧱</span>
+        <span class="navigation-copy"><strong>انبار مواد اولیه</strong><small>مدیریت مواد اولیه</small></span>
+    </NavLink>
+
+    <NavLink href="/warehouse/export">
+        <span>✈️</span>
+        <span class="navigation-copy"><strong>انبار صادراتی</strong><small>مدیریت سفارش‌های صادراتی</small></span>
+    </NavLink>
+
+    <AuthorizeView Roles="Administrator,Shaper">
+    <NavLink href="/admin/shape-edit"><span>✏️</span><span class="navigation-copy"><strong>ویرایش شیپ</strong><small>اصلاح و ویرایش شیپ</small></span></NavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Administrator">
+    <NavLink href="/backups"><span>💾</span><span class="navigation-copy"><strong>پشتیبان‌گیری</strong><small>تهیه نسخه پشتیبان</small></span></NavLink>
+    <NavLink href="/admin/production-edit">
+        <span>✏️</span>
+        <span class="navigation-copy"><strong>ویرایش</strong><small>ابزارهای ویرایش</small></span>
+    </NavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Administrator,ProductionManager,Marketer">
+    <NavLink href="/marketing"><span>📣</span><span class="navigation-copy"><strong>بازاریابی</strong><small>پیگیری فعالیت‌های بازاریابی</small></span></NavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin">
+    <NavLink href="/sales"><span>💰</span><span class="navigation-copy"><strong>فروش</strong><small>مدیریت فروش سازها</small></span></NavLink>
+    <NavLink href="/accounting"><span>🧾</span><span class="navigation-copy"><strong>حسابداری</strong><small>حساب‌ها و پرداخت‌ها</small></span></NavLink>
+
+    </AuthorizeView>
+    <AuthorizeView Roles="Administrator,ProductionManager">
+    <NavLink href="/users/list">
+        <span>👤</span>
+        <span class="navigation-copy"><strong>کاربران</strong><small>مدیریت کاربران</small></span>
+    </NavLink>
+
+    <NavLink href="/reports">
+        <span>📊</span>
+        <span class="navigation-copy"><strong>گزارش‌ها</strong><small>آمار و گزارش‌های کارگاه</small></span>
+    </NavLink>
+    <NavLink href="/reports/payroll"><span>🧮</span><span class="navigation-copy"><strong>دستمزد تولید</strong><small>محاسبه عملکرد و دستمزد</small></span></NavLink>
+    <NavLink href="/payroll/exclusions"><span>✅</span><span class="navigation-copy"><strong>دستمزدهای قبلاً محاسبه‌شده</strong><small>سوابق محاسبه دستمزد</small></span></NavLink>
+    </AuthorizeView>
+
+    @if (Services.GetService(typeof(ILocalDataRefresh)) is null) {<button type="button" class="sidebar-install" @onclick="InstallThemeAppAsync"><span aria-hidden="true">↓</span><span>نصب روی گوشی</span></button>}
+    <button type="button" class="sidebar-logout" disabled="@_loggingOut" @onclick="LogoutAsync"><span>↪</span><span>@(_loggingOut ? "در حال خروج…" : (Services.GetService(typeof(ILocalDataRefresh)) is null ? "خروج از سامانه" : "ورود به نسخهٔ وب"))</span></button>
+
+</nav>
+
+<div class="sidebar-footer">
+    TORSEPAN 2.8
+</div>
+
+@code {
+    private Task InstallThemeAppAsync() => ThemeJS.InvokeVoidAsync("torsepanPwa.install").AsTask();
+    private bool _loggingOut;
+    private async Task LogoutAsync(){if(_loggingOut)return;_loggingOut=true;await AuthenticationService.LogoutAsync();if(Services.GetService(typeof(ILocalDataRefresh)) is null)Navigation.NavigateTo("/login",true);_loggingOut=false;}
+}
