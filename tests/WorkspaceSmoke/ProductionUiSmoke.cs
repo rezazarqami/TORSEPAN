@@ -33,7 +33,7 @@ internal static class ProductionUiSmoke
         async Task<string> Render(Type type) => await renderer.Dispatcher.InvokeAsync(async () =>
             WebUtility.HtmlDecode((await renderer.RenderComponentAsync(type, ParameterView.Empty)).ToHtmlString()));
         var bowls = await Render(typeof(Bowls));
-        Check(bowls.Contains("PRODUCTION MANAGEMENT") && bowls.Contains("torsepan-mark-new.webp") && bowls.Contains("production-tabs"),
+        Check(bowls.Contains("production-photo-hero") && bowls.Contains("id=\"production-title\"") && bowls.Contains(">تولید</h1>") && bowls.Contains("production-tabs"),
             "production renders the branded hero and separate navigation tabs");
         Check(bowls.Contains("BOWL-FIXTURE") && !bowls.Contains("HANDPAN-FIXTURE") && bowls.Contains("production-card-grid"),
             "default tab displays compact bowl rows and hides instrument records");

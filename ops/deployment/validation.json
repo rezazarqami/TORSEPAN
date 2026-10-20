@@ -7,10 +7,13 @@
   "offline_server_checks": 75,
   "passport_ui_checks": 32,
   "offline_javascript": "pass",
-  "production_ui_legacy": "fails obsolete hero assertion; Bowls.razor unchanged from live baseline",
-  "offline_publish": "blocked: local out-of-process MSBuild WebAssembly task host",
-  "staging": "not deployed",
-  "database_backup": "requested but archive not verified",
+  "production_ui_legacy": "fixed stale hero expectation; all 11 checks pass without changing live UI",
+  "offline_publish": "PASS GitHub Actions 39445753896; packaged assets, browser tests, native tests and APK build succeeded",
+  "staging": "isolated local Kestrel/SQLite end-to-end offline sync passed; GitHub isolated browser tests passed",
+  "database_backup": "not required for this release by user instruction; no schema or data change",
   "production_configuration": "unchanged",
-  "candidate_published": false
+  "candidate_published": true,
+  "apk_artifact_id": 12277240794,
+  "shared_ui_build_run": 39444818122,
+  "offline_end_to_end": "PASS persisted queue, real API/SQLite, lost response, one replay, refreshed snapshot"
 }
