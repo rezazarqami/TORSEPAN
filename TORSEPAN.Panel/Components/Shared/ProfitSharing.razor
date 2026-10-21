@@ -1,26 +1,48 @@
 @inject ProfitSharingService ProfitService
 <section class="profit-sharing" aria-labelledby="profit-title">
- <header><div><small>حساب سهم اعضا</small><h2 id="profit-title">سهم سود اعضا</h2><p>سهم هر مرحله از سود خالص ثبت‌شده هنگام فروش محاسبه می‌شود.</p></div><button @onclick="Load" disabled="@_busy">به‌روزرسانی</button></header>
+ <header><div><small>حساب سهم اعضا</small><h2 id="profit-title">@(OwnAccount?"حساب سود من":"سهم سود اعضا")</h2><p>سهم هر مرحله از سود خالص ثبت‌شده هنگام فروش محاسبه می‌شود.</p></div><button @onclick="Load" disabled="@_busy">به‌روزرسانی</button></header>
  @if(_error is not null){<p role="alert" class="profit-error">@_error</p>}
  @if(_busy){<p role="status">در حال دریافت…</p>}
  else{
- <details class="profit-rules"><summary>تنظیم درصد مراحل <span>جمع: @_rules.Sum(x=>x.Percent)٪</span></summary><p>تغییر درصدها فقط برای فروش‌های بعدی است. سهم چند انجام‌دهندهٔ یک مرحله به‌طور مساوی تقسیم می‌شود؛ سهم مرحلهٔ بدون انجام‌دهنده منظور نمی‌شود.</p>
+ @if(!OwnAccount){
+ <details class="profit-rules" open><summary>تنظیم درصد مراحل @if(_rulesLoaded){<span>جمع: @_rules.Sum(x=>x.Percent)٪</span>}</summary>
+ @if(_rulesError is not null){<p role="alert" class="profit-error">@_rulesError</p>}
+ @if(_rulesLoaded){<p>تغییر درصدها فقط برای فروش‌های بعدی است. سهم چند انجام‌دهندهٔ یک مرحله به‌طور مساوی تقسیم می‌شود؛ سهم مرحلهٔ بدون انجام‌دهنده منظور نمی‌شود.</p>
  <div class="profit-rule-grid">@foreach(var rule in _rules){<label for="profit-rule-@rule.Action">@Title(rule.Action)<div><input id="profit-rule-@rule.Action" type="number" min="0" max="100" step="0.01" @bind="rule.Percent" /><span>٪</span></div></label>}</div>
- <button @onclick="SaveRules" disabled="@_saving">@(_saving?"در حال ذخیره…":"ذخیره درصدها")</button>@if(_saved){<span role="status"> درصدهای جدید ذخیره شد.</span>}</details>
- @if(_members.Count==0){<div class="profit-empty">هنوز سهم سودی ثبت نشده است. بعد از فروش ساز با «سود خالص»، حساب اعضای انجام‌دهنده اینجا نمایش داده می‌شود.</div>}
- else{<div class="profit-totals"><span>جمع تومان <strong>@_members.Sum(x=>x.Toman).ToString("N0")</strong></span><span>جمع دلار (USD) <strong>@_members.Sum(x=>x.Usd).ToString("N2")</strong></span></div>
- <div class="profit-member-grid">@foreach(var member in _members){<button class="profit-member" @onclick="()=>Open(member)"><strong>@member.Name</strong><small>@member.Instruments ساز</small><span>@member.Toman.ToString("N0") تومان</span><span>@member.Usd.ToString("N2") USD</span></button>}</div>}
+ <button @onclick="SaveRules" disabled="@(_saving || _rules.Any(x=>x.Percent<0||x.Percent>100) || _rules.Sum(x=>x.Percent)>100)">@(_saving?"در حال ذخیره…":"ذخیره درصدها")</button>@if(_saved){<span role="status"> درصدهای جدید ذخیره شد.</span>}
+ }</details>
+ }
+ @if(_membersError is not null){<p role="alert" class="profit-error">@_membersError</p>}
+ @if(_membersLoaded && _members.Count==0){<div class="profit-empty">هنوز عضوی در سامانه ثبت نشده است.</div>}
+ else if(_membersLoaded){<div class="profit-totals"><span>جمع تومان <strong>@_members.Sum(x=>x.Toman).ToString("N0")</strong></span><span>جمع دلار (USD) <strong>@_members.Sum(x=>x.Usd).ToString("N2")</strong></span></div>
+ <div class="profit-member-grid">@foreach(var member in _members){<button class="profit-member" @onclick="()=>Open(member)"><strong>@member.Name</strong><small>حساب مستقل · @member.Instruments ساز</small><span>@member.Toman.ToString("N0") تومان</span><span>@member.Usd.ToString("N2") USD</span></button>}</div>}
  @if(_selected is not null){<section class="profit-profile"><header><div><small>جزئیات حساب</small><h3>@_selected.Name</h3></div><button @onclick="()=>_selected=null">بستن</button></header><p>@_selected.Toman.ToString("N0") تومان · @_selected.Usd.ToString("N2") دلار</p>
- @if(_detailsLoading){<p role="status">در حال دریافت جزئیات…</p>}else{<div class="profit-entry-list">@foreach(var entry in _entries){<article class="@(entry.ReversedAt.HasValue?"profit-reversed":null)"><div><strong>ساز @entry.Code</strong><small>@Title(entry.Action) · سهم مرحله @entry.RolePercent٪</small><small>@PersianDateTime.FormatDateTime(entry.SoldAt)</small></div><div><strong>@entry.Amount.ToString(entry.Currency==2?"N2":"N0") @(entry.Currency==2?"USD":"تومان")</strong><small>سود مبنا: @entry.NetProfit.ToString(entry.Currency==2?"N2":"N0") @(entry.Currency==2?"USD":"تومان")</small>@if(entry.ReversedAt.HasValue){<small>برگشت / اصلاح فروش؛ از جمع خارج شده</small>}</div></article>}</div>}</section>}
+ @if(_detailsLoading){<p role="status">در حال دریافت جزئیات…</p>}else if(_detailsFailed){<p role="alert" class="profit-error">جزئیات حساب دریافت نشد؛ دوباره روی نام عضو بزنید.</p>}else if(_entries.Count==0){<p class="profit-empty">هنوز سودی به این حساب افزوده نشده است. با ثبت سود خالص فروش، سهم مراحل انجام‌شده خودکار به همین حساب اضافه می‌شود.</p>}else{<div class="profit-entry-list">@foreach(var entry in _entries){<article class="@(entry.ReversedAt.HasValue?"profit-reversed":null)"><div><strong>ساز @entry.Code</strong><small>@Title(entry.Action) · سهم مرحله @entry.RolePercent٪</small><small>@PersianDateTime.FormatDateTime(entry.SoldAt)</small></div><div><strong>@entry.Amount.ToString(entry.Currency==2?"N2":"N0") @(entry.Currency==2?"USD":"تومان")</strong><small>سود مبنا: @entry.NetProfit.ToString(entry.Currency==2?"N2":"N0") @(entry.Currency==2?"USD":"تومان")</small>@if(entry.ReversedAt.HasValue){<small>برگشت / اصلاح فروش؛ از جمع خارج شده</small>}</div></article>}</div>}</section>}
  }
  <p class="profit-note">این مبالغ سهم ثبت‌شده در حساب اعضاست؛ ثبت سهم به معنی پرداخت وجه نیست. تومان و دلار با هم جمع یا تبدیل نمی‌شوند. سهم فروش‌های آفلاین پس از همگام‌سازی نهایی می‌شود.</p>
 </section>
 @code{
+ [Parameter] public bool OwnAccount{get;set;}
+ private bool _rulesLoaded,_membersLoaded;private string? _rulesError,_membersError;
  private List<ProfitRuleDto> _rules=[];private List<ProfitMemberDto> _members=[];private List<ProfitEntryDto> _entries=[];private ProfitMemberDto? _selected;
- private bool _busy=true,_saving,_saved,_detailsLoading;private string? _error;
+ private bool _busy=true,_saving,_saved,_detailsLoading,_detailsFailed;private string? _error;
  protected override Task OnInitializedAsync()=>Load();
- private async Task Load(){_busy=true;_error=null;try{var rules=ProfitService.RulesAsync();var members=ProfitService.MembersAsync();await Task.WhenAll(rules,members);_rules=await rules;_members=await members;_selected=null;}catch{_error="دریافت حساب سود انجام نشد؛ دوباره تلاش کنید.";}finally{_busy=false;}}
- private async Task SaveRules(){_saving=true;_error=null;_saved=false;try{_rules=await ProfitService.SaveRulesAsync(_rules);_saved=true;}catch(OrderActionException e){_error=e.Message;}catch{_error="درصدها ذخیره نشدند؛ دوباره تلاش کنید.";}finally{_saving=false;}}
- private async Task Open(ProfitMemberDto member){_selected=member;_entries=[];_detailsLoading=true;_error=null;try{var entries=await ProfitService.MemberAsync(member.UserId);if(_selected?.UserId==member.UserId)_entries=entries;}catch{_error="جزئیات حساب دریافت نشد؛ دوباره روی نام عضو بزنید.";}finally{_detailsLoading=false;}}
+ private async Task Load(){
+  _busy=true;_error=null;_saved=false;_rulesError=_membersError=null;_rulesLoaded=_membersLoaded=false;_selected=null;_detailsFailed=false;
+  try{
+   if(OwnAccount){try{var own=await ProfitService.MineAsync();_members=[own.Account];_entries=own.Entries;_selected=own.Account;_membersLoaded=true;}catch(Exception e){_membersError=Failure(e,"حساب سود شما");}}
+   else await Task.WhenAll(LoadRules(),LoadMembers());
+  }finally{_busy=false;}
+ }
+ private async Task LoadRules(){try{var rules=await ProfitService.RulesAsync();if(rules.Count!=6||rules.Select(x=>x.Action).Distinct().Count()!=6||rules.Any(x=>!new[]{2,3,5,6,7,13}.Contains(x.Action)))throw new InvalidOperationException("Incomplete profit rules");_rules=rules;_rulesLoaded=true;}catch(Exception e){_rulesError=Failure(e,"درصد مراحل");}}
+ private async Task LoadMembers(){try{_members=await ProfitService.MembersAsync();_membersLoaded=true;}catch(Exception e){_membersError=Failure(e,"حساب اعضا");}}
+ private static string Failure(Exception error,string section)=>error switch{
+  HttpRequestException {StatusCode:System.Net.HttpStatusCode.NotFound}=>"بخش "+section+" در نسخه فعلی API موجود نیست؛ سرویس torsepan-api باید همراه پنل به‌روز شود.",
+  HttpRequestException {StatusCode:System.Net.HttpStatusCode.Unauthorized}=>"نشست ورود معتبر نیست؛ دوباره وارد حساب شوید.",
+  HttpRequestException {StatusCode:System.Net.HttpStatusCode.Forbidden}=>"اجازه مشاهده "+section+" را ندارید؛ نقش حساب را بررسی کنید.",
+  _=>"دریافت "+section+" انجام نشد؛ اتصال را بررسی و دوباره تلاش کنید."
+ };
+ private async Task SaveRules(){if(!_rulesLoaded||_saving)return;_saving=true;_error=null;_saved=false;try{_rules=await ProfitService.SaveRulesAsync(_rules);_saved=true;}catch(OrderActionException e){_error=e.Message;}catch{_error="درصدها ذخیره نشدند؛ دوباره تلاش کنید.";}finally{_saving=false;}}
+ private async Task Open(ProfitMemberDto member){_selected=member;_entries=[];_detailsLoading=true;_detailsFailed=false;_error=null;try{var entries=OwnAccount?(await ProfitService.MineAsync()).Entries:await ProfitService.MemberAsync(member.UserId);if(_selected?.UserId==member.UserId)_entries=entries;}catch{_detailsFailed=true;}finally{_detailsLoading=false;}}
  private static string Title(int action)=>action switch{2=>"دیمپل",3=>"شیپ",5=>"چسب",6=>"تیون",7=>"فاین‌تیون",13=>"دیزاین",_=>"عملیات"};
 }
