@@ -13,10 +13,25 @@ const server=http.createServer((req,res)=>{
  else file=path.join(root,url.pathname);
  try{const ext=path.extname(file);res.setHeader('Content-Type',({'.css':'text/css','.webp':'image/webp','.woff2':'font/woff2'})[ext]||'application/octet-stream');res.end(fs.readFileSync(file));}catch{res.writeHead(404);res.end();}
 });
-(async()=>{await new Promise(resolve=>server.listen(5188,'127.0.0.1',resolve));const browser=await chromium.launch({headless:true});const page=await browser.newPage();
+let browser;
+const watchdog=setTimeout(()=>{console.error('Inventory browser verification timed out');process.exit(1)},180000);
+(async()=>{
+try {
+ await new Promise(resolve=>server.listen(5188,'127.0.0.1',resolve));
+ const options={headless:true};
+ if(process.env.INVENTORY_CHROMIUM)options.executablePath=process.env.INVENTORY_CHROMIUM;
+ if(process.env.INVENTORY_CHROMIUM_ARGS)options.args=JSON.parse(process.env.INVENTORY_CHROMIUM_ARGS);
+ browser=await chromium.launch(options);const page=await browser.newPage();
+ page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(15000);
 for(const width of [360,384,412])for(const noReset of [false,true])for(const name of ['overview','management','supplies','create','design']){
  await page.setViewportSize({width,height:782});await page.goto(`http://127.0.0.1:5188/preview/${name}.html${noReset?"?no-reset=1":""}`);await page.evaluate(()=>document.fonts.ready);
- assert.equal(await page.locator(name==='design'?'.design-hero img':'.inventory-hero img').evaluate(e=>e.complete&&e.naturalWidth>0),true,'brand logo must load');
+ const art=page.locator(name==='design'?'.design-hero-art':'.materials-hero-art');
+ const artwork=await art.evaluate(async element=>{
+  const match=getComputedStyle(element).backgroundImage.match(/url\("?(.*?)"?\)/);
+  if(!match)return false;
+  const image=new Image();image.src=match[1];await image.decode();return image.naturalWidth>0;
+ });
+ assert(artwork,'current photo-header artwork must load');
  const bounds=await page.evaluate(()=>({width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,viewport:innerWidth}));
  assert(bounds.width<=bounds.viewport,`${name} at ${width}px must not scroll horizontally: ${JSON.stringify(bounds)}`);
  if(!noReset) assert(bounds.height <= (name === 'overview' ? 782 : 782*1.5),`${name} at ${width}px must fit within one and a half screens: ${JSON.stringify(bounds)}`);
@@ -25,4 +40,11 @@ for(const width of [360,384,412])for(const noReset of [false,true])for(const nam
  assert(Math.abs(hero.x-workspace.x)<=1&&Math.abs(hero.width-workspace.width)<=1,`hero must align with page cards ${name} ${width} reset=${!noReset}: ${JSON.stringify({hero,workspace})}`);
  assert(hero.x>=0&&hero.x+hero.width<=width,`hero must be fully visible ${name}`);
  await page.screenshot({path:path.join(out,`${name}-${width}${noReset?'-no-reset':''}.png`),fullPage:true});console.log('PASS layout',name,width,{...bounds,noReset,hero:hero.width,workspace:workspace.width});
-}await browser.close();server.close();})().catch(e=>{console.error(e);server.close();process.exitCode=1});
+}
+} finally {
+ if(browser)await browser.close();
+ server.closeAllConnections();
+ await new Promise(resolve=>server.close(resolve));
+ clearTimeout(watchdog);
+}
+})().catch(e=>{console.error(e);process.exitCode=1});

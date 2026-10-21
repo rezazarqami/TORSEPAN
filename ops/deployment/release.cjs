@@ -41,6 +41,9 @@ async function prepare({github,context,core}){
  if(branch.data.commit.sha!==head){core.setOutput('panel','false');core.setOutput('api','false');core.notice('Superseded source; latest master will release through its own successful CI.');return;}
  let ci;
  for(let attempt=0;attempt<60;attempt++){
+  // Release the serialized queue when a newer publication supersedes this source.
+  const latest=await github.rest.repos.getBranch({owner,repo,branch:'master'});
+  if(latest.data.commit.sha!==head){core.setOutput('panel','false');core.setOutput('api','false');core.notice('Source superseded while waiting for CI; latest master will release through its own CI.');return;}
   const runs=await github.paginate(github.rest.actions.listWorkflowRunsForRepo,{owner,repo,head_sha:head,event:'push',per_page:100});
   ci=checkRuns(runs);if(ci.ready)break;await delay(10000);
  }

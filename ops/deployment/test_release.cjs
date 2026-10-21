@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict');
-const {checkRuns,latestRuns,baseline}=require('./release.cjs');
+const {checkRuns,latestRuns,baseline,prepare}=require('./release.cjs');
 const build={event:'push',path:'.github/workflows/build.yml',name:'Build',run_number:2,run_attempt:1,status:'completed',conclusion:'success'};
 assert.equal(checkRuns([build]).ready,true);
 assert.equal(checkRuns([]).ready,false);
@@ -9,4 +9,12 @@ assert.throws(()=>checkRuns([build,{...build,path:'.github/workflows/profile.yml
 assert.equal(latestRuns([build,{...build,run_attempt:2,conclusion:'failure'}])[0].conclusion,'failure');
 const deployments=[{id:3,sha:'failed-sha',payload:{managed_by:'torsepan-selective-release-v1'}},{id:2,sha:'last-success',payload:{managed_by:'torsepan-selective-release-v1'}},{id:1,sha:'old',payload:{managed_by:'different-system'}}];
 const github={paginate:async()=>deployments,rest:{repos:{listDeployments(){},listDeploymentStatuses:async({deployment_id})=>({data:[{state:deployment_id===3?'failure':'success'}]})}}};
-(async()=>{assert.equal(await baseline(github,'owner','repo','panel'),'last-success');console.log('PASS CI success gate, cancelled/failed CI, retries, and retained baseline after failed deploy')})().catch(e=>{console.error(e);process.exitCode=1});
+(async()=>{
+ assert.equal(await baseline(github,'owner','repo','panel'),'last-success');
+ const head=require('node:child_process').execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+ let reads=0;const outputs={};
+ const changing={rest:{repos:{getBranch:async()=>({data:{commit:{sha:++reads===1?head:'newer-publication'}}})}},paginate:async()=>{throw new Error('Obsolete source must not wait for CI or deploy')}};
+ await prepare({github:changing,context:{repo:{owner:'owner',repo:'repo'}},core:{setOutput:(key,value)=>outputs[key]=value,notice:()=>{}}});
+ assert.deepEqual(outputs,{panel:'false',api:'false'});
+ console.log('PASS CI gate, failed-release baseline, and superseded source releases queue without deploying');
+})().catch(e=>{console.error(e);process.exitCode=1});

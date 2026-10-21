@@ -8,6 +8,7 @@ on:
 jobs:
   inventory-ui:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       INVENTORY_PREVIEW_DIR: ${{ github.workspace }}/inventory-previews
     steps:
