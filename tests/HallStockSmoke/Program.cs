@@ -65,7 +65,7 @@ Check(text.Contains("کاسه رو") && text.Contains("کاسه زیر") && text
 Check(text.IndexOf("ورودی انبار این ماه") < text.IndexOf("hall-stock-heading"), "hall totals appear below warehouse queue");
 Check(!text.Contains("dashboard-hero-logo"), "dashboard has no duplicate hero mark");
 var header = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync<Topbar>()).ToHtmlString());
-Check(header.Contains("topbar-workshop-mark") && !header.Contains("topbar-brandmark"), "header uses the silver workshop mark without the old cream tile");
+Check(header.Contains("wordmark-header") && WebUtility.HtmlDecode(header).Contains("سامانه مدیریت تولید") && header.Contains("TORSEPAN") && !header.Contains("topbar-workshop-mark") && !header.Contains("topbar-brandmark"), "header preserves the approved text wordmark without reintroducing removed logos");
 var directory = Environment.GetEnvironmentVariable("TORSEPAN_HALL_PREVIEW_DIR");
 if (directory is not null) { Directory.CreateDirectory(directory); await File.WriteAllTextAsync(Path.Combine(directory, "dashboard.html"), html); await File.WriteAllTextAsync(Path.Combine(directory, "header.html"), header); }
 

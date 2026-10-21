@@ -17,7 +17,32 @@ public sealed class ProfitSharingController(TORSEPANDbContext db):ControllerBase
   foreach(var change in changes)rules.Single(x=>(int)x.Action==change.Action).Set(change.Percent);
   try{await db.SaveChangesAsync();return Ok(rules.OrderBy(x=>x.Action));}catch(DbUpdateConcurrencyException){return Conflict(new{Message="درصدها هم‌زمان تغییر کرده‌اند؛ دوباره دریافت کنید."});}
  }
- [HttpGet("members")]public async Task<IActionResult> Members(){var rows=await db.SaleProfitEntries.AsNoTracking().ToListAsync();return Ok(rows.GroupBy(x=>x.UserId).Select(g=>new{UserId=g.Key,Name=g.OrderByDescending(x=>x.CreatedAt).First().UserName,Toman=g.Where(x=>x.ReversedAt==null&&x.Currency==MoneyCurrency.Toman).Sum(x=>x.Amount),Usd=g.Where(x=>x.ReversedAt==null&&x.Currency==MoneyCurrency.Usd).Sum(x=>x.Amount),Instruments=g.Where(x=>x.ReversedAt==null).Select(x=>x.HandpanId).Distinct().Count()}).OrderBy(x=>x.Name));}
- [HttpGet("members/{id:guid}")]public async Task<IActionResult> Member(Guid id)=>Ok(await db.SaleProfitEntries.AsNoTracking().Where(x=>x.UserId==id).OrderByDescending(x=>x.CreatedAt).ToListAsync());
+ [HttpGet("members")]
+ public async Task<IActionResult> Members()
+ {
+  var rows=await db.SaleProfitEntries.AsNoTracking().ToListAsync();
+  var users=await db.Users.AsNoTracking().Where(x=>!x.IsDeleted).OrderBy(x=>x.DisplayOrder).ThenBy(x=>x.FullName)
+   .Select(x=>new{x.Id,Name=x.FullName==""?x.UserName:x.FullName}).ToListAsync();
+  var byUser=rows.ToLookup(x=>x.UserId);
+  var accounts=users.Select(x=>Summary(x.Id,x.Name,byUser[x.Id])).ToList();
+  // Keep historical balances visible even if the original login was deleted.
+  var known=users.Select(x=>x.Id).ToHashSet();
+  accounts.AddRange(rows.Where(x=>!known.Contains(x.UserId)).GroupBy(x=>x.UserId)
+   .Select(g=>Summary(g.Key,g.OrderByDescending(x=>x.CreatedAt).First().UserName,g)));
+  return Ok(accounts);
+ }
+ [HttpGet("members/{id:guid}")]
+ public async Task<IActionResult> Member(Guid id)=>Ok(await Entries(id));
+ private Task<List<SaleProfitEntry>> Entries(Guid id)=>db.SaleProfitEntries.AsNoTracking()
+  .Where(x=>x.UserId==id).OrderByDescending(x=>x.CreatedAt).ThenBy(x=>x.Id).ToListAsync();
+ private static ProfitMemberAccount Summary(Guid id,string name,IEnumerable<SaleProfitEntry> entries)
+ {
+  var active=entries.Where(x=>x.ReversedAt==null).ToList();
+  return new(id,name,active.Where(x=>x.Currency==MoneyCurrency.Toman).Sum(x=>x.Amount),
+   active.Where(x=>x.Currency==MoneyCurrency.Usd).Sum(x=>x.Amount),active.Select(x=>x.HandpanId).Distinct().Count());
+ }
+
 }
 public sealed record ProfitRuleUpdate(int Action,decimal Percent,Guid Version);
+
+public sealed record ProfitMemberAccount(Guid UserId,string Name,decimal Toman,decimal Usd,int Instruments);

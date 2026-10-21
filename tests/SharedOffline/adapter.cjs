@@ -26,3 +26,14 @@ test('offline accounting separates USD from toman and profit profile retains rev
  const s=fixture(),w=s.snapshot.workspace.sections;w.documents=[{id:id(10),type:1,totalAmount:1000,paidAmount:400,currency:1},{id:id(11),type:1,totalAmount:100,paidAmount:20,currency:2}];w.profitEntries=[{id:id(12),userId:id(1),userName:'مدیر',handpanId:id(90),amount:10,currency:1,createdAt:'2026-10-18T10:00:00Z',reversedAt:'2026-10-18T11:00:00Z'}];
  const h=harness(s),summary=h.request('GET','accounting/summary').value;assert.equal(summary.cashIn,400);assert.equal(summary.usdCashIn,20);const members=h.request('GET','profit-sharing/members').value;assert.equal(members.length,1);assert.equal(members[0].toman,0);assert.equal(h.request('GET','profit-sharing/members/'+id(1)).value.length,1);
 });
+
+test('profit accounts include zero-balance members and retain deleted-member history with separate currencies',()=>{
+ const state=fixture(),w=state.snapshot.workspace.sections;w.users.push({id:id(9),fullName:'عضو بدون فروش',userName:'zero',roles:['Shaper'],isActive:false});w.profitRules=[];
+ w.profitEntries=[{userId:id(1),userName:'مدیر',handpanId:id(50),amount:700,currency:1,createdAt:'2026-10-21T12:00:00Z'},{userId:id(1),userName:'مدیر',handpanId:id(50),amount:13,currency:2,createdAt:'2026-10-21T12:00:00Z'},{userId:id(1),userName:'مدیر',handpanId:id(51),amount:999,currency:1,reversedAt:'2026-10-21T13:00:00Z',createdAt:'2026-10-21T11:00:00Z'},{userId:id(8),userName:'عضو حذف‌شده',handpanId:id(52),amount:20,currency:1,createdAt:'2026-10-21T12:00:00Z'}];
+ const h=harness(state),r=h.request('GET','profit-sharing/members');assert.equal(r.status,200);assert.equal(r.value.length,3);const owner=r.value.find(x=>x.userId===id(1)),zero=r.value.find(x=>x.userId===id(9));assert.equal(owner.toman,700);assert.equal(owner.usd,13);assert.equal(owner.instruments,1);assert.equal(zero.toman,0);assert.equal(zero.instruments,0);
+});
+test('ordinary members cannot read any offline profit data even if an old cache contains it',()=>{
+ const state=fixture(),w=state.snapshot.workspace.sections;w.users[0].roles=['Shaper'];state.snapshot.users[0].roles=['Shaper'];w.profitRules=[{action:3,percent:7}];w.profitEntries=[{userId:id(1),userName:'خودم',handpanId:id(50),amount:700,currency:1}];
+ const h=harness(state);for(const path of ['profit-sharing/me','profit-sharing/members','profit-sharing/members/'+id(1),'profit-sharing/rules']){const r=h.request('GET',path);assert.equal(r.status,409);assert.ok(!JSON.stringify(r.value).includes('700'));}
+});
+test('missing profit snapshot never masquerades as zero balances',()=>{const h=harness();assert.equal(h.request('GET','profit-sharing/me').status,409);assert.equal(h.request('GET','profit-sharing/members').status,409);});

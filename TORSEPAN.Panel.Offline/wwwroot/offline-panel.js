@@ -94,9 +94,22 @@ function create(native,model,workspace,now=()=>new Date()){
  function orderDto(c,o){const info=code=>{const b=c.b.find(b=>b.code===code||b.instrumentCode===code);return {productionStage:b?.stageName||'',productionStatus:b?.isRejected?'ردشده':'',completedOperations:b?passport(c,b).history.map(h=>h.actionTitle):[]};};return {...o,scaleId:o.lines?.[0]?.scaleId||empty,scaleName:o.lines?.[0]?.scaleName||'',...info(o.instrumentCode),reminders:[],lines:(o.lines||[]).map(l=>({...l,instruments:(l.instruments||[]).map(i=>({...i,...info(i.code)}))}))};}
  function report(c,q){const from=q.get('from'),to=q.get('to'),es=events(c).filter(e=>(!from||e.eventDate.slice(0,10)>=from)&&(!to||e.eventDate.slice(0,10)<=to)&&(!q.get('userId')||e.userId===q.get('userId'))&&(!q.get('action')||e.action===Number(q.get('action'))));const items=es.map(e=>{const b=c.b.find(b=>b.id===e.bowlId);return {...e,eventDate:e.eventDate,userName:user(c,e.userId),fullName:user(c,e.userId),actionTitle:model.names[Object.keys(actionIds).find(a=>actionIds[a]===e.action)]||'',resultTitle:e.result===1?'انجام‌شده':'ردشده',durationMinutes:e.duration?e.duration*5:null,durationTitle:e.duration?e.duration*5+' دقیقه':'',productionCode:e.code||b?.code||instruments(c).find(h=>h.id===e.handpanId)?.serialNumber||''};});return {totalOperations:es.length,completedOperations:es.filter(e=>e.result===1).length,rejectedOrFailedOperations:es.filter(e=>e.result!==1).length,totalDurationMinutes:items.reduce((sum,e)=>sum+(e.durationMinutes||0),0),users:(c.w.users||[]).filter(u=>!u.isDeleted),userPerformance:(c.w.users||[]).map(u=>({userId:u.id,userName:u.userName,fullName:u.fullName,operationCount:es.filter(e=>e.userId===u.id).length,completedCount:es.filter(e=>e.userId===u.id&&e.result===1).length,durationMinutes:items.filter(e=>e.userId===u.id).reduce((n,e)=>n+(e.durationMinutes||0),0),timedOperations:[],untimedOperations:[]})),activities:items,trend:[],durationTrend:[]};}
  function get(c,path,q){
-  if(path==='profit-sharing/rules')return c.w.profitRules||[];
-  if(path==='profit-sharing/members'){const entries=c.w.profitEntries||[],ids=[...new Set(entries.map(x=>x.userId))];return ids.map(userId=>{const rows=entries.filter(x=>x.userId===userId);return {userId,name:rows[0].userName,toman:rows.filter(x=>!x.reversedAt&&x.currency===1).reduce((n,x)=>n+x.amount,0),usd:rows.filter(x=>!x.reversedAt&&x.currency===2).reduce((n,x)=>n+x.amount,0),instruments:new Set(rows.filter(x=>!x.reversedAt).map(x=>x.handpanId)).size};});}
-  if(path.startsWith('profit-sharing/members/'))return (c.w.profitEntries||[]).filter(x=>x.userId===path.split('/').at(-1)).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  if(path.startsWith('profit-sharing/')){
+   const roles=owner(c).roles||c.s.users.find(x=>x.id===c.s.ownerId)?.roles||[];
+   if(!roles.some(x=>['Administrator','ProductionManager'].includes(x)))throw Error('اجازه مشاهده حساب سود سایر اعضا را ندارید.');
+   if(!Array.isArray(c.w.profitEntries))throw Error('حساب سود هنوز همگام‌سازی نشده است؛ نسخه آنلاین را به‌روز و دوباره همگام‌سازی کنید.');
+   const entries=c.w.profitEntries;
+   const summary=(userId,name)=>{const rows=entries.filter(x=>x.userId===userId&&!x.reversedAt);return {userId,name,toman:rows.filter(x=>x.currency===1).reduce((n,x)=>n+x.amount,0),usd:rows.filter(x=>x.currency===2).reduce((n,x)=>n+x.amount,0),instruments:new Set(rows.map(x=>x.handpanId)).size};};
+   const details=userId=>entries.filter(x=>x.userId===userId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+   if(path==='profit-sharing/rules'){if(!Array.isArray(c.w.profitRules))throw Error('درصد مراحل هنوز همگام‌سازی نشده است.');return c.w.profitRules;}
+   if(path==='profit-sharing/members'){
+    const users=(c.w.users||[]).filter(x=>!x.isDeleted).sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)||(a.fullName||a.userName).localeCompare(b.fullName||b.userName));
+    const accounts=users.map(u=>summary(u.id,u.fullName||u.userName)),known=new Set(users.map(x=>x.id));
+    for(const id of new Set(entries.map(x=>x.userId)))if(!known.has(id))accounts.push(summary(id,details(id)[0].userName));
+    return accounts;
+   }
+   if(path.startsWith('profit-sharing/members/'))return details(path.split('/').at(-1));
+  }
   if(path==='production/dashboard')return dashboard(c,q);
   if(path==='production/queue')return c.b.filter(b=>b.stage<18).map(b=>({...bowlDto(c,b),handpanId:handpanId(c,b),serialNumber:b.instrumentCode||'',stageName:b.stageName}));
   if(path==='bowls'){let bs=c.b;for(const [query,key] of [['bowlType','type'],['stage','stage'],['scaleId','scaleId']])if(q.has(query))bs=bs.filter(b=>String(b[key])===q.get(query));if(q.has('hasNotes'))bs=bs.filter(b=>String(b.hasNotes)===q.get('hasNotes'));if(q.has('materialId'))bs=bs.filter(b=>meta(c,b).materialId===q.get('materialId'));return page(bs.map(b=>bowlDto(c,b)),q);}

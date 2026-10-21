@@ -19,6 +19,26 @@ A repeated performer is counted once per stage. Multiple performers share a
 stage's percentage equally; missing-stage shares are not reassigned. Currency
 rounding preserves the total allocated share without overpaying small profits.
 
+The percentage editor opens by default with manual fields for dimple, shape,
+glue, tune, fine tune and design. Rules and member accounts load independently;
+a member-request failure cannot hide working rule fields. Missing API endpoints
+show an explicit version mismatch message instead of a fake zero total and
+empty member list. Saving is unavailable until real rules have loaded.
+
+The profit section exists only inside the production payroll page and is visible
+only to Administrator and ProductionManager. It lists all existing users and
+their exact accrued profit, including zero-balance and inactive members, and
+retains deleted-member ledger history. Clicking a user opens their instrument
+breakdown for the manager. No profit tab or account is added to personal user
+workspaces and no separate login is created.
+
+The entire profit API controller requires Administrator or ProductionManager;
+there is no personal profit endpoint. Offline snapshots include profit rules
+and entries only for those same manager roles. The offline adapter also denies
+all profit reads to ordinary members, including when an older cache contains
+profit data. Missing manager snapshots are reported as unavailable rather than
+zero balances.
+
 Member cards show separate currency totals and per-instrument history. These
 are internal accrued shares, not bank transfers or a record of cash payment.
 Sale edits reverse and replace credits using the original recipient/rate
