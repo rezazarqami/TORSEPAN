@@ -10,8 +10,8 @@
     "app": "torsepan-api",
     "sha": "045668d5678be2a9e1c0e5fc71d55ae305b08e32",
     "liara_version": "v248",
-    "verified": false,
-    "health_url": null,
-    "note": "Candidate SHA matches v248 commit message; confirm actual active release/source and health URL in Liara before activation."
+    "verified": true,
+    "health_url": "https://torsepan-api.liara.run/health",
+    "note": "Active rollback to v248 and its full commit link verified in Liara on 2026-10-21; public health endpoint independently returned HTTP 200 healthy."
   }
 }

@@ -27,10 +27,13 @@ the Android application also consumes shared panel source.
    checks when shared panel behavior changes. Regular CI builds panel, API and
    the unified root image.
 3. Publish tested changes to master when the user authorizes publication.
-   The intended ongoing setup is Liara's existing GitHub integration for both
-   apps, using master, automatic deployment and successful-CI gating. Verify
-   those provider settings rather than assuming they are enabled. Do not add
-   another token-based deployment workflow alongside that integration.
+   Selective release configuration is staged under `ops/deployment/` and
+   `.github/workflows/selective-liara.yml`. It stays disabled unless repository
+   variable `LIARA_SELECTIVE_RELEASE_ENABLED` is exactly `true`. Before enabling
+   it, verify Liara's independent automatic GitHub deployments are OFF for both
+   apps. Never run both deployment owners together. Use each app's separately
+   verified baseline and require successful CI for the exact master SHA.
+   See `ops/deployment/ACTIVATION.md` for handover and rollback instructions.
 4. A GitHub push or successful CI alone does not prove live deployment.
    Verify each app's deployed commit, successful release, health and relevant
    behavior. Report any unverified deployment explicitly.

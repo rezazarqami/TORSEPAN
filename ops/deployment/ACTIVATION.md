@@ -59,13 +59,12 @@ https://docs.liara.ir/references/cli/deploy-app/
 ## Preparation status (2026-10-21)
 
 - Panel v275 source SHA/public URL were observed in the signed-in Liara console.
-- API v248's displayed commit message matches candidate SHA 045668d; its exact
-  active source and public health URL still need confirmation. `verified=false`
-  deliberately blocks release until that is done.
-- Read-only browser inspections disagreed about the API saved integration
-  state; neither app's settings have been changed.
-- GitHub credential setup requires a signed-in owner browser session; repository
-  code connector access does not include Actions secret/variable administration.
-- No Liara token was created or exposed. No source, deployment or setting has
-  been published for this handover yet.
-- Five Python tests and the JavaScript CI/baseline gate tests passed locally.
+- API active rollback to v248 and the full 045668d5678be2a9e1c0e5fc71d55ae305b08e32
+  commit hyperlink were verified in the console. Both public HTTPS health
+  endpoints independently returned HTTP 200 and status healthy.
+- LIARA_API_TOKEN was saved as a GitHub repository Actions secret through
+  browser clipboard transfer; the value was not exported to the conversation.
+- Provider automatic-deployment handover is pending saved-state verification.
+- The enable variable must remain unset/false until provider hooks are off.
+- Five Python tests, JavaScript CI/baseline tests and the full deployment-images
+  workflow passed on the preparation branch before activation.
