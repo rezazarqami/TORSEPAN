@@ -433,3 +433,53 @@ body .layout.theme-shell .main .content .navy-management-page .message-ticks.rea
 body .layout.theme-shell .main .content .navy-management-page :is(.account-alert.success,.message-feedback) { background:#103b32; color:#b8efda; border-color:#438b70; }
 body .layout.theme-shell .main .content .navy-management-page :is(.account-alert.error,.message-feedback.error) { background:#442132; color:#ffbfc4; border-color:#a2596c; }
 }
+
+/* Reference photo headers: keep real, accessible text over text-free artwork. */
+body .layout.theme-shell .main .content .workspace-photo-hero {
+    position:relative; display:block; box-sizing:border-box; isolation:isolate;
+    width:100%; aspect-ratio:1.6; min-height:218px; max-height:440px;
+    padding:0; overflow:hidden; margin-bottom:16px; border-radius:24px;
+    background:#031d38 center / cover no-repeat;
+    border:1px solid #8db7d1; text-align:center;
+    box-shadow:inset 0 0 18px #66b6e824,0 0 2px #efffff,0 0 12px #29b8ff66,0 8px 22px #1a96ff33;
+}
+body .layout.theme-shell .main .content .navy-messages-page .workspace-photo-hero { max-width:960px; margin-inline:auto; }
+body .layout.theme-shell .main .content .workspace-photo-hero--account { background-image:url('/images/workspace/account-office.webp'); }
+body .layout.theme-shell .main .content .workspace-photo-hero--messages { background-image:url('/images/workspace/messages-office.webp'); }
+body .layout.theme-shell .main .content .workspace-photo-hero::before,
+body .layout.theme-shell .main .content .workspace-photo-hero::after { display:none; }
+body .layout.theme-shell .main .content .workspace-hero-copy {
+    position:absolute; inset:7% 3.5% 31% auto; width:53%; min-width:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between; gap:8px;
+}
+body .layout.theme-shell .main .content .workspace-hero-eyebrow {
+    display:block; max-width:100%; box-sizing:border-box; padding:6px 14px;
+    border:1px solid #a8bedb66; border-radius:999px; background:#06233c40;
+    font:700 clamp(.56rem,1.65vw,.95rem)/1.5 Arial,sans-serif;
+    letter-spacing:1.4px; color:#f6d994; white-space:nowrap;
+}
+body .layout.theme-shell .main .content .workspace-hero-mark {
+    display:block; width:clamp(44px,8vw,85px); height:clamp(46px,8.5vw,90px);
+    object-fit:contain; margin:0; filter:grayscale(1) invert(1) contrast(1.35); mix-blend-mode:screen;
+}
+body .layout.theme-shell .main .content .workspace-hero-copy h1 {
+    margin:0; font-size:clamp(1.5rem,4.8vw,3rem); line-height:1.5;
+    font-weight:850; letter-spacing:-.6px; color:#f6d994; white-space:nowrap;
+    text-shadow:0 2px 12px #001329aa;
+}
+body .layout.theme-shell .main .content .workspace-photo-hero .workspace-hero-description {
+    position:absolute; inset:auto 4% 11% auto; width:66%; max-width:none;
+    box-sizing:border-box; margin:0; color:#edf4ff; text-align:right;
+    font-size:clamp(.67rem,1.85vw,.97rem); line-height:1.9; overflow-wrap:anywhere;
+    text-shadow:0 2px 8px #001329;
+}
+@media(max-width:400px) {
+    body .layout.theme-shell .main .content .workspace-photo-hero { border-radius:21px; }
+    body .layout.theme-shell .main .content .workspace-hero-eyebrow { padding:5px 8px; letter-spacing:.8px; font-size:.52rem; }
+    body .layout.theme-shell .main .content .workspace-hero-copy h1 { font-size:1.4rem; }
+    body .layout.theme-shell .main .content .workspace-photo-hero .workspace-hero-description { width:70%; bottom:8%; font-size:.65rem; }
+}
+@media print {
+    body .layout.theme-shell .main .content .workspace-photo-hero { background:white; box-shadow:none; border-color:#aaa; }
+    body .layout.theme-shell .main .content .workspace-photo-hero :is(h1,p,span) { color:black; text-shadow:none; }
+}

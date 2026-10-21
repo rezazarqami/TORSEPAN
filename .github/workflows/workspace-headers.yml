@@ -1,6 +1,13 @@
 name: Workspace photo header previews
 on:
   workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'TORSEPAN.Panel/**'
+      - 'tests/WorkspaceHeroPreview/**'
+      - 'tests/workspace-headers-layout.cjs'
+      - '.github/workflows/workspace-headers.yml'
   pull_request:
     paths:
       - 'TORSEPAN.Panel/**'

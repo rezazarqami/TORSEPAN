@@ -7,12 +7,7 @@
 
 <PageTitle>مدیریت پیام‌ها | تورسپن</PageTitle>
 <div class="navy-management-page navy-messages-page">
-<section class="messages-hero theme-hero theme-page-intro">
-    <span dir="ltr">WORKSHOP · MESSAGES</span>
-    <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
-    <h1>مدیریت پیام‌ها</h1>
-    <p>اطلاعیه‌های کارگاه و گفتگوهای اعضا، در یک فضای مشترک</p>
-</section>
+<WorkspacePhotoHero CssClass="messages-hero" Kind="messages" Title="مدیریت پیام‌ها" Eyebrow="WORKSHOP · MESSAGES" Description='اطلاعیه‌های کارگاه و گفتگوهای اعضا، در یک فضای مشترک' />
 <div class="messages-workspace">
     <nav class="message-tabs" aria-label="بخش‌های پیام‌ها">
         <button class="@(!_settingsTab && !_chatTab ? "active" : "")" aria-pressed="@(!_settingsTab && !_chatTab)" disabled="@_sending" @onclick="() => SwitchTab(false)">اطلاعیه‌های کارگاه</button>

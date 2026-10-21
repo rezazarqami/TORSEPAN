@@ -5,12 +5,7 @@
 @inject NavigationManager Navigation
 <PageTitle>ناحیهٔ کاربری | تورسپن</PageTitle>
 <div class="navy-management-page navy-account-page">
-<section class="account-hero theme-hero theme-page-intro">
-    <span class="hero-label" dir="ltr">TORSEPAN · MY ACCOUNT</span>
-    <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
-    <h1>ناحیهٔ کاربری</h1>
-    <p>@(_profile?.FullName ?? "همکار تورسپن") · عملکرد و تنظیمات حساب شما</p>
-</section>
+<WorkspacePhotoHero CssClass="account-hero" Kind="account" Title="ناحیهٔ کاربری" Eyebrow="TORSEPAN · MY ACCOUNT" Description='@((_profile?.FullName ?? "همکار تورسپن") + " · عملکرد و تنظیمات حساب شما")' />
 <nav class="account-tabs" aria-label="بخش‌های ناحیهٔ کاربری">
     <button class="@(_section == AccountSection.Performance ? "active" : "")" aria-pressed="@(_section == AccountSection.Performance)" @onclick="()=>_section=AccountSection.Performance">عملکرد من</button>
     <button class="@(_section == AccountSection.Payroll ? "active" : "")" aria-pressed="@(_section == AccountSection.Payroll)" @onclick="()=>_section=AccountSection.Payroll">دستمزد من</button>
