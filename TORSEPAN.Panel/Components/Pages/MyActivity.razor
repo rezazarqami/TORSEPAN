@@ -4,6 +4,7 @@
 @inject IAuthService Auth
 @inject NavigationManager Navigation
 <PageTitle>ناحیهٔ کاربری | تورسپن</PageTitle>
+<div class="navy-management-page navy-account-page">
 <section class="account-hero theme-hero theme-page-intro">
     <span class="hero-label" dir="ltr">TORSEPAN · MY ACCOUNT</span>
     <img src="/images/brand/torsepan-mark-new.webp" alt="تورسپن" />
@@ -87,6 +88,8 @@ else
         </section>
     }
 }
+</div>
+
 @code {
     private DateTime? _from,_to,_appliedFrom,_appliedTo;
     private MyActivityDto? _data;

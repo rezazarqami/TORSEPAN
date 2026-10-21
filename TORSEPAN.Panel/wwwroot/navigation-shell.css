@@ -399,3 +399,37 @@ body .layout.theme-shell .main .content .navy-management-page .warranty-status.a
 body .layout.theme-shell .main .content .navy-management-page .warranty-status.inactive { background:#442132; }
 body .layout.theme-shell .main .content .navy-management-page .theme-page-intro p { color:#edf4ff; }
 }
+
+/* Personal workspace and message center reuse the management canvas above. */
+@media screen {
+body .layout.theme-shell .main .content :is(.navy-account-page,.navy-messages-page) {
+    --workspace-surface:linear-gradient(135deg,#03203bf2,#001329f5);
+    --workspace-raised:#0b2b45;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.announcement-panel,.chat-shell,.conversation-list,.chat-composer,.chat-bubble,.activity-log article,.message-alert-settings) {
+    background:var(--workspace-surface); color:#edf4fc; border-color:#486c8b;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.announcement,.activity-summary>div,.operation-grid>div,.day-heading,.section-icon,.contact-avatar,.photo-upload,.chat-thread,.alert-option,.alert-icon,.alert-status) {
+    background:#0b2b45; color:#dce9f5; border-color:#31516d;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.account-tabs button,.message-tabs button,.account-card button,.small-action,.message-pager button,.older-messages,.back-to-chats,.refresh-messages,.alert-actions button) {
+    background:linear-gradient(135deg,#062640ed,#00172bf5); color:#c5d7e8; border:1px solid #315674;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.account-tabs,.message-tabs) button.active,
+body .layout.theme-shell .main .content .navy-management-page :is(.contact.selected,.contact:hover,.announcement.unread,.chat-bubble.mine) {
+    background:linear-gradient(110deg,#51452d88,#173b56); color:#f3d78f; border-color:#b69b60;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.primary-action,.send-message,.alert-actions button:first-child) {
+    background:linear-gradient(110deg,#f8e3a2,#d2aa58); color:#09213b; border-color:#d5b66e;
+}
+body .layout.theme-shell .main .content .navy-management-page :is(.contact,.broadcast-contact) { background:#07243e; color:#edf4fc; border-color:#31516d; }
+body .layout.theme-shell .main .content .navy-management-page .contact.selected,
+body .layout.theme-shell .main .content .navy-management-page .contact:hover { background:#173b56; }
+body .layout.theme-shell .main .content .navy-management-page :is(.announcement-body,.chat-heading,.chat-composer,.payroll-lines article,.profile-photo .user-avatar) { border-color:#385b78; }
+body .layout.theme-shell .main .content .navy-management-page :is(.announcement-heading,.announcement-body,.log-heading,.profile-title,.activity-summary span,.operation-grid span,.activity-code,.payroll-total,.account-pager,.log-meta,.message-toolbar,.message-empty,.account-empty,.chat-placeholder,.composer-hint,.announcement-title,.bubble-author,.chat-bubble footer) { color:#c5d7e8; }
+body .layout.theme-shell .main .content .navy-management-page :is(.activity-summary strong,.operation-grid strong,.payroll-lines article b,.announcement-status,.message-ticks,.result) { color:#f3d78f; }
+body .layout.theme-shell .main .content .navy-management-page :is(.result,.message-tabs b,.contact-unread) { background:#173b56; color:#f3d78f; }
+body .layout.theme-shell .main .content .navy-management-page .message-ticks.read { color:#7bd5ff; }
+body .layout.theme-shell .main .content .navy-management-page :is(.account-alert.success,.message-feedback) { background:#103b32; color:#b8efda; border-color:#438b70; }
+body .layout.theme-shell .main .content .navy-management-page :is(.account-alert.error,.message-feedback.error) { background:#442132; color:#ffbfc4; border-color:#a2596c; }
+}
