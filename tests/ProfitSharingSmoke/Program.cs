@@ -1,0 +1,48 @@
+using System.Runtime.InteropServices;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using TORSEPAN.API.Controllers;
+using TORSEPAN.API.Services;
+using TORSEPAN.Domain.Entities;
+using TORSEPAN.Domain.Enums;
+using TORSEPAN.Infrastructure.Persistence;
+using TORSEPAN.Infrastructure.Services;
+
+if(OperatingSystem.IsLinux())NativeLibrary.SetDllImportResolver(typeof(SQLitePCL.SQLite3Provider_sqlite3).Assembly,(n,_,_)=>n=="sqlite3"?NativeLibrary.Load("libsqlite3.so.0"):IntPtr.Zero);
+SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
+await using var connection=new SqliteConnection("Data Source=:memory:");await connection.OpenAsync();
+var options=new DbContextOptionsBuilder<TORSEPANDbContext>().UseSqlite(connection).Options;
+await using var db=new TORSEPANDbContext(options);await db.Database.EnsureCreatedAsync();
+var maker=new User("maker","شایان نجفی");var second=new User("maker2","سازنده دوم");var material=new Material("Steel",MaterialCategory.BowlMaterial);db.AddRange(maker,second,material);await db.SaveChangesAsync();
+var http=new DefaultHttpContext{User=new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,maker.Id.ToString()),new Claim(ClaimTypes.Role,"Administrator")},"fixture"))};
+var controller=new ProfitSharingController(db){ControllerContext=new(){HttpContext=http}};
+var rules=await db.SaleProfitRules.OrderBy(x=>x.Action).ToListAsync();Check(rules.Count==6&&rules.Sum(x=>x.Percent)==36,"six editable example defaults total 36 percent, design starts at zero");
+Handpan Instrument(string code){var top=new Bowl(code,BowlType.Top,true,InstrumentType.Standard,material.Id);var bottom=new Bowl(code+"-B",BowlType.Bottom,false,InstrumentType.Standard,material.Id);var assembly=new HandpanAssembly(top.Id,bottom.Id);var h=new Handpan(assembly.Id,code);h.ChangeStage(ProductionStage.FinishedWarehouse);db.AddRange(top,bottom,assembly,h);foreach(var action in new[]{ProductionAction.Dimple,ProductionAction.Shape,ProductionAction.Tune,ProductionAction.Glue,ProductionAction.FineTune,ProductionAction.Design})db.Add(new ProductionEvent(h.Id,assembly.Id,top.Id,maker.Id,action,EventResult.Completed,null,"operation"));return h;}
+var handpan=Instrument("PROFIT-1");await db.SaveChangesAsync();handpan.Sell(null,null,null,null,false,maker.Id);var service=new SaleProfitService(db);await service.UpdateAsync(handpan,100000000,MoneyCurrency.Toman);handpan.SetSaleFinancials(MoneyCurrency.Toman,100000000,MoneyCurrency.Toman);await db.SaveChangesAsync();
+var entries=await db.SaleProfitEntries.Where(x=>x.HandpanId==handpan.Id&&x.ReversedAt==null).ToListAsync();Check(entries.Single(x=>x.Action==ProductionAction.Shape).Amount==7000000&&entries.Single(x=>x.Action==ProductionAction.Tune).Amount==13000000&&entries.Sum(x=>x.Amount)==36000000,"100 million toman credits exact stage shares once per performer");
+await service.UpdateAsync(handpan,100000000,MoneyCurrency.Toman,true);await db.SaveChangesAsync();Check(await db.SaleProfitEntries.CountAsync()==5,"repeated edit is idempotent and does not double-credit");
+var updates=rules.Select(x=>new ProfitRuleUpdate((int)x.Action,x.Action==ProductionAction.Shape?8:x.Percent,x.Version)).ToList();Check(await controller.SaveRules(updates)is OkObjectResult,"manager can save manual percentages");
+Check(await controller.SaveRules(updates)is ConflictObjectResult,"stale rules cannot overwrite a newer configuration");
+var bad=await db.SaleProfitRules.ToListAsync();Check(await controller.SaveRules(bad.Select(x=>new ProfitRuleUpdate((int)x.Action,25,x.Version)).ToList())is BadRequestObjectResult,"total over 100 percent is rejected atomically");
+await service.UpdateAsync(handpan,200000000,MoneyCurrency.Toman,true);handpan.SetSaleFinancials(MoneyCurrency.Toman,200000000,MoneyCurrency.Toman);await db.SaveChangesAsync();
+Check(await db.SaleProfitEntries.CountAsync(x=>x.ReversedAt!=null)==5&&(await db.SaleProfitEntries.SingleAsync(x=>x.Action==ProductionAction.Shape&&x.ReversedAt==null)).Amount==14000000,"sale correction reverses original credits and preserves original 7 percent snapshot");
+await service.UpdateAsync(handpan,0,MoneyCurrency.Toman,true);handpan.SetSaleFinancials(MoneyCurrency.Toman,0,MoneyCurrency.Toman);await db.SaveChangesAsync();
+await service.UpdateAsync(handpan,100000000,MoneyCurrency.Toman,true);handpan.SetSaleFinancials(MoneyCurrency.Toman,100000000,MoneyCurrency.Toman);await db.SaveChangesAsync();
+Check((await db.SaleProfitEntries.SingleAsync(x=>x.Action==ProductionAction.Shape&&x.ReversedAt==null)).RolePercent==7,"clearing then restoring profit keeps the sale's original percentage snapshot");
+var usd=Instrument("USD");await db.SaveChangesAsync();db.Add(new ProductionEvent(usd.Id,usd.AssemblyId,null,second.Id,ProductionAction.Shape,EventResult.Completed,null,"second shaper"));await db.SaveChangesAsync();usd.Sell(null,null,2000,null,false,maker.Id);await service.UpdateAsync(usd,100,MoneyCurrency.Usd);usd.SetSaleFinancials(MoneyCurrency.Usd,100,MoneyCurrency.Usd);await db.SaveChangesAsync();
+var dollars=await db.SaleProfitEntries.Where(x=>x.HandpanId==usd.Id&&x.Action==ProductionAction.Shape).ToListAsync();Check(dollars.Count==2&&dollars.All(x=>x.Amount==4),"new sale uses current 8 percent and splits multiple shapers without doubling the role share");
+var noProfit=Instrument("NO-PROFIT");await db.SaveChangesAsync();noProfit.Sell(null,null,null,null,false,maker.Id);await service.UpdateAsync(noProfit,null,MoneyCurrency.Toman);await db.SaveChangesAsync();Check(!await db.SaleProfitEntries.AnyAsync(x=>x.HandpanId==noProfit.Id),"fully optional sale without profit creates no member credits");
+await new ProductionRollbackService(db).RollbackHandpanAsync(usd.Id,default);Check(await db.SaleProfitEntries.Where(x=>x.HandpanId==usd.Id).AllAsync(x=>x.ReversedAt!=null),"returning a sale reverses all its profit credits");
+Check(SaleMoney.Valid(1.25m,MoneyCurrency.Usd)&&!SaleMoney.Valid(1.25m,MoneyCurrency.Toman)&&!SaleMoney.Valid(-1,MoneyCurrency.Toman),"USD cents and integer toman are validated without currency conversion");
+var doc=new AccountingDocument(AccountingDocumentType.Revenue,"USD sale",100,20,null,null,null,null,maker.Id);doc.SetCurrency(MoneyCurrency.Usd);db.Add(doc);var toman=new AccountingDocument(AccountingDocumentType.Revenue,"Toman",1000,400,null,null,null,null,maker.Id);db.Add(toman);await db.SaveChangesAsync();
+var summary=(OkObjectResult)await new AccountingController(db).Summary(default);var json=System.Text.Json.JsonSerializer.SerializeToElement(summary.Value);Check(json.GetProperty("CashIn").GetDecimal()==400&&json.GetProperty("UsdCashIn").GetDecimal()==20,"accounting totals keep USD and toman strictly separate");
+await using var pg=new TORSEPANDbContext(new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=127.0.0.1;Database=unused;Username=unused").Options);
+Check(!pg.Database.HasPendingModelChanges(),"migration snapshot matches PostgreSQL model");var migrations=pg.Database.GetMigrations().ToList();var sql=pg.GetService<IMigrator>().GenerateScript(migrations[^2],migrations[^1]);Check(sql.Contains("SaleProfitEntries")&&sql.Contains("SaleProfitRules")&&!sql.Contains("DROP TABLE")&&!sql.Contains("DROP COLUMN"),"migration is additive and preserves existing sale/accounting data");
+await SaleApiChecks.Run(db,http,maker.Id,material.Id);
+await UiChecks.Run();Console.WriteLine("Profit sharing smoke passed.");
+static void Check(bool ok,string message){if(!ok)throw new Exception(message);Console.WriteLine("PASS "+message);}

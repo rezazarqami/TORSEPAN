@@ -6,12 +6,12 @@ const titles={warehouses:'مدیریت انبارها',orders:'سفارش‌ها
 const clone=x=>JSON.parse(JSON.stringify(x));
 function project(snapshot,rows){
  const sections=clone(snapshot?.workspace?.sections||{});for(const key of Object.keys(titles))sections[key]||=[];
- for(const row of rows){const op=row.body;if(op.action==='sell'&&op.price!=null)sections.documents.push({id:row.id,type:1,title:'فروش ساز '+op.code,totalAmount:op.price,paidAmount:op.receivedAmount||0,partyId:op.partyId,createdAt:op.occurredUtc,local:true});if(op.action!=='workspace')continue;const module=op.workspaceModule,action=op.workspaceAction,d=clone(op.workspaceData||{}),items=sections[module]||=[];let item=items.find(x=>x.id===d.id);
+ for(const row of rows){const op=row.body;if(op.action==='sell'&&op.price!=null)sections.documents.push({id:row.id,type:1,title:'فروش ساز '+op.code,currency:op.priceCurrency||1,totalAmount:op.price,paidAmount:op.receivedAmount||0,partyId:op.partyId,createdAt:op.occurredUtc,local:true});if(op.action!=='workspace')continue;const module=op.workspaceModule,action=op.workspaceAction,d=clone(op.workspaceData||{}),items=sections[module]||=[];let item=items.find(x=>x.id===d.id);
   if(module==='production'){
    if(action==='assemble'){sections.assemblies.push({id:d.assemblyId,topBowlId:d.topBowlId,bottomBowlId:d.bottomBowlId});sections.handpans.push({id:d.id,assemblyId:d.assemblyId,serialNumber:d.serialNumber,stage:1,createdAt:op.occurredUtc});}
    if(action==='delete'||d.detach){sections.handpans=sections.handpans.filter(x=>x.id!==d.handpanId);sections.assemblies=sections.assemblies.filter(x=>!d.bowlIds?.includes(x.topBowlId));}
    if(action==='delete'||action==='rollback'&&d.targetStage!==20)sections.documents=sections.documents.filter(x=>x.handpanId!==d.handpanId||x.type!==1);
-   if(action==='saleUpdate'){const doc=sections.documents.find(x=>x.handpanId===d.handpanId&&x.type===1);if(doc&&d.price!=null){doc.totalAmount=d.price;doc.paidAmount=d.receivedAmount||0;doc.partyId=d.partyId;}}
+   if(action==='saleUpdate'){const doc=sections.documents.find(x=>x.handpanId===d.handpanId&&x.type===1);if(doc&&d.price!=null){doc.currency=d.priceCurrency||doc.currency||1;doc.totalAmount=d.price;doc.paidAmount=d.receivedAmount||0;doc.partyId=d.partyId;}}
    continue;
   }
   if(action==='save'){

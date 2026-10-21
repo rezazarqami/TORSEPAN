@@ -131,8 +131,9 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/health", (DatabaseBackupStatus backup, TelegramAlertStatus alerts, OrderReminderStatus orderReminders, IConfiguration configuration) => Results.Ok(new
+app.MapGet("/health", async (DatabaseBackupStatus backup, TelegramAlertStatus alerts, OrderReminderStatus orderReminders, IConfiguration configuration, TORSEPANDbContext db) => Results.Ok(new
 {
+    databaseMigration = (await db.Database.GetAppliedMigrationsAsync()).LastOrDefault(),
     status = "healthy",
     telegram = new
     {

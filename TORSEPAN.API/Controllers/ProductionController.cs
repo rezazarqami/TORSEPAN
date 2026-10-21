@@ -217,7 +217,7 @@ public sealed class ProductionController : ControllerBase
         var ids = request.HandpanIds.Distinct().ToList();
         if (ids.Count == 0) return BadRequest("حداقل یک ساز را انتخاب کنید.");
         if (ids.Count > 200) return BadRequest("در هر مرحله حداکثر ۲۰۰ ساز قابل ثبت است.");
-        if (!request.Sale.IsExportSale.HasValue) return BadRequest("نوع فروش (داخلی یا صادراتی) الزامی است.");
+
         var validationError = ValidateWarrantyRequest(request.Sale);
         if (validationError is not null) return BadRequest(validationError);
         var serials = await _db.Handpans.Where(x => ids.Contains(x.Id)).Select(x => x.SerialNumber).ToListAsync();
@@ -227,9 +227,10 @@ public sealed class ProductionController : ControllerBase
             for (var index = 0; index < ids.Count; index++)
             {
                 var count = ids.Count;
-                decimal? price = request.Sale.Price.HasValue ? (index == count - 1 ? request.Sale.Price.Value - Math.Floor(request.Sale.Price.Value / count) * (count - 1) : Math.Floor(request.Sale.Price.Value / count)) : null;
-                decimal? received = request.Sale.ReceivedAmount.HasValue ? (index == count - 1 ? request.Sale.ReceivedAmount.Value - Math.Floor(request.Sale.ReceivedAmount.Value / count) * (count - 1) : Math.Floor(request.Sale.ReceivedAmount.Value / count)) : null;
-                var error = await SellOneAsync(ids[index], request.Sale with { Price = price, ReceivedAmount = received });
+                var price = SplitMoney(request.Sale.Price,count,index,request.Sale.PriceCurrency ?? MoneyCurrency.Toman);
+                var received = SplitMoney(request.Sale.ReceivedAmount,count,index,request.Sale.PriceCurrency ?? MoneyCurrency.Toman);
+                var profit = SplitMoney(request.Sale.NetProfit,count,index,request.Sale.ProfitCurrency ?? MoneyCurrency.Toman);
+                var error = await SellOneAsync(ids[index], request.Sale with { Price = price, ReceivedAmount = received, NetProfit = profit });
                 if (error is not null) return BadRequest(error);
             }
             await transaction.CommitAsync();
@@ -256,9 +257,13 @@ public sealed class ProductionController : ControllerBase
         var attributionError = await ValidateAttributionAsync(request);
         if (attributionError is not null) return BadRequest(attributionError);
         var destination = request.IsExportSale == true ? request.Destination : null;
+        var financials = request.FinancialsSpecified || request.PriceCurrency.HasValue || request.NetProfit.HasValue || request.ProfitCurrency.HasValue;
+        var priceCurrency = request.PriceCurrency ?? handpan.SaleCurrency;
+        var oldCurrency = handpan.SaleCurrency;
         try { handpan.UpdateSaleDetails(party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination, request.IsExportSale); }
         catch (InvalidOperationException) { return BadRequest("این ساز در وضعیت فروخته‌شده نیست."); }
         var document = await _db.AccountingDocuments.FirstOrDefaultAsync(x => x.HandpanId == handpanId && x.Type == AccountingDocumentType.Revenue);
+        if(document is not null && document.PaidAmount>0 && priceCurrency!=oldCurrency)return BadRequest("ارز فروش دارای دریافت وجه را نمی‌توان تغییر داد؛ ابتدا دریافت ثبت‌شده را اصلاح کنید.");
         if (request.Price.HasValue)
         {
             var paid = Math.Min(request.Price.Value, request.ReceivedAmount ?? document?.PaidAmount ?? 0);
@@ -272,6 +277,8 @@ public sealed class ProductionController : ControllerBase
             _db.AccountingDocuments.Remove(document);
         else if (document is not null)
             return BadRequest("به دلیل ثبت دریافت وجه، قیمت این فروش نمی‌تواند خالی شود.");
+        if(financials){await new SaleProfitService(_db).UpdateAsync(handpan,request.NetProfit,request.ProfitCurrency ?? handpan.ProfitCurrency,true);handpan.SetSaleFinancials(priceCurrency,request.NetProfit,request.ProfitCurrency ?? handpan.ProfitCurrency);}
+        foreach(var saleDocument in _db.ChangeTracker.Entries<AccountingDocument>().Where(x=>x.Entity.HandpanId==handpanId&&x.State!=EntityState.Deleted))saleDocument.Entity.SetCurrency(handpan.SaleCurrency);
         handpan.SetSaleAttribution(request.LeadSourceId, request.ReferrerId);
         handpan.ActivateWarranty();
         await _db.SaveChangesAsync();
@@ -287,14 +294,18 @@ public sealed class ProductionController : ControllerBase
         var handpan = await _db.Handpans.FirstOrDefaultAsync(x => x.Id == handpanId);
         if (handpan is null) return "یکی از سازهای انتخاب‌شده پیدا نشد.";
         var serial = handpan.SerialNumber;
-        if (!request.IsExportSale.HasValue) return "نوع فروش (داخلی یا صادراتی) الزامی است.";
+        if(handpan.Stage is not (ProductionStage.FinishedWarehouse or ProductionStage.ExportWarehouse))return "این ساز قبلاً فروخته شده یا دیگر در انبار نیست؛ فهرست را تازه کنید.";
+
         var attributionError = await ValidateAttributionAsync(request);
         if (attributionError is not null) return attributionError;
-        await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination, request.IsExportSale.Value));
+        await _mediator.Send(new SellHandpanCommand(handpanId, party?.Name ?? request.BuyerName, party?.Phone ?? request.BuyerPhoneNumber, request.Price, request.Destination, (request.IsExportSale ?? false)));
+        handpan.SetSaleFinancials(request.PriceCurrency ?? MoneyCurrency.Toman, request.NetProfit, request.ProfitCurrency ?? MoneyCurrency.Toman);
+        await new SaleProfitService(_db).UpdateAsync(handpan,request.NetProfit,request.ProfitCurrency ?? MoneyCurrency.Toman);
         handpan.SetSaleAttribution(request.LeadSourceId, request.ReferrerId);
         handpan.ActivateWarranty();
         if (request.Price.HasValue)
             _db.AccountingDocuments.Add(new AccountingDocument(AccountingDocumentType.Revenue, $"فروش ساز {serial}", request.Price.Value, Math.Min(request.Price.Value, request.ReceivedAmount ?? 0), party?.Id, handpanId, null, SaleNotes(request.Destination), CurrentUserId()));
+        foreach(var saleDocument in _db.ChangeTracker.Entries<AccountingDocument>().Where(x=>x.State==EntityState.Added&&x.Entity.HandpanId==handpanId))saleDocument.Entity.SetCurrency(handpan.SaleCurrency);
         await _db.SaveChangesAsync();
         return null;
     }
@@ -306,7 +317,7 @@ public sealed class ProductionController : ControllerBase
             return request.ReferrerId.HasValue ? "برای معرف، نحوه آشنایی را نیز انتخاب کنید." : null;
         var source = await _db.SaleLeadSources.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.LeadSourceId && x.IsActive);
         if (source is null) return "نحوه آشنایی انتخاب‌شده معتبر نیست.";
-        if (source.RequiresReferrer && !request.ReferrerId.HasValue) return "انتخاب نام معرف الزامی است.";
+
         if (!source.RequiresReferrer && request.ReferrerId.HasValue) return "معرف فقط برای روش آشنایی «معرف» قابل انتخاب است.";
         if (request.ReferrerId.HasValue && !await _db.SalesReferrers.AnyAsync(x => x.Id == request.ReferrerId && x.IsActive))
             return "معرف انتخاب‌شده معتبر نیست.";
@@ -370,8 +381,11 @@ public sealed class ProductionController : ControllerBase
     {
         // Warranty activation during a sale is intentionally checkbox-only.
         // Identity fields are required only in the public guarantee application.
+        if (!SaleMoney.Valid(request.Price,request.PriceCurrency ?? MoneyCurrency.Toman)||!SaleMoney.Valid(request.ReceivedAmount,request.PriceCurrency ?? MoneyCurrency.Toman)||!SaleMoney.Valid(request.NetProfit,request.ProfitCurrency ?? MoneyCurrency.Toman))return "مبلغ و ارز را بررسی کنید؛ تومان بدون اعشار و دلار حداکثر دو رقم اعشار است.";
+        if(request.ReceivedAmount.HasValue&&(!request.Price.HasValue||request.ReceivedAmount>request.Price))return "مبلغ دریافتی نباید از قیمت فروش بیشتر باشد.";
         return null;
     }
+    private static decimal? SplitMoney(decimal? amount,int count,int index,MoneyCurrency currency){if(!amount.HasValue)return null;var factor=currency==MoneyCurrency.Usd?100m:1m;var each=Math.Floor(amount.Value*factor/count)/factor;return index==count-1?amount.Value-each*(count-1):each;}
 
     private async Task<WarrantyActivationResult> ActivateWarrantyAsync(IEnumerable<string> serials, SellHandpanRequest request)
     {
@@ -396,7 +410,7 @@ public sealed class ProductionController : ControllerBase
     public async Task<IActionResult> Rollback(Guid handpanId, CancellationToken cancellationToken)
         => await _rollbackService.RollbackHandpanAsync(handpanId, cancellationToken) ? NoContent() : BadRequest();
 }
-public sealed record SellHandpanRequest(string? BuyerName, string? BuyerPhoneNumber, decimal? Price, decimal? ReceivedAmount, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty, bool? IsExportSale, Guid? LeadSourceId, Guid? ReferrerId);
+public sealed record SellHandpanRequest(string? BuyerName, string? BuyerPhoneNumber, decimal? Price, decimal? ReceivedAmount, string? Destination, Guid? PartyId, bool IsPaid, DateTime? DueDate, bool ActivateWarranty, bool? IsExportSale, Guid? LeadSourceId, Guid? ReferrerId, MoneyCurrency? PriceCurrency=null, decimal? NetProfit=null, MoneyCurrency? ProfitCurrency=null, bool FinancialsSpecified=false);
 public sealed record BulkSellHandpansRequest(IReadOnlyCollection<Guid> HandpanIds, SellHandpanRequest Sale);
 public sealed record SellHandpansResponse(bool SaleRegistered, bool WarrantyActivated, string? Warning);
 public sealed record WarehouseGalleryRequest(IReadOnlyCollection<Guid> HandpanIds);

@@ -4,7 +4,6 @@
 @inject PayrollService PayrollService
 @inject MaterialService MaterialService
 @inject ScaleService ScaleService
-@inject ReportService ReportService
 @inject NavigationManager Navigation
 
 <PageTitle>محاسبه دستمزد تولید</PageTitle>
@@ -15,7 +14,7 @@
 <nav class="payroll-sections" aria-label="بخش‌های دستمزد تولید">
     <button class="@SectionClass(0)" @onclick="() => _activeSection = 0"><span class="section-icon">◫</span><span><strong>محاسبه دستمزد</strong><small>جدول عملکرد و پرداخت</small></span></button>
     <button class="@SectionClass(1)" @onclick="() => _activeSection = 1"><span class="section-icon">﷼</span><span><strong>تعریف نرخ‌ها</strong><small>ثبت و مدیریت نرخ عملیات</small></span></button>
-    <button class="@SectionClass(2)" @onclick="() => _activeSection = 2"><span class="section-icon">◉</span><span><strong>آمار تولید</strong><small>نمودارهای مدیریتی</small></span></button>
+    <button class="@SectionClass(2)" @onclick="() => _activeSection = 2"><span class="section-icon">◉</span><span><strong>سهم سود اعضا</strong><small>درصدها و حساب هر عضو</small></span></button>
 </nav>
 
 @if (_activeSection == 0)
@@ -186,9 +185,9 @@ else
     </section>
 }
 
-@if(_activeSection == 2 && !_loading && _analytics.Donuts.Count>0)
+@if(_activeSection == 2)
 {
-    <section class="payroll-analytics"><header><div><small>ترکیب تولید ماه جاری</small><h3>سهم مراحل، اعضا، متریال و Scale</h3></div><span>شش نمودار مدیریتی</span></header><ReportDonutGrid Charts="@_analytics.Donuts" /></section>
+    <ProfitSharing />
 }
 
 <AppConfirmDialog IsOpen="@_confirmVisible"
@@ -205,7 +204,6 @@ else
 
 @code {
     private PayrollDto _payroll = new();
-    private ProductionAnalyticsDto _analytics = new();
     private List<MaterialDto> _materials = [];
     private List<ScaleDto> _scales = [];
     private bool _loading = true, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse, _savingPayment, _showRegisteredRates;
@@ -242,7 +240,7 @@ else
         "2" => _scales.Where(x => (x.Usage & 2) != 0),
         _ => _scales.Where(x => (x.Usage & 3) != 0)
     };
-    private async Task LoadAsync() { _loading = true; try { var payroll=PayrollService.GetAsync(_from, _to, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse);var analytics=ReportService.GetProductionAsync(null,null,[],[],"all","all");await Task.WhenAll(payroll,analytics);_payroll=await payroll??new();_analytics=await analytics;if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
+    private async Task LoadAsync() { _loading = true; try { _payroll=await PayrollService.GetAsync(_from, _to, _readyForQc, _readyForPackaging, _enteredWarehouse, _readyForExportPackaging, _exportWarehouse)??new();if (!_from.HasValue) { _from = _payroll.From; _to = _payroll.To; } } finally { _loading = false; } }
     private Task SaveRateAsync()
     {
         Guid? material = Guid.TryParse(_rateMaterial, out var m) ? m : null;

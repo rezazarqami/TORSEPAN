@@ -33,6 +33,11 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Currency")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<DateTime?>("DueDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -361,6 +366,10 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<bool?>("IsExportSale")
                         .HasColumnType("boolean");
 
+                    b.Property<decimal?>("NetProfit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<int?>("NoteCount")
                         .HasColumnType("integer");
 
@@ -368,7 +377,17 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("ProfitCurrency")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("QualityWarehouseId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("SaleCurrency")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(1);
@@ -1201,6 +1220,122 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SaleLeadSources");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.SaleProfitEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("AllocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Currency")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("HandpanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("NetProfit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("ReversedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("RolePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<DateTime>("SoldAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HandpanId", "ReversedAt");
+
+                    b.HasIndex("UserId", "Currency");
+
+                    b.ToTable("SaleProfitEntries", (string)null);
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.SaleProfitRule", b =>
+                {
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Percent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Action");
+
+                    b.ToTable("SaleProfitRules", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Action = 2,
+                            Percent = 2m,
+                            Version = new Guid("00000000-0000-4000-8000-000000000002")
+                        },
+                        new
+                        {
+                            Action = 3,
+                            Percent = 7m,
+                            Version = new Guid("00000000-0000-4000-8000-000000000003")
+                        },
+                        new
+                        {
+                            Action = 5,
+                            Percent = 1m,
+                            Version = new Guid("00000000-0000-4000-8000-000000000005")
+                        },
+                        new
+                        {
+                            Action = 6,
+                            Percent = 13m,
+                            Version = new Guid("00000000-0000-4000-8000-000000000006")
+                        },
+                        new
+                        {
+                            Action = 7,
+                            Percent = 13m,
+                            Version = new Guid("00000000-0000-4000-8000-000000000007")
+                        },
+                        new
+                        {
+                            Action = 13,
+                            Percent = 0m,
+                            Version = new Guid("00000000-0000-4000-8000-000000000013")
+                        });
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.SalesReferrer", b =>

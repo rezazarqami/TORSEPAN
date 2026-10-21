@@ -80,15 +80,15 @@ public sealed partial class OfflineProductionService
                 Require(op.BuyerName?.Length<=200 || op.BuyerName is null,"نام خریدار طولانی است.");
                 Require(op.BuyerPhoneNumber?.Length<=50 || op.BuyerPhoneNumber is null,"شماره خریدار طولانی است.");
                 Require(op.Destination?.Length<=200 || op.Destination is null,"مقصد طولانی است.");
-                Require(op.Price is null || op.Price>=0,"قیمت معتبر نیست.");
+                Require(TORSEPAN.Domain.Entities.SaleMoney.Valid(op.Price,(TORSEPAN.Domain.Entities.MoneyCurrency)(op.PriceCurrency==0?1:op.PriceCurrency))&&TORSEPAN.Domain.Entities.SaleMoney.Valid(op.ReceivedAmount,(TORSEPAN.Domain.Entities.MoneyCurrency)(op.PriceCurrency==0?1:op.PriceCurrency))&&TORSEPAN.Domain.Entities.SaleMoney.Valid(op.NetProfit,(TORSEPAN.Domain.Entities.MoneyCurrency)(op.ProfitCurrency==0?1:op.ProfitCurrency)),"مبلغ یا ارز معتبر نیست.");
                 Require(op.ReceivedAmount is null || op.Price.HasValue && op.ReceivedAmount>=0 && op.ReceivedAmount<=op.Price,"مبلغ دریافتی معتبر نیست.");
                 var handpan=await InstrumentAsync(bowl!,ct);
                 Require(handpan.Stage==ProductionStage.FinishedWarehouse || handpan.Stage==ProductionStage.ExportWarehouse && op.IsExportSale,"ساز باید در انبار مربوط باشد.");
                 if(op.LeadSourceId.HasValue) {
                     var source=await db.SaleLeadSources.AsNoTracking().SingleOrDefaultAsync(x=>x.Id==op.LeadSourceId && x.IsActive,ct);
                     Require(source is not null,"روش آشنایی معتبر نیست.");
-                    Require(!source!.RequiresReferrer || op.ReferrerId.HasValue,"معرف را انتخاب کنید.");
-                    Require(source.RequiresReferrer || !op.ReferrerId.HasValue,"معرف فقط برای روش آشنایی معرف قابل انتخاب است.");
+
+                    Require(source!.RequiresReferrer || !op.ReferrerId.HasValue,"معرف فقط برای روش آشنایی معرف قابل انتخاب است.");
                 }
                 Require(op.LeadSourceId.HasValue || !op.ReferrerId.HasValue,"روش آشنایی معرف را انتخاب کنید.");
                 if(op.ReferrerId.HasValue) Require(await db.SalesReferrers.AnyAsync(x=>x.Id==op.ReferrerId && x.IsActive,ct),"معرف معتبر نیست.");
@@ -102,9 +102,12 @@ public sealed partial class OfflineProductionService
                 db.Entry(handpan).Property(x=>x.SoldAt).CurrentValue=op.OccurredUtc;
                 db.Entry(handpan).Property(x=>x.WarrantyActivatedAt).CurrentValue=op.OccurredUtc;
                 db.Entry(handpan).Property(x=>x.UpdatedAt).CurrentValue=op.OccurredUtc;
+                await new TORSEPAN.API.Services.SaleProfitService(db).UpdateAsync(handpan,op.NetProfit,(MoneyCurrency)(op.ProfitCurrency==0?1:op.ProfitCurrency));
+                handpan.SetSaleFinancials((MoneyCurrency)(op.PriceCurrency==0?1:op.PriceCurrency),op.NetProfit,(MoneyCurrency)(op.ProfitCurrency==0?1:op.ProfitCurrency));
                 if(op.Price.HasValue) {
                     var document=new AccountingDocument(AccountingDocumentType.Revenue,$"فروش ساز {handpan.SerialNumber}",op.Price.Value,
                         op.ReceivedAmount??0,party?.Id,handpan.Id,null,op.Destination,op.PerformerId);
+                    document.SetCurrency(handpan.SaleCurrency);
                     db.AccountingDocuments.Add(document);db.Entry(document).Property(x=>x.CreatedAt).CurrentValue=op.OccurredUtc;
                     if(document.SettledAt.HasValue)db.Entry(document).Property(x=>x.SettledAt).CurrentValue=op.OccurredUtc;
                 }

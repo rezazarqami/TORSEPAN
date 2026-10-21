@@ -1,4 +1,5 @@
 import contextlib
+from datetime import datetime, timezone, timedelta
 import importlib.util
 import io
 import json
@@ -61,3 +62,17 @@ class DeployTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class MigrationBackupTest(unittest.TestCase):
+    def test_backup_gate_rejects_failed_stale_and_missing_archives(self):
+        now = datetime.now(timezone.utc)
+        good = {'state':'succeeded','stage':'completed','lastSuccessUtc':now.isoformat(),'archiveBytes':1024}
+        self.assertEqual(deploy.verify_backup({'databaseBackup':good},now)['archive_bytes'],1024)
+        for change in [{'state':'failed'},{'archiveBytes':0},{'lastSuccessUtc':(now-timedelta(hours=3)).isoformat()},{'transportError':'delivery failed'}]:
+            with self.assertRaises(RuntimeError):deploy.verify_backup({'databaseBackup':{**good,**change}},now)
+    def test_only_api_runtime_migrations_require_backup(self):
+        paths=['TORSEPAN.Infrastructure/Migrations/20261021162546_AddSalesProfitSharing.cs','TORSEPAN.Infrastructure/Migrations/20261021162546_AddSalesProfitSharing.Designer.cs','TORSEPAN.Infrastructure/Migrations/TORSEPANDbContextModelSnapshot.cs']
+        plan={'products':{'api':{'changed_inputs':paths}}}
+        self.assertEqual(deploy.migration_inputs(plan,'api'),['20261021162546_AddSalesProfitSharing'])
+        self.assertEqual(deploy.migration_inputs(plan,'panel'),[])

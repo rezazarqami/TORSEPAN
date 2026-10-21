@@ -156,8 +156,9 @@ internal static class OfflineProductionSmoke
         var transfer=Operation("855","warehouseTransfer","old",packaging.OperationId) with {QualityWarehouseId=2};
         await service.ApplyAsync(registrar.Id,transfer,default);await service.ApplyAsync(registrar.Id,transfer,default);
         Check((await service.BowlAsync("196",default)).QualityWarehouseId==2&&await db.ProductionEvents.CountAsync(x=>x.Action==ProductionAction.WarehouseTransfer)==1,"offline warehouse transfer is paired, durable and idempotent");
-        var sale=Operation("855","sell","old",transfer.OperationId) with {BuyerName="خریدار آزمایشی",BuyerPhoneNumber="09120000000",Price=500,ReceivedAmount=200};
+        var sale=Operation("855","sell","old",transfer.OperationId) with {BuyerName="خریدار آزمایشی",BuyerPhoneNumber="09120000000",Price=500,ReceivedAmount=200,NetProfit=100,ProfitCurrency=2,PriceCurrency=1};
         await service.ApplyAsync(registrar.Id,sale,default);await service.ApplyAsync(registrar.Id,sale,default);
+        Check(await db.SaleProfitEntries.AnyAsync(x=>x.Currency==MoneyCurrency.Usd&&x.NetProfit==100)&&await db.SaleProfitEntries.GroupBy(x=>new{x.HandpanId,x.Action,x.UserId}).AllAsync(g=>g.Count()==1),"offline sale profit retains its currency and credits completed performers exactly once across receipt retries");
         var sold=await db.Handpans.AsNoTracking().SingleAsync();
         Check(sold.SoldAt==recorded && sold.WarrantyActivatedAt==recorded && (await service.BowlAsync("196",default)).Stage==20 && await db.AccountingDocuments.CountAsync()==1,"sale records one accounting document, real sale date, warranty and sold status on both local identities");
         Check((await db.OfflineReceipts.SingleAsync(x=>x.OperationId==sale.OperationId)).WarrantyPending,"offline sale commits a durable remote warranty retry marker");

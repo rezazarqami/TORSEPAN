@@ -82,6 +82,14 @@ public class Handpan : Entity
     public DateTime? SoldAt { get; private set; }
     public Guid? SoldByUserId { get; private set; }
     public decimal? SalePrice { get; private set; }
+    public MoneyCurrency SaleCurrency { get; private set; } = MoneyCurrency.Toman;
+    public decimal? NetProfit { get; private set; }
+    public MoneyCurrency ProfitCurrency { get; private set; } = MoneyCurrency.Toman;
+    public void SetSaleFinancials(MoneyCurrency currency, decimal? profit, MoneyCurrency profitCurrency)
+    {
+        if (!SaleMoney.Valid(SalePrice,currency)||!SaleMoney.Valid(profit,profitCurrency)) throw new ArgumentOutOfRangeException(nameof(profit));
+        SaleCurrency=currency;NetProfit=profit;ProfitCurrency=profitCurrency;
+    }
     public string? SaleDestination { get; private set; }
     public bool? IsExportSale { get; private set; }
     public Guid? SaleLeadSourceId { get; private set; }
@@ -135,6 +143,8 @@ public class Handpan : Entity
         BuyerName = null;
         BuyerPhoneNumber = null;
         SalePrice = null;
+        NetProfit = null;
+        SaleCurrency = ProfitCurrency = MoneyCurrency.Toman;
         SaleDestination = null;
         IsExportSale = null;
         SaleLeadSourceId = null;

@@ -19,7 +19,10 @@ public sealed record OfflineOperation(Guid OperationId, Guid DeviceId, string Co
     Guid? DesignTypeId = null, TORSEPAN.API.Controllers.AdminProductionEditRequest? Edit = null,
     Dictionary<string,Guid?>? EditScales = null, string? Image = null, string? Thumbnail = null, string? ImageHash = null, List<OfflineLocalEventUserUpdate>? LocalEventUsers=null,
     string? WorkspaceModule=null,string? WorkspaceAction=null,System.Text.Json.JsonElement? WorkspaceData=null,
-    string? WorkspaceExpectedVersion=null,Guid? WorkspacePreviousOperationId=null, int? QualityWarehouseId=null, int? NoteCount=null, Guid? PhotoId=null);
+    string? WorkspaceExpectedVersion=null,Guid? WorkspacePreviousOperationId=null, int? QualityWarehouseId=null, int? NoteCount=null, Guid? PhotoId=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] int PriceCurrency=0,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] decimal? NetProfit=null,
+    [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] int ProfitCurrency=0);
 public sealed record OfflineLocalEventUserUpdate(Guid OperationId,Guid UserId);
 public sealed record OfflineUser(Guid Id, string Name, string[] Roles);
 public sealed record OfflineScale(Guid Id, string Name, int Usage);

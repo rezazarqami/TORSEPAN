@@ -23,7 +23,7 @@ public sealed class GetSalesQueryHandler(IUnitOfWork unitOfWork)
                 ItemType = "ساز",
                 SerialNumber = x.SerialNumber,
                 BuyerName = x.BuyerName ?? "",
-                Price = x.SalePrice,
+                Price = x.SalePrice, PriceCurrency=(int)x.SaleCurrency, NetProfit=x.NetProfit,ProfitCurrency=(int)x.ProfitCurrency,
                 Destination = x.SaleDestination ?? "",
                 SoldAt = x.SoldAt ?? x.UpdatedAt ?? x.CreatedAt,
                 SoldBy = UserName(user),

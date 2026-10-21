@@ -51,6 +51,7 @@ public sealed class ProductionRollbackService(TORSEPANDbContext db) : IProductio
                 .ToListAsync(ct);
             db.ProductionEvents.RemoveRange(saleEvents);
             db.AccountingDocuments.RemoveRange(saleDocuments);
+            foreach(var share in await db.SaleProfitEntries.Where(x=>x.HandpanId==handpan.Id&&x.ReversedAt==null).ToListAsync(ct))share.Reverse();
             handpan.ReturnToWarehouse();
             await db.SaveChangesAsync(ct);
             return true;

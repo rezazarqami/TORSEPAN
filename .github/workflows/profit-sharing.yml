@@ -1,0 +1,37 @@
+name: Sales profit sharing
+on:
+  push:
+    branches: [master]
+    paths: ['TORSEPAN.Domain/**', 'TORSEPAN.Application/**', 'TORSEPAN.Infrastructure/**', 'TORSEPAN.API/**', 'TORSEPAN.Panel/**', 'TORSEPAN.Panel.Offline/**', 'android/**', 'tests/SharedOffline/**', 'tests/ProfitSharingSmoke/**', 'tests/WarehouseTierSmoke/**', 'tests/profit-sharing-layout.cjs', '.github/workflows/profit-sharing.yml']
+  pull_request:
+    paths: ['TORSEPAN.Domain/**', 'TORSEPAN.Application/**', 'TORSEPAN.Infrastructure/**', 'TORSEPAN.API/**', 'TORSEPAN.Panel/**', 'TORSEPAN.Panel.Offline/**', 'android/**', 'tests/SharedOffline/**', 'tests/ProfitSharingSmoke/**', 'tests/WarehouseTierSmoke/**', 'tests/profit-sharing-layout.cjs', '.github/workflows/profit-sharing.yml']
+jobs:
+  profit-sharing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROFIT_PREVIEW_DIR: ${{ github.workspace }}/profit-previews
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify profit shares, sale lifecycle, currencies and member profiles
+        run: dotnet run --project tests/ProfitSharingSmoke -c Release
+      - name: Verify existing warehouse transfers, tiers and permissions
+        run: dotnet run --project tests/WarehouseTierSmoke -c Release
+      - name: Verify offline financial projections
+        run: node --test tests/SharedOffline/adapter.cjs
+      - name: Install browser
+        run: |
+          npm install --prefix /tmp/profit-browser playwright
+          /tmp/profit-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify production theme and mobile layouts
+        env:
+          PROFIT_PLAYWRIGHT: /tmp/profit-browser/node_modules/playwright
+        run: node tests/profit-sharing-layout.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: profit-sharing-previews
+          path: profit-previews

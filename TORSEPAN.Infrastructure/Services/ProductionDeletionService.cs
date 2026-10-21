@@ -51,6 +51,7 @@ public sealed class ProductionDeletionService(TORSEPANDbContext db) : IProductio
         await db.ProductionEvents.Where(x => x.AssemblyId == assemblyId ||
             (handpanId.HasValue && x.HandpanId == handpanId.Value) ||
             (x.BowlId.HasValue && bowlIds.Contains(x.BowlId.Value))).ExecuteDeleteAsync(cancellationToken);
+        if(handpanId.HasValue)foreach(var share in await db.SaleProfitEntries.Where(x=>x.HandpanId==handpanId&&x.ReversedAt==null).ToListAsync(cancellationToken))share.Reverse();
         if (handpanId.HasValue)
             await db.Handpans.Where(x => x.Id == handpanId.Value).ExecuteDeleteAsync(cancellationToken);
         await db.HandpanAssemblies.Where(x => x.Id == assemblyId).ExecuteDeleteAsync(cancellationToken);

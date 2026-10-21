@@ -50,7 +50,7 @@ public static class PassportBackupSnapshot
             var related = handpanEvents[h.Id].Concat(assemblyEvents[a.Id]).Concat(bowlEvents[top.Id]).Concat(bowlEvents[bottom.Id]);
             var details = $"کاسه رو: {top.ProductionCode} ({top.Material.Name}) | کاسه زیر: {LegacyStockRecord.DisplayCode(bottom.ProductionCode)} ({bottom.Material.Name}، {Design(bowlEvents[bottom.Id])}) | ثبت ساز: {PassportBackupPdf.Date(h.CreatedAt)}";
             if (h.SoldAt.HasValue)
-                details += $" | فروش: {PassportBackupPdf.Date(h.SoldAt.Value)} | خریدار: {h.BuyerName ?? "—"} | تلفن: {h.BuyerPhoneNumber ?? "—"} | مبلغ: {h.SalePrice?.ToString("N0") ?? "—"} | مقصد: {h.SaleDestination ?? "داخلی"}";
+                details += $" | فروش: {PassportBackupPdf.Date(h.SoldAt.Value)} | خریدار: {h.BuyerName ?? "—"} | تلفن: {h.BuyerPhoneNumber ?? "—"} | مبلغ: {h.SalePrice?.ToString("N2") ?? "—"} {(h.SaleCurrency==MoneyCurrency.Usd?"USD":"تومان")} | مقصد: {h.SaleDestination ?? "داخلی"}";
             if (h.WarrantyActivatedAt.HasValue) details += $" | فعال شدن ضمانت: {PassportBackupPdf.Date(h.WarrantyActivatedAt.Value)}";
             if (h.ExportWarehouseLocation.HasValue) details += $" | محل انبار صادراتی: {h.ExportWarehouseLocation}";
             records.Add(new(h.SerialNumber, "ساز", h.Status == ProductionStatus.Rejected ? "ردشده" : Group(h.Stage), Stage(h.Stage), h.FormatScaleName(h.Scale?.Name ?? top.Scale?.Name), Design(bowlEvents[top.Id]), details, Operations(related), LegacyStockRecord.DisplayCode(bottom.ProductionCode), Design(bowlEvents[bottom.Id])));

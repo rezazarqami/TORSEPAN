@@ -42,6 +42,8 @@ public class TORSEPANDbContext : DbContext
     public DbSet<DesignType> DesignTypes => Set<DesignType>();
     public DbSet<HandpanPhoto> HandpanPhotos => Set<HandpanPhoto>();
     public DbSet<AccountingParty> AccountingParties => Set<AccountingParty>();
+    public DbSet<SaleProfitRule> SaleProfitRules => Set<SaleProfitRule>();
+    public DbSet<SaleProfitEntry> SaleProfitEntries => Set<SaleProfitEntry>();
     public DbSet<AccountingDocument> AccountingDocuments => Set<AccountingDocument>();
     public DbSet<SaleLeadSource> SaleLeadSources => Set<SaleLeadSource>();
     public DbSet<SalesReferrer> SalesReferrers => Set<SalesReferrer>();

@@ -1,0 +1,25 @@
+using System.Net;
+using System.Reflection;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
+using TORSEPAN.Panel.Models;
+using TORSEPAN.Panel.Services;
+using TORSEPAN.Panel.Services.Api;
+using TORSEPAN.Panel.Services.Auth;
+using TORSEPAN.Panel.Components.Shared;
+static class UiChecks
+{
+ static void Check(bool ok,string message){if(!ok)throw new Exception(message);Console.WriteLine("PASS "+message);}
+ public static async Task Run(){var services=new ServiceCollection();services.AddLogging();services.AddAuthorizationCore();services.AddCascadingAuthenticationState();services.AddSingleton<AuthenticationStateProvider>(new FixtureAuth("Administrator"));services.AddSingleton<IJSRuntime,FixtureJs>();services.AddSingleton<NavigationManager,FixtureNavigation>();services.AddSingleton(new HttpClient(new FixtureApi()){BaseAddress=new Uri("https://fixture.invalid/api/")});services.AddScoped<TokenStorage>();services.AddScoped<ApiClient>();services.AddScoped<ProductionService>();services.AddScoped<AccountingService>();services.AddScoped<HandpanPhotoService>();services.AddScoped<SalesAttributionService>();services.AddScoped<BowlService>();services.AddScoped<MaterialService>();services.AddScoped<ScaleService>();services.AddScoped<PersonalWorkspaceService>();services.AddScoped<ProfitSharingService>();
+ await using var provider=services.BuildServiceProvider();await using var renderer=new HtmlRenderer(provider,provider.GetRequiredService<ILoggerFactory>());var dir=Environment.GetEnvironmentVariable("PROFIT_PREVIEW_DIR");if(dir is not null)Directory.CreateDirectory(dir);
+ await renderer.Dispatcher.InvokeAsync(async()=>{
+ var stock=await renderer.RenderComponentAsync<WarehousePreview>(ParameterView.Empty);var page=WarehousePreview.Instance!;var row=((List<WarehouseHandpanDto>)page.Get("_items")!).First();await page.Call("BeginSale",row);page.Refresh();
+ var html=WebUtility.HtmlDecode(stock.ToHtmlString());Check(html.Contains("سود خالص")&&html.Contains("دلار (USD)")&&!html.Contains("نوع فروش <strong>*"),"compact stock sale has optional profit and independent USD/toman selectors");if(dir is not null)await File.WriteAllTextAsync(Path.Combine(dir,"sale.html"),stock.ToHtmlString());page.Set("_isExportSale",true);page.Set("_leadSourceId",Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));page.Refresh();if(dir is not null)await File.WriteAllTextAsync(Path.Combine(dir,"sale-export.html"),stock.ToHtmlString());
+ var profit=await renderer.RenderComponentAsync<ProfitPreview>(ParameterView.Empty);var panel=ProfitPreview.Instance!;html=WebUtility.HtmlDecode(profit.ToHtmlString());Check(html.Contains("شایان نجفی")&&html.Contains("7,000,000")&&html.Contains("130.00"),"member cards present separate toman and USD totals");if(dir is not null)await File.WriteAllTextAsync(Path.Combine(dir,"members.html"),profit.ToHtmlString());var member=((List<ProfitMemberDto>)panel.Get("_members")!).First();await panel.Call("Open",member);panel.Refresh();html=WebUtility.HtmlDecode(profit.ToHtmlString());Check(html.Contains("ساز 553")&&html.Contains("سود مبنا"),"tapping member opens per-instrument stage and profit breakdown");if(dir is not null)await File.WriteAllTextAsync(Path.Combine(dir,"profile.html"),profit.ToHtmlString());
+ });}
+}
+public sealed class ProfitPreview:ProfitSharing{public static ProfitPreview? Instance;protected override async Task OnInitializedAsync(){await base.OnInitializedAsync();Instance=this;}public object? Get(string name)=>typeof(ProfitSharing).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(this);public async Task Call(string name,params object?[] args){var r=typeof(ProfitSharing).GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(this,args);if(r is Task t)await t;}public void Refresh()=>StateHasChanged();}

@@ -36,6 +36,9 @@ public class HandpanConfiguration : IEntityTypeConfiguration<Handpan>
             .IsRequired();
         builder.Property(x => x.BuyerName).HasMaxLength(200);
         builder.Property(x => x.BuyerPhoneNumber).HasMaxLength(30);
+        builder.Property(x => x.SaleCurrency).HasDefaultValue(MoneyCurrency.Toman);
+        builder.Property(x => x.ProfitCurrency).HasDefaultValue(MoneyCurrency.Toman);
+        builder.Property(x => x.NetProfit).HasPrecision(18,2);
         builder.Property(x => x.SalePrice).HasPrecision(18, 2);
         builder.Property(x => x.SaleDestination).HasMaxLength(200);
         builder.Property(x => x.IsExportSale);
