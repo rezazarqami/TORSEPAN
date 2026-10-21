@@ -8,7 +8,7 @@
 <PageTitle>پشتیبان‌گیری | TORSEPAN</PageTitle>
 <div class="navy-management-page">
 
-<section class="backup-hero theme-hero theme-page-intro"><small>TORSEPAN</small><h1>پشتیبان‌گیری و آرشیو</h1><p>یک نسخه از اطلاعات فعلی کارگاه را روی دستگاه خود نگه دارید.</p></section>
+<ManagementPhotoHeader Kind="backups" Title="پشتیبان‌گیری" SecondLine="و آرشیو" Description="یک نسخه از اطلاعات فعلی کارگاه را روی دستگاه خود نگه دارید." CssClass="backup-hero" />
 <div class="backup-options">
     <article><span class="backup-icon">↓</span><h2>بکاپ کامل همراه عکس‌ها</h2><p>تمام اطلاعات دیتابیس، عکس‌های ساز و پیش‌نمایش‌ها در یک فایل قابل بازیابی.</p><button class="btn btn-primary" disabled="@(_busy || _downloading)" @onclick='() => StartAsync("full")'>دریافت بکاپ کامل</button></article>
     <article><span class="backup-icon">PDF</span><h2>آرشیو شناسنامه‌ها و موجودی</h2><p>ریز سوابق سازها و کاسه‌ها، مراحل تولید، آماده QC، بسته‌بندی، انبار و فروش؛ همراه موجودی فعلی مواد اولیه.</p><button class="btn btn-primary" disabled="@(_busy || _downloading)" @onclick='() => StartAsync("pdf")'>تهیه گزارش PDF</button></article>

@@ -1,0 +1,16 @@
+<section class="management-photo-hero management-photo-hero--@Kind theme-page-intro @CssClass" aria-labelledby="@_headingId">
+    <div class="management-hero-copy">
+        <span class="management-hero-eyebrow" dir="ltr">TORSEPAN · WORKSHOP</span>
+        <h1 id="@_headingId" class="management-hero-title"><span>@Title</span>@if(!string.IsNullOrWhiteSpace(SecondLine)){<span>@SecondLine</span>}</h1>
+        @if(!string.IsNullOrWhiteSpace(Description)){<p class="management-hero-description">@Description</p>}
+    </div>
+</section>
+
+@code {
+    private readonly string _headingId = "management-header-" + Guid.NewGuid().ToString("N");
+    [Parameter] public string Kind { get; set; } = "accounting";
+    [Parameter] public string CssClass { get; set; } = "";
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? SecondLine { get; set; }
+    [Parameter] public string? Description { get; set; }
+}
