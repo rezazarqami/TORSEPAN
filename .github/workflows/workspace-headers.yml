@@ -1,0 +1,45 @@
+name: Workspace photo header previews
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'TORSEPAN.Panel/**'
+      - 'ops/deployment/**'
+      - 'tests/WorkspaceHeroPreview/**'
+      - 'tests/workspace-headers-layout.cjs'
+      - '.github/workflows/workspace-headers.yml'
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      WORKSPACE_HEADER_PREVIEW_DIR: ${{ github.workspace }}/header-previews
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and render production Razor headers
+        run: |
+          dotnet build tests/WorkspaceHeroPreview -c Release -m:1
+          dotnet run --project tests/WorkspaceHeroPreview -c Release --no-build
+      - name: Install preview browser
+        run: |
+          npm install --prefix /tmp/workspace-browser playwright
+          /tmp/workspace-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify reference proportions and capture actual rendered headers
+        env:
+          WORKSPACE_PLAYWRIGHT: /tmp/workspace-browser/node_modules/playwright
+        run: node tests/workspace-headers-layout.cjs
+      - name: Verify selective release classification
+        run: python3 -m unittest discover -s ops/deployment -p 'test_*.py'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workspace-header-previews
+          path: header-previews/

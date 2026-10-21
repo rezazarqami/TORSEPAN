@@ -1,0 +1,17 @@
+<section class="@CssClass theme-hero theme-page-intro workspace-photo-hero workspace-photo-hero--@Kind" aria-labelledby="@_headingId">
+    <div class="workspace-hero-copy">
+        <span class="workspace-hero-eyebrow" dir="ltr">@Eyebrow</span>
+        <img class="workspace-hero-mark" src="/images/brand/torsepan-mark-new.webp" alt="" />
+        <h1 id="@_headingId">@Title</h1>
+    </div>
+    <p class="workspace-hero-description">@Description</p>
+</section>
+
+@code {
+    private readonly string _headingId = "workspace-title-" + Guid.NewGuid().ToString("N");
+    [Parameter] public string CssClass { get; set; } = "";
+    [Parameter] public string Kind { get; set; } = "account";
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Eyebrow { get; set; } = "";
+    [Parameter] public string Description { get; set; } = "";
+}
