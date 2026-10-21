@@ -96,12 +96,11 @@ function create(native,model,workspace,now=()=>new Date()){
  function get(c,path,q){
   if(path.startsWith('profit-sharing/')){
    const roles=owner(c).roles||c.s.users.find(x=>x.id===c.s.ownerId)?.roles||[];
-   if(path!=='profit-sharing/me'&&!roles.some(x=>['Administrator','ProductionManager'].includes(x)))throw Error('اجازه مشاهده حساب سود سایر اعضا را ندارید.');
+   if(!roles.some(x=>['Administrator','ProductionManager'].includes(x)))throw Error('اجازه مشاهده حساب سود سایر اعضا را ندارید.');
    if(!Array.isArray(c.w.profitEntries))throw Error('حساب سود هنوز همگام‌سازی نشده است؛ نسخه آنلاین را به‌روز و دوباره همگام‌سازی کنید.');
    const entries=c.w.profitEntries;
    const summary=(userId,name)=>{const rows=entries.filter(x=>x.userId===userId&&!x.reversedAt);return {userId,name,toman:rows.filter(x=>x.currency===1).reduce((n,x)=>n+x.amount,0),usd:rows.filter(x=>x.currency===2).reduce((n,x)=>n+x.amount,0),instruments:new Set(rows.map(x=>x.handpanId)).size};};
    const details=userId=>entries.filter(x=>x.userId===userId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-   if(path==='profit-sharing/me'){const u=owner(c);return {account:summary(c.s.ownerId,u.fullName||u.userName),entries:details(c.s.ownerId)};}
    if(path==='profit-sharing/rules'){if(!Array.isArray(c.w.profitRules))throw Error('درصد مراحل هنوز همگام‌سازی نشده است.');return c.w.profitRules;}
    if(path==='profit-sharing/members'){
     const users=(c.w.users||[]).filter(x=>!x.isDeleted).sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)||(a.fullName||a.userName).localeCompare(b.fullName||b.userName));

@@ -24,8 +24,6 @@ var controller=new ProfitSharingController(db){ControllerContext=new(){HttpConte
 var blankAccount=new User("no-sales","عضو بدون فروش");blankAccount.Deactivate();db.Add(blankAccount);await db.SaveChangesAsync();
 var initialAccounts=(List<ProfitMemberAccount>)((OkObjectResult)await controller.Members()).Value!;
 Check(initialAccounts.Count==3&&initialAccounts.All(x=>x.Toman==0&&x.Usd==0&&x.Instruments==0),"every existing member, including inactive staff, has a separate zero-balance profit account before the first sale");
-var personalBefore=System.Text.Json.JsonSerializer.SerializeToElement(((OkObjectResult)await controller.Mine()).Value);
-Check(personalBefore.GetProperty("Account").GetProperty("UserId").GetGuid()==maker.Id&&personalBefore.GetProperty("Entries").GetArrayLength()==0,"personal account identity is read exclusively from authenticated claims");
 var rules=await db.SaleProfitRules.OrderBy(x=>x.Action).ToListAsync();Check(rules.Count==6&&rules.Sum(x=>x.Percent)==36,"six editable example defaults total 36 percent, design starts at zero");
 Handpan Instrument(string code){var top=new Bowl(code,BowlType.Top,true,InstrumentType.Standard,material.Id);var bottom=new Bowl(code+"-B",BowlType.Bottom,false,InstrumentType.Standard,material.Id);var assembly=new HandpanAssembly(top.Id,bottom.Id);var h=new Handpan(assembly.Id,code);h.ChangeStage(ProductionStage.FinishedWarehouse);db.AddRange(top,bottom,assembly,h);foreach(var action in new[]{ProductionAction.Dimple,ProductionAction.Shape,ProductionAction.Tune,ProductionAction.Glue,ProductionAction.FineTune,ProductionAction.Design})db.Add(new ProductionEvent(h.Id,assembly.Id,top.Id,maker.Id,action,EventResult.Completed,null,"operation"));return h;}
 var handpan=Instrument("PROFIT-1");await db.SaveChangesAsync();handpan.Sell(null,null,null,null,false,maker.Id);var service=new SaleProfitService(db);await service.UpdateAsync(handpan,100000000,MoneyCurrency.Toman);handpan.SetSaleFinancials(MoneyCurrency.Toman,100000000,MoneyCurrency.Toman);await db.SaveChangesAsync();
@@ -52,9 +50,7 @@ await SaleApiChecks.Run(db,http,maker.Id,material.Id);
 var accountRows=(List<ProfitMemberAccount>)((OkObjectResult)await controller.Members()).Value!;
 var credited=await db.SaleProfitEntries.AsNoTracking().Where(x=>x.UserId==maker.Id&&x.ReversedAt==null).ToListAsync();
 Check(accountRows.Single(x=>x.UserId==maker.Id).Toman==credited.Where(x=>x.Currency==MoneyCurrency.Toman).Sum(x=>x.Amount)&&accountRows.Single(x=>x.UserId==blankAccount.Id).Toman==0,"sale accrual credits exactly the performer's independent balance while unrelated accounts stay zero");
-var ownJson=System.Text.Json.JsonSerializer.SerializeToElement(((OkObjectResult)await controller.Mine()).Value);
-Check(ownJson.GetProperty("Entries").EnumerateArray().All(x=>x.GetProperty("UserId").GetGuid()==maker.Id),"personal endpoint never returns another member's ledger");
-var roleAttributes=typeof(ProfitSharingController).GetMethod("Members")!.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute),false).Cast<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
-Check(roleAttributes.Single().Roles=="Administrator,ProductionManager"&&typeof(ProfitSharingController).GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute),false).Length==1,"manager list remains role-restricted while the personal endpoint requires authentication");
+var access=typeof(ProfitSharingController).GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute),false).Cast<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>().Single();
+Check(access.Roles=="Administrator,ProductionManager"&&typeof(ProfitSharingController).GetMethod("Mine")==null&&!typeof(ProfitSharingController).GetMethods().Any(m=>m.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute),true).Length>0),"every profit endpoint is manager-only and no personal profit endpoint exists");
 await UiChecks.Run();Console.WriteLine("Profit sharing smoke passed.");
 static void Check(bool ok,string message){if(!ok)throw new Exception(message);Console.WriteLine("PASS "+message);}

@@ -9,7 +9,6 @@
 <nav class="account-tabs" aria-label="بخش‌های ناحیهٔ کاربری">
     <button class="@(_section == AccountSection.Performance ? "active" : "")" aria-pressed="@(_section == AccountSection.Performance)" @onclick="()=>_section=AccountSection.Performance">عملکرد من</button>
     <button class="@(_section == AccountSection.Payroll ? "active" : "")" aria-pressed="@(_section == AccountSection.Payroll)" @onclick="()=>_section=AccountSection.Payroll">دستمزد من</button>
-    <button class="@(_section == AccountSection.Profit ? "active" : "")" aria-pressed="@(_section == AccountSection.Profit)" @onclick="()=>_section=AccountSection.Profit">حساب سود من</button>
     <button class="@(_section == AccountSection.Security ? "active" : "")" aria-pressed="@(_section == AccountSection.Security)" @onclick="()=>_section=AccountSection.Security">تنظیمات امنیتی</button>
 </nav>
 @if (_section == AccountSection.Security)
@@ -39,10 +38,6 @@
             </section>
         </div>
     }
-}
-else if (_section == AccountSection.Profit)
-{
-    <ProfitSharing OwnAccount="true" />
 }
 else
 {
@@ -96,7 +91,7 @@ else
     private MyPayrollDto? _payroll;
     private OwnProfileDto? _profile;
     private bool _loading,_busy;
-    private enum AccountSection { Performance, Payroll, Security, Profit }
+    private enum AccountSection { Performance, Payroll, Security }
     private AccountSection _section = AccountSection.Performance;
     private readonly string _avatarInputId = $"profile-photo-{Guid.NewGuid():N}";
     private string? _error,_profileError,_notice,_payrollError;

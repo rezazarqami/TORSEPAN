@@ -31,22 +31,21 @@ public sealed class QcPreview:Dimpling
     public void Set(string name,object? value)=>typeof(Dimpling).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(this,value);
     public async Task Call(string name,params object?[] args){var r=typeof(Dimpling).GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(this,args);if(r is Task t)await t;}
 }
-sealed class FixtureAuth(string role):AuthenticationStateProvider{public override Task<AuthenticationState> GetAuthenticationStateAsync()=>Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.Role,role)},"fixture"))));}
+sealed class FixtureAuth(string role):AuthenticationStateProvider{public string Role{get;private set;}=role;public void SetRole(string value){Role=value;NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());}public override Task<AuthenticationState> GetAuthenticationStateAsync()=>Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.Role,Role)},"fixture"))));}
 sealed class FixtureJs:IJSRuntime{public ValueTask<T> InvokeAsync<T>(string id,object?[]? args)=>ValueTask.FromResult(default(T)!);public ValueTask<T> InvokeAsync<T>(string id,CancellationToken ct,object?[]? args)=>InvokeAsync<T>(id,args);}
 sealed class FixtureNavigation:NavigationManager{public FixtureNavigation(){Initialize("https://fixture.invalid/","https://fixture.invalid/warehouse/list");}protected override void NavigateToCore(string uri,bool forceLoad){}}
 sealed class FixtureApi:HttpMessageHandler
 {
-    public HttpStatusCode? FailRules,FailMembers;
+    public HttpStatusCode? FailRules,FailMembers;public int ProfitRequests;
     public int Transfers,Renames,QcRequests,LastQualityWarehouse; public int? LastExportLocation;
     readonly List<InstrumentWarehouseDto> warehouses=InstrumentWarehouseDto.Defaults();
     public readonly List<WarehouseHandpanDto> Stock=new[]{("ST-00281","D Kurd 9",1), ("ST-00284","D Amara 13",1), ("ST-00295","E Sabye 9",1), ("ST-00310","D Kurd 14",2), ("ST-00326","C Aegean 10",2), ("ST-00402","F Low Pygmy 16",3)}.Select((x,i)=>new WarehouseHandpanDto{HandpanId=Guid.NewGuid(),SerialNumber=x.Item1,TopBowlCode=x.Item1,BottomBowlCode="SB-"+(20000+i),MaterialName=i%2==0?"Ember Steel":"Stainless Steel",ScaleName=x.Item2,QualityWarehouseId=x.Item3,Version=Guid.NewGuid(),WarehouseEntryDate=new DateTime(2026,10,10,10,0,0),Notes=i==1?["انتخاب‌شده برای سفارش مشتری"]:[]}).ToList();
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
     {
-        object data=Array.Empty<object>();var path=request.RequestUri!.AbsolutePath;
+        object data=Array.Empty<object>();var path=request.RequestUri!.AbsolutePath;if(path.Contains("/profit-sharing/"))ProfitRequests++;
         if(path.EndsWith("/profit-sharing/rules")&&FailRules.HasValue)return new HttpResponseMessage(FailRules.Value);
         if(path.EndsWith("/profit-sharing/members")&&FailMembers.HasValue)return new HttpResponseMessage(FailMembers.Value);
-        if(path.EndsWith("/profit-sharing/me"))data=new OwnProfitDto{Account=new(){UserId=Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),Name="شایان نجفی",Toman=7000000,Usd=130,Instruments=2},Entries=[new(){Code="553",Action=3,RolePercent=7,NetProfit=100000000,Amount=7000000,Currency=1,SoldAt=DateTime.UtcNow}]};
-        else if(path.EndsWith("/profit-sharing/rules"))data=new[]{new ProfitRuleDto{Action=2,Percent=2,Version=Guid.NewGuid()},new ProfitRuleDto{Action=3,Percent=7,Version=Guid.NewGuid()},new ProfitRuleDto{Action=5,Percent=1,Version=Guid.NewGuid()},new ProfitRuleDto{Action=6,Percent=13,Version=Guid.NewGuid()},new ProfitRuleDto{Action=7,Percent=13,Version=Guid.NewGuid()},new ProfitRuleDto{Action=13,Percent=0,Version=Guid.NewGuid()}};
+        if(path.EndsWith("/profit-sharing/rules"))data=new[]{new ProfitRuleDto{Action=2,Percent=2,Version=Guid.NewGuid()},new ProfitRuleDto{Action=3,Percent=7,Version=Guid.NewGuid()},new ProfitRuleDto{Action=5,Percent=1,Version=Guid.NewGuid()},new ProfitRuleDto{Action=6,Percent=13,Version=Guid.NewGuid()},new ProfitRuleDto{Action=7,Percent=13,Version=Guid.NewGuid()},new ProfitRuleDto{Action=13,Percent=0,Version=Guid.NewGuid()}};
         else if(path.EndsWith("/profit-sharing/members"))data=new[]{new ProfitMemberDto{UserId=Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),Name="شایان نجفی",Toman=7000000,Usd=130,Instruments=2}};
         else if(path.Contains("/profit-sharing/members/"))data=new[]{new ProfitEntryDto{Code="553",Action=3,RolePercent=7,NetProfit=100000000,Amount=7000000,Currency=1,SoldAt=DateTime.UtcNow}};
         else if(path.EndsWith("/instrument-warehouses"))data=warehouses;

@@ -21,7 +21,7 @@ const watchdog=setTimeout(()=>{console.error("Profile browser layout verificatio
   const hero=await page.locator('.account-hero').boundingBox(),tabs=await page.locator('.account-tabs').boundingBox();
   assert(hero.x>=0&&hero.x+hero.width<=width&&Math.abs(hero.width-tabs.width)<=1&&Math.abs(hero.x-tabs.x)<=1,'account hero must fit and align with tabs');
   assert(await page.locator('.account-hero img').evaluate(e=>e.complete&&e.naturalWidth>0),'brand logo must load');
-  assert(await page.locator('.account-tabs button').count()===4,'account must have performance, payroll, profit and security tabs');
+  assert(await page.locator('.account-tabs button').count()===3,'account must have performance, payroll and security tabs');
   if(name.startsWith('security')){
    const picker=page.locator('.avatar-picker input[type=file]');
    assert(await picker.count()===1,'native photo input must exist');
