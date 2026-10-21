@@ -1,0 +1,17 @@
+{
+  "panel": {
+    "app": "torsepan",
+    "sha": "944bbadd59752e747dad59bcf5917b1872923f94",
+    "liara_version": "v275",
+    "verified": true,
+    "health_url": "https://torsepan.liara.run/health"
+  },
+  "api": {
+    "app": "torsepan-api",
+    "sha": "045668d5678be2a9e1c0e5fc71d55ae305b08e32",
+    "liara_version": "v248",
+    "verified": true,
+    "health_url": "https://torsepan-api.liara.run/health",
+    "note": "Active rollback to v248 and its full commit link verified in Liara on 2026-10-21; public health endpoint independently returned HTTP 200 healthy."
+  }
+}
