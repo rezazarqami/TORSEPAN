@@ -27,13 +27,15 @@ the Android application also consumes shared panel source.
    checks when shared panel behavior changes. Regular CI builds panel, API and
    the unified root image.
 3. Publish tested changes to master when the user authorizes publication.
-   Selective release configuration is staged under `ops/deployment/` and
-   `.github/workflows/selective-liara.yml`. It stays disabled unless repository
-   variable `LIARA_SELECTIVE_RELEASE_ENABLED` is exactly `true`. Before enabling
-   it, verify Liara's independent automatic GitHub deployments are OFF for both
-   apps. Never run both deployment owners together. Use each app's separately
-   verified baseline and require successful CI for the exact master SHA.
-   See `ops/deployment/ACTIVATION.md` for handover and rollback instructions.
+   Liara's native GitHub automatic deployment is the sole production deployment
+   owner for BOTH apps. Each integration follows master and uses the root
+   Dockerfile. Preserve TORSEPAN_SERVICE=panel on torsepan and
+   TORSEPAN_SERVICE=api on torsepan-api.
+   The selective GitHub release workflow is permanently skipped, including
+   manual dispatch, regardless of LIARA_SELECTIVE_RELEASE_ENABLED.
+   Do not reenable CLI deployment or selective releases without an explicit
+   new user request. CI remains for validation and does not deploy.
+   See ops/deployment/ACTIVATION.md for the current handover instructions.
 4. A GitHub push or successful CI alone does not prove live deployment.
    Verify each app's deployed commit, successful release, health and relevant
    behavior. Report any unverified deployment explicitly.

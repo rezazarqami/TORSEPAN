@@ -36,8 +36,11 @@ allocation lifecycle when synchronized.
 
 ## Release and rollback
 
-Publication includes a deployment-side pre-migration backup gate. The API deploy requires a successfully delivered backup within two hours, and verifies the applied migration identifier after startup. Both panel and API need
-an update. Migration `AddSalesProfitSharing` adds nullable profit data, currency
+Production deployment now uses Liara's native GitHub integration for both apps.
+The retired selective CLI workflow's two-hour backup gate and deployment receipt
+are not executed by native deployment. Verify a fresh backup before the first
+schema deployment and check the applied migration through API health afterward.
+Both panel and API need an update. Migration `AddSalesProfitSharing` adds nullable profit data, currency
 columns with toman defaults, rules and an audit ledger. It does not backfill
 profits or change historical prices. Before production publication verify a
 fresh database backup and the restore procedure, per AGENTS.md. Deploy the API
@@ -66,4 +69,4 @@ isolated PostgreSQL database, preserve/copy photo binaries from the existing
 source database, and validate user, instrument and accounting row counts before
 any application database switch. Never run an automatic destructive restore.
 Keep the previous API/panel release available; additive tables can remain during
-code rollback. The deployment receipt records the backup time and migration ID.
+code rollback. Record the verified backup time and applied migration ID during release verification.

@@ -1,73 +1,13 @@
+# Production deployment is owned by Liara's GitHub integration.
+# Intentionally no automatic trigger and no executable deployment job.
 name: Selective Liara release
 on:
-  workflow_run:
-    workflows: ['Build deployment images']
-    types: [completed]
-    branches: [master]
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
-  deployments: write
-concurrency:
-  group: selective-liara-production
-  cancel-in-progress: false
 jobs:
   release:
-    if: >-
-      vars.LIARA_SELECTIVE_RELEASE_ENABLED == 'true' &&
-      github.ref == 'refs/heads/master' &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event.workflow_run.event == 'push' &&
-        github.event.workflow_run.head_repository.full_name == github.repository &&
-        github.event.workflow_run.conclusion == 'success'))
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    environment: liara-production
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Verify change classification and CI gate
-        run: |
-          python3 -m unittest discover -s ops/deployment -p 'test_*.py'
-          node ops/deployment/test_release.cjs
-      - name: Require successful CI and load each app's verified baseline
-        id: plan
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const release = require('./ops/deployment/release.cjs');
-            await release.prepare({github, context, core});
-      - name: Install Liara deployment CLI
-        if: steps.plan.outputs.panel == 'true' || steps.plan.outputs.api == 'true'
-        run: npm install --global @liara/cli@9
-      - name: Deploy API when its build inputs changed
-        if: steps.plan.outputs.api == 'true'
-        env:
-          LIARA_API_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
-        run: python3 ops/deployment/deploy.py api
-      - name: Record verified API release
-        if: steps.plan.outputs.api == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const release = require('./ops/deployment/release.cjs');
-            await release.record({github, context, core}, 'api');
-      - name: Deploy panel when its build inputs changed
-        if: steps.plan.outputs.panel == 'true'
-        env:
-          LIARA_API_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
-        run: python3 ops/deployment/deploy.py panel
-      - name: Record verified panel release
-        if: steps.plan.outputs.panel == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const release = require('./ops/deployment/release.cjs');
-            await release.record({github, context, core}, 'panel');
+      - run: echo "Deployment is managed by Liara automatic GitHub integration."
