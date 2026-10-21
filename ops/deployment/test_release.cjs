@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {checkRuns,latestRuns,baseline}=require('./release.cjs');
+const build={event:'push',path:'.github/workflows/build.yml',name:'Build',run_number:2,run_attempt:1,status:'completed',conclusion:'success'};
+assert.equal(checkRuns([build]).ready,true);
+assert.equal(checkRuns([]).ready,false);
+assert.equal(checkRuns([build,{...build,path:'.github/workflows/profile.yml',status:'in_progress',conclusion:null}]).ready,false);
+assert.throws(()=>checkRuns([build,{...build,path:'.github/workflows/profile.yml',conclusion:'failure'}]));
+assert.throws(()=>checkRuns([build,{...build,path:'.github/workflows/profile.yml',conclusion:'cancelled'}]));
+assert.equal(latestRuns([build,{...build,run_attempt:2,conclusion:'failure'}])[0].conclusion,'failure');
+const deployments=[{id:3,sha:'failed-sha',payload:{managed_by:'torsepan-selective-release-v1'}},{id:2,sha:'last-success',payload:{managed_by:'torsepan-selective-release-v1'}},{id:1,sha:'old',payload:{managed_by:'different-system'}}];
+const github={paginate:async()=>deployments,rest:{repos:{listDeployments(){},listDeploymentStatuses:async({deployment_id})=>({data:[{state:deployment_id===3?'failure':'success'}]})}}};
+(async()=>{assert.equal(await baseline(github,'owner','repo','panel'),'last-success');console.log('PASS CI success gate, cancelled/failed CI, retries, and retained baseline after failed deploy')})().catch(e=>{console.error(e);process.exitCode=1});

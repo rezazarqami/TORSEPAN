@@ -374,3 +374,7 @@ android/local.properties
 
 # Packaged shared Blazor UI is produced by the offline build.
 android/app/src/main/assets/panel/
+
+# Ephemeral selective-release plans and verification receipts
+/.liara-release-plan.json
+/.liara-*-receipt.json

@@ -1,0 +1,21 @@
+name: Selective release checks
+on:
+  push:
+    branches: [master]
+    paths: ['ops/deployment/**', '.github/workflows/selective-liara.yml', '.github/workflows/selective-release-check.yml']
+  pull_request:
+    paths: ['ops/deployment/**', '.github/workflows/selective-liara.yml', '.github/workflows/selective-release-check.yml']
+permissions:
+  contents: read
+jobs:
+  release-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify per-service changes, failure handling and credential redaction
+        run: python3 -m unittest discover -s ops/deployment -p 'test_*.py'
+      - name: Verify CI gating and retained successful baselines
+        run: node ops/deployment/test_release.cjs

@@ -1,0 +1,17 @@
+{
+  "panel": {
+    "app": "torsepan",
+    "sha": "944bbadd59752e747dad59bcf5917b1872923f94",
+    "liara_version": "v275",
+    "verified": true,
+    "health_url": "https://torsepan.liara.run/health"
+  },
+  "api": {
+    "app": "torsepan-api",
+    "sha": "045668d5678be2a9e1c0e5fc71d55ae305b08e32",
+    "liara_version": "v248",
+    "verified": false,
+    "health_url": null,
+    "note": "Candidate SHA matches v248 commit message; confirm actual active release/source and health URL in Liara before activation."
+  }
+}
