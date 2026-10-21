@@ -30,6 +30,12 @@ public class Handpan : Entity
 
     public Guid AssemblyId { get; private set; }
 
+    public static Handpan CreateLegacyStock(Guid registrationId, Guid assemblyId, string code, Guid scaleId)
+    {
+        if (registrationId == Guid.Empty) throw new ArgumentException("Registration ID is required.");
+        return new Handpan(assemblyId, code, scaleId) { Id = registrationId };
+    }
+
     public HandpanAssembly Assembly { get; private set; } = null!;
 
     public string SerialNumber { get; private set; } = string.Empty;

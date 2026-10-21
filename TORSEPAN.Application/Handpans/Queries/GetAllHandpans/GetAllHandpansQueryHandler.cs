@@ -73,7 +73,7 @@ public sealed class GetAllHandpansQueryHandler
                 x.Id,
                 x.SerialNumber,
                 x.Assembly.TopBowl.ProductionCode,
-                x.Assembly.BottomBowl.ProductionCode,
+                TORSEPAN.Domain.Entities.LegacyStockRecord.DisplayCode(x.Assembly.BottomBowl.ProductionCode),
                 x.Assembly.TopBowl.Material.Name,
                 x.FormatScaleName(x.Scale?.Name),
                 (int)x.Status,

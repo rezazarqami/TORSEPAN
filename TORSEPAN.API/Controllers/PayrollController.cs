@@ -241,7 +241,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             if (exportWarehouse) selectedActions.Add(ProductionAction.Packaging);
             var enteredIds = await db.ProductionEvents.AsNoTracking()
                 .Where(x => x.EventDate >= startUtc && x.EventDate < endUtc && x.Result == EventResult.Completed &&
-                            x.HandpanId.HasValue && selectedActions.Contains(x.Action))
+                            x.HandpanId.HasValue && !x.Description.StartsWith("LEGACY_STOCK:") && selectedActions.Contains(x.Action))
                 .Select(x => x.HandpanId!.Value).Distinct().ToListAsync(ct);
             handpanIds = enteredIds.Where(x => !alreadyPaid.Contains(x)).ToList();
             var handpans = await db.Handpans.AsNoTracking().Include(x => x.Assembly)
@@ -287,7 +287,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
             .Include(x => x.Assembly)!.ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
             .Include(x => x.Handpan)!.ThenInclude(x => x.Scale)
             .Include(x => x.Handpan)!.ThenInclude(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
-            .Where(x => x.Result == EventResult.Completed && !x.IsPayrollExcluded && !x.Description.StartsWith("NOTE:") &&
+            .Where(x => x.Result == EventResult.Completed && !x.IsPayrollExcluded && !x.Description.StartsWith("NOTE:") && !x.Description.StartsWith("LEGACY_STOCK:") &&
                 x.Description != "Released from glue room" &&
                 (x.Action == ProductionAction.Dimple || x.Action == ProductionAction.Shape || x.Action == ProductionAction.Glue || x.Action == ProductionAction.Tune || x.Action == ProductionAction.FineTune || x.Action == ProductionAction.Design));
         eventQuery = eventQuery.Where(x =>

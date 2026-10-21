@@ -114,14 +114,14 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
         var events=await db.ProductionEvents.AsNoTracking().Include(x=>x.User)
             .Where(x=>target.BowlIds.Contains(x.BowlId??Guid.Empty)||(target.HandpanId.HasValue&&x.HandpanId==target.HandpanId)||(target.AssemblyId.HasValue&&x.AssemblyId==target.AssemblyId))
             .OrderBy(x=>x.EventDate).ToListAsync(ct);
-        var codeByBowl=bowls.ToDictionary(x=>x.Id,x=>x.ProductionCode);
+        var codeByBowl=bowls.ToDictionary(x=>x.Id,x=>LegacyStockRecord.DisplayCode(x.ProductionCode));
         var anchor=handpan is null?bowls.First(x=>string.Equals(x.ProductionCode,requestedCode,StringComparison.OrdinalIgnoreCase)):null;
         var stage=handpan?.Stage??anchor!.Stage;var status=handpan?.Status??anchor!.Status;
         return new AdminProductionEditDto(requestedCode,handpan?.SerialNumber??anchor!.ProductionCode,handpan is null?"کاسه":"ساز",(int)stage,StageTitle(stage),StatusTitle(status),
             handpan?.Id,handpan?.ScaleId,handpan?.Scale?.Name,target.AssemblyId,
-            bowls.Select(x=>new AdminEditableBowlDto(x.Id,x.ProductionCode,BowlTitle(x),x.Material.Name,(int)x.Stage,StageTitle(x.Stage),x.ScaleId,x.Scale?.Name,x.KnownNoteCount)).ToList(),
+            bowls.Select(x=>new AdminEditableBowlDto(x.Id,LegacyStockRecord.DisplayCode(x.ProductionCode),BowlTitle(x),x.Material.Name,(int)x.Stage,StageTitle(x.Stage),x.ScaleId,x.Scale?.Name,x.KnownNoteCount)).ToList(),
             events.Select(x=>new AdminEditableEventDto(x.Id,(int)x.Action,ActionTitle(x.Action),x.EventDate,x.UserId,UserName(x.User),
-                x.BowlId.HasValue&&codeByBowl.TryGetValue(x.BowlId.Value,out var bowlCode)?bowlCode:handpan?.SerialNumber??"مونتاژ",DurationTitle(x.Duration),x.Description)).ToList());
+                x.BowlId.HasValue&&codeByBowl.TryGetValue(x.BowlId.Value,out var bowlCode)?bowlCode:handpan?.SerialNumber??"مونتاژ",DurationTitle(x.Duration),LegacyStockRecord.DisplayDescription(x.Description))).ToList());
     }
 
     private async Task<EditTarget?> ResolveAsync(string code,CancellationToken ct)

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using TORSEPAN.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,8 @@ public sealed class PayrollExclusionsController(TORSEPANDbContext db) : Controll
         var events = await db.ProductionEvents.Where(x => ids.Contains(x.Id) && Allowed.Contains(x.Action) && x.Result == EventResult.Completed).ToListAsync(ct);
         if (events.Count != ids.Length) return BadRequest("یک یا چند عملیات معتبر نیست.");
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!request.Excluded && events.Any(x => x.Description.StartsWith(LegacyStockRecord.Prefix)))
+            return BadRequest("دستمزد سازهای قدیمی قبلاً محاسبه شده و دوباره قابل محاسبه نیست.");
         foreach (var item in events) item.SetPayrollExcluded(request.Excluded, userId);
         await db.SaveChangesAsync(ct);
         return NoContent();
@@ -61,6 +64,8 @@ public sealed class PayrollExclusionsController(TORSEPANDbContext db) : Controll
         if (events.Count != ids.Length) return BadRequest("یک یا چند عملیات معتبر نیست.");
         var changes = request.Changes.ToDictionary(x => x.EventId, x => x.Excluded);
         var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (events.Any(x => !changes[x.Id] && x.Description.StartsWith(LegacyStockRecord.Prefix)))
+            return BadRequest("دستمزد سازهای قدیمی قبلاً محاسبه شده و دوباره قابل محاسبه نیست.");
         foreach (var item in events) item.SetPayrollExcluded(changes[item.Id], userId);
         // One SaveChanges call commits exclusions and restorations atomically.
         await db.SaveChangesAsync(ct);

@@ -42,7 +42,7 @@ public sealed class GetProductionTimelineQueryHandler
                 Id = item.Id,
                 Operation = item.Action.ToString(),
                 Stage = handpan.Stage.ToString(),
-                Notes = item.Description,
+                Notes = TORSEPAN.Domain.Entities.LegacyStockRecord.DisplayDescription(item.Description),
                 PerformedAt = item.EventDate
             });
         }

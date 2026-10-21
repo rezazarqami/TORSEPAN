@@ -90,7 +90,7 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
     private async Task<ProductionAnalytics> BuildProductionAsync(ManagementReportRequest request,CancellationToken ct)
     {
         var (start,end)=Range(request.From,request.To);
-        var allEvents=await db.ProductionEvents.AsNoTracking().Include(x=>x.User).Where(x=>x.Result==EventResult.Completed).ToListAsync(ct);
+        var allEvents=await db.ProductionEvents.AsNoTracking().Include(x=>x.User).Where(x=>x.Result==EventResult.Completed&&!x.Description.StartsWith("LEGACY_STOCK:")).ToListAsync(ct);
         var allBowls=await db.Bowls.AsNoTracking().Include(x=>x.Material).Include(x=>x.Scale).ToListAsync(ct);
         var bowlsById=allBowls.ToDictionary(x=>x.Id);
         var assemblies=await db.HandpanAssemblies.AsNoTracking().ToListAsync(ct);

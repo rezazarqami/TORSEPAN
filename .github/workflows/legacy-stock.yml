@@ -1,0 +1,35 @@
+name: Legacy opening stock
+on:
+  push:
+    branches: [master]
+    paths: ['TORSEPAN.Domain/**', 'TORSEPAN.Application/**', 'TORSEPAN.Infrastructure/**', 'TORSEPAN.API/**', 'TORSEPAN.Panel/**', 'tests/LegacyStockSmoke/**', 'tests/WarehouseTierSmoke/**', 'tests/legacy-stock-layout.cjs', '.github/workflows/legacy-stock.yml']
+  pull_request:
+    paths: ['TORSEPAN.Domain/**', 'TORSEPAN.Application/**', 'TORSEPAN.Infrastructure/**', 'TORSEPAN.API/**', 'TORSEPAN.Panel/**', 'tests/LegacyStockSmoke/**', 'tests/WarehouseTierSmoke/**', 'tests/legacy-stock-layout.cjs', '.github/workflows/legacy-stock.yml']
+jobs:
+  legacy-stock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      LEGACY_PREVIEW_DIR: ${{ github.workspace }}/legacy-previews
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify atomic opening stock, wages, idempotency, passports and form behavior
+        run: dotnet run --project tests/LegacyStockSmoke -c Release
+      - name: Verify existing warehouse transfers, tiers and permissions
+        run: dotnet run --project tests/WarehouseTierSmoke -c Release
+      - name: Install browser
+        run: |
+          npm install --prefix /tmp/legacy-browser playwright
+          /tmp/legacy-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify production theme and mobile layouts
+        env:
+          LEGACY_PLAYWRIGHT: /tmp/legacy-browser/node_modules/playwright
+        run: node tests/legacy-stock-layout.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: legacy-stock-previews
+          path: legacy-previews

@@ -100,6 +100,7 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<SalesAttributionService>();
 builder.Services.AddScoped<AdminProductionEditService>();
+builder.Services.AddScoped<LegacyStockService>();
 builder.Services.AddScoped<PersonalWorkspaceService>();
 builder.Services.AddScoped<MarketingService>();
 

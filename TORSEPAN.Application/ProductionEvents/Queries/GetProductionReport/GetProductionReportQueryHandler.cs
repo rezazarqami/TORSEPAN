@@ -14,7 +14,7 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
         var events = await unitOfWork.ProductionEvents.GetReportAsync(ToUtcBoundary(request.From),
             ToUtcBoundary(request.To, 1), request.UserId, request.Action, request.Result);
         var users = (await unitOfWork.Users.GetAllAsync()).OrderBy(x => x.FullName).ToList();
-        var activities = events.Where(x => x.Description != "Released from glue room" && !x.Description.StartsWith("MATERIAL_STOCK:")).Select(x => new ProductionActivityItem
+        var activities = events.Where(x => x.Description != "Released from glue room" && !x.Description.StartsWith("MATERIAL_STOCK:") && !x.Description.StartsWith("LEGACY_STOCK:")).Select(x => new ProductionActivityItem
         {
             Id = x.Id, EventDate = x.EventDate, UserId = x.UserId, UserName = x.User.UserName,
             FullName = x.User.FullName, Action = (int)x.Action, ActionTitle = ActionTitle(x),
@@ -79,8 +79,8 @@ public sealed class GetProductionReportQueryHandler(IUnitOfWork unitOfWork)
         var local=(request.To??DateTime.UtcNow.AddHours(3.5)).Date;
         var months=PersianMonthCalendar.LastMonths(local,6);
         var events=await unitOfWork.ProductionEvents.GetReportAsync(months[0].UtcStart,months[^1].UtcEnd,request.UserId,request.Action,null);
-        var counts=months.Select(month=>new ReportTrendItem(month.Label,events.Count(x=>x.EventDate>=month.UtcStart&&x.EventDate<month.UtcEnd&&!x.Description.StartsWith("MATERIAL_STOCK:")),0)).ToList();
-        var durations=months.Select(month=>new ReportTrendItem(month.Label,events.Where(x=>x.EventDate>=month.UtcStart&&x.EventDate<month.UtcEnd&&!x.Description.StartsWith("MATERIAL_STOCK:")).Sum(x=>DurationMinutes(x)??0),0)).ToList();
+        var counts=months.Select(month=>new ReportTrendItem(month.Label,events.Count(x=>x.EventDate>=month.UtcStart&&x.EventDate<month.UtcEnd&&!x.Description.StartsWith("MATERIAL_STOCK:") && !x.Description.StartsWith("LEGACY_STOCK:")),0)).ToList();
+        var durations=months.Select(month=>new ReportTrendItem(month.Label,events.Where(x=>x.EventDate>=month.UtcStart&&x.EventDate<month.UtcEnd&&!x.Description.StartsWith("MATERIAL_STOCK:") && !x.Description.StartsWith("LEGACY_STOCK:")).Sum(x=>DurationMinutes(x)??0),0)).ToList();
         var countAverage=counts.Count==0?0:Math.Round(counts.Average(x=>x.Count),1);
         var durationAverage=durations.Count==0?0:Math.Round(durations.Average(x=>x.Count),1);
         return (counts.Select(x=>x with{Average=countAverage}).ToList(),durations.Select(x=>x with{Average=durationAverage}).ToList());

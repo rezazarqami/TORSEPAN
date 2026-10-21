@@ -40,7 +40,7 @@ public static class PassportBackupSnapshot
         IReadOnlyList<PassportOperation> Operations(IEnumerable<EventRow> source) => source.DistinctBy(x => x.Id)
             .OrderBy(x => x.EventDate).ThenBy(x => x.Id).Select(x => new PassportOperation(x.Id, x.EventDate,
                 Action(x.Action), x.Actor, x.BowlId.HasValue && bowlMap.TryGetValue(x.BowlId.Value, out var b)
-                    ? $"{(b.BowlType == BowlType.Top ? "کاسه رو" : "کاسه زیر")} {b.ProductionCode}" : "ساز / مونتاژ",
+                    ? $"{(b.BowlType == BowlType.Top ? "کاسه رو" : "کاسه زیر")} {LegacyStockRecord.DisplayCode(b.ProductionCode)}" : "ساز / مونتاژ",
                 x.Result switch { EventResult.Completed => "انجام شد", EventResult.Failed => "ناموفق", EventResult.Rejected => "رد شد", EventResult.Skipped => "رد مرحله", _ => x.Result.ToString() },
                 x.Duration?.DisplayName() ?? "", Description(x.Description, users))).ToList();
         foreach (var h in handpans)
@@ -48,12 +48,12 @@ public static class PassportBackupSnapshot
             var a = assemblyMap[h.AssemblyId]; var top = bowlMap[a.TopBowlId]; var bottom = bowlMap[a.BottomBowlId];
             used.Add(top.Id); used.Add(bottom.Id);
             var related = handpanEvents[h.Id].Concat(assemblyEvents[a.Id]).Concat(bowlEvents[top.Id]).Concat(bowlEvents[bottom.Id]);
-            var details = $"کاسه رو: {top.ProductionCode} ({top.Material.Name}) | کاسه زیر: {bottom.ProductionCode} ({bottom.Material.Name}، {Design(bowlEvents[bottom.Id])}) | ثبت ساز: {PassportBackupPdf.Date(h.CreatedAt)}";
+            var details = $"کاسه رو: {top.ProductionCode} ({top.Material.Name}) | کاسه زیر: {LegacyStockRecord.DisplayCode(bottom.ProductionCode)} ({bottom.Material.Name}، {Design(bowlEvents[bottom.Id])}) | ثبت ساز: {PassportBackupPdf.Date(h.CreatedAt)}";
             if (h.SoldAt.HasValue)
                 details += $" | فروش: {PassportBackupPdf.Date(h.SoldAt.Value)} | خریدار: {h.BuyerName ?? "—"} | تلفن: {h.BuyerPhoneNumber ?? "—"} | مبلغ: {h.SalePrice?.ToString("N0") ?? "—"} | مقصد: {h.SaleDestination ?? "داخلی"}";
             if (h.WarrantyActivatedAt.HasValue) details += $" | فعال شدن ضمانت: {PassportBackupPdf.Date(h.WarrantyActivatedAt.Value)}";
             if (h.ExportWarehouseLocation.HasValue) details += $" | محل انبار صادراتی: {h.ExportWarehouseLocation}";
-            records.Add(new(h.SerialNumber, "ساز", h.Status == ProductionStatus.Rejected ? "ردشده" : Group(h.Stage), Stage(h.Stage), h.FormatScaleName(h.Scale?.Name ?? top.Scale?.Name), Design(bowlEvents[top.Id]), details, Operations(related), bottom.ProductionCode, Design(bowlEvents[bottom.Id])));
+            records.Add(new(h.SerialNumber, "ساز", h.Status == ProductionStatus.Rejected ? "ردشده" : Group(h.Stage), Stage(h.Stage), h.FormatScaleName(h.Scale?.Name ?? top.Scale?.Name), Design(bowlEvents[top.Id]), details, Operations(related), LegacyStockRecord.DisplayCode(bottom.ProductionCode), Design(bowlEvents[bottom.Id])));
         }
         foreach (var b in bowls.Where(x => !used.Contains(x.Id)))
         {
@@ -68,6 +68,7 @@ public static class PassportBackupSnapshot
         ProductionAction Action, EventResult Result, OperationDuration? Duration, string Description, DateTime EventDate);
     private static string Description(string value, IReadOnlyDictionary<Guid, string> users)
     {
+        value = LegacyStockRecord.DisplayDescription(value);
         var marker = value.IndexOf("|CONTRIB:", StringComparison.Ordinal);
         if (marker < 0) return value;
         var labels = new Dictionary<string, string> { ["Stretch"] = "کشش", ["NoteArea"] = "دورنوت", ["Edit"] = "اصلاح" };

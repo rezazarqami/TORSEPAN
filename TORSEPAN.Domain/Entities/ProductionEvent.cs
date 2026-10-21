@@ -97,6 +97,8 @@ public class ProductionEvent : Entity
 
     public void SetPayrollExcluded(bool excluded, Guid changedBy)
     {
+        if (!excluded && Description.StartsWith(LegacyStockRecord.Prefix, StringComparison.Ordinal))
+            throw new InvalidOperationException("دستمزد سوابق ساز قدیمی قبلاً محاسبه شده است و دوباره قابل محاسبه نیست.");
         IsPayrollExcluded = excluded;
         PayrollExcludedByUserId = excluded ? changedBy : null;
         PayrollExcludedAtUtc = excluded ? DateTime.UtcNow : null;

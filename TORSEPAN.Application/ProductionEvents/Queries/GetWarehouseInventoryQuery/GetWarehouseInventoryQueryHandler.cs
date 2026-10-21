@@ -90,7 +90,7 @@ public sealed class GetWarehouseInventoryQueryHandler
                 SerialNumber = x.SerialNumber,
                 Stage = x.Stage.ToString(),
                 TopBowlCode = x.Assembly.TopBowl.ProductionCode,
-                BottomBowlCode = x.Assembly.BottomBowl.ProductionCode,
+                BottomBowlCode = TORSEPAN.Domain.Entities.LegacyStockRecord.DisplayCode(x.Assembly.BottomBowl.ProductionCode),
                 MaterialName = x.Assembly.TopBowl.Material.Name,
                 ScaleName = x.FormatScaleName(x.Scale?.Name),
                 CreatedAt = x.CreatedAt,
