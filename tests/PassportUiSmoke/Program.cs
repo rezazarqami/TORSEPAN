@@ -84,6 +84,7 @@ await renderer.Dispatcher.InvokeAsync(async () =>
     }
 
 });
+await ProcessFlowChecks.Run();
 static void Check(bool value, string message) { if (!value) throw new Exception(message); Console.WriteLine("PASS " + message); }
 public sealed class PassportPreview : Dimpling
 {
