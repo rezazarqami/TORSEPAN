@@ -71,28 +71,11 @@ else
         <div class="col-12">
             <Card>
                 <h4>دستمزد تولید عادی</h4>
-                <div class="table-responsive payroll-result-table">
-                    <table class="table table-sm align-middle">
-                        <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
-                        <tbody>
-                        @foreach (var user in UserGroups)
-                        {
-                            var first = true;
-                            @foreach (var line in user.Lines)
-                            {
-                                <tr>
-                                    <td class="payroll-member">@(first ? user.Name : "")</td>
-                                    <td class="payroll-operation"><PayrollLineDescription Line="line" /></td>
-                                    <td class="payroll-number" data-label="تعداد"><strong>@line.Count.ToString("N0")</strong></td>
-                                    <td class="payroll-number" data-label="نرخ واحد"><strong>@line.Rate.ToString("N0")</strong><small> ریال</small></td>
-                                    <td class="payroll-number payroll-line-total" data-label="مبلغ"><strong>@line.Total.ToString("N0")</strong><small> ریال</small></td>
-                                </tr>
-                                first = false;
-                            }
-                            <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong><small> ریال</small></td></tr>
-                        }
-                        </tbody>
-                    </table>
+                <div class="payroll-member-list">
+                    @foreach (var user in UserGroups)
+                    {
+                        <PayrollMemberLines Name="@user.Name" Lines="user.Lines" TotalLabel="جمع" />
+                    }
                 </div>
             </Card>
             @if (CustomUserGroups.Any())
@@ -101,23 +84,12 @@ else
                 <Card>
                     <h4>دستمزد تولید Custom</h4>
                     <div class="alert alert-light border">این بخش مربوط به سازهایی است که Scale آن‌ها در مرحله شیپ انتخاب شده است.</div>
-                    <div class="table-responsive payroll-result-table">
-                        <table class="table table-sm align-middle">
-                            <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
-                            <tbody>
-                            @foreach (var user in CustomUserGroups)
-                            {
-                                var first = true;
-                                @foreach (var line in user.Lines)
-                                {
-                                    <tr><td class="payroll-member">@(first ? user.Name : "")</td><td class="payroll-operation"><PayrollLineDescription Line="line" /></td><td class="payroll-number" data-label="تعداد"><strong>@line.Count.ToString("N0")</strong></td><td class="payroll-number" data-label="نرخ واحد"><strong>@line.Rate.ToString("N0")</strong><small> ریال</small></td><td class="payroll-number payroll-line-total" data-label="مبلغ"><strong>@line.Total.ToString("N0")</strong><small> ریال</small></td></tr>
-                                    first = false;
-                                }
-                                <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع Custom @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong><small> ریال</small></td></tr>
-                            }
-                            </tbody>
-                        </table>
-                    </div>
+                    <div class="payroll-member-list">
+                    @foreach (var user in CustomUserGroups)
+                    {
+                        <PayrollMemberLines Name="@user.Name" Lines="user.Lines" TotalLabel="جمع Custom" />
+                    }
+                </div>
                 </Card>
                 </div>
             }
@@ -127,23 +99,12 @@ else
                 <Card>
                     <h4>دستمزد تولید صادراتی</h4>
                     <div class="alert alert-light border">این بخش فقط مربوط به کاسه‌هایی است که واقعاً در مسیر صادراتی قرار دارند.</div>
-                    <div class="table-responsive payroll-result-table">
-                        <table class="table table-sm align-middle">
-                            <thead><tr><th>عضو</th><th>شرح عملیات</th><th>تعداد</th><th>نرخ واحد</th><th>جمع</th></tr></thead>
-                            <tbody>
-                            @foreach (var user in ExportUserGroups)
-                            {
-                                var first = true;
-                                @foreach (var line in user.Lines)
-                                {
-                                    <tr><td class="payroll-member">@(first ? user.Name : "")</td><td class="payroll-operation"><PayrollLineDescription Line="line" /></td><td class="payroll-number" data-label="تعداد"><strong>@line.Count.ToString("N0")</strong></td><td class="payroll-number" data-label="نرخ واحد"><strong>@line.Rate.ToString("N0")</strong><small> ریال</small></td><td class="payroll-number payroll-line-total" data-label="مبلغ"><strong>@line.Total.ToString("N0")</strong><small> ریال</small></td></tr>
-                                    first = false;
-                                }
-                                <tr class="table-light payroll-user-total"><td colspan="4"><strong>جمع صادراتی @user.Name</strong></td><td><strong>@user.Lines.Sum(x => x.Total).ToString("N0")</strong><small> ریال</small></td></tr>
-                            }
-                            </tbody>
-                        </table>
-                    </div>
+                    <div class="payroll-member-list">
+                    @foreach (var user in ExportUserGroups)
+                    {
+                        <PayrollMemberLines Name="@user.Name" Lines="user.Lines" TotalLabel="جمع صادراتی" />
+                    }
+                </div>
                 </Card>
                 </div>
             }

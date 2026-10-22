@@ -1,0 +1,37 @@
+<section class="payroll-member-lines" aria-label="@($"دستمزد {Name}")">
+    <header class="payroll-member-heading"><h5>@Name</h5><span>@Lines.Sum(x => x.Count).ToString("N0") عملیات</span></header>
+    <div class="payroll-compact-list">
+        @foreach (var line in Lines)
+        {
+            <details class="payroll-compact-row">
+                <summary aria-label="@($"جزئیات {line.ActionTitle}، {Name}، {line.Count:N0} مورد، مبلغ {line.Total:N0} ریال")">
+                    <span class="payroll-row-toggle" aria-hidden="true"></span>
+                    <span class="payroll-row-description">
+                        <span class="payroll-row-title">@line.ActionTitle <span class="payroll-row-count">@line.Count.ToString("N0") مورد</span></span>
+                        <span class="payroll-row-context">@if (!string.IsNullOrWhiteSpace(line.MaterialName)) { <bdi dir="auto">@line.MaterialName</bdi><span aria-hidden="true"> · </span> }@BowlTitle(line)@if (!string.IsNullOrWhiteSpace(line.ScaleName)) { <span aria-hidden="true"> · </span><bdi dir="auto">@line.ScaleName</bdi> }</span>
+                    </span>
+                    <span class="payroll-row-amount"><strong>@line.Total.ToString("N0")</strong><small>ریال</small></span>
+                </summary>
+                <div class="payroll-row-details">
+                    <dl>
+                        <div><dt>عملیات</dt><dd>@line.ActionTitle</dd></div>
+                        @if (!string.IsNullOrWhiteSpace(line.MaterialName)) { <div><dt>متریال</dt><dd><bdi dir="auto">@line.MaterialName</bdi></dd></div> }
+                        <div><dt>نوع</dt><dd>@BowlTitle(line)</dd></div>
+                        @if (!string.IsNullOrWhiteSpace(line.ScaleName)) { <div><dt>اسکیل</dt><dd><bdi dir="auto">@line.ScaleName</bdi></dd></div> }
+                        <div><dt>تعداد</dt><dd>@line.Count.ToString("N0")</dd></div>
+                        <div><dt>نرخ واحد</dt><dd>@line.Rate.ToString("N0") <small>ریال</small></dd></div>
+                        <div><dt>مبلغ</dt><dd>@line.Total.ToString("N0") <small>ریال</small></dd></div>
+                    </dl>
+                </div>
+            </details>
+        }
+    </div>
+    <footer class="payroll-member-total"><span>@TotalLabel @Name</span><span><strong>@Lines.Sum(x => x.Total).ToString("N0")</strong> <small>ریال</small></span></footer>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+    [Parameter, EditorRequired] public IReadOnlyList<PayrollLineDto> Lines { get; set; } = [];
+    [Parameter] public string TotalLabel { get; set; } = "جمع";
+    private static string BowlTitle(PayrollLineDto line) => line.BowlType == 1 ? "کاسه رو" : line.BowlType == 2 ? "کاسه زیر" : "ساز";
+}
