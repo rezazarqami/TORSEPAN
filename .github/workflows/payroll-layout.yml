@@ -1,0 +1,30 @@
+name: Compact payroll layout
+on:
+  pull_request:
+    paths: ['TORSEPAN.Panel/**', 'tests/PayrollLayoutPreview/**', 'tests/payroll-compact-layout.cjs', '.github/workflows/payroll-layout.yml']
+jobs:
+  payroll-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PAYROLL_PREVIEW_DIR: ${{ github.workspace }}/payroll-previews
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Render actual payroll page
+        run: dotnet run --project tests/PayrollLayoutPreview -c Release
+      - name: Install browser
+        run: |
+          npm install --prefix /tmp/payroll-browser playwright
+          /tmp/payroll-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify compact rows, navy contrast and accessible details
+        env:
+          PAYROLL_PLAYWRIGHT: /tmp/payroll-browser/node_modules/playwright
+        run: node tests/payroll-compact-layout.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compact-payroll-previews
+          path: payroll-previews/
