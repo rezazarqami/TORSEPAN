@@ -19,20 +19,6 @@
     <div class="process-hero-copy"><span dir="ltr">PRODUCTION</span><h1 id="process-title">عملیات تولید</h1></div>
 </section>
 
-@if (!string.IsNullOrWhiteSpace(_successMessage))
-{
-    <div class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-         style="background: rgba(15, 23, 42, .55); z-index: 2000;">
-        <div class="card shadow-lg text-center p-5" style="min-width: min(520px, 90vw);">
-            <div class="display-4 text-success mb-3">✓</div>
-            <h3 class="mb-4">@_successMessage</h3>
-            <button class="btn btn-primary btn-lg px-5" @onclick="ReturnToDashboard">
-                تأیید و بازگشت به داشبورد
-            </button>
-        </div>
-    </div>
-}
-
 @if (_showOperationConfirmation)
 {
     <div class="operation-confirm-backdrop" role="presentation">
@@ -85,15 +71,23 @@
 <div class="card production-passport-page luxury-passport-page">
     <label class="form-label passport-search-label" for="passport-code">کد ساز یا کاسه را وارد کنید</label>
     <div class="input-group passport-search mb-3">
-        <input id="passport-code" class="form-control"
+        <input id="passport-code" class="form-control" @ref="_codeInput" disabled="@(_loading || _confirmingOperation)"
                placeholder="کد ساز یا کاسه را وارد کنید"
                @bind="_productionCode"
                @bind:event="oninput"
                @onkeydown="HandleKeyDown" />
-        <button class="btn btn-primary" disabled="@_loading" @onclick="SearchAsync">
+        <button class="btn btn-primary" disabled="@(_loading || _confirmingOperation)" @onclick="SearchAsync">
             جست‌وجو
         </button>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <section class="process-operation-success" role="status" aria-live="polite">
+            <div><span class="process-success-check" aria-hidden="true">✓</span><p>@_successMessage</p></div>
+            <button type="button" @onclick="ReturnToDashboard">تأیید و بازگشت به داشبورد</button>
+        </section>
+    }
 
     @if (!string.IsNullOrWhiteSpace(_error))
     {
@@ -479,6 +473,8 @@
     private int? _exportWarehouseLocation;
     private static readonly (int Id, string Name, string Icon)[] ExportLocations = [(4, "ایران", "IR"), (1, "ترکیه", "TR"), (2, "لندن", "UK"), (3, "آلمان", "DE")];
     private string? _successMessage;
+    private ElementReference _codeInput;
+    private bool _focusCodeAfterOperation;
     private bool _showPassportSale, _passportSaleSaving;
     private string _passportBuyer = string.Empty, _passportDestination = string.Empty;
     private string? _passportSaleError;
@@ -535,6 +531,7 @@
 
     private async Task SearchAsync()
     {
+        if (_loading || _confirmingOperation || _showOperationConfirmation) return;
         if (string.IsNullOrWhiteSpace(_productionCode))
         {
             _error = "کد ساز یا کاسه را وارد کنید.";
@@ -965,6 +962,16 @@
 
         _bowl = null;
         _successMessage = successMessage;
+        _focusCodeAfterOperation = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusCodeAfterOperation && !_loading && !_confirmingOperation)
+        {
+            _focusCodeAfterOperation = false;
+            await _codeInput.FocusAsync();
+        }
     }
 
     private void ReturnToDashboard() => Navigation.NavigateTo("/");

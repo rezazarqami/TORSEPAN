@@ -31,6 +31,16 @@ internal static class ApiSmoke
   var options=new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql(connection).Options;
   await using var db=new TORSEPANDbContext(options);await db.Database.EnsureCreatedAsync();
   var me=new User("profile-me","عضو اول");var other=new User("profile-other","عضو دوم");me.SetPassword("original-password");other.SetPassword("other-password");me.ChangeTitle("تیونر");db.Users.AddRange(me,other);await db.SaveChangesAsync();
+  db.ProductionEvents.AddRange(
+   new ProductionEvent(null,null,null,me.Id,TORSEPAN.Domain.Enums.ProductionAction.Tune,TORSEPAN.Domain.Enums.EventResult.Completed,null,"Tune completed"),
+   new ProductionEvent(null,null,null,me.Id,TORSEPAN.Domain.Enums.ProductionAction.Packaging,TORSEPAN.Domain.Enums.EventResult.Completed,null,"Packaged"),
+   new ProductionEvent(null,null,null,me.Id,TORSEPAN.Domain.Enums.ProductionAction.Packaging,TORSEPAN.Domain.Enums.EventResult.Completed,null,"export packaging"),
+   new ProductionEvent(null,null,null,other.Id,TORSEPAN.Domain.Enums.ProductionAction.Tune,TORSEPAN.Domain.Enums.EventResult.Completed,null,"Other user"));
+  await db.SaveChangesAsync();
+  var activity=new MyActivityController(db){ControllerContext=new(){HttpContext=new DefaultHttpContext{User=Principal(me.Id)}}};
+  var report=Value<MyActivityDto>(await activity.Get(DateTime.UtcNow.Date.AddDays(-1),DateTime.UtcNow.Date.AddDays(1)));
+  Check(report.Total==1&&report.Completed==1&&report.Items.Count==1&&report.Summary.Sum(x=>x.Count)==1,"personal totals, summary and history exclude domestic and export packaging before aggregation");
+  Check(report.Items[0].Operation.Contains("تیون")&&await db.ProductionEvents.CountAsync(x=>x.UserId==me.Id||x.UserId==other.Id)==4,"packaging records and other members' production history remain stored");
   // Execute the actual additive migration over the previous Users schema with existing accounts.
   await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"Users\" DROP COLUMN \"CredentialVersion\", DROP COLUMN \"AvatarPng\", DROP COLUMN \"AvatarVersion\"");
   await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"RefreshTokens\" DROP COLUMN \"CredentialVersion\"");
