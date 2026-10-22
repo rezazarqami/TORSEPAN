@@ -20,7 +20,7 @@ let browser;const watchdog=setTimeout(()=>{console.error('Legacy stock browser c
   await page.setViewportSize({width,height:850});await page.goto(`http://127.0.0.1:5195/preview/${state}.html`);await page.evaluate(()=>document.fonts.ready);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${state} at ${width} must fit without sideways scroll`);
   const hero=await page.locator('.legacy-hero').boundingBox();assert(hero.x>=0&&hero.x+hero.width<=width,'hero fits the viewport');
-  assert(await page.locator('h1').innerText()==='ثبت سازهای قدیمی','new module has its own clear heading');
+  assert((await page.locator('h1').innerText()).replace(/\s+/g,' ').trim()==='ثبت سازهای قدیمی','new module has its own clear heading');
   if(state!=='saved'){
    assert(await page.locator('#legacy-code').count()===1&&await page.locator('#legacy-bottom-code').count()===0,'only visible bowl code is requested');
    assert(await page.locator('select[id^=legacy-]').count()>=9,'technical, warehouse and five maker selectors are present');
