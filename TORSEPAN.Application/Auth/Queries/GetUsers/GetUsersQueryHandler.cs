@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.Application.Auth.Queries.GetUsers;
@@ -28,6 +28,7 @@ public sealed class GetUsersQueryHandler
                 FullName = x.FullName,
                 Title = x.Title,
                 IsActive = x.IsActive,
+                AvatarVersion = x.AvatarVersion,
                 Role = string.Empty,
                 Roles = x.UserRoles
                     .Select(r => r.Role.DisplayName)

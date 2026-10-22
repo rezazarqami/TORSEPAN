@@ -1,5 +1,6 @@
 @page "/users/{UserId:guid}/edit"
 
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Administrator,ProductionManager")]
 @using TORSEPAN.Application.Auth.Commands.UpdateUser
 
 @inject IUserService UserService
@@ -7,6 +8,7 @@
 
 <PageTitle>ویرایش کاربر</PageTitle>
 
+<div class="navy-management-page">
 <PageHeader Title="ویرایش کاربر"
             SubTitle="ویرایش مشخصات و نقش‌های کاربر" />
 
@@ -38,6 +40,11 @@
                     <InputText class="form-control" @bind-Value="_model.Title" placeholder="مثلاً مدیر تولید، شیپر یا مسئول کارگاه" />
                 </div>
 
+                <div class="col-md-6">
+                    <label class="form-label" for="member-display-order">ترتیب نمایش در کارگاه</label>
+                    <InputNumber id="member-display-order" class="form-control" min="0" @bind-Value="_model.DisplayOrder" />
+                    <small>عدد کمتر، جایگاه بالاتری در جدول داشبورد دارد.</small>
+                </div>
                 <div class="col-12">
                     <div class="form-check mb-3">
                         <InputCheckbox class="form-check-input" @bind-Value="_model.ShowMyPayroll" />
@@ -70,6 +77,7 @@
         </EditForm>
     }
 </Card>
+</div>
 
 @code {
     [Parameter]
@@ -100,6 +108,7 @@
         _model.FullName = user.FullName;
         _model.Title = user.Title;
         _model.ShowMyPayroll = user.ShowMyPayroll;
+        _model.DisplayOrder = user.DisplayOrder;
 
         var selectedRoleIds = user.RoleIds.ToHashSet();
         _roles = (await rolesTask)
@@ -117,6 +126,8 @@
         if (_isSaving)
             return;
 
+        if (_model.DisplayOrder < 0) { _errorMessage = "ترتیب نمایش نمی‌تواند منفی باشد."; return; }
+
         _isSaving = true;
         _errorMessage = null;
 
@@ -128,7 +139,8 @@
                 _model.FullName,
                 _model.Title,
                 _model.ShowMyPayroll,
-                _roles.Where(x => x.IsSelected).Select(x => x.Id).ToList()));
+                _roles.Where(x => x.IsSelected).Select(x => x.Id).ToList(),
+                _model.DisplayOrder));
 
             Navigation.NavigateTo("/users/list");
         }
@@ -150,6 +162,7 @@
         public string FullName { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public bool ShowMyPayroll { get; set; }
+        public int DisplayOrder { get; set; }
     }
 
     private sealed class RoleOption

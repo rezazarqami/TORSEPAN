@@ -1,113 +1,47 @@
 @page "/users/list"
 @attribute [Authorize(Roles = "Administrator,ProductionManager")]
 @using Microsoft.AspNetCore.Authorization
-
 @using TORSEPAN.Panel.Services
 @using TORSEPAN.Application.Auth.Queries.GetUsers
-
 @inject NavigationManager Navigation
 @inject IUserService UserService
-@inject PayrollService PayrollService
 @inject AuthenticationStateProvider AuthenticationState
-
 <PageTitle>کاربران</PageTitle>
 <div class="navy-management-page">
-
-
-<PageHeader Title="کاربران"
-            SubTitle="فهرست اعضای کارگاه">
-
-    <Actions>
-
-        <PrimaryButton Text="New User"
-                       OnClick="NewUser" />
-
-    </Actions>
-
-</PageHeader>
-
-<SearchBox Placeholder="Search user..." />
-
-<Card>
-
-    <DataTable>
-
-        <thead>
-
-            <tr>
-
-                <th>Username</th>
-                <th>Full Name</th>
-                <th>عنوان</th>
-                <th>Roles</th>
-                <th>Status</th>
-                <th></th>
-
-            </tr>
-
-        </thead>
-
-        <tbody>
-
-            @foreach (var user in Users)
-            {
-                <tr>
-
-                    <td>@user.UserName</td>
-
-                    <td>@user.FullName</td>
-                    <td>@(string.IsNullOrWhiteSpace(user.Title) ? "—" : user.Title)</td>
-
-                    <td>
-                        @(user.Roles.Count > 0
-                            ? string.Join(", ", user.Roles)
-                            : user.Role)
-                    </td>
-
-                    <td>
-                        @(user.IsActive ? "Active" : "Inactive")
-                    </td>
-
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary"
-                                @onclick="() => EditUser(user.Id)">
-                            ویرایش
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger ms-1"
-                                disabled="@(user.Id == _currentUserId || _deleting)"
-                                @onclick="() => AskDelete(user)">حذف کاربر</button>
-                    </td>
-
-                </tr>
-            }
-
-        </tbody>
-
-    </DataTable>
-
-</Card>
-
-<Card>
-    <h4>ترتیب نمایش کاربران در داشبورد</h4>
-    <div class="row g-2">
-        @foreach (var user in DashboardUsers)
-        {
-            <div class="col-md-4"><label class="form-label">@user.FullName</label><input type="number" min="0" class="form-control" @bind="user.DisplayOrder" /></div>
-        }
+<PageHeader Title="کاربران" SubTitle="فهرست اعضای کارگاه" />
+<section class="users-management" aria-labelledby="users-management-title" dir="rtl">
+    <div class="users-heading">
+        <div><h2 id="users-management-title">مدیریت کاربران</h2><p>مشاهده، ویرایش و مدیریت دسترسی کاربران</p></div>
+        <button type="button" class="users-add" @onclick="NewUser"><span aria-hidden="true">＋</span> افزودن کاربر</button>
     </div>
-    <button class="btn btn-primary mt-3" disabled="@SavingOrder" @onclick="SaveOrderAsync">@(SavingOrder ? "در حال ثبت..." : "ثبت ترتیب نمایش")</button>
-    <div class="small text-muted mt-2">عدد کمتر، جایگاه بالاتری در جدول داشبورد دارد.</div>
-    @if (!string.IsNullOrWhiteSpace(OrderMessage)) { <div class="alert alert-success mt-2 mb-0">@OrderMessage</div> }
-</Card>
-
-@if (!string.IsNullOrWhiteSpace(_deleteNotice)) { <div class="alert alert-success" role="status">@_deleteNotice</div> }
+    <div class="users-filters">
+        <label class="users-search"><span aria-hidden="true">⌕</span><input aria-label="جست‌وجوی کاربران" placeholder="جست‌وجوی نام، نام کاربری یا نقش…" @bind="_search" @bind:event="oninput" /></label>
+        <select aria-label="فیلتر نقش کاربران" @bind="_role"><option value="">همه نقش‌ها</option>@foreach (var role in RoleOptions) { <option value="@role">@role</option> }</select>
+    </div>
+    @if (_loading) { <p role="status">در حال دریافت کاربران…</p> }
+    else if (_loadError is not null) { <div role="alert">@_loadError <button type="button" @onclick="LoadAsync">تلاش دوباره</button></div> }
+    else
+    {
+        <div class="users-rows">
+        @foreach (var user in FilteredUsers)
+        {
+            <article class="user-row" @key="user.Id">
+                <div class="user-identity"><UserAvatar UserId="user.Id" Name="@user.FullName" Version="user.AvatarVersion" /><div><strong>@user.FullName</strong><span dir="auto">@user.UserName</span></div></div>
+                <div class="user-roles">@foreach (var role in Roles(user)) { <span class="user-role @BadgeClass(role)">@role</span> }</div>
+                <div class="user-state"><button type="button" role="switch" aria-checked="@(user.IsActive ? "true" : "false")" aria-label="@($"وضعیت {user.FullName}")" class="user-switch @(user.IsActive ? "is-active" : "")" disabled="@(_statusBusy.HasValue)" @onclick="() => ToggleActiveAsync(user)"><span></span></button><span>@(user.IsActive ? "فعال" : "غیرفعال")</span></div>
+                <details class="user-menu"><summary aria-label="@($"گزینه‌های {user.FullName}")">⋮</summary><div class="user-menu-options"><button type="button" @onclick="() => EditUser(user.Id)">مشخصات و ویرایش</button><button type="button" class="user-delete" disabled="@(user.Id == _currentUserId || _deleting)" @onclick="() => AskDelete(user)">حذف کاربر</button></div></details>
+            </article>
+        }
+        </div>
+        @if (!FilteredUsers.Any()) { <p class="users-empty" role="status">کاربری با این مشخصات پیدا نشد.</p> }
+    }
+    @if (_statusError is not null) { <p class="alert alert-danger" role="alert">@_statusError</p> }
+    @if (!string.IsNullOrWhiteSpace(_deleteNotice)) { <p class="alert alert-success" role="status">@_deleteNotice</p> }
+</section>
 <AppConfirmDialog IsOpen="@(_deleteUser is not null)" Title="حذف کاربر" Danger="true"
-                  Message="@DeleteMessage" ConfirmText="حذف حساب کاربر" Busy="@_deleting" Error="@_deleteError"
-                  OnConfirm="DeleteAsync" OnCancel="CancelDelete" />
-
-
+ Message="@DeleteMessage" ConfirmText="حذف حساب کاربر" Busy="@_deleting" Error="@_deleteError"
+ OnConfirm="DeleteAsync" OnCancel="CancelDelete" />
 </div>
-
 @code
 {
     private Guid _currentUserId;
@@ -125,7 +59,7 @@
         {
             await UserService.DeleteUserAsync(user.Id);
             Users.RemoveAll(x => x.Id == user.Id);
-            DashboardUsers.RemoveAll(x => x.Id == user.Id);
+
             _deleteNotice = $"حساب {user.FullName} حذف شد."; _deleteUser = null;
         }
         catch (AccountActionException ex) { _deleteError = ex.Message; }
@@ -134,16 +68,40 @@
     }
 
     private List<UserDto> Users = new();
-    private List<PayrollUserDto> DashboardUsers = new();
-    private bool SavingOrder;
-    private string? OrderMessage;
+    private bool _loading = true;
+    private string? _loadError, _statusError;
+    private Guid? _statusBusy;
+    private string _search = "", _role = "";
+    private static IEnumerable<string> Roles(UserDto user) => user.Roles.Count > 0 ? user.Roles : new[] { user.Role };
+    private IEnumerable<string> RoleOptions => Users.SelectMany(Roles).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x);
+    private IEnumerable<UserDto> FilteredUsers => Users.Where(u =>
+        (string.IsNullOrEmpty(_role) || Roles(u).Contains(_role)) &&
+        (string.IsNullOrWhiteSpace(_search) || new[] { u.FullName, u.UserName, u.Title }.Concat(Roles(u))
+            .Any(x => Normalize(x).Contains(Normalize(_search.Trim()), StringComparison.OrdinalIgnoreCase))));
+    private static string Normalize(string value) => value.Replace('ي', 'ی').Replace('ك', 'ک').Replace("\u200c", " ");
+    private static string BadgeClass(string role) => role.Contains("مدیر") || role.Contains("Admin", StringComparison.OrdinalIgnoreCase) ? "gold" :
+        role.Contains("Final", StringComparison.OrdinalIgnoreCase) ? "blue" : role.Contains("Shap", StringComparison.OrdinalIgnoreCase) ? "green" : "purple";
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+    private async Task LoadAsync()
     {
-        var state = await AuthenticationState.GetAuthenticationStateAsync();
-        Guid.TryParse(state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _currentUserId);
-        Users = await UserService.GetUsersAsync();
-        DashboardUsers = ((await PayrollService.GetAsync())?.Users ?? []).Where(x => Users.Any(u => u.Id == x.Id)).ToList();
+        _loading = true; _loadError = null;
+        try
+        {
+            var state = await AuthenticationState.GetAuthenticationStateAsync();
+            Guid.TryParse(state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out _currentUserId);
+            Users = await UserService.GetUsersAsync();
+        }
+        catch { _loadError = "دریافت کاربران انجام نشد؛ دوباره تلاش کنید."; }
+        finally { _loading = false; }
+    }
+    private async Task ToggleActiveAsync(UserDto user)
+    {
+        if (_statusBusy.HasValue) return;
+        _statusBusy = user.Id; _statusError = null;
+        try { await UserService.SetActiveAsync(user.Id, !user.IsActive); user.IsActive = !user.IsActive; }
+        catch { _statusError = "تغییر وضعیت ذخیره نشد؛ دوباره تلاش کنید."; }
+        finally { _statusBusy = null; }
     }
 
     private void NewUser()
@@ -156,11 +114,4 @@
         Navigation.NavigateTo($"/users/{userId}/edit");
     }
 
-    private async Task SaveOrderAsync()
-    {
-        SavingOrder = true;
-        OrderMessage = null;
-        try { await PayrollService.SaveOrderAsync(DashboardUsers); OrderMessage = "ترتیب نمایش کاربران ثبت شد."; }
-        finally { SavingOrder = false; }
-    }
 }

@@ -43,3 +43,5 @@ section.management-photo-hero.theme-page-intro.management-photo-hero--shape-edit
     .management-photo-hero .management-hero-copy {position:static;width:100%;padding:16px;gap:8px;}
     .management-photo-hero.theme-page-intro :is(.management-hero-title,.management-hero-eyebrow,.management-hero-description){color:black;text-shadow:none;}
 }
+section.management-photo-hero.theme-page-intro.management-photo-hero--exclusions{background-image:url('/images/workspace/exclusions-workshop.webp');}
+.management-photo-hero--exclusions.theme-page-intro .management-hero-title{font-size:clamp(15px,3.9cqw,46px);}

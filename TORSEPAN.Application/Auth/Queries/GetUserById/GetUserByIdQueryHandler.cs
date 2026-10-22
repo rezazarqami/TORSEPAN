@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using TORSEPAN.Application.Interfaces;
 
 namespace TORSEPAN.Application.Auth.Queries.GetUserById;
@@ -31,7 +31,8 @@ public sealed class GetUserByIdQueryHandler
             RoleIds = user.UserRoles.Select(x => x.RoleId).ToList(),
             Roles = user.UserRoles.Select(x => x.Role.DisplayName).OrderBy(x => x).ToList(),
             IsActive = user.IsActive,
-            ShowMyPayroll = user.ShowMyPayroll
+            ShowMyPayroll = user.ShowMyPayroll,
+            DisplayOrder = user.DisplayOrder
         };
     }
 }

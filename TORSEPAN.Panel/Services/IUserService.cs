@@ -13,5 +13,6 @@ public interface IUserService
     Task<List<RoleDto>> GetRolesAsync();
     Task<UserDetailsDto?> GetUserAsync(Guid userId);
     Task UpdateUserAsync(UpdateUserCommand command);
+    Task SetActiveAsync(Guid userId, bool isActive);
     Task DeleteUserAsync(Guid userId);
 }

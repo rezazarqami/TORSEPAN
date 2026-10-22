@@ -1,4 +1,4 @@
-﻿namespace TORSEPAN.Application.Auth.Queries.GetUsers;
+namespace TORSEPAN.Application.Auth.Queries.GetUsers;
 
 public sealed class UserDto
 {
@@ -15,4 +15,5 @@ public sealed class UserDto
     public List<string> Roles { get; set; } = new();
 
     public bool IsActive { get; set; }
+    public Guid? AvatarVersion { get; set; }
 }

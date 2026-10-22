@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 
 namespace TORSEPAN.Application.Auth.Commands.UpdateUser;
 
@@ -8,4 +8,5 @@ public sealed record UpdateUserCommand(
     string FullName,
     string Title,
     bool ShowMyPayroll,
-    List<Guid> RoleIds) : IRequest;
+    List<Guid> RoleIds,
+    int? DisplayOrder = null) : IRequest;
