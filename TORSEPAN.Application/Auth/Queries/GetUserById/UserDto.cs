@@ -1,4 +1,4 @@
-﻿namespace TORSEPAN.Application.Auth.Queries.GetUserById;
+namespace TORSEPAN.Application.Auth.Queries.GetUserById;
 
 public sealed class UserDto
 {
@@ -15,4 +15,5 @@ public sealed class UserDto
 
     public bool IsActive { get; set; }
     public bool ShowMyPayroll { get; set; }
+    public int DisplayOrder { get; set; }
 }

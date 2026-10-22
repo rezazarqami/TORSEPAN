@@ -3,7 +3,8 @@
 @using TORSEPAN.Panel.Models
 @inject TORSEPAN.Panel.Services.Api.PayrollExclusionService Service
 <PageTitle>دستمزدهای قبلاً محاسبه‌شده</PageTitle>
-<PageHeader Title="دستمزدهای قبلاً محاسبه‌شده" SubTitle="عملیات پرداخت‌شده را انتخاب کنید و با تأیید نهایی از محاسبات بعدی خارج کنید" />
+<div class="navy-management-page exclusions-page">
+<ManagementPhotoHeader Kind="exclusions" Title="دستمزدهای" SecondLine="قبلاً محاسبه‌شده" Description="عملیات پرداخت‌شده را انتخاب کنید و با تأیید نهایی از محاسبات بعدی خارج کنید" />
 <Card>
     <div class="exclusion-search"><input class="form-control" @bind="_code" @bind:event="oninput" placeholder="کد ساز یا کاسه" aria-label="کد ساز یا کاسه" disabled="@(_loading || _saving)" @onkeydown="OnKey" /><button type="button" class="btn btn-primary" disabled="@(_loading || _saving)" @onclick="Search">جست‌وجو</button></div>
     @if (_error is not null && _pending.Count == 0) { <div class="alert alert-danger" role="alert">@_error</div> }
@@ -38,6 +39,7 @@
         <div class="exclusion-actions"><button type="button" class="btn btn-primary" disabled="@_saving" @onclick="SaveAsync">@(_saving ? "در حال ذخیره…" : "تأیید و ثبت")</button><button type="button" class="btn btn-light" disabled="@_saving" @onclick="() => _confirming = false">بازگشت</button></div>
     </section></div>
 }
+</div>
 @code {
     private string _code = "";
     private bool _loading, _saving, _confirming;

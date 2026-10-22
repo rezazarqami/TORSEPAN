@@ -4,7 +4,7 @@
 <PageTitle>ویرایش شیپ</PageTitle>
 <div class="navy-management-page">
 
-<section class="shape-edit-hero theme-hero theme-page-intro"><span>TORSEPAN / SHAPE</span><h1>ویرایش شیپ</h1><p>ثبت انجام‌دهندهٔ کشش، دورنوت و Edit برای شیپ‌های انجام‌شده</p></section>
+<ManagementPhotoHeader Kind="shape-edit" Title="ویرایش شیپ" Description="ثبت انجام‌دهندهٔ کشش، دورنوت و Edit برای شیپ‌های انجام‌شده" CssClass="shape-edit-hero" />
 <form class="shape-search" @onsubmit="SearchAsync" @onsubmit:preventDefault="true"><label for="shape-code">کد ساز یا کاسه</label><div><input id="shape-code" class="form-control" @bind="_code" placeholder="مثلاً 850 یا SS-00086" disabled="@_busy" /><button class="btn btn-primary" type="submit" disabled="@_busy">@(_busy?"در حال بررسی…":"جست‌وجو")</button></div></form>
 @if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger" role="alert">@_error</div>}
 @if(!string.IsNullOrWhiteSpace(_notice)){<div class="alert alert-success" role="status">@_notice</div>}

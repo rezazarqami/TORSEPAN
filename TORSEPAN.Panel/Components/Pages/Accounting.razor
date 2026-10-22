@@ -5,7 +5,7 @@
 @inject TORSEPAN.Panel.Services.Api.AccountingService AccountingService
 <PageTitle>حسابداری</PageTitle>
 <div class="navy-management-page">
-<PageHeader Title="حسابداری" SubTitle="اشخاص، درآمدها، هزینه‌ها و مطالبات" />
+<ManagementPhotoHeader Kind="accounting" Title="حسابداری" Description="اشخاص، درآمدها، هزینه‌ها و مطالبات" />
 @if(_loading){<div class="text-center p-5"><div class="spinner-border"></div></div>}else{
 <div class="accounting-summary"><div><span>دریافت‌شده</span><strong>@Money(_summary.CashIn)</strong></div><div><span>پرداخت‌شده</span><strong>@Money(_summary.CashOut)</strong></div><div><span>مطالبات</span><strong>@Money(_summary.Receivables)</strong></div><div><span>بدهی‌ها</span><strong>@Money(_summary.Payables)</strong></div><div><span>سررسید گذشته</span><strong>@_summary.Overdue</strong></div></div>
 @if(_summary.UsdCashIn!=0||_summary.UsdCashOut!=0||_summary.UsdReceivables!=0||_summary.UsdPayables!=0){<div class="accounting-summary"><div><span>دریافت دلار</span><strong>@Money(_summary.UsdCashIn,2)</strong></div><div><span>پرداخت دلار</span><strong>@Money(_summary.UsdCashOut,2)</strong></div><div><span>مطالبات دلار</span><strong>@Money(_summary.UsdReceivables,2)</strong></div><div><span>بدهی دلار</span><strong>@Money(_summary.UsdPayables,2)</strong></div></div>}

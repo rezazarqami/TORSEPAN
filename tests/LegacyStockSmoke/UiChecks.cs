@@ -27,7 +27,7 @@ static class UiChecks
             var root=await renderer.RenderComponentAsync<LegacyPreview>(ParameterView.Empty);var view=LegacyPreview.Instance!;string Html()=>WebUtility.HtmlDecode(root.ToHtmlString());
             var dir=Environment.GetEnvironmentVariable("LEGACY_PREVIEW_DIR");if(dir is not null)Directory.CreateDirectory(dir);
             async Task Snapshot(string name){view.Refresh();if(dir is not null)await File.WriteAllTextAsync(Path.Combine(dir,name+".html"),root.ToHtmlString());}
-            Check(Html().Contains("ثبت سازهای قدیمی")&&Html().Contains("legacy-code")&&!Html().Contains("id=\"legacy-bottom-code\""),"compact form asks for only the visible top code");
+            Check(System.Text.RegularExpressions.Regex.Replace(System.Text.RegularExpressions.Regex.Replace(Html(), "<[^>]+>", " "), @"\s+", " ").Contains("ثبت سازهای قدیمی")&&Html().Contains("legacy-code")&&!Html().Contains("id=\"legacy-bottom-code\""),"compact form asks for only the visible top code");
             Check(Html().Contains("سازنده غیرفعال (غیرفعال)"),"historical inactive staff remain selectable");
             await Snapshot("empty");var draft=(LegacyStockDraft)view.Get("_draft")!;draft.Code="OLD-0123";draft.MaterialId=api.Material;draft.ScaleId=api.Scale;draft.TopNotes=9;draft.BottomNotes=2;draft.WarehouseId=2;draft.DimpleUserId=api.Maker;
             draft.Destination="export";await view.Call("SaveAsync");view.Refresh();Check(api.Requests.Count==0&&Html().Contains("انبار صادراتی را انتخاب کنید"),"export destination is required before any write");await Snapshot("export");

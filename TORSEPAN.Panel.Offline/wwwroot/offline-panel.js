@@ -194,7 +194,7 @@ function create(native,model,workspace,now=()=>new Date()){
    if(!Array.isArray(c.w.photos))throw Error('فهرست عکس‌ها هنوز دریافت نشده است.');
    return c.w.photos.filter(p=>(data.handpanIds||[]).includes(p.handpanId)).map(p=>{const value=native.photoData(p.id,true);if(!value)throw Error('دریافت عکس‌های انتخاب‌شده هنوز کامل نشده است.');return {handpanId:p.handpanId,id:p.id,thumbnail:value.split(',')[1]};});
   }
-  if(/^auth\/users\/[^/]+\/status$/.test(path)){const id=path.split('/')[2];if(id===c.s.ownerId&&!data.isActive)throw Error('حساب ثبت‌کنندهٔ آفلاین را غیرفعال نکنید.');saveWorkspace(c,'users','status',{id,isActive:data.isActive});return null;}
+  if(/^auth\/users\/[^/]+\/status$/.test(path)){const id=path.split('/')[2],isActive=typeof data==='boolean'?data:data.isActive;if(typeof isActive!=='boolean')throw Error('وضعیت کاربر مشخص نیست.');if(id===c.s.ownerId&&!isActive)throw Error('حساب ثبت‌کنندهٔ آفلاین را غیرفعال نکنید.');saveWorkspace(c,'users','status',{id,isActive});return null;}
   if(path==='export-warehouse/ship'){const ops=(data.items||[]).map(item=>{const b=c.b.find(b=>item.itemType==='handpan'?handpanId(c,b)===item.id:b.id===item.id);if(!b)throw Error('کاسه یا ساز پیدا نشد.');return production(c,b,item.itemType==='handpan'?'sell':'ship',{buyerName:data.buyerName,partyId:data.partyId,destination:data.destination,shippingMethod:data.shippingMethod,isSettled:data.isSettled,isExportSale:true},true);});batch(c,ops);return null;}
 
   let m=path.match(/^bowls\/(?:dimpling|production)\/([^/]+)\/(.+)$/);

@@ -1,0 +1,47 @@
+section.management-photo-hero.theme-page-intro {
+    position:relative; isolation:isolate; container-type:inline-size; box-sizing:border-box;
+    display:block; width:100%; aspect-ratio:1.6; min-height:218px; max-height:520px;
+    padding:0; margin:0 0 18px; overflow:hidden;
+    border:1px solid #91b2cf; border-radius:clamp(24px,5vw,42px);
+    background:#031b35 center / cover no-repeat;
+    box-shadow:inset 0 0 0 1px #d5e7f31c,0 0 12px #48c1ff24,0 10px 28px #000b1f38;
+}
+.management-photo-hero .management-hero-copy {
+    position:absolute; inset:9% 2.5% 9% auto; box-sizing:border-box; width:45%; min-width:0;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    gap:clamp(12px,2.4cqw,30px); text-align:center;
+}
+.management-photo-hero .management-hero-eyebrow {
+    display:block; max-width:100%; padding:0; border:0; background:none;
+    color:#efd28f; font:700 clamp(7px,1.5cqw,17px)/1.6 Arial,sans-serif;
+    letter-spacing:clamp(.3px,.16cqw,2px); white-space:nowrap; text-align:center;
+}
+.management-photo-hero.theme-page-intro .management-hero-title {
+    width:100%; margin:0; color:#f0d493; text-align:center;
+    font-family:"Torsepan UI",Tahoma,sans-serif; font-weight:850;
+    font-size:clamp(18px,4.8cqw,56px); line-height:1.55; letter-spacing:-.5px;
+    text-shadow:0 2px 12px #00132988;
+}
+.management-photo-hero .management-hero-title span {display:block;white-space:nowrap;}
+.management-photo-hero.theme-page-intro .management-hero-description {
+    width:100%; max-width:100%; margin:0; padding:0;
+    color:#edf4ff; text-align:center; font-size:clamp(10px,1.9cqw,20px);
+    line-height:1.9; overflow-wrap:anywhere; text-wrap:pretty; text-shadow:0 2px 8px #001329;
+}
+section.management-photo-hero.theme-page-intro.management-photo-hero--accounting {background-image:url('/images/workspace/accounting-workshop.webp');}
+section.management-photo-hero.theme-page-intro.management-photo-hero--passport {background-image:url('/images/workspace/passport-workshop.webp');}
+section.management-photo-hero.theme-page-intro.management-photo-hero--backups {background-image:url('/images/workspace/backups-workshop.webp');}
+section.management-photo-hero.theme-page-intro.management-photo-hero--legacy {background-image:url('/images/workspace/legacy-workshop.webp');}
+section.management-photo-hero.theme-page-intro.management-photo-hero--marketing {background-image:url('/images/workspace/marketing-workshop.webp');}
+section.management-photo-hero.theme-page-intro.management-photo-hero--shape-edit {background-image:url('/images/workspace/shape-edit-workshop.webp');}
+@media(max-width:400px){
+    .management-photo-hero .management-hero-copy {right:2%;width:47%;}
+    .management-photo-hero.theme-page-intro .management-hero-title {font-size:clamp(17px,5.5cqw,21px);}
+}
+@media print {
+    section.management-photo-hero.theme-page-intro {min-height:100px;max-height:none;background:white;background-image:none!important;box-shadow:none;border-color:#aaa;}
+    .management-photo-hero .management-hero-copy {position:static;width:100%;padding:16px;gap:8px;}
+    .management-photo-hero.theme-page-intro :is(.management-hero-title,.management-hero-eyebrow,.management-hero-description){color:black;text-shadow:none;}
+}
+section.management-photo-hero.theme-page-intro.management-photo-hero--exclusions{background-image:url('/images/workspace/exclusions-workshop.webp');}
+.management-photo-hero--exclusions.theme-page-intro .management-hero-title{font-size:clamp(15px,3.9cqw,46px);}

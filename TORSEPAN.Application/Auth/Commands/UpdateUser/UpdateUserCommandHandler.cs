@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using TORSEPAN.Application.Interfaces;
 using TORSEPAN.Domain.Entities;
 
@@ -39,10 +39,15 @@ public sealed class UpdateUserCommandHandler
                 throw new InvalidOperationException($"Role '{roleId}' was not found.");
         }
 
+        if (request.DisplayOrder is < 0)
+            throw new InvalidOperationException("ترتیب نمایش نمی‌تواند منفی باشد.");
+
         user.ChangeUserName(request.UserName);
         user.ChangeFullName(request.FullName);
         user.ChangeTitle(request.Title);
         user.SetShowMyPayroll(request.ShowMyPayroll);
+        if (request.DisplayOrder.HasValue)
+            user.SetDisplayOrder(request.DisplayOrder.Value);
 
         _unitOfWork.Users.Update(user);
 
