@@ -26,10 +26,10 @@
         @foreach (var user in FilteredUsers)
         {
             <article class="user-row" @key="user.Id">
-                <div class="user-identity"><UserAvatar UserId="user.Id" Name="@user.FullName" Version="user.AvatarVersion" /><div><strong>@user.FullName</strong><span dir="auto">@user.UserName</span></div></div>
-                <div class="user-roles">@foreach (var role in Roles(user)) { <span class="user-role @BadgeClass(role)">@role</span> }</div>
+                <div class="user-identity"><UserAvatar UserId="user.Id" Name="@user.FullName" Version="user.AvatarVersion" /><div><strong title="@user.FullName">@user.FullName</strong></div></div>
+                <span class="user-display-title" title="@user.Title">@(string.IsNullOrWhiteSpace(user.Title) ? "—" : user.Title)</span>
                 <div class="user-state"><button type="button" role="switch" aria-checked="@(user.IsActive ? "true" : "false")" aria-label="@($"وضعیت {user.FullName}")" class="user-switch @(user.IsActive ? "is-active" : "")" disabled="@(_statusBusy.HasValue)" @onclick="() => ToggleActiveAsync(user)"><span></span></button><span>@(user.IsActive ? "فعال" : "غیرفعال")</span></div>
-                <details class="user-menu"><summary aria-label="@($"گزینه‌های {user.FullName}")">⋮</summary><div class="user-menu-options"><button type="button" @onclick="() => EditUser(user.Id)">مشخصات و ویرایش</button><button type="button" class="user-delete" disabled="@(user.Id == _currentUserId || _deleting)" @onclick="() => AskDelete(user)">حذف کاربر</button></div></details>
+                <details class="user-menu"><summary aria-label="@($"گزینه‌های {user.FullName}")">⋮</summary><div class="user-menu-options"><p class="user-menu-login" dir="auto">@user.UserName</p><details class="user-role-menu"><summary>نقش‌ها</summary><ul>@foreach (var role in Roles(user)) { <li>@role</li> }</ul></details><button type="button" @onclick="() => EditUser(user.Id)">مشخصات و ویرایش</button><button type="button" class="user-delete" disabled="@(user.Id == _currentUserId || _deleting)" @onclick="() => AskDelete(user)">حذف کاربر</button></div></details>
             </article>
         }
         </div>
@@ -79,8 +79,6 @@
         (string.IsNullOrWhiteSpace(_search) || new[] { u.FullName, u.UserName, u.Title }.Concat(Roles(u))
             .Any(x => Normalize(x).Contains(Normalize(_search.Trim()), StringComparison.OrdinalIgnoreCase))));
     private static string Normalize(string value) => value.Replace('ي', 'ی').Replace('ك', 'ک').Replace("\u200c", " ");
-    private static string BadgeClass(string role) => role.Contains("مدیر") || role.Contains("Admin", StringComparison.OrdinalIgnoreCase) ? "gold" :
-        role.Contains("Final", StringComparison.OrdinalIgnoreCase) ? "blue" : role.Contains("Shap", StringComparison.OrdinalIgnoreCase) ? "green" : "purple";
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
     private async Task LoadAsync()
