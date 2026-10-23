@@ -1,3 +1,5 @@
+@inject IServiceProvider LocalServices
+@implements IDisposable
 @page "/"
 
 @inject ProductionService ProductionService
@@ -198,7 +200,10 @@ else
     private static string AgeClass(int days) => days < 3 ? "age-green" : days < 7 ? "age-orange" : days <= 10 ? "age-purple" : "age-red";
     private static string AgeTitle(int days) => $"{days} روز در این مرحله";
 
-    protected override async Task OnInitializedAsync() => await ReloadAsync();
+    private ILocalDataRefresh? _localRefresh;
+    protected override async Task OnInitializedAsync(){_localRefresh=LocalServices.GetService(typeof(ILocalDataRefresh)) as ILocalDataRefresh;if(_localRefresh is not null)_localRefresh.DataChanged+=RefreshCached;await ReloadAsync();}
+    private void RefreshCached()=>_ = InvokeAsync(async()=>{await ReloadAsync();StateHasChanged();});
+    public void Dispose(){if(_localRefresh is not null)_localRefresh.DataChanged-=RefreshCached;}
 
     private async Task ReloadAsync()
     {

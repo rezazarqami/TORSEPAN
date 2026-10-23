@@ -40,3 +40,37 @@ test('missing profit snapshot never masquerades as zero balances',()=>{const h=h
 test('user switches accept the shared boolean API payload and keep offline owner protection',()=>{const state=fixture(),member=id(91);state.snapshot.workspace.sections.users.push({id:member,userName:'member',fullName:'عضو',isActive:true,displayOrder:8});const h=harness(state);assert.equal(h.request('PUT','auth/users/'+member+'/status',false).status,200);assert.equal(h.request('GET','auth/users/'+member).value.isActive,false);assert.equal(h.request('PUT','auth/users/'+member+'/status',true).status,200);assert.equal(h.request('GET','auth/users/'+member).value.isActive,true);assert.equal(h.request('PUT','auth/users/'+id(1)+'/status',false).status,409);});
 test('user edit order remains on the selected profile in the offline projection',()=>{const state=fixture(),member=id(92);state.snapshot.workspace.sections.users.push({id:member,userName:'member',fullName:'عضو',isActive:true,displayOrder:8});const h=harness(state);assert.equal(h.request('PUT','auth/users/'+member,{userId:member,userName:'member',fullName:'عضو',roleIds:[],displayOrder:2}).status,200);assert.equal(h.request('GET','auth/users/'+member).value.displayOrder,2);assert.equal(h.request('GET','auth/users/'+id(1)).value.displayOrder,undefined);});
 test('personal activity hides all packaging before paging and totals without deleting history',()=>{const state=fixture();state.snapshot.workspace.sections.events=[{id:id(150),userId:id(1),action:6,result:1,eventDate:'2026-10-18T10:00:00Z',description:'Tune completed'},{id:id(151),userId:id(1),action:9,result:1,eventDate:'2026-10-18T11:00:00Z',description:'Packaged'},{id:id(152),userId:id(1),action:9,result:1,eventDate:'2026-10-18T12:00:00Z',description:'export packaging'}];const h=harness(state),r=h.request('GET','me/activity');assert.equal(r.status,200);assert.equal(r.value.total,1);assert.equal(r.value.completed,1);assert.equal(r.value.items.length,1);assert.equal(state.snapshot.workspace.sections.events.length,3);});
+
+test('legacy opening stock survives restart, appears in warehouse and never consumes stock or earns wages',()=>{
+ const h=harness(),request={registrationId:id(800),code:'old-900',materialId:id(5),scaleId:id(4),topNotes:9,bottomNotes:0,warehouseId:1,exportLocation:null,dimpleUserId:id(1)};
+ const saved=h.request('POST','legacy-stock',request);assert.equal(saved.status,200);assert.equal(saved.value.code,'OLD-900');assert.equal(h.state.operations.length,1);assert.equal(h.request('POST','legacy-stock',request).status,200);assert.equal(h.state.operations.length,1);
+ const restarted=harness(h.state),warehouse=restarted.request('GET','production/warehouse');assert.ok(warehouse.value.some(x=>x.id===id(800)&&x.serialNumber==='OLD-900'));
+ assert.equal(restarted.request('GET','materials').value[0].topBowlQuantity,2);assert.equal(restarted.request('GET','legacy-stock').value[0].handpanId,id(800));
+ const passport=restarted.request('GET','bowls/dimpling/OLD-900');assert.equal(passport.status,200);assert.equal(passport.value.instrumentNoteCount,9);assert.ok(passport.value.bottomBowlCode.includes('نامشخص'));
+ const projected=workspace.project(h.state.snapshot,h.state.operations);assert.ok(projected.events.filter(x=>x.action===2).every(x=>x.isPayrollExcluded));
+ assert.equal(h.request('POST','legacy-stock',{...request,registrationId:id(801)}).status,409);assert.equal(h.state.operations.length,1);
+});
+test('legacy registration validates scales and destination and does not report success on disk failure',()=>{
+ for(const change of [{scaleId:id(900)},{warehouseId:99},{topNotes:0},{bottomNotes:-1},{exportLocation:5},{code:'LEGACY-BOTTOM-forbidden'}]){
+  const h=harness();assert.equal(h.request('POST','legacy-stock',{registrationId:id(800),code:'OLD-1',materialId:id(5),scaleId:id(4),topNotes:9,bottomNotes:0,warehouseId:1,...change}).status,409);assert.equal(h.state.operations.length,0);
+ }
+ const h=harness();h.fail();assert.equal(h.request('POST','legacy-stock',{registrationId:id(800),code:'OLD-1',materialId:id(5),scaleId:id(4),topNotes:9,bottomNotes:0,warehouseId:1}).status,409);assert.equal(h.state.operations.length,0);
+});
+test('profit percentage changes project immediately, reject stale edits and persist two dependent saves',()=>{
+ const s=fixture();s.snapshot.workspace.sections.profitEntries=[];s.snapshot.workspace.sections.profitRules=[2,3,5,6,7,13].map((action,i)=>({action,percent:10,version:id(900+i)}));const h=harness(s),rules=h.request('GET','profit-sharing/rules').value;
+ assert.equal(h.request('PUT','profit-sharing/rules',rules.map(x=>({...x,percent:5}))).status,200);assert.equal(h.state.operations.length,1);
+ const restarted=harness(s),current=restarted.request('GET','profit-sharing/rules').value;assert.ok(current.every(x=>x.percent===5));assert.equal(restarted.request('PUT','profit-sharing/rules',rules).status,409);
+ assert.equal(restarted.request('PUT','profit-sharing/rules',current.map(x=>({...x,percent:6}))).status,200);assert.equal(s.operations.length,2);
+ assert.equal(restarted.request('PUT','profit-sharing/rules',current.map(x=>({...x,percent:50}))).status,409);
+});
+
+test('legacy import history never becomes current production or personal activity',()=>{
+ const h=harness();h.request('POST','legacy-stock',{registrationId:id(800),code:'OLD-1',materialId:id(5),scaleId:id(4),topNotes:9,bottomNotes:0,warehouseId:1,dimpleUserId:id(1)});
+ assert.equal(h.request('GET','production/report?from=2026-10-01&to=2026-10-31').value.totalOperations,0);
+ assert.equal(h.request('GET','me/activity').value.total,0);
+ assert.equal(h.request('GET','production/dashboard').value.dailyUserOperations.length,0);
+});
+
+test('all four current export destinations accept legacy opening stock',()=>{
+ for(const location of [1,2,3,4]){const h=harness(),r=h.request('POST','legacy-stock',{registrationId:id(800),code:'OLD-1',materialId:id(5),scaleId:id(4),topNotes:9,bottomNotes:0,warehouseId:1,exportLocation:location});assert.equal(r.status,200);assert.equal(h.request('GET','export-warehouse').value[0].location,location);}
+});

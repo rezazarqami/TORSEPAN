@@ -7,6 +7,17 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 function project(snapshot,rows){
  const sections=clone(snapshot?.workspace?.sections||{});for(const key of Object.keys(titles))sections[key]||=[];
  for(const row of rows){const op=row.body;if(op.action==='sell'&&op.price!=null)sections.documents.push({id:row.id,type:1,title:'فروش ساز '+op.code,currency:op.priceCurrency||1,totalAmount:op.price,paidAmount:op.receivedAmount||0,partyId:op.partyId,createdAt:op.occurredUtc,local:true});if(op.action!=='workspace')continue;const module=op.workspaceModule,action=op.workspaceAction,d=clone(op.workspaceData||{}),items=sections[module]||=[];let item=items.find(x=>x.id===d.id);
+  if(module==='legacyStock'){
+   sections.assemblies||=[];sections.handpans||=[];sections.bowls||=[];sections.events||=[];
+   sections.assemblies.push({id:d.assemblyId,topBowlId:d.topBowlId,bottomBowlId:d.bottomBowlId});
+   sections.handpans.push({id:d.registrationId,serialNumber:d.code,assemblyId:d.assemblyId,scaleId:d.scaleId,stage:d.exportLocation?22:18,qualityWarehouseId:d.warehouseId,exportWarehouseLocation:d.exportLocation,createdAt:op.occurredUtc});
+   sections.bowls.push({id:d.topBowlId,materialId:d.materialId},{id:d.bottomBowlId,materialId:d.materialId});
+   sections.events.push(...d.events.map(e=>({...e,handpanId:d.registrationId,assemblyId:d.assemblyId,eventDate:op.occurredUtc,result:1,isPayrollExcluded:e.action!==1,description:e.action===1?'LEGACY_STOCK:IMPORT:local':'LEGACY_STOCK: سابقه پیش از سامانه؛ دستمزد قبلاً محاسبه شده است.'})));
+   continue;
+  }
+  if(module==='profitRules'){
+   sections.profitRules=d.items.map(x=>({...sections.profitRules.find(r=>r.action===x.action),percent:x.percent,version:d.nextVersions[x.action]}));continue;
+  }
   if(module==='production'){
    if(action==='assemble'){sections.assemblies.push({id:d.assemblyId,topBowlId:d.topBowlId,bottomBowlId:d.bottomBowlId});sections.handpans.push({id:d.id,assemblyId:d.assemblyId,serialNumber:d.serialNumber,stage:1,createdAt:op.occurredUtc});}
    if(action==='delete'||d.detach){sections.handpans=sections.handpans.filter(x=>x.id!==d.handpanId);sections.assemblies=sections.assemblies.filter(x=>!d.bowlIds?.includes(x.topBowlId));}

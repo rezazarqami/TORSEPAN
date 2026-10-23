@@ -13,6 +13,11 @@
       const op=row.body;
       if(op.action==='create')bowls.push({code:op.code,id:row.id,type:op.bowlType,hasNotes:op.bowlType===1||op.hasNotes,materialId:op.materialId,isCustom:false,scaleId:null,
         stage:op.bowlType===2&&!op.hasNotes?6:2,stageName:labels[op.bowlType===2&&!op.hasNotes?6:2],version:'new',pairCode:null,instrumentCode:null,localHistory:[]});
+      if(op.action==='workspace'&&op.workspaceModule==='legacyStock'){
+        const d=op.workspaceData,stage=d.exportLocation?22:18,bottom='LEGACY-BOTTOM-'+d.registrationId.replace(/-/g,'');
+        for(const type of [1,2])bowls.push({id:type===1?d.topBowlId:d.bottomBowlId,code:type===1?d.code:bottom,type,hasNotes:type===1||d.bottomNotes>0,materialId:d.materialId,scaleId:type===1?d.topScaleId:d.bottomScaleId,noteCount:type===1?d.topNotes:d.bottomNotes,instrumentScaleId:d.scaleId,instrumentNoteCount:d.topNotes+d.bottomNotes,instrumentCode:d.code,pairCode:type===1?bottom:d.code,qualityWarehouseId:d.warehouseId,packagingExportLocation:d.exportLocation,stage,stageName:labels[stage],version:'new',localHistory:[row]});
+        continue;
+      }
       if(op.action==='workspace'&&op.workspaceModule==='production'){const d=op.workspaceData||{},targets=bowls.filter(b=>(d.codes||[d.code]).includes(b.code));
        if(op.workspaceAction==='delete'){for(let i=bowls.length-1;i>=0;i--)if(targets.includes(bowls[i]))bowls.splice(i,1);}
        if(op.workspaceAction==='rollback')for(const b of targets){b.stage=d.targetStage;b.stageName=labels[d.targetStage];b.isRejected=false;if(d.detach){b.pairCode=null;b.instrumentCode=null;b.instrumentScaleId=null;b.instrumentNoteCount=null;}if(d.resetScale){b.scaleId=null;b.legacyScaleId=null;b.noteCount=null;b.isCustom=false;}b.localHistory.push(row);}

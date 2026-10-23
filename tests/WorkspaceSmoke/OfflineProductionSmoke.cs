@@ -242,6 +242,22 @@ internal static class OfflineProductionSmoke
         Check(await db.ProductionEvents.AnyAsync(x=>x.Action==ProductionAction.Shape&&x.Description.Contains("Stretch="+actor.Id)),"shape correction resolves prior local operation and shares ambient transaction");
         var saleUpdate=Workspace("production","saleUpdate",new{code="855",handpanId=sold.Id,soldAt=sold.SoldAt,buyerName="Updated buyer",buyerPhoneNumber="09120000000",price=700,receivedAmount=200,isExportSale=false},correction.OperationId);await service.ApplyAsync(registrar.Id,saleUpdate,default);db.ChangeTracker.Clear();
         Check(await db.Handpans.AnyAsync(x=>x.Id==sold.Id&&x.BuyerName=="Updated buyer"&&x.SalePrice==700)&&await db.OfflineReceipts.AnyAsync(x=>x.OperationId==saleUpdate.OperationId&&x.WarrantyPending),"sale correction commits accounting before deferred remote warranty retry");
+        workspaceSnapshot=await service.SnapshotAsync(registrar.Id,device,default);
+        var registration=Guid.NewGuid();var localTop=Guid.NewGuid();var localBottom=Guid.NewGuid();var localAssembly=Guid.NewGuid();var localImport=Guid.NewGuid();var localDimple=Guid.NewGuid();
+        var legacy=Workspace("legacyStock","save",new{registrationId=registration,code="OLD-OFFLINE-1",materialId=raw.Id,scaleId=scale.Id,topNotes=9,bottomNotes=0,warehouseId=1,topBowlId=localTop,bottomBowlId=localBottom,assemblyId=localAssembly,dimpleUserId=actor.Id,events=new[]{new{id=localImport,action=1},new{id=localDimple,action=2}}});
+        var stockBefore=await db.Materials.AsNoTracking().SingleAsync(x=>x.Id==raw.Id);
+        var legacyReceipt=await service.ApplyAsync(registrar.Id,legacy,default);db.ChangeTracker.Clear();await service.ApplyAsync(registrar.Id,legacy,default);db.ChangeTracker.Clear();
+        var legacyAliases=JsonSerializer.Deserialize<Dictionary<string,string>>(legacyReceipt.VersionsJson)!;
+        Check(await db.Handpans.CountAsync(x=>x.Id==registration)==1&&legacyAliases.ContainsKey("alias:"+localTop)&&legacyAliases.ContainsKey("alias:"+localImport),"offline legacy import replay creates one instrument and resolves bowl, assembly and event identifiers");
+        Check(await db.ProductionEvents.AnyAsync(x=>x.HandpanId==registration&&x.Action==ProductionAction.Dimple&&x.IsPayrollExcluded)&& (await db.Materials.AsNoTracking().SingleAsync(x=>x.Id==raw.Id)).TopBowlQuantity==stockBefore.TopBowlQuantity,"offline legacy import preserves paid wages and does not consume material stock");
+        if(!await db.SaleProfitRules.AnyAsync()){db.SaleProfitRules.AddRange(new[]{ProductionAction.Dimple,ProductionAction.Shape,ProductionAction.Glue,ProductionAction.Tune,ProductionAction.FineTune,ProductionAction.Design}.Select(x=>new SaleProfitRule(x,10)));await db.SaveChangesAsync();db.ChangeTracker.Clear();}
+        workspaceSnapshot=await service.SnapshotAsync(registrar.Id,device,default);
+        var rules=await db.SaleProfitRules.AsNoTracking().OrderBy(x=>x.Action).ToListAsync();var next=rules.ToDictionary(x=>((int)x.Action).ToString(),x=>Guid.NewGuid());
+        var ruleEdit=Workspace("profitRules","save",new{items=rules.Select(x=>new{action=(int)x.Action,percent=5,version=x.Version}),nextVersions=next});
+        var ruleReceipt=await service.ApplyAsync(registrar.Id,ruleEdit,default);db.ChangeTracker.Clear();await service.ApplyAsync(registrar.Id,ruleEdit,default);
+        Check(await db.SaleProfitRules.AllAsync(x=>x.Percent==5),"offline profit percentage edit commits once using current concurrency versions");
+        var secondEdit=Workspace("profitRules","save",new{items=rules.Select(x=>new{action=(int)x.Action,percent=6,version=next[((int)x.Action).ToString()]}),nextVersions=rules.ToDictionary(x=>((int)x.Action).ToString(),x=>Guid.NewGuid())},ruleEdit.OperationId);
+        await service.ApplyAsync(registrar.Id,secondEdit,default);db.ChangeTracker.Clear();Check(await db.SaleProfitRules.AllAsync(x=>x.Percent==6),"second queued profit edit resolves the first edit's local version aliases");
         var finalSnapshot=await service.SnapshotAsync(registrar.Id,device,default);var legacySections=finalSnapshot.Workspace!.Sections.ToDictionary(x=>x.Key,x=>x.Value);
         foreach(var section in new[]{"photos","handpanDetails","avatars"})legacySections.Remove(section);
         var legacyHandpans=System.Text.Json.Nodes.JsonNode.Parse(legacySections["handpans"].GetRawText())!;foreach(var row in legacyHandpans.AsArray())row!.AsObject().Remove("createdAt");legacySections["handpans"]=JsonSerializer.SerializeToElement(legacyHandpans);
