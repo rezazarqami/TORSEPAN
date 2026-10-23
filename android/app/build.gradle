@@ -9,8 +9,8 @@ android {
         applicationId 'ir.torsepan.mobile.offline'
         minSdk 29
         targetSdk 34
-        versionCode 14
-        versionName '2.8.2-cached-workshop'
+        versionCode 15
+        versionName '2.9.0-current-panel'
     }
 }
 

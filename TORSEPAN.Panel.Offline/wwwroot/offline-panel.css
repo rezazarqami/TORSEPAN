@@ -4,3 +4,5 @@
 
 /* Mobile cache UI keeps the original theme while avoiding costly scroll-time compositing. */
 @media(max-width:900px){body .theme-shell .sidebar,body .theme-shell .mobile-menu-backdrop{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;transition:none!important}body .theme-shell .topbar{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}body .theme-shell .sidebar-menu{scroll-behavior:auto!important}body .theme-shell .sidebar-menu a,body .theme-shell .mobile-nav-rail{transition:none!important}}
+
+.offline-startup{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fafafa;color:#173956;direction:ltr}.offline-startup img{width:min(80vw,380px);height:auto}.offline-startup p{margin:-18px 0 0;font:500 16px/1.5 Arial,sans-serif;letter-spacing:2px}

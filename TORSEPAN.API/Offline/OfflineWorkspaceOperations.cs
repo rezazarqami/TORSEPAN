@@ -41,6 +41,27 @@ public sealed partial class OfflineProductionService {
   IActionResult? result=null;
   try {
    switch(op.WorkspaceModule,op.WorkspaceAction){
+    case ("legacyStock","save"):{
+     result=await Controller<LegacyStockController>().Create(Read<LegacyStockRequest>(),ct);
+     if(result is OkObjectResult){
+      var instrument=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==data.GetProperty("registrationId").GetGuid(),ct);
+      var assembly=await db.HandpanAssemblies.AsNoTracking().SingleAsync(x=>x.Id==instrument.AssemblyId,ct);
+      foreach(var pair in new[]{("topBowlId",assembly.TopBowlId),("bottomBowlId",assembly.BottomBowlId),("assemblyId",assembly.Id)})
+       if(data.TryGetProperty(pair.Item1,out var local)&&local.GetGuid()!=pair.Item2)workspaceAliases[local.GetGuid()]=pair.Item2;
+      if(data.TryGetProperty("events",out var localEvents))foreach(var local in localEvents.EnumerateArray()){
+       var action=(TORSEPAN.Domain.Enums.ProductionAction)local.GetProperty("action").GetInt32();
+       var actual=await db.ProductionEvents.AsNoTracking().Where(x=>x.HandpanId==instrument.Id&&x.Action==action&&x.Description.StartsWith(TORSEPAN.Domain.Entities.LegacyStockRecord.Prefix)).Select(x=>x.Id).SingleAsync(ct);
+       workspaceAliases[local.GetProperty("id").GetGuid()]=actual;
+      }
+     }
+     break;
+    }
+    case ("profitRules","save"):{
+     result=await Controller<ProfitSharingController>().SaveRules(data.GetProperty("items").Deserialize<List<ProfitRuleUpdate>>(WebJson)!);
+     if(result is OkObjectResult&&data.TryGetProperty("nextVersions",out var versions))foreach(var rule in await db.SaleProfitRules.AsNoTracking().ToListAsync(ct))
+      if(versions.TryGetProperty(((int)rule.Action).ToString(),out var local))workspaceAliases[local.GetGuid()]=rule.Version;
+     break;
+    }
     case ("warehouses","save"):{var id=data.GetProperty("id").GetInt32();var warehouse=await db.InstrumentWarehouses.SingleOrDefaultAsync(x=>x.Id==id,ct);if(warehouse is null)throw new OfflineProblem("missing","انبار پیدا نشد.",404);
      var name=data.GetProperty("name").GetString()!;warehouse.Rename(name);if(await db.InstrumentWarehouses.AnyAsync(x=>x.Id!=id&&x.Name.ToUpper()==warehouse.Name.ToUpper(),ct))throw new OfflineProblem("duplicate","نام انبار تکراری است.");break;}
     case ("orders","save"):{var service=new CustomerOrderService(db,TimeProvider.System);var id=NullableId();if(id.HasValue&&await db.CustomerOrders.AnyAsync(x=>x.Id==id,ct)){var order=await db.CustomerOrders.AsNoTracking().SingleAsync(x=>x.Id==id,ct);var r=Read<SaveOrderDraftRequest>();if(order.IsDraft)await service.SaveDraftAsync(id,r,op.PerformerId,ct);else await service.UpdateOrderAsync(id.Value,r,ct);}else {var actual=await service.SaveDraftAsync(null,Read<SaveOrderDraftRequest>(),op.PerformerId,ct);Alias(actual);id=actual;}
