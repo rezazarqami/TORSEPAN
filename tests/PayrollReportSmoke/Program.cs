@@ -63,6 +63,16 @@ Check(merged.Count == 1 && merged[0].Count == 14 && merged[0].Total == 28000000,
 Check(PayrollReportGrouping.Merge([Line("2 نوت", 3) with { BowlType = 2 }, Line("3 نوت", 5) with { BowlType = 2 }]).Count == 2, "different bottom counts never merge");
 Check(PayrollReportGrouping.Merge(c.Lines).Sum(x => x.Total) == c.Lines.Sum(x => x.Total), "report aggregation preserves exact payable totals");
 Check(PayrollReportGrouping.Merge(c.Lines).Where(x => x.Action == 6).Select(x => x.BowlType).SequenceEqual(PayrollReportGrouping.Merge(c.Lines).Where(x => x.Action == 6).Select(x => x.BowlType).OrderBy(x => x)), "all tune top bowls precede bottom bowls");
+Check(c.Lines.Where(x => x.ScaleName.Contains("نامشخص")).All(x => x.UnknownCodes is { Count: > 0 }), "each unknown operation row carries the exact source codes");
+Check(c.Lines.Single(x => x.Action == 6 && x.BowlType == 1 && x.ScaleName.Contains("نامشخص")).UnknownCodes!.SequenceEqual(["TEST-UNKNOWN"]), "unknown tune row identifies its bowl, not unrelated instruments");
+Check(c.Lines.Where(x => x.Action == 7 && x.ScaleName.Contains("نامشخص")).SelectMany(x => x.UnknownCodes!).OrderBy(x => x).SequenceEqual(["TEST-UNKNOWN", "TEST-UNKNOWN-BOTTOM"]), "fine tune rows identify instruments with either side unknown");
+Check(c.Lines.Where(x => !x.ScaleName.Contains("نامشخص")).All(x => x.UnknownCodes is not { Count: > 0 }), "known rows do not receive unrelated warning codes");
+var unknownMerged = PayrollReportGrouping.Merge([
+    Line("D Kurd — تعداد نوت نامشخص", 2) with { UnknownCodes = ["A-1", "A-2"] },
+    Line("D Kurd — تعداد نوت نامشخص", 1) with { UnknownCodes = ["A-2", "A-3"] }]);
+Check(unknownMerged.Single().Count == 3 && unknownMerged.Single().UnknownCodes!.SequenceEqual(["A-1", "A-2", "A-3"]), "merged report rows union and deduplicate all unknown codes without altering quantities");
+var legacyLine = System.Text.Json.JsonSerializer.Deserialize<PayrollLine>(System.Text.Json.JsonSerializer.Serialize(originals[0]).Replace(",\"UnknownCodes\":null", ""));
+Check(PayrollReportGrouping.Merge([legacyLine!]).Single().Count == 9, "old payment snapshots without code metadata remain readable");
 QuestPDF.Settings.License = LicenseType.Community;
 using (var font = typeof(PayrollController).Assembly.GetManifestResourceStream("TORSEPAN.API.Assets.Vazirmatn-Regular.ttf")!) FontManager.RegisterFont(font);
 var charts = new ProductionAnalytics(c.From,c.To,0,0,0,0,0,0,0,0,[],[],[],0,0,0,0,[],[],[]);

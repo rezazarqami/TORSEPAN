@@ -332,7 +332,12 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                     .OrderByDescending(r => r.MaterialId.HasValue).ThenByDescending(r => r.BowlType.HasValue).ThenByDescending(r => r.ScaleId.HasValue).ThenByDescending(r => r.ScaleId.HasValue && r.ScaleId == g.Key.LegacyScaleId).ThenByDescending(r => r.Scale?.LegacyNoteCount.HasValue == true || TORSEPAN.Domain.Entities.ScaleFamilyNames.GenericNoteCount(r.Scale?.Name).HasValue).FirstOrDefault()?.Amount ?? 0;
             var count = g.Key.Action == ProductionAction.Glue ? g.Where(x => x.HandpanId.HasValue).Select(x => x.HandpanId).Distinct().Count()
                 : g.Count();
-            return new PayrollLine(g.Key.UserId, string.IsNullOrWhiteSpace(g.Key.FullName) ? g.Key.UserName : g.Key.FullName, g.Key.DisplayOrder, (int)g.Key.Action, Title(g.Key.Action), g.Key.MaterialId, g.Key.Material, g.Key.BowlType, g.Key.ScaleId, g.Key.Scale, count, rate, count * rate, g.Key.IsExport, g.Key.IsCustom);
+            return new PayrollLine(g.Key.UserId, string.IsNullOrWhiteSpace(g.Key.FullName) ? g.Key.UserName : g.Key.FullName, g.Key.DisplayOrder, (int)g.Key.Action, Title(g.Key.Action), g.Key.MaterialId, g.Key.Material, g.Key.BowlType, g.Key.ScaleId, g.Key.Scale, count, rate, count * rate, g.Key.IsExport, g.Key.IsCustom,
+                g.Key.Scale.Contains("نامشخص")
+                    ? g.Select(x => x.Handpan?.SerialNumber ?? x.Bowl?.ProductionCode)
+                        .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!)
+                        .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList()
+                    : []);
         }).OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName)
             .ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName)
             .ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ToList();
@@ -362,12 +367,12 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var reportLines = PayrollReportGrouping.Merge(c.Lines);
         var scales = reportLines.Where(x => !x.IsExport && x.Action == 7 && !string.IsNullOrWhiteSpace(x.ScaleName))
             .GroupBy(x => x.ScaleName).OrderBy(x => x.Key)
-            .Select(x => new { x.Key, Count = x.Sum(y => y.Count) }).ToList();
+            .Select(x => new { x.Key, Count = x.Sum(y => y.Count), Codes = x.SelectMany(y => y.UnknownCodes ?? []).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(code => code).ToList() }).ToList();
         var appliedRates = c.Lines.Select(x => x with { ScaleName = x.Action is 2 or 3 or 6 or 7 ? PayrollReportGrouping.NormalizeTitle(x.ScaleName) : x.ScaleName })
             .OrderBy(x => x.IsExport).ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.BowlType)
             .ThenBy(x => x.MaterialName).ThenBy(x => x.ScaleName)
             .GroupBy(x => new { Description = Desc(x), x.IsExport, x.Rate })
-            .Select(x => new { Title = (x.Key.IsExport ? "صادراتی — " : "عادی — ") + x.Key.Description, x.Key.Rate })
+            .Select(x => new { Title = (x.Key.IsExport ? "صادراتی — " : "عادی — ") + x.Key.Description, x.Key.Rate, Codes = x.SelectMany(y => y.UnknownCodes ?? []).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(code => code).ToList() })
             .ToList();
 
         return Document.Create(doc => doc.Page(page =>
@@ -424,6 +429,10 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                                                 {
                                                     detail.Item().AlignRight().ContentFromRightToLeft().Text(Desc(line))
                                                         .FontSize(9).Bold().FontColor(Colors.Grey.Darken3);
+                                                    if (line.UnknownCodes is { Count: > 0 })
+                                                        detail.Item().PaddingTop(2).AlignRight().ContentFromRightToLeft()
+                                                            .Text("کد ساز/کاسه: " + string.Join("، ", line.UnknownCodes.Select(code => $"\u200E{code}\u200E")))
+                                                            .FontSize(7).FontColor(Colors.Grey.Darken2);
                                                     detail.Item().PaddingTop(2).ContentFromRightToLeft().Row(values =>
                                                     {
                                                         values.RelativeItem().AlignRight().Text($"تعداد: {line.Count:N0}").FontSize(8);
@@ -451,8 +460,12 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                         {
                             table.ColumnsDefinition(columns => { for (var i = 0; i < 3; i++) columns.RelativeColumn(); });
                             foreach (var scale in scales)
-                                table.Cell().Border(1).BorderColor(Colors.Green.Lighten2).Background(Colors.White).Padding(5).AlignCenter().ContentFromRightToLeft()
-                                    .Text($"{PdfScaleTitle(scale.Key)}\n{scale.Count:N0} عدد").FontSize(9).Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Green.Lighten2).Background(Colors.White).Padding(5).ContentFromRightToLeft().Column(cell =>
+                                {
+                                    cell.Item().AlignCenter().Text($"{PdfScaleTitle(scale.Key)}\n{scale.Count:N0} عدد").FontSize(9).Bold();
+                                    if (scale.Codes.Count > 0)
+                                        cell.Item().PaddingTop(2).AlignRight().Text("کد ساز: " + string.Join("، ", scale.Codes.Select(code => $"\u200E{code}\u200E"))).FontSize(7);
+                                });
                         });
                         summary.Item().PaddingTop(4).AlignCenter().ContentFromRightToLeft().Text($"جمع کل ساخت: {scales.Sum(x => x.Count):N0} عدد").FontSize(10).Bold();
                     });
@@ -494,6 +507,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                                         .ContentFromRightToLeft().Column(cell =>
                                         {
                                             cell.Item().AlignRight().Text(rate.Title).FontSize(8).Bold();
+                                            if (rate.Codes.Count > 0)
+                                                cell.Item().PaddingTop(2).AlignRight().Text("کد ساز/کاسه: " + string.Join("، ", rate.Codes.Select(code => $"\u200E{code}\u200E"))).FontSize(7);
                                             cell.Item().PaddingTop(2).AlignRight().Text($"نرخ واحد: {rate.Rate:N0}").FontSize(8).FontColor(Colors.Green.Darken3);
                                         });
                                 }
@@ -533,7 +548,7 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
 
 public sealed record PayrollCalculation(DateTime From, DateTime To, List<PayrollLine> Lines, List<PayrollUser> Users, List<PayrollRateDto> Rates, List<Guid> HandpanIds, List<string> HandpanCodes, bool ReadyForQc, bool ReadyForPackaging, bool EnteredWarehouse, bool ReadyForExportPackaging, bool ExportWarehouse, List<PayrollUnknownInstrument>? UnknownInstruments = null);
 public sealed record PayrollUnknownInstrument(string Code, string TopCode, string BottomCode, string ScaleName);
-public sealed record PayrollLine(Guid UserId, string UserName, int DisplayOrder, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, int Count, decimal Rate, decimal Total, bool IsExport = false, bool IsCustom = false);
+public sealed record PayrollLine(Guid UserId, string UserName, int DisplayOrder, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, int Count, decimal Rate, decimal Total, bool IsExport = false, bool IsCustom = false, List<string>? UnknownCodes = null);
 public sealed record PayrollUser(Guid Id, string FullName, int DisplayOrder);
 public sealed record PayrollRateDto(Guid Id, int Action, string ActionTitle, Guid? MaterialId, string MaterialName, int? BowlType, Guid? ScaleId, string ScaleName, bool IsExport, bool IsCustom, decimal Amount);
 public sealed record PayrollRateRequest(Guid? Id, int Action, Guid? MaterialId, int? BowlType, Guid? ScaleId, bool IsExport, bool IsCustom, decimal Amount);
