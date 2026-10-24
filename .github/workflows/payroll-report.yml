@@ -1,0 +1,22 @@
+name: Payroll PDF grouping
+on:
+  pull_request:
+    paths: ['TORSEPAN.API/**', 'TORSEPAN.Domain/**', 'tests/PayrollReportSmoke/**', '.github/workflows/payroll-report.yml']
+  workflow_dispatch:
+jobs:
+  payroll-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Verify calculation, grouping, unknown codes and real PDF generation
+        env:
+          PAYROLL_PDF_PREVIEW: payroll-preview/report.pdf
+        run: dotnet run --project tests/PayrollReportSmoke -c Release
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: payroll-pdf-preview
+          path: payroll-preview/
