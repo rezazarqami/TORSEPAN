@@ -367,12 +367,12 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
         var reportLines = PayrollReportGrouping.Merge(c.Lines);
         var scales = reportLines.Where(x => !x.IsExport && x.Action == 7 && !string.IsNullOrWhiteSpace(x.ScaleName))
             .GroupBy(x => x.ScaleName).OrderBy(x => x.Key)
-            .Select(x => new { x.Key, Count = x.Sum(y => y.Count) }).ToList();
+            .Select(x => new { x.Key, Count = x.Sum(y => y.Count), Codes = x.SelectMany(y => y.UnknownCodes ?? []).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(code => code).ToList() }).ToList();
         var appliedRates = c.Lines.Select(x => x with { ScaleName = x.Action is 2 or 3 or 6 or 7 ? PayrollReportGrouping.NormalizeTitle(x.ScaleName) : x.ScaleName })
             .OrderBy(x => x.IsExport).ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.BowlType)
             .ThenBy(x => x.MaterialName).ThenBy(x => x.ScaleName)
             .GroupBy(x => new { Description = Desc(x), x.IsExport, x.Rate })
-            .Select(x => new { Title = (x.Key.IsExport ? "صادراتی — " : "عادی — ") + x.Key.Description, x.Key.Rate })
+            .Select(x => new { Title = (x.Key.IsExport ? "صادراتی — " : "عادی — ") + x.Key.Description, x.Key.Rate, Codes = x.SelectMany(y => y.UnknownCodes ?? []).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(code => code).ToList() })
             .ToList();
 
         return Document.Create(doc => doc.Page(page =>
@@ -460,8 +460,12 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                         {
                             table.ColumnsDefinition(columns => { for (var i = 0; i < 3; i++) columns.RelativeColumn(); });
                             foreach (var scale in scales)
-                                table.Cell().Border(1).BorderColor(Colors.Green.Lighten2).Background(Colors.White).Padding(5).AlignCenter().ContentFromRightToLeft()
-                                    .Text($"{PdfScaleTitle(scale.Key)}\n{scale.Count:N0} عدد").FontSize(9).Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Green.Lighten2).Background(Colors.White).Padding(5).ContentFromRightToLeft().Column(cell =>
+                                {
+                                    cell.Item().AlignCenter().Text($"{PdfScaleTitle(scale.Key)}\n{scale.Count:N0} عدد").FontSize(9).Bold();
+                                    if (scale.Codes.Count > 0)
+                                        cell.Item().PaddingTop(2).AlignRight().Text("کد ساز: " + string.Join("، ", scale.Codes.Select(code => $"\u200E{code}\u200E"))).FontSize(7);
+                                });
                         });
                         summary.Item().PaddingTop(4).AlignCenter().ContentFromRightToLeft().Text($"جمع کل ساخت: {scales.Sum(x => x.Count):N0} عدد").FontSize(10).Bold();
                     });
@@ -503,6 +507,8 @@ public sealed class PayrollController(TORSEPANDbContext db, IHttpClientFactory h
                                         .ContentFromRightToLeft().Column(cell =>
                                         {
                                             cell.Item().AlignRight().Text(rate.Title).FontSize(8).Bold();
+                                            if (rate.Codes.Count > 0)
+                                                cell.Item().PaddingTop(2).AlignRight().Text("کد ساز/کاسه: " + string.Join("، ", rate.Codes.Select(code => $"\u200E{code}\u200E"))).FontSize(7);
                                             cell.Item().PaddingTop(2).AlignRight().Text($"نرخ واحد: {rate.Rate:N0}").FontSize(8).FontColor(Colors.Green.Darken3);
                                         });
                                 }
