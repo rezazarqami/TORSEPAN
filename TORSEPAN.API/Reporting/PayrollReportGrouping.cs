@@ -61,7 +61,12 @@ public static class PayrollReportGrouping
             var first = g.First();
             var count = g.Sum(x => x.Count);
             var total = g.Sum(x => x.Total);
-            return first with { Count = count, Total = total, Rate = count == 0 ? 0 : total / count };
+            return first with
+            {
+                Count = count, Total = total, Rate = count == 0 ? 0 : total / count,
+                UnknownCodes = g.SelectMany(x => x.UnknownCodes ?? [])
+                    .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList()
+            };
         })
         .OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ThenBy(x => x.IsExport)
         .ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.BowlType)
