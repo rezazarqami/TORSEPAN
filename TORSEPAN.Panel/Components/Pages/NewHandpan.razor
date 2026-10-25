@@ -96,8 +96,8 @@ else
     {
         var bowls = await BowlService.GetAsync();
 
-        _topBowls.AddRange(bowls.Where(x => x.BowlType == 0));
-        _bottomBowls.AddRange(bowls.Where(x => x.BowlType == 1));
+        _topBowls.AddRange(bowls.Where(x => x.BowlType == 1));
+        _bottomBowls.AddRange(bowls.Where(x => x.BowlType == 2));
 
         _loading = false;
     }

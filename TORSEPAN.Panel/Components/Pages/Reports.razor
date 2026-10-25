@@ -1,3 +1,4 @@
+@inject IServiceProvider LocalServices
 @page "/reports"
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Administrator,ProductionManager")]
@@ -163,6 +164,6 @@ else
     private Task ToggleMaterial(Guid id)=>ToggleLimited(_materials,id,"متریال");private Task ToggleScale(Guid id)=>ToggleLimited(_scales,id,"Scale");private Task ToggleLimited(HashSet<Guid> set,Guid id,string title){if(!set.Remove(id)){if(set.Count>=3){_filterNotice=$"حداکثر سه {title} را می‌توانید هم‌زمان انتخاب کنید.";return Task.CompletedTask;}set.Add(id);}_filterNotice=null;return Task.CompletedTask;}
     private async Task ClearAsync(){_from=_to=null;_user=_action="";_payroll=_destination="all";_materials.Clear();_scales.Clear();_filterNotice=null;await LoadCurrentAsync();}
     private (Guid? User,int? Action) OperationFilters(){Guid? u=Guid.TryParse(_user,out var user)?user:null;int? a=int.TryParse(_action,out var action)?action:null;return(u,a);}
-    private async Task DownloadPdfAsync(){_exporting=true;_message=null;try{var f=OperationFilters();var bytes=await ReportService.PdfAsync(_tab,_from,_to,_materials,_scales,_payroll,_destination,_inventoryKind,f.User,f.Action);await JS.InvokeVoidAsync("torsepanReports.download",$"torsepan-{_tab}-{DateTime.Now:yyyyMMdd-HHmm}.pdf",bytes);_message="فایل PDF آماده و دانلود شد.";_messageError=false;}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_exporting=false;}}
+    private async Task DownloadPdfAsync(){if(LocalServices.GetService(typeof(ILocalDataRefresh)) is not null){await JS.InvokeVoidAsync("OfflinePanel.print");return;}_exporting=true;_message=null;try{var f=OperationFilters();var bytes=await ReportService.PdfAsync(_tab,_from,_to,_materials,_scales,_payroll,_destination,_inventoryKind,f.User,f.Action);await JS.InvokeVoidAsync("torsepanReports.download",$"torsepan-{_tab}-{DateTime.Now:yyyyMMdd-HHmm}.pdf",bytes);_message="فایل PDF آماده و دانلود شد.";_messageError=false;}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_exporting=false;}}
     private async Task SendTelegramAsync(){_exporting=true;_message=null;try{var f=OperationFilters();await ReportService.SendTelegramAsync(_tab,_from,_to,_materials,_scales,_payroll,_destination,_inventoryKind,f.User,f.Action);_message="فایل PDF به ربات هشدار تلگرام ارسال شد.";_messageError=false;}catch(Exception ex){_message=ex.Message;_messageError=true;}finally{_exporting=false;}}
 }
