@@ -7,7 +7,7 @@ public sealed partial class OfflineProductionService {
  private async Task<OfflineWorkspace> WorkspaceAsync(Guid owner,CancellationToken ct){
   var w=new Dictionary<string,JsonElement>();void Put(string k,object v)=>w[k]=JsonSerializer.SerializeToElement(v,WebJson);
   var canReadProfit=await db.Users.AnyAsync(x=>x.Id==owner&&x.UserRoles.Any(r=>r.Role.Name=="Administrator"||r.Role.Name=="ProductionManager"),ct);
-  if(canReadProfit){Put("profitRules",await db.SaleProfitRules.AsNoTracking().ToListAsync(ct));Put("profitEntries",await db.SaleProfitEntries.AsNoTracking().ToListAsync(ct));}
+  if(canReadProfit){Put("profitRules",await db.SaleProfitRules.AsNoTracking().ToListAsync(ct));Put("profitEntries",await db.SaleProfitEntries.AsNoTracking().ToListAsync(ct));Put("hallProfitPayments",await db.HallProfitPayments.AsNoTracking().ToListAsync(ct));}
   Put("warehouses",await db.InstrumentWarehouses.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.Name,x.Version}).ToListAsync(ct));
   Put("users",await db.Users.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.UserName,x.FullName,x.Title,x.Role,x.IsActive,x.IsDeleted,x.DisplayOrder,x.ShowMyPayroll,RoleIds=x.UserRoles.OrderBy(r=>r.RoleId).Select(r=>r.RoleId).ToList(),Roles=x.UserRoles.OrderBy(r=>r.RoleId).Select(r=>r.Role.Name).ToList()}).ToListAsync(ct));
   Put("roles",await db.Roles.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.Name,x.DisplayName}).ToListAsync(ct));

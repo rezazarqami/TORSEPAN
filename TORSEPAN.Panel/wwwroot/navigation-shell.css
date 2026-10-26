@@ -507,3 +507,5 @@ body .layout.theme-shell .main .content :is(.sale-dialog,.edit-sale-dialog) .pai
 body .layout.theme-shell .main .content :is(.sale-dialog,.edit-sale-dialog) :is(.sale-close,header>button){background:#133d58;color:#edf5fc;border:1px solid #5a7890}
 body .layout.theme-shell .main:has(.sale-overlay),body .layout.theme-shell .main:has(.edit-sale-overlay){z-index:10001}
 @media(max-width:359px){body .layout.theme-shell .main .content .sale-money-group{grid-template-columns:72px minmax(0,1fr)}body .layout.theme-shell .main .content .sale-money-input{grid-template-columns:minmax(0,1fr) 90px}body .layout.theme-shell .main .content :is(.sale-fields,.edit-sale-fields){gap:6px;padding:8px}}
+
+@media(max-width:900px){html.mobile-input-active body .theme-shell .bottom-navigation{display:none!important}}

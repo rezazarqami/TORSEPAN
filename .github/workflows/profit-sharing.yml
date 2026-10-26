@@ -22,6 +22,10 @@ jobs:
         run: dotnet run --project tests/WarehouseTierSmoke -c Release
       - name: Verify offline financial projections
         run: node --test tests/SharedOffline/adapter.cjs
+      - name: Verify mobile keyboard and search behavior
+        run: node --test tests/mobile-input.cjs
+      - name: Build shared offline panel
+        run: dotnet build TORSEPAN.Panel.Offline -c Release
       - name: Install browser
         run: |
           npm install --prefix /tmp/profit-browser playwright
@@ -30,6 +34,10 @@ jobs:
         env:
           PROFIT_PLAYWRIGHT: /tmp/profit-browser/node_modules/playwright
         run: node tests/profit-sharing-layout.cjs
+      - name: Verify search positioning and keyboard viewport in browser
+        env:
+          PROFIT_PLAYWRIGHT: /tmp/profit-browser/node_modules/playwright
+        run: node tests/production-search-layout.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

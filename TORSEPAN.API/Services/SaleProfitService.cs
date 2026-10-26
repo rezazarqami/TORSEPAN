@@ -21,7 +21,7 @@ public sealed class SaleProfitService(TORSEPANDbContext db)
    var events=await db.ProductionEvents.AsNoTracking().Include(x=>x.User).Where(x=>x.Result==EventResult.Completed&&
     (x.HandpanId==handpan.Id||x.AssemblyId==handpan.AssemblyId||x.BowlId==pair.TopBowlId||x.BowlId==pair.BottomBowlId)&&!x.Description.StartsWith("NOTE:")).ToListAsync();
    foreach(var rule in await db.SaleProfitRules.AsNoTracking().Where(x=>x.Percent>0).ToListAsync())
-    roles.Add((rule.Action,rule.Percent,events.Where(x=>x.Action==rule.Action).Select(x=>(x.UserId,string.IsNullOrWhiteSpace(x.User.FullName)?x.User.UserName:x.User.FullName)).DistinctBy(x=>x.UserId).ToList()));
+    roles.Add((rule.Action,rule.Percent,rule.Action==HallProfitAccount.Action ? [(HallProfitAccount.Id,HallProfitAccount.Name)] : events.Where(x=>x.Action==rule.Action).Select(x=>(x.UserId,string.IsNullOrWhiteSpace(x.User.FullName)?x.User.UserName:x.User.FullName)).DistinctBy(x=>x.UserId).ToList()));
   }
   var factor=currency==MoneyCurrency.Usd?100m:1m;
   var eligible=roles.Where(x=>x.People.Count>0).OrderBy(x=>x.Action).ToList();

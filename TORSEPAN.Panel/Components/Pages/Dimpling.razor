@@ -71,14 +71,14 @@
 <div class="card production-passport-page luxury-passport-page">
     <label class="form-label passport-search-label" for="passport-code">کد ساز یا کاسه را وارد کنید</label>
     <div class="input-group passport-search mb-3">
-        <input id="passport-code" class="form-control" @ref="_codeInput" disabled="@(_loading || _confirmingOperation)"
+        <button class="btn btn-primary" disabled="@(_loading || _confirmingOperation)" @onclick="SearchAsync">
+            جست‌وجو
+        </button>
+        <input id="passport-code" class="form-control" dir="ltr" autocomplete="off" spellcheck="false" enterkeyhint="search" @ref="_codeInput" disabled="@(_loading || _confirmingOperation)"
                placeholder="کد ساز یا کاسه را وارد کنید"
                @bind="_productionCode"
                @bind:event="oninput"
                @onkeydown="HandleKeyDown" />
-        <button class="btn btn-primary" disabled="@(_loading || _confirmingOperation)" @onclick="SearchAsync">
-            جست‌وجو
-        </button>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_successMessage))

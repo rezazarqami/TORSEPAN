@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TORSEPAN.Domain.Entities;
 
 namespace TORSEPAN.Infrastructure.Persistence;
@@ -42,6 +42,7 @@ public class TORSEPANDbContext : DbContext
     public DbSet<DesignType> DesignTypes => Set<DesignType>();
     public DbSet<HandpanPhoto> HandpanPhotos => Set<HandpanPhoto>();
     public DbSet<AccountingParty> AccountingParties => Set<AccountingParty>();
+    public DbSet<HallProfitPayment> HallProfitPayments => Set<HallProfitPayment>();
     public DbSet<SaleProfitRule> SaleProfitRules => Set<SaleProfitRule>();
     public DbSet<SaleProfitEntry> SaleProfitEntries => Set<SaleProfitEntry>();
     public DbSet<AccountingDocument> AccountingDocuments => Set<AccountingDocument>();

@@ -98,14 +98,17 @@ function create(native,model,workspace,now=()=>new Date()){
    const roles=owner(c).roles||c.s.users.find(x=>x.id===c.s.ownerId)?.roles||[];
    if(!roles.some(x=>['Administrator','ProductionManager'].includes(x)))throw Error('اجازه مشاهده حساب سود سایر اعضا را ندارید.');
    if(!Array.isArray(c.w.profitEntries))throw Error('حساب سود هنوز همگام‌سازی نشده است؛ نسخه آنلاین را به‌روز و دوباره همگام‌سازی کنید.');
-   const entries=c.w.profitEntries;
+   const entries=c.w.profitEntries,hallId='00000000-0000-4000-9000-000000000100';
+   if(path==='profit-sharing/hall/payments'){if(!Array.isArray(c.w.hallProfitPayments))throw Error('پرداخت‌های خدمات سالن هنوز همگام‌سازی نشده است.');return [...c.w.hallProfitPayments].sort((a,b)=>new Date(b.paidAt)-new Date(a.paidAt));}
    const summary=(userId,name)=>{const rows=entries.filter(x=>x.userId===userId&&!x.reversedAt);return {userId,name,toman:rows.filter(x=>x.currency===1).reduce((n,x)=>n+x.amount,0),usd:rows.filter(x=>x.currency===2).reduce((n,x)=>n+x.amount,0),instruments:new Set(rows.map(x=>x.handpanId)).size};};
    const details=userId=>entries.filter(x=>x.userId===userId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
    if(path==='profit-sharing/rules'){if(!Array.isArray(c.w.profitRules))throw Error('درصد مراحل هنوز همگام‌سازی نشده است.');return c.w.profitRules;}
    if(path==='profit-sharing/members'){
     const users=(c.w.users||[]).filter(x=>!x.isDeleted).sort((a,b)=>(a.displayOrder||0)-(b.displayOrder||0)||(a.fullName||a.userName).localeCompare(b.fullName||b.userName));
-    const accounts=users.map(u=>summary(u.id,u.fullName||u.userName)),known=new Set(users.map(x=>x.id));
+    const accounts=users.map(u=>summary(u.id,u.fullName||u.userName)),known=new Set([...users.map(x=>x.id),hallId]);
     for(const id of new Set(entries.map(x=>x.userId)))if(!known.has(id))accounts.push(summary(id,details(id)[0].userName));
+    if(Array.isArray(c.w.hallProfitPayments))accounts.push({...summary(hallId,'خدمات سالن'),paidToman:c.w.hallProfitPayments.filter(x=>x.currency===1).reduce((n,x)=>n+x.amount,0),paidUsd:c.w.hallProfitPayments.filter(x=>x.currency===2).reduce((n,x)=>n+x.amount,0)});
+    else if(entries.some(x=>x.userId===hallId))throw Error('پرداخت‌های خدمات سالن هنوز همگام‌سازی نشده است.');
     return accounts;
    }
    if(path.startsWith('profit-sharing/members/'))return details(path.split('/').at(-1));
@@ -168,6 +171,7 @@ function create(native,model,workspace,now=()=>new Date()){
   throw Error('این بخش هنوز در نسخهٔ محلی پیاده نشده است؛ برای این کار به حالت آنلاین بروید. مسیر: '+path);
  }
  function write(c,method,path,data,q){
+  if(path==='profit-sharing/hall/payments')throw Error('ثبت پرداخت خدمات سالن را در نسخه آنلاین انجام دهید.');
   if(path==='profit-sharing/rules')throw Error('تغییر درصدها را در نسخه آنلاین انجام دهید؛ سهم فروش‌های در صف پس از همگام‌سازی محاسبه می‌شود.');
   const productionMatch=path.match(/^(bowls|production)\/([^/]+)(?:\/(rollback))?$/);
   if(productionMatch&&(method==='DELETE'||productionMatch[3]==='rollback')){

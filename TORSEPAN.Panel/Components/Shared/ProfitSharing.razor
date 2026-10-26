@@ -9,15 +9,22 @@
  else{
  <details class="profit-rules" open><summary>تنظیم درصد مراحل @if(_rulesLoaded){<span>جمع: @_rules.Sum(x=>x.Percent)٪</span>}</summary>
  @if(_rulesError is not null){<p role="alert" class="profit-error">@_rulesError</p>}
- @if(_rulesLoaded){<p>تغییر درصدها فقط برای فروش‌های بعدی است. سهم چند انجام‌دهندهٔ یک مرحله به‌طور مساوی تقسیم می‌شود؛ سهم مرحلهٔ بدون انجام‌دهنده منظور نمی‌شود.</p>
+ @if(_rulesLoaded){<p>تغییر درصدها فقط برای فروش‌های بعدی است. سهم چند انجام‌دهندهٔ یک مرحله به‌طور مساوی تقسیم می‌شود؛ سهم مرحلهٔ بدون انجام‌دهنده منظور نمی‌شود. خدمات سالن حسابی مستقل است و به انجام‌دهنده وابسته نیست.</p>
  <div class="profit-rule-grid">@foreach(var rule in _rules){<label for="profit-rule-@rule.Action">@Title(rule.Action)<div><input id="profit-rule-@rule.Action" type="number" min="0" max="100" step="0.01" @bind="rule.Percent" /><span>٪</span></div></label>}</div>
  <button @onclick="SaveRules" disabled="@(_saving || _rules.Any(x=>x.Percent<0||x.Percent>100) || _rules.Sum(x=>x.Percent)>100)">@(_saving?"در حال ذخیره…":"ذخیره درصدها")</button>@if(_saved){<span role="status"> درصدهای جدید ذخیره شد.</span>}
  }</details>
  @if(_membersError is not null){<p role="alert" class="profit-error">@_membersError</p>}
  @if(_membersLoaded && _members.Count==0){<div class="profit-empty">هنوز عضوی در سامانه ثبت نشده است.</div>}
  else if(_membersLoaded){<div class="profit-totals"><span>جمع تومان <strong>@_members.Sum(x=>x.Toman).ToString("N0")</strong></span><span>جمع دلار (USD) <strong>@_members.Sum(x=>x.Usd).ToString("N2")</strong></span></div>
- <div class="profit-member-grid">@foreach(var member in _members){<button class="profit-member" @onclick="()=>Open(member)"><strong>@member.Name</strong><small>@member.Instruments ساز</small><span>@member.Toman.ToString("N0") تومان</span><span>@member.Usd.ToString("N2") USD</span></button>}</div>}
+ <div class="profit-member-grid">@foreach(var member in _members){<button class="profit-member" @onclick="()=>Open(member)"><strong>@member.Name</strong><small>@member.Instruments ساز</small><span>@member.Toman.ToString("N0") تومان</span><span>@member.Usd.ToString("N2") USD</span>@if(IsHall(member)){<span>پرداخت‌شده: @member.PaidToman.ToString("N0") تومان · @member.PaidUsd.ToString("N2") USD</span><span>مانده طلب: @member.BalanceToman.ToString("N0") تومان · @member.BalanceUsd.ToString("N2") USD</span>}</button>}</div>}
  @if(_selected is not null){<section class="profit-profile"><header><div><small>جزئیات حساب</small><h3>@_selected.Name</h3></div><button @onclick="()=>_selected=null">بستن</button></header><p>@_selected.Toman.ToString("N0") تومان · @_selected.Usd.ToString("N2") دلار</p>
+ @if(IsHall(_selected)){
+ <div class="hall-payment-summary"><p>پرداخت‌شده: @_selected.PaidToman.ToString("N0") تومان · @_selected.PaidUsd.ToString("N2") USD</p><p>مانده طلب: @_selected.BalanceToman.ToString("N0") تومان · @_selected.BalanceUsd.ToString("N2") USD</p><small>مانده منفی یعنی پیش‌پرداخت. پرداخت‌ها فقط در این حساب ثبت می‌شوند.</small></div>
+ <form class="hall-payment-form" @onsubmit="PayHall" @onsubmit:preventDefault="true"><label>مبلغ پرداخت<input aria-label="مبلغ پرداخت خدمات سالن" type="number" min="0.01" step="@(_paymentCurrency==2?"0.01":"1")" required @bind="_paymentAmount" disabled="@(_paying || _pendingPayment is not null)" /></label><label>واحد<select aria-label="واحد پرداخت خدمات سالن" @bind="_paymentCurrency" disabled="@(_paying || _pendingPayment is not null)"><option value="1">تومان</option><option value="2">USD</option></select></label><button type="submit" disabled="@(_paying || _paymentAmount<=0)">@(_paying?"در حال ثبت…":"ثبت پرداخت خدمات سالن")</button></form>
+ @if(_paymentError is not null){<p class="profit-error" role="alert">@_paymentError</p>}
+ @if(_paymentSaved){<p role="status">پرداخت ثبت شد.</p>}
+ @if(!_detailsLoading && !_detailsFailed){<div class="hall-payment-history"><h3>پرداخت‌های خدمات سالن</h3>@if(_payments.Count==0){<p>هنوز پرداختی ثبت نشده است.</p>}@foreach(var payment in _payments){<p>@PersianDateTime.FormatDateTime(payment.PaidAt) · @payment.Amount.ToString(payment.Currency==2?"N2":"N0") @(payment.Currency==2?"USD":"تومان")</p>}</div>}
+ }
  @if(_detailsLoading){<p role="status">در حال دریافت جزئیات…</p>}else if(_detailsFailed){<p role="alert" class="profit-error">جزئیات حساب دریافت نشد؛ دوباره روی نام عضو بزنید.</p>}else if(_entries.Count==0){<p class="profit-empty">هنوز سودی به این حساب افزوده نشده است. با ثبت سود خالص فروش، سهم مراحل انجام‌شده خودکار به همین حساب اضافه می‌شود.</p>}else{<div class="profit-entry-list">@foreach(var entry in _entries){<article class="@(entry.ReversedAt.HasValue?"profit-reversed":null)"><div><strong>ساز @entry.Code</strong><small>@Title(entry.Action) · سهم مرحله @entry.RolePercent٪</small><small>@PersianDateTime.FormatDateTime(entry.SoldAt)</small></div><div><strong>@entry.Amount.ToString(entry.Currency==2?"N2":"N0") @(entry.Currency==2?"USD":"تومان")</strong><small>سود مبنا: @entry.NetProfit.ToString(entry.Currency==2?"N2":"N0") @(entry.Currency==2?"USD":"تومان")</small>@if(entry.ReversedAt.HasValue){<small>برگشت / اصلاح فروش؛ از جمع خارج شده</small>}</div></article>}</div>}</section>}
  }
  <p class="profit-note">این مبالغ سهم ثبت‌شده در حساب اعضاست؛ ثبت سهم به معنی پرداخت وجه نیست. تومان و دلار با هم جمع یا تبدیل نمی‌شوند. سهم فروش‌های آفلاین پس از همگام‌سازی نهایی می‌شود.</p>
@@ -25,6 +32,19 @@
 </Authorized></AuthorizeView>
 }
 @code{
+ private const string HallId="00000000-0000-4000-9000-000000000100";
+ private static bool IsHall(ProfitMemberDto member)=>member.UserId.ToString()==HallId;
+ private List<HallPaymentDto> _payments=[];private decimal _paymentAmount;private int _paymentCurrency=1;private bool _paying,_paymentSaved;private string? _paymentError;private HallPaymentRequestDto? _pendingPayment;
+ private async Task PayHall(){
+  if(_paying||_selected is null||!IsHall(_selected)||_paymentAmount<=0)return;
+  if(_paymentAmount>999999999999999m||decimal.Round(_paymentAmount,_paymentCurrency==2?2:0)!=_paymentAmount){_paymentError="مبلغ تومان را بدون اعشار و دلار را با حداکثر دو رقم اعشار وارد کنید.";return;}
+  _paying=true;_paymentSaved=false;_paymentError=null;
+  _pendingPayment??=new(Guid.NewGuid(),_paymentAmount,_paymentCurrency);
+  try{await ProfitService.PayHallAsync(_pendingPayment);_pendingPayment=null;_paymentAmount=0;_paymentSaved=true;await LoadMembers();var hall=_members.FirstOrDefault(IsHall);if(_selected is not null&&IsHall(_selected)&&hall is not null)_selected=hall;_payments=await ProfitService.HallPaymentsAsync();}
+  catch(OrderActionException e){_paymentError=e.Message;}
+  catch{_paymentError="نتیجه ثبت یا دریافت مانده مشخص نشد؛ برای بررسی و تلاش دوباره از همین دکمه استفاده کنید.";}
+  finally{_paying=false;}
+ }
  private bool _canManage,_rulesLoaded,_membersLoaded;private string? _rulesError,_membersError;
  private List<ProfitRuleDto> _rules=[];private List<ProfitMemberDto> _members=[];private List<ProfitEntryDto> _entries=[];private ProfitMemberDto? _selected;
  private bool _busy=true,_saving,_saved,_detailsLoading,_detailsFailed;private string? _error;
@@ -35,7 +55,7 @@
    await Task.WhenAll(LoadRules(),LoadMembers());
   }finally{_busy=false;}
  }
- private async Task LoadRules(){try{var rules=await ProfitService.RulesAsync();if(rules.Count!=6||rules.Select(x=>x.Action).Distinct().Count()!=6||rules.Any(x=>!new[]{2,3,5,6,7,13}.Contains(x.Action)))throw new InvalidOperationException("Incomplete profit rules");_rules=rules;_rulesLoaded=true;}catch(Exception e){_rulesError=Failure(e,"درصد مراحل");}}
+ private async Task LoadRules(){try{var rules=await ProfitService.RulesAsync();if(rules.Count!=7||rules.Select(x=>x.Action).Distinct().Count()!=7||rules.Any(x=>!new[]{2,3,5,6,7,13,100}.Contains(x.Action)))throw new InvalidOperationException("Incomplete profit rules");_rules=rules;_rulesLoaded=true;}catch(Exception e){_rulesError=Failure(e,"درصد مراحل");}}
  private async Task LoadMembers(){try{_members=await ProfitService.MembersAsync();_membersLoaded=true;}catch(Exception e){_membersError=Failure(e,"حساب اعضا");}}
  private static string Failure(Exception error,string section)=>error switch{
   HttpRequestException {StatusCode:System.Net.HttpStatusCode.NotFound}=>"بخش "+section+" در نسخه فعلی API موجود نیست؛ سرویس torsepan-api باید همراه پنل به‌روز شود.",
@@ -44,6 +64,6 @@
   _=>"دریافت "+section+" انجام نشد؛ اتصال را بررسی و دوباره تلاش کنید."
  };
  private async Task SaveRules(){if(!_rulesLoaded||_saving)return;_saving=true;_error=null;_saved=false;try{_rules=await ProfitService.SaveRulesAsync(_rules);_saved=true;}catch(OrderActionException e){_error=e.Message;}catch{_error="درصدها ذخیره نشدند؛ دوباره تلاش کنید.";}finally{_saving=false;}}
- private async Task Open(ProfitMemberDto member){_selected=member;_entries=[];_detailsLoading=true;_detailsFailed=false;_error=null;try{var entries=await ProfitService.MemberAsync(member.UserId);if(_selected?.UserId==member.UserId)_entries=entries;}catch{_detailsFailed=true;}finally{_detailsLoading=false;}}
- private static string Title(int action)=>action switch{2=>"دیمپل",3=>"شیپ",5=>"چسب",6=>"تیون",7=>"فاین‌تیون",13=>"دیزاین",_=>"عملیات"};
+ private async Task Open(ProfitMemberDto member){_selected=member;_entries=[];_payments=[];_paymentSaved=false;_paymentError=null;_detailsLoading=true;_detailsFailed=false;_error=null;try{var entries=await ProfitService.MemberAsync(member.UserId);if(_selected?.UserId==member.UserId)_entries=entries;if(IsHall(member)){var payments=await ProfitService.HallPaymentsAsync();if(_selected?.UserId==member.UserId)_payments=payments;}}catch{_detailsFailed=true;}finally{_detailsLoading=false;}}
+ private static string Title(int action)=>action switch{2=>"دیمپل",3=>"شیپ",5=>"چسب",6=>"تیون",7=>"فاین‌تیون",13=>"دیزاین",100=>"خدمات سالن",_=>"عملیات"};
 }

@@ -205,7 +205,7 @@
 /* The passport uses the available content width, including the three history columns. */
 .production-passport-page { min-width:0; padding:20px; border:1px solid #dce4ec; border-radius:22px; }
 .passport-search-label { color:#183c5d; font-weight:800; }
-.passport-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
+.passport-search { display:grid; grid-template-columns:auto minmax(0,1fr); gap:8px; }
 .passport-search.input-group > .form-control { width:100%; min-width:0; min-height:46px; border-radius:12px; background:#fbfcfe; }
 .passport-search.input-group > .btn { min-height:46px; margin:0; border-radius:12px; padding-inline:18px; }
 .passport-header > span { min-width:0; color:#53657a; letter-spacing:1.4px; font-size:.74rem; font-weight:900; }
@@ -602,3 +602,5 @@ body .theme-shell .operation-confirm-dialog .form-select{background-color:#08263
 .process-operation-success button{display:block;margin-top:12px;padding:10px 15px;border:1px solid #c6a664;border-radius:11px;background:linear-gradient(110deg,#f1d79a,#d9ac5c);color:#08233b;font:inherit;font-weight:850;min-height:44px;white-space:normal;touch-action:manipulation}
 @media(max-width:600px){.process-operation-success{padding:12px}.process-operation-success button{width:100%}.process-operation-success p{font-size:.85rem}}
 body .layout.theme-shell .main .content .operation-confirm-dialog .operation-confirm-heading h4{color:#edf4fc}
+
+.passport-search #passport-code{direction:ltr;text-align:left;scroll-margin-block:24px}
