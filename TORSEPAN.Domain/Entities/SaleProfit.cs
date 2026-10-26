@@ -38,3 +38,21 @@ public sealed class SaleProfitEntry : Entity
     public DateTime? ReversedAt{get;private set;}
     public void Reverse(){ReversedAt??=DateTime.UtcNow;}
 }
+
+public static class HallProfitAccount
+{
+    public const int ActionCode = 100;
+    public static readonly ProductionAction Action = (ProductionAction)ActionCode;
+    public static readonly Guid Id = Guid.Parse("00000000-0000-4000-9000-000000000100");
+    public const string Name = "خدمات سالن";
+}
+public sealed class HallProfitPayment : Entity
+{
+    private HallProfitPayment() { }
+    public HallProfitPayment(Guid id, decimal amount, MoneyCurrency currency, string recordedBy)
+    { if(id==Guid.Empty || !SaleMoney.Valid(amount,currency) || amount<=0)throw new ArgumentOutOfRangeException(nameof(amount));Id=id;Amount=amount;Currency=currency;RecordedBy=recordedBy;PaidAt=DateTime.UtcNow; }
+    public decimal Amount {get;private set;}
+    public MoneyCurrency Currency {get;private set;}
+    public DateTime PaidAt {get;private set;}
+    public string RecordedBy {get;private set;} = "";
+}
