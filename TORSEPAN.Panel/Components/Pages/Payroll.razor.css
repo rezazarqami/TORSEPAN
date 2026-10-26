@@ -70,3 +70,23 @@
     .payroll-photo-hero .payroll-hero-copy { position:static; width:100%; padding:16px; gap:8px; }
     .payroll-photo-hero.theme-page-intro :is(.payroll-hero-title,.payroll-hero-eyebrow){ color:black; text-shadow:none; }
 }
+
+/* Keep both payroll calendars in the form flow on narrow screens.
+   Absolute positioning inside a half-width field clips the left calendar. */
+@media (max-width:700px) {
+    .payroll-date-row { grid-template-columns:minmax(0,1fr); }
+    .payroll-date-field ::deep .position-absolute {
+        position:static !important;
+        width:min(280px,100%) !important;
+        box-sizing:border-box;
+        margin-inline:auto;
+        padding:10px !important;
+    }
+    .payroll-date-field ::deep .position-absolute .btn {
+        min-width:0;
+        min-height:32px;
+        padding:4px;
+        font-size:.8rem;
+        line-height:1.5;
+    }
+}
