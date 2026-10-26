@@ -12,6 +12,7 @@ let browser;const timer=setTimeout(()=>{console.error('Profit UI timed out');pro
  assert(await page.locator('.sale-dialog>header').evaluate(e=>getComputedStyle(e).backgroundColor!=='rgb(255, 255, 255)'),'header uses navy rather than the unreadable white surface');
  const footer=await page.locator('.sale-dialog>footer').boundingBox();assert(footer.y+footer.height<=height,'submit footer is visible without scrolling');
  }else{
+ if(state==='hall'){const payment=page.getByLabel('مبلغ پرداخت خدمات سالن');await payment.fill('100');assert(await payment.evaluate(e=>e.checkValidity()),'integer toman hall payments satisfy browser step validation');}
  if(state!=='members-error')assert(await page.locator('.profit-member').count()===2,'member profile is selectable');
  if(['members','profile','hall','members-error'].includes(state)){
   assert(await page.locator('.profit-rules').getAttribute('open')!==null,'percentage editor is expanded without requiring a hidden toggle');
