@@ -48,3 +48,14 @@ test('offline hall account includes cached payments and never queues an unsuppor
  assert.equal(h.request('GET','profit-sharing/hall/payments').value.length,1);assert.notEqual(h.request('POST','profit-sharing/hall/payments',{id:id(61),amount:25,currency:2}).status,200);assert.equal(state.operations.length,0);
  delete w.hallProfitPayments;assert.notEqual(harness(state).request('GET','profit-sharing/members').status,200);
 });
+test('warehouse transfer projects country stock, supports return and rejects sold stock atomically',()=>{
+ const s=fixture(),w=s.snapshot.workspace.sections,top=s.snapshot.bowls[0];top.stage=18;top.instrumentCode=top.code;top.pairCode='BOTTOM';top.qualityWarehouseId=2;
+ s.snapshot.bowls.push({...top,id:id(6),code:'BOTTOM',type:2,pairCode:top.code});w.assemblies=[{id:id(7),topBowlId:top.id,bottomBowlId:id(6)}];w.handpans=[{id:id(8),assemblyId:id(7),stage:18}];w.orders=[{id:id(20),handpanId:id(8),customerName:'امید همدانی',isDraft:false}];
+ const h=harness(s);assert.equal(h.request('GET','production/warehouse').value[0].orderCustomerName,'امید همدانی');
+ const r=h.request('POST','instrument-warehouses/transfer',{warehouseId:0,exportLocation:5,items:[{handpanId:id(8),expectedVersion:id(9)}]});assert.equal(r.status,200);assert.equal(r.value[0].stage,'ExportWarehouse');assert.equal(h.request('GET','production/warehouse').value.length,0);const stock=h.request('GET','export-warehouse').value;assert.equal(stock.length,1);assert.equal(stock[0].location,5);
+ assert.equal(h.request('PUT','export-warehouse/handpan/'+id(8)+'/location',{location:6}).status,200);assert.equal(h.request('GET','export-warehouse').value[0].location,6);
+ assert.equal(h.request('POST','instrument-warehouses/transfer',{warehouseId:3,items:[{handpanId:id(8),expectedVersion:id(9)}]}).status,200);assert.equal(h.request('GET','production/warehouse').value[0].qualityWarehouseId,3);assert.equal(h.request('GET','export-warehouse').value.length,0);
+});
+test('cached sold instrument wins over stale component warehouse stage',()=>{
+ const s=fixture(),w=s.snapshot.workspace.sections,b=s.snapshot.bowls[0];b.stage=18;b.instrumentCode=b.code;w.assemblies=[{id:id(7),topBowlId:b.id}];w.handpans=[{id:id(8),assemblyId:id(7),stage:20}];const h=harness(s);assert.equal(h.request('GET','production/warehouse').value.length,0);assert.equal(h.request('POST','instrument-warehouses/transfer',{warehouseId:2,items:[{handpanId:id(8),expectedVersion:id(9)}]}).status,409);assert.equal(s.operations.length,0);
+});

@@ -62,6 +62,29 @@ static class BackendChecks
         var moveBack=await controller.Transfer(new(3,[new(after.Id,after.OfflineVersion)]),default);db.ChangeTracker.Clear();Check(moveBack is OkObjectResult&&await db.Handpans.AnyAsync(x=>x.Id==after.Id&&x.QualityWarehouseId==3),"individual transfer can move stock again using refreshed version");
         Check(typeof(InstrumentWarehousesController).GetMethod("Rename")!.GetCustomAttribute<AuthorizeAttribute>()!.Roles=="Administrator","warehouse naming is administrator-only");
         Check(typeof(InstrumentWarehousesController).GetMethod("Transfer")!.GetCustomAttribute<AuthorizeAttribute>()!.Roles!.Contains("QualityControl"),"quality control and stock managers can transfer, without sales-only access");
+        var current=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==stock1.Id);
+        var invalidExport=await controller.Transfer(new(0,[new(current.Id,current.OfflineVersion)],(ExportWarehouseLocation)99),default);db.ChangeTracker.Clear();Check(invalidExport is BadRequestObjectResult,"invalid export destination is rejected");
+        var exported=await controller.Transfer(new(0,[new(current.Id,current.OfflineVersion)],ExportWarehouseLocation.Iran),default);db.ChangeTracker.Clear();
+        current=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==stock1.Id);
+        Check(exported is OkObjectResult&&current.Stage==ProductionStage.ExportWarehouse&&current.ExportWarehouseLocation==ExportWarehouseLocation.Iran,"warehouse transfer enters real export inventory at the selected country");
+        Check(!(await new HandpanRepository(db).GetWarehouseInventorySummaryAsync()).Any(x=>x.Id==current.Id),"exported instrument leaves domestic inventory");
+        var domestic=await controller.Transfer(new(2,[new(current.Id,current.OfflineVersion)]),default);db.ChangeTracker.Clear();
+        current=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==stock1.Id);
+        Check(domestic is OkObjectResult&&current.Stage==ProductionStage.FinishedWarehouse&&current.ExportWarehouseLocation is null,"return to domestic inventory clears export destination");
+        var newExport=Add("EX-EGYPT",ProductionStage.FinishedWarehouse);await db.SaveChangesAsync();db.ChangeTracker.Clear();
+        var savedExport=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==newExport.Id);
+        Check(await controller.Transfer(new(0,[new(savedExport.Id,savedExport.OfflineVersion)],ExportWarehouseLocation.Egypt),default) is OkObjectResult,"Egypt accepts real instrument transfers");db.ChangeTracker.Clear();
+        var exportController=new ExportWarehouseController(db);
+        Check(await exportController.ChangeLocation("handpan",newExport.Id,new(ExportWarehouseLocation.Riyadh),default) is NoContentResult,"Riyadh accepts export location changes");db.ChangeTracker.Clear();
+        Check(await db.Handpans.AnyAsync(x=>x.Id==newExport.Id&&x.ExportWarehouseLocation==ExportWarehouseLocation.Riyadh&&x.Stage==ProductionStage.ExportWarehouse),"Riyadh destination is persisted without changing export stock status");
+        var customerOrder=new CustomerOrder("امید همدانی",scale.Id,scale.Name,7,actor.Id,DateTime.UtcNow);
+        var topId=await db.HandpanAssemblies.Where(x=>x.Id==current.AssemblyId).Select(x=>x.TopBowlId).SingleAsync();
+        customerOrder.AssignInstrument(current.SerialNumber,topId,current.Id,actor.Id,DateTime.UtcNow);db.Add(customerOrder);await db.SaveChangesAsync();
+        var inventory=await new TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory.GetWarehouseInventoryQueryHandler(uow,new TORSEPAN.Infrastructure.Services.OrderCustomerLookup(db)).Handle(new(),default);
+        Check(inventory.Single(x=>x.HandpanId==current.Id).OrderCustomerName=="امید همدانی","inventory carries the assigned order customer from persisted orders");
+        current.Sell("خریدار",null,null,null,false,actor.Id);db.Update(current);await db.SaveChangesAsync();
+        var passport=await new GetBowlForDimpleQueryHandler(uow).Handle(new(current.SerialNumber),default);
+        Check(passport.IsSuccess&&passport.Value!.Stage==(int)ProductionStage.Sold,"passport uses sold instrument status even when component bowls still say warehouse");
         await MigrationCheck();
     }
     sealed class SilentAlerts:TORSEPAN.Application.Interfaces.IInventoryAlertService { public Task SendLowStockAsync(string name,string kind,int quantity,int threshold,CancellationToken ct)=>Task.CompletedTask; }

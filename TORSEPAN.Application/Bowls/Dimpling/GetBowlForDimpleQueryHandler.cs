@@ -50,10 +50,11 @@ public sealed class GetBowlForDimpleQueryHandler
             var bottomBowl = (await _unitOfWork.Bowls.FindAsync(x => x.Id == assembly.BottomBowlId)).SingleOrDefault();
             if (topBowl is not null)
             {
-                var handpan = (await _unitOfWork.Handpans.FindAsync(x => x.SerialNumber.Trim().ToUpper() == topBowl.ProductionCode.Trim().ToUpper()))
+                var handpan = (await _unitOfWork.Handpans.FindAsync(x => x.AssemblyId == assembly.Id))
                     .SingleOrDefault();
                 handpanId = handpan?.Id;
                 dto.HandpanId = handpanId;
+                if (handpan is not null) dto.Stage = (int)handpan.Stage;
                 dto.PackagingExportLocation = handpan?.ExportWarehouseLocation is { } location ? (int)location : null;
                 dto.HandpanCode = ProductionCodeNormalizer.Normalize(handpan?.SerialNumber ?? topBowl.ProductionCode);
                 dto.TopBowlCode = ProductionCodeNormalizer.Normalize(topBowl.ProductionCode);

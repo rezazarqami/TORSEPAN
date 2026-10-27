@@ -1,8 +1,9 @@
-﻿namespace TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory;
+namespace TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory;
 
 public sealed class GetWarehouseInventoryResponse
 {
     public Guid HandpanId { get; set; }
+    public string? OrderCustomerName { get; set; }
 
     public int QualityWarehouseId { get; set; } = 1;
     public Guid Version { get; set; }

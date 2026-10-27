@@ -8,11 +8,13 @@ public sealed class GetWarehouseInventoryQueryHandler
     : IRequestHandler<GetWarehouseInventoryQuery, IReadOnlyCollection<GetWarehouseInventoryResponse>>
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IOrderCustomerLookup? _orderCustomers;
 
     public GetWarehouseInventoryQueryHandler(
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork, IOrderCustomerLookup? orderCustomers = null)
     {
         _unitOfWork = unitOfWork;
+        _orderCustomers = orderCustomers;
     }
 
     public async Task<IReadOnlyCollection<GetWarehouseInventoryResponse>> Handle(
@@ -30,7 +32,7 @@ public sealed class GetWarehouseInventoryQueryHandler
             handpans = await _unitOfWork.Handpans.GetWarehouseInventorySummaryAsync();
         }
 
-        return handpans.Select(x =>
+        var result = handpans.Select(x =>
         {
             var events = x.ProductionEvents
                 .Concat(x.Assembly.ProductionEvents)
@@ -99,5 +101,12 @@ public sealed class GetWarehouseInventoryQueryHandler
                 PackagingItems = packagingItems
             };
         }).ToList();
+        if (_orderCustomers is not null && result.Count > 0)
+        {
+            var names = await _orderCustomers.GetHandpanCustomerNamesAsync(result.Select(x => x.HandpanId).ToArray(), cancellationToken);
+            foreach (var item in result)
+                item.OrderCustomerName = names.GetValueOrDefault(item.HandpanId);
+        }
+        return result;
     }
 }

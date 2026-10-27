@@ -146,7 +146,7 @@ public sealed class MyActivityController(TORSEPANDbContext db) : ControllerBase
         if(export is null)return detail;
         var raw=export["EXPORT_WAREHOUSE:".Length..];
         var location=int.TryParse(raw,out var number)&&Enum.IsDefined(typeof(ExportWarehouseLocation),number)
-            ? ((ExportWarehouseLocation)number) switch{ExportWarehouseLocation.Iran=>"ایران",ExportWarehouseLocation.Turkey=>"ترکیه",ExportWarehouseLocation.Germany=>"آلمان",ExportWarehouseLocation.London=>"لندن",_=>"صادراتی"}
+            ? ((ExportWarehouseLocation)number) switch{ExportWarehouseLocation.Iran=>"ایران",ExportWarehouseLocation.Turkey=>"ترکیه",ExportWarehouseLocation.Germany=>"آلمان",ExportWarehouseLocation.London=>"لندن",ExportWarehouseLocation.Egypt=>"مصر 🇪🇬",ExportWarehouseLocation.Riyadh=>"ریاض 🇸🇦",_=>"صادراتی"}
             : "صادراتی";
         return $"{detail} — مقصد: {location}";
     }

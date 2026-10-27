@@ -145,3 +145,18 @@
  .inventory-photo-hero .hero-stats strong{font-size:1.8rem}
  .inventory-hero-art{width:76%}
 }
+
+/* Transfer dialog uses one explicit palette, including nested destination cards. */
+.warehouse-dialog-overlay .warehouse-transfer-dialog{background:#06243a;color:#edf4fa;border:1px solid #587489}
+.warehouse-transfer-dialog .transfer-route,.warehouse-transfer-dialog footer{background:#0d3048;border-color:#486379;color:#edf4fa}
+.warehouse-transfer-dialog h3,.warehouse-transfer-dialog .transfer-route strong{color:#fff}
+.warehouse-transfer-dialog .transfer-route small,.warehouse-transfer-dialog header small,.warehouse-transfer-dialog .dialog-hint{color:#c5d6e4}
+.transfer-picker-trigger,.transfer-options button,.transfer-locations button{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:10px 12px;border:1px solid #7692a6;border-radius:12px;background:#12394f;color:#f5f8fb;font:inherit;text-align:right;overflow-wrap:anywhere}
+.transfer-picker-trigger{width:100%}.transfer-options,.transfer-locations{display:grid;gap:8px;margin:12px 25px}
+.transfer-locations{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;border:1px solid #587489;border-radius:14px;background:#092b42}
+.transfer-options button.selected,.transfer-locations button.selected{background:#e1bd6c;color:#08253b;border-color:#f5dca0;font-weight:800}
+.transfer-options button:focus-visible,.transfer-locations button:focus-visible,.transfer-picker-trigger:focus-visible{outline:3px solid #f5dca0;outline-offset:2px}
+.warehouse-transfer-dialog footer .btn-light{background:#24495f;color:#fff;border-color:#7692a6}
+.warehouse-transfer-dialog footer .btn-primary{background:#e1bd6c;color:#08253b;border-color:#e1bd6c}
+.warehouse-transfer-dialog footer .btn:disabled{opacity:1;background:#395265;color:#c4d0d8;border-color:#60798a}
+@media(max-width:480px){.warehouse-transfer-dialog .transfer-route{flex-wrap:wrap}.warehouse-transfer-dialog .transfer-route>div{flex-basis:100%}.warehouse-transfer-dialog .transfer-route>span{display:none}.transfer-options,.transfer-locations{margin-inline:18px}}

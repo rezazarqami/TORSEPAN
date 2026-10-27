@@ -55,7 +55,7 @@
                             <label for="legacy-destination">نوع انبار<InputSelect id="legacy-destination" @bind-Value="_draft.Destination"><option value="domestic">انبار داخلی</option><option value="export">انبار صادراتی</option></InputSelect></label>
                             @if (_draft.Destination == "export")
                             {
-                                <label for="legacy-country">انبار صادراتی<InputSelect id="legacy-country" @bind-Value="_draft.ExportLocation"><option value="">انتخاب کنید</option><option value="3">آلمان</option><option value="2">لندن</option><option value="1">ترکیه</option><option value="4">ایران</option></InputSelect></label>
+                                <label for="legacy-country">انبار صادراتی<InputSelect id="legacy-country" @bind-Value="_draft.ExportLocation"><option value="">انتخاب کنید</option><option value="3">آلمان</option><option value="2">لندن</option><option value="1">ترکیه</option><option value="4">ایران</option><option value="5">مصر 🇪🇬</option><option value="6">ریاض 🇸🇦</option></InputSelect></label>
                             }
                             @if (_draft.Destination == "domestic")
                             {
@@ -136,5 +136,5 @@
     private IEnumerable<ScaleDto> ScalesFor(int usage) => _scales.Where(x => (x.Usage & usage) == usage);
     private static string UserLabel(UserDto user) => (string.IsNullOrWhiteSpace(user.FullName) ? user.UserName : user.FullName) + (user.IsActive ? "" : " (غیرفعال)");
     private static string EditUrl(string code) => "/admin/production-edit?code=" + Uri.EscapeDataString(code);
-    private string DestinationTitle(LegacyStockReceipt item) => item.ExportLocation switch { 1 => "انبار صادراتی ترکیه", 2 => "انبار صادراتی لندن", 3 => "انبار صادراتی آلمان", 4 => "انبار صادراتی ایران", _ => _warehouses.FirstOrDefault(x => x.Id == item.WarehouseId)?.Name ?? "انبار داخلی" };
+    private string DestinationTitle(LegacyStockReceipt item) => item.ExportLocation switch { 1 => "انبار صادراتی ترکیه", 2 => "انبار صادراتی لندن", 3 => "انبار صادراتی آلمان", 4 => "انبار صادراتی ایران", 5 => "انبار صادراتی مصر 🇪🇬", 6 => "انبار صادراتی ریاض 🇸🇦", _ => _warehouses.FirstOrDefault(x => x.Id == item.WarehouseId)?.Name ?? "انبار داخلی" };
 }

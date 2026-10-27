@@ -80,3 +80,22 @@
 .destination-picker .destination-name{display:flex;align-items:baseline;justify-content:center;gap:4px;white-space:nowrap}
 .destination-picker .destination-name small{display:inline;color:inherit;font:400 .7rem/1.5 Arial,sans-serif;opacity:.8}
 @media(max-width:600px){.destination-picker .destination-name{gap:3px}.destination-picker .destination-name strong{font-size:.73rem}.destination-picker .destination-name small{font-size:.6rem}}
+
+/* Export inventory must keep the same dark surfaces in both tab states. */
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .inventory-tabs{background:#08283f;border-color:#486c8b}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .inventory-tabs button{background:#12394f;color:#edf4fc;border:1px solid #7391a5}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .inventory-tabs button :is(strong,span,b){color:inherit}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .inventory-tabs button b{background:#284c63;color:#fff}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .inventory-tabs button.active{background:#214961;border-color:#e1bd6c;color:#f9dfa0;box-shadow:inset 0 0 0 1px #e1bd6c}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .inventory-tabs button.active b{background:#e1bd6c;color:#08253b}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .selected-inventory-heading h2{color:#edf4fc}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .shipment-dialog :is(header,footer),body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .shipment-hint{background:#0b2e45;border-color:#527086;color:#d9e7f2}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .shipment-dialog :is(h3,label,legend),body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .location-dialog :is(h3,strong){color:#edf4fc}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .shipment-dialog header :is(small,p),body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .location-dialog :is(small,p){color:#c5d8e7}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .choice,body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .location-choices button{background:#12394f;border-color:#7391a5;color:#edf4fc}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .choice.active,body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .location-choices button.active{background:#e1bd6c;border-color:#f9dfa0;color:#08253b}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .location-choices button.active strong{color:#08253b}
+body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .destination-flag{object-fit:cover;border-radius:3px;max-width:100%}
+.warehouse-dashboard.destination-picker{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(min-width:1000px){.warehouse-dashboard.destination-picker{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media(max-width:600px){body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .location-choices{grid-template-columns:repeat(2,minmax(0,1fr))}}

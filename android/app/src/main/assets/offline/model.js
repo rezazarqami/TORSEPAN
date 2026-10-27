@@ -9,6 +9,14 @@
     if(!snapshot) return [];
     const bowls=JSON.parse(JSON.stringify(snapshot.bowls));
     bowls.forEach(b=>b.localHistory=[]);
+    const saved=snapshot.workspace?.sections;
+    for(const handpan of saved?.handpans||[]){
+      const assembly=saved.assemblies?.find(a=>a.id===handpan.assemblyId);
+      if(!assembly||![18,20,22].includes(handpan.stage))continue;
+      for(const bowl of bowls.filter(b=>b.id===assembly.topBowlId||b.id===assembly.bottomBowlId)){
+        bowl.stage=handpan.stage;bowl.stageName=labels[handpan.stage];bowl.packagingExportLocation=handpan.exportWarehouseLocation||null;
+      }
+    }
     for(const row of rows) {
       const op=row.body;
       if(op.action==='create')bowls.push({code:op.code,id:row.id,type:op.bowlType,hasNotes:op.bowlType===1||op.hasNotes,materialId:op.materialId,isCustom:false,scaleId:null,
@@ -23,8 +31,9 @@
       const b=bowls.find(x=>x.code===op.code); if(!b)continue;
       const action=op.action;
       if(action==='qc'&&op.approved||action==='warehouseTransfer')for(const target of bowls.filter(x=>x.code===b.code||x.code===b.pairCode))target.qualityWarehouseId=op.qualityWarehouseId||1;
+      if(action==='warehouseTransfer')for(const target of bowls.filter(x=>x.code===b.code||x.code===b.pairCode))target.packagingExportLocation=op.exportLocation||null;
       if(action==='qc'&&op.approved)for(const target of bowls.filter(x=>x.code===b.code||x.code===b.pairCode))target.packagingExportLocation=op.exportLocation||null;
-      let stage={dimple:4,shape:6,bake:b.type===2&&!b.hasNotes?10:8,tune:10,glue:11,release:12,finalTune:14,qc:op.approved?16:12,packaging:(b.packagingExportLocation||op.exportLocation)?22:18,sell:20,ship:20,tuneExport:21,exportRoute:21,returnGlue:10,exportPackaging:22}[action];
+      let stage={warehouseTransfer:op.exportLocation?22:18,dimple:4,shape:6,bake:b.type===2&&!b.hasNotes?10:8,tune:10,glue:11,release:12,finalTune:14,qc:op.approved?16:12,packaging:(b.packagingExportLocation||op.exportLocation)?22:18,sell:20,ship:20,tuneExport:21,exportRoute:21,returnGlue:10,exportPackaging:22}[action];
       if(action==='design'){const name=(snapshot.designs||[]).find(x=>x.id===op.designTypeId)?.name||'دیزاین';b.design=b.design?b.design+'، '+name:name;}
       if(action==='edit'&&op.edit){
         for(const [code,scaleId] of Object.entries(op.editScales||{})){const target=bowls.find(x=>x.code===code);if(target)target.scaleId=scaleId;}
@@ -43,7 +52,7 @@
         const topNotes=top.noteCount??null,bottomNotes=bottom.hasNotes===false?0:(bottom.noteCount??null);
         b.instrumentNoteCount=pair.instrumentNoteCount=topNotes!=null&&bottomNotes!=null?topNotes+bottomNotes:null;
       }
-      const targets=['glue','release','finalTune','qc','packaging','sell'].includes(action)?bowls.filter(x=>x.code===b.code||x.code===b.pairCode):[b];
+      const targets=['glue','release','finalTune','qc','packaging','sell','warehouseTransfer'].includes(action)?bowls.filter(x=>x.code===b.code||x.code===b.pairCode):[b];
       for(const target of targets) { target.stage=stage;target.stageName=labels[stage];target.localHistory.push(row); }
     }
     return bowls;

@@ -74,7 +74,7 @@ $('sync').addEventListener('click',()=>{$('message').textContent='در حال ا
 $('retry').addEventListener('click',()=>{OfflineNative.retry();});
 
 const input=(id,label,type='text',value='',required=false)=>`<label for="${id}">${label}</label><input id="${id}" type="${type}" value="${escape(value)}" ${required?'required':''} ${type==='number'?'min="0" step="any"':''} maxlength="200">`;
-const locations=[{id:'1',name:'ترکیه'},{id:'2',name:'لندن'},{id:'3',name:'آلمان'},{id:'4',name:'ایران'}];
+const locations=[{id:'1',name:'ترکیه'},{id:'2',name:'لندن'},{id:'3',name:'آلمان'},{id:'4',name:'ایران'},{id:'5',name:'مصر 🇪🇬'},{id:'6',name:'ریاض 🇸🇦'}];
 const inventory=()=>model.materials(state.snapshot,state.operations||[]);
 function materialVersions(ids){const result={};for(const id of ids){const m=inventory().find(x=>x.id===id);if(!m)throw Error('متریال پیدا نشد.');result[id]=m.version;}return result;}
 function saveExtended(op){

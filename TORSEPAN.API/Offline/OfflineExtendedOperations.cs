@@ -135,13 +135,15 @@ public sealed partial class OfflineProductionService
                 Require(response is OkObjectResult,"دیزاین معتبر نیست، تکراری است یا ساز در انبار قفل شده است.");
                 break;
             case "warehouseTransfer":
-                Require(op.QualityWarehouseId.HasValue && InstrumentWarehouse.IsValidId(op.QualityWarehouseId.Value),"انبار مقصد معتبر نیست.");
+                Require(op.ExportLocation.HasValue ? Enum.IsDefined((ExportWarehouseLocation)op.ExportLocation.Value) : op.QualityWarehouseId.HasValue && InstrumentWarehouse.IsValidId(op.QualityWarehouseId.Value),"انبار مقصد معتبر نیست.");
                 var stockInstrument=await InstrumentAsync(bowl!,ct);
-                Require(stockInstrument.Stage is ProductionStage.FinishedWarehouse or ProductionStage.ExportWarehouse,"فقط سازهای موجود در انبار قابل انتقال‌اند.");
+                Require(!stockInstrument.SoldAt.HasValue && stockInstrument.Stage is ProductionStage.FinishedWarehouse or ProductionStage.ExportWarehouse,"فقط سازهای موجود در انبار قابل انتقال‌اند.");
                 var warehouseNames=await db.InstrumentWarehouses.AsNoTracking().ToDictionaryAsync(x=>x.Id,x=>x.Name,ct);
-                var sourceWarehouse=stockInstrument.QualityWarehouseId;
-                if(sourceWarehouse!=op.QualityWarehouseId.Value){stockInstrument.SetQualityWarehouse(op.QualityWarehouseId.Value);
-                    db.ProductionEvents.Add(new ProductionEvent(stockInstrument.Id,stockInstrument.AssemblyId,null,op.PerformerId,ProductionAction.WarehouseTransfer,EventResult.Completed,null,$"انتقال انبار از {warehouseNames[sourceWarehouse]} به {warehouseNames[stockInstrument.QualityWarehouseId]}"));}
+                var sourceName=stockInstrument.Stage==ProductionStage.ExportWarehouse?$"انبار صادراتی — {stockInstrument.ExportWarehouseLocation}":warehouseNames[stockInstrument.QualityWarehouseId];
+                string targetName;
+                if(op.ExportLocation is int location){stockInstrument.MoveToExportWarehouse((ExportWarehouseLocation)location);targetName=$"انبار صادراتی — {(ExportWarehouseLocation)location}";}
+                else {stockInstrument.SetQualityWarehouse(op.QualityWarehouseId!.Value);if(stockInstrument.Stage==ProductionStage.ExportWarehouse){stockInstrument.ChangeStage(ProductionStage.FinishedWarehouse);stockInstrument.SetPackagingDestination(null);}targetName=warehouseNames[stockInstrument.QualityWarehouseId];}
+                db.ProductionEvents.Add(new ProductionEvent(stockInstrument.Id,stockInstrument.AssemblyId,null,op.PerformerId,ProductionAction.WarehouseTransfer,EventResult.Completed,null,$"انتقال انبار از {sourceName} به {targetName}"));
                 break;
             case "workspace":await ApplyWorkspaceAsync(op,ct);break;
             case "edit":

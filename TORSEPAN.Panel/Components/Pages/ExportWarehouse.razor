@@ -33,7 +33,7 @@
         <button class="btn ship-selected" disabled="@(SelectedVisibleCount == 0)" @onclick="OpenSelectedShipment">ثبت ارسال <span>@SelectedVisibleCount</span></button>
     </AuthorizeView>
 </div>
-<div class="active-warehouse-banner" @ref="_inventorySection"><span class="warehouse-flag">@(string.IsNullOrWhiteSpace(_search)?Warehouses.First(x=>x.Id==_activeLocation).Code:"⌕")</span><div><small>@(string.IsNullOrWhiteSpace(_search)?"اکنون در حال مشاهده":"جستجو در همه مقصدها")</small><strong>@(string.IsNullOrWhiteSpace(_search)?$"انبار {WarehouseName(_activeLocation)}":"نتایج جستجو")</strong></div><b>@WarehouseItems.Count() مورد</b></div>
+<div class="active-warehouse-banner" @ref="_inventorySection"><span class="warehouse-flag">@if(string.IsNullOrWhiteSpace(_search)){<img class="destination-flag" src="@($"/images/flags/{Warehouses.First(x=>x.Id==_activeLocation).Code.ToLowerInvariant()}.svg")" alt="" width="38" height="26" />}else{<span>⌕</span>}</span><div><small>@(string.IsNullOrWhiteSpace(_search)?"اکنون در حال مشاهده":"جستجو در همه مقصدها")</small><strong>@(string.IsNullOrWhiteSpace(_search)?$"انبار {WarehouseName(_activeLocation)}":"نتایج جستجو")</strong></div><b>@WarehouseItems.Count() مورد</b></div>
 @if (_loading)
 {
     <Card><div class="text-center p-5"><div class="spinner-border"></div></div></Card>
@@ -99,7 +99,7 @@ else
 
 @if (_locationCandidate is not null)
 {
-    <div class="shipment-overlay" @onclick="CloseLocationEditor"><section class="location-dialog" @onclick:stopPropagation="true"><small>ویرایش جایگاه موجودی</small><h3>@_locationCandidate.ProductionCode</h3><p>این مورد به کدام انبار منتقل شود؟</p><div class="location-choices">@foreach(var warehouse in Warehouses){<button class="@(_newLocation==warehouse.Id?"active":"")" @onclick="()=>_newLocation=warehouse.Id"><span>@warehouse.Code</span><strong>@warehouse.Name</strong></button>}</div>@if(!string.IsNullOrWhiteSpace(_locationError)){<div class="shipment-error">@_locationError</div>}<footer><button class="btn btn-light" @onclick="CloseLocationEditor">انصراف</button><button class="btn btn-primary" disabled="@_savingLocation" @onclick="SaveLocationAsync">ثبت جابه‌جایی</button></footer></section></div>
+    <div class="shipment-overlay" @onclick="CloseLocationEditor"><section class="location-dialog" @onclick:stopPropagation="true"><small>ویرایش جایگاه موجودی</small><h3>@_locationCandidate.ProductionCode</h3><p>این مورد به کدام انبار منتقل شود؟</p><div class="location-choices">@foreach(var warehouse in Warehouses){<button class="@(_newLocation==warehouse.Id?"active":"")" @onclick="()=>_newLocation=warehouse.Id"><img class="destination-flag" src="@($"/images/flags/{warehouse.Code.ToLowerInvariant()}.svg")" alt="" width="38" height="26" /><strong>@warehouse.Name</strong></button>}</div>@if(!string.IsNullOrWhiteSpace(_locationError)){<div class="shipment-error">@_locationError</div>}<footer><button class="btn btn-light" @onclick="CloseLocationEditor">انصراف</button><button class="btn btn-primary" disabled="@_savingLocation" @onclick="SaveLocationAsync">ثبت جابه‌جایی</button></footer></section></div>
 }
 
 <AppConfirmDialog IsOpen="@(_deleteCandidate is not null)" Title="حذف کاسه صادراتی" Message="@DeleteMessage" ConfirmText="حذف برای همیشه" Error="@_deleteError" Busy="@_deleting" OnConfirm="ConfirmDeleteAsync" OnCancel="CancelDelete" />
@@ -121,7 +121,7 @@ else
     private int _activeLocation=4, _newLocation=4;
     private string _activeInventoryTab="bowls";
     private ElementReference _inventorySection;
-    private static readonly (int Id,string Name,string Code)[] Warehouses=[(4,"ایران","IR"),(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE")];
+    private static readonly (int Id,string Name,string Code)[] Warehouses=[(4,"ایران","IR"),(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE"),(5,"مصر","EG"),(6,"ریاض","SA")];
     private IEnumerable<ExportWarehouseItemDto> WarehouseItems => _items.Where(x=>string.IsNullOrWhiteSpace(_search) ? x.Location==_activeLocation : x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<ExportWarehouseItemDto> WarehouseBowls => WarehouseItems.Where(x=>x.ItemType=="bowl");
     private IEnumerable<ExportWarehouseItemDto> WarehouseHandpans => WarehouseItems.Where(x=>x.ItemType=="handpan");
@@ -134,7 +134,7 @@ else
     private async Task ApplySearchAsync(){_search=_searchInput.Trim();_selected.Clear();if(!WarehouseBowls.Any()&&WarehouseHandpans.Any())_activeInventoryTab="handpans";else _activeInventoryTab="bowls";await InvokeAsync(StateHasChanged);await JS.InvokeVoidAsync("torsepanUi.scrollIntoView",_inventorySection);}
     private void Toggle(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
     private async Task SelectWarehouseAsync(int id){_activeLocation=id;_search=_searchInput="";_selected.Clear();_activeInventoryTab="bowls";await InvokeAsync(StateHasChanged);await JS.InvokeVoidAsync("torsepanUi.scrollIntoView",_inventorySection);}
-    private static string WarehouseName(int id)=>Warehouses.FirstOrDefault(x=>x.Id==id).Name??"نامشخص";
+    private static string WarehouseName(int id)=>(Warehouses.FirstOrDefault(x=>x.Id==id).Name??"نامشخص")+(id==5?" 🇪🇬":id==6?" 🇸🇦":"");
     private void OpenLocationEditor(ExportWarehouseItemDto item){_locationCandidate=item;_newLocation=item.Location;_locationError=null;}
     private void CloseLocationEditor(){if(!_savingLocation)_locationCandidate=null;}
     private async Task SaveLocationAsync(){if(_locationCandidate is null)return;_savingLocation=true;_locationError=null;try{await BowlService.ChangeExportWarehouseLocationAsync(_locationCandidate.ItemType,_locationCandidate.Id,_newLocation);_locationCandidate.Location=_newLocation;_selected.Remove(_locationCandidate.Id);_locationCandidate=null;}catch(Exception ex){_locationError=ex.Message;}finally{_savingLocation=false;}}

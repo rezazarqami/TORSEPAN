@@ -9,6 +9,7 @@ public sealed class InstrumentWarehouseDto
 public sealed record WarehouseMoveItem(Guid HandpanId, Guid ExpectedVersion);
 public sealed class WarehouseMoveResult
 {
+    public string Stage { get; set; } = "";
     public Guid HandpanId { get; set; }
     public int QualityWarehouseId { get; set; }
     public Guid Version { get; set; }
