@@ -1,0 +1,49 @@
+plugins { id 'com.android.application' }
+
+def sharedPush = layout.buildDirectory.dir('generated/message-push')
+tasks.register('generateSharedMessagePush') {
+    inputs.files(fileTree('../app/src/main/java/ir/torsepan/mobile') { include 'NativeMessagePush.java', 'MessageFirebaseApplication.java', 'MessageFirebaseService.java', 'MessageRegistrationJob.java' })
+    outputs.dir(sharedPush)
+    doLast {
+        def target = sharedPush.get().dir('ir/torsepan/mobile').asFile
+        target.mkdirs()
+        inputs.files.each { source ->
+            new File(target, source.name).text = source.getText('UTF-8').replace('OfflineStore.get(', 'MessageCredentialStore.get(').replace('"/config",token', '"/config?app=online",token')
+        }
+    }
+}
+android {
+    namespace 'ir.torsepan.mobile'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'ir.torsepan.mobile.online'
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0-online'
+    }
+    sourceSets.main.java.srcDir sharedPush
+    sourceSets.main.res.srcDir '../app/src/main/res'
+    signingConfigs {
+        existing {
+            if (System.getenv('TORSEPAN_ANDROID_KEYSTORE')) {
+                storeFile file(System.getenv('TORSEPAN_ANDROID_KEYSTORE'))
+                storePassword System.getenv('TORSEPAN_ANDROID_STORE_PASSWORD') ?: 'android'
+                keyAlias System.getenv('TORSEPAN_ANDROID_KEY_ALIAS') ?: 'androiddebugkey'
+                keyPassword System.getenv('TORSEPAN_ANDROID_KEY_PASSWORD') ?: 'android'
+                enableV3Signing true
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv('TORSEPAN_ANDROID_KEYSTORE')) signingConfig signingConfigs.existing
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn 'generateSharedMessagePush' }
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-messaging'
+}

@@ -13,7 +13,7 @@ public sealed class NativeMessagePushController(TORSEPANDbContext db,NativeMessa
 {
     private Guid Me=>Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
     [HttpGet("config")]
-    public IActionResult Config()=>Ok(new{configured=config.Configured,client=config.Client,userId=Me});
+    public IActionResult Config([FromQuery]string? app=null){var client=app=="online"?config.OnlineClient:config.Client;return Ok(new{configured=client is not null,client,userId=Me});}
     [HttpPut,EnableRateLimiting("account-security")]
     public async Task<IActionResult> Register(NativeMessageEnrollment request,CancellationToken ct)
     {

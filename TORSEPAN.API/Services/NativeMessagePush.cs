@@ -15,6 +15,7 @@ public sealed class NativeMessagePushConfiguration(IConfiguration configuration)
     public const string Prefix = "fcm:";
     public string AccountPath => configuration["Firebase:ServiceAccountPath"] ?? "";
     public object? Client => Configured ? new { appId = configuration["Firebase:AndroidAppId"], apiKey = configuration["Firebase:AndroidApiKey"], projectId = configuration["Firebase:ProjectId"], senderId = configuration["Firebase:SenderId"] } : null;
+    public object? OnlineClient => Configured && !string.IsNullOrWhiteSpace(configuration["Firebase:AndroidOnlineAppId"]) ? new { appId = configuration["Firebase:AndroidOnlineAppId"], apiKey = configuration["Firebase:AndroidApiKey"], projectId = ProjectId, senderId = configuration["Firebase:SenderId"] } : null;
     private string AccountJson => configuration["Firebase:ServiceAccountJson"] ?? "";
     public async Task<string> ReadAccountAsync(CancellationToken ct) => !string.IsNullOrWhiteSpace(AccountJson) ? AccountJson : await File.ReadAllTextAsync(AccountPath, ct);
     public bool Configured => (!string.IsNullOrWhiteSpace(AccountJson) || File.Exists(AccountPath)) && new[] { "AndroidAppId", "AndroidApiKey", "ProjectId", "SenderId" }.All(k => !string.IsNullOrWhiteSpace(configuration["Firebase:" + k]));

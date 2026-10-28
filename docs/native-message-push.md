@@ -22,3 +22,9 @@ FCM needs internet access and Google Play services. Android force-stop, blocked 
 - `node tests/message-push-worker.cjs` and `node tests/message-sound.cjs`
 
 Tests use fake transport and generated credentials; they never send messages to real colleagues/devices.
+
+## Standalone online application
+
+`android/online` builds `ir.torsepan.mobile.online` (label تورسپن آنلاین) using only the live panel. It contains no offline assets, snapshot, outbox, offline bridge or production synchronization service. Gallery/camera, PDF downloads and the shared message-only FCM transport remain supported. The notification token alone is stored encrypted with Android Keystore. This installs beside the old `.offline` app because its 2.8.2 signing key is unavailable; it does not migrate or delete that app’s local data.
+
+Register the exact online package in the same Firebase project and set `Firebase__AndroidOnlineAppId` on the API. `/api/notifications/mobile/config?app=online` returns that app identity, and fails closed when it is missing. Preserve the existing signing keystore for future online releases. Build with `TORSEPAN_ANDROID_KEYSTORE=/private/existing.keystore gradle :online:assembleRelease`; the release is not debuggable and uses V3 signing. Never deliver a randomly signed debug runner output as an update.

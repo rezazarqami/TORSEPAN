@@ -89,6 +89,10 @@ try {
     var inlineConfiguration=new NativeMessagePushConfiguration(new ConfigurationBuilder().AddInMemoryCollection(inlineSettings).Build());
     Check(inlineConfiguration.Configured && await inlineConfiguration.ReadAccountAsync(default)==await File.ReadAllTextAsync(nativeConfigPath),"private environment credentials work without a mounted file");
     await new NativeMessagePushTransport(new FixtureClients(new FixtureFcmHttp()),inlineConfiguration).SendAsync(new MessagePushSubscription{Endpoint="fcm:fixture-token",UserId=recipient.Id,Auth="enrollment-fixture"},Guid.NewGuid(),default);
+    Check(inlineConfiguration.OnlineClient is null,"online app cannot silently receive the offline Firebase identity");
+    inlineSettings["Firebase:AndroidOnlineAppId"]="fixture-online-app";
+    var onlineConfiguration=new NativeMessagePushConfiguration(new ConfigurationBuilder().AddInMemoryCollection(inlineSettings).Build());
+    Check(JsonSerializer.Serialize(onlineConfiguration.OnlineClient).Contains("fixture-online-app"),"online enrollment receives its separately registered Firebase app");
     var fcmHttp=new FixtureFcmHttp();var fcm=new NativeMessagePushTransport(new FixtureClients(fcmHttp),nativeConfiguration);
     await fcm.SendAsync(new MessagePushSubscription{Endpoint="fcm:fixture-token",UserId=recipient.Id,Auth="enrollment-fixture"},Guid.NewGuid(),default);
     using(var sentMessage=JsonDocument.Parse(fcmHttp.Payload)){

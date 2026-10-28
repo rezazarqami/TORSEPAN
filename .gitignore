@@ -370,6 +370,7 @@ FodyWeavers.xsd
 android/.gradle/
 android/build/
 android/app/build/
+android/online/build/
 android/local.properties
 
 # Packaged shared Blazor UI is produced by the offline build.
