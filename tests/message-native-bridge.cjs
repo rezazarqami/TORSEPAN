@@ -1,0 +1,11 @@
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const events={},statuses=[],timers=[];let enabled=0,disabled=0;
+const window={TorsepanMessages:{status:()=> 'اعلان پیام‌ها فعال است',enable(){enabled++},disable(){disabled++}}};
+const box={window,document:{addEventListener:(n,f)=>events[n]=f},navigator:{},localStorage:{getItem(){return null}},setTimeout:(f)=>timers.push(f)};
+vm.runInNewContext(fs.readFileSync('TORSEPAN.Panel/wwwroot/workshop-messages.js','utf8'),box);
+(async()=>{const api=window.workshopMessages;assert.equal(api.hasNativeMessages(),true);const receiver={invokeMethodAsync:async(_,s)=>statuses.push(s)};
+assert.equal(await api.configureAlerts({},receiver),'اعلان پیام‌ها فعال است');assert.equal(await api.pushSubscription(),null);
+await events.click({target:{closest:()=>({disabled:false,dataset:{messageAlertsAction:'push'}})}});assert.equal(enabled,1);for(const fn of timers)fn();await Promise.resolve();assert(statuses.includes('اعلان پیام‌ها فعال است'));
+await api.clearAlerts();assert.equal(disabled,1);console.log('PASS native activation/status/logout work without Web Push, service workers or ongoing connections');
+const manifest=fs.readFileSync('android/app/src/main/AndroidManifest.xml','utf8');assert(!manifest.includes('FOREGROUND_SERVICE'));assert(!manifest.includes('foregroundServiceType'));assert(manifest.includes('POST_NOTIFICATIONS'));console.log('PASS APK requests message permission and declares no foreground connection service');
+})().catch(e=>{console.error(e);process.exit(1)});

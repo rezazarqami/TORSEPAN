@@ -4,17 +4,30 @@ android {
     namespace 'ir.torsepan.mobile'
     compileSdk 35
 
+    signingConfigs {
+        existing {
+            if (System.getenv('TORSEPAN_ANDROID_KEYSTORE')) {
+                storeFile file(System.getenv('TORSEPAN_ANDROID_KEYSTORE'))
+                storePassword System.getenv('TORSEPAN_ANDROID_STORE_PASSWORD') ?: 'android'
+                keyAlias System.getenv('TORSEPAN_ANDROID_KEY_ALIAS') ?: 'androiddebugkey'
+                keyPassword System.getenv('TORSEPAN_ANDROID_KEY_PASSWORD') ?: 'android'
+            }
+        }
+    }
+    buildTypes { debug { if (System.getenv('TORSEPAN_ANDROID_KEYSTORE')) signingConfig signingConfigs.existing } }
     testOptions { unitTests.includeAndroidResources = true }
     defaultConfig {
         applicationId 'ir.torsepan.mobile.offline'
         minSdk 29
         targetSdk 34
-        versionCode 14
-        versionName '2.8.2-cached-workshop'
+        versionCode 16
+        versionName '2.10.0-message-push'
     }
 }
 
 dependencies {
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-messaging'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.14.1'
 }

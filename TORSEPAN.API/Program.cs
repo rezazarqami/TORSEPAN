@@ -28,6 +28,9 @@ builder.Services.AddHostedService<TORSEPAN.API.Offline.OfflineWarrantySyncWorker
 builder.Services.AddSingleton<ManualBackupJobs>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ManualBackupJobs>());
 builder.Services.AddScoped<MessagePushKeyStore>();
+builder.Services.AddSingleton<NativeMessagePushConfiguration>();
+builder.Services.AddSingleton<INativeMessagePushTransport,NativeMessagePushTransport>();
+builder.Services.AddHttpClient("native-message-push").ConfigurePrimaryHttpMessageHandler(()=>new HttpClientHandler{AllowAutoRedirect=false});
 builder.Services.AddHostedService<MessagePushWorker>();
 builder.Services.AddHttpClient<IMessagePushTransport, WebMessagePushTransport>().ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddScoped<TORSEPAN.API.Controllers.ManagementReportsController>();

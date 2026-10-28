@@ -97,6 +97,9 @@ window.workshopMessages = {
     link.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:16px;right:16px;max-width:420px;margin:auto;z-index:11000;padding:16px;background:#123d62;color:white;text-align:center;border-radius:14px;box-shadow:0 8px 28px #0005;text-decoration:none';
     document.body.appendChild(link); setTimeout(() => link.remove(), 6000);
   };
+  const nativeMessages = () => window.TorsepanMessages && typeof window.TorsepanMessages.enable === 'function';
+  window.workshopMessages.hasNativeMessages = () => !!nativeMessages();
+  window.workshopMessages.nativeStatus = message => report(message);
   const supported = () => window.isSecureContext && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
   const ios = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -115,6 +118,7 @@ window.workshopMessages = {
   }
   window.workshopMessages.configureAlerts = async (settings, callback) => {
     config = settings; if (callback) receiver = callback;
+    if (nativeMessages()) return window.TorsepanMessages.status();
     if (ios() && !standalone()) return 'در آیفون، برنامه را از آیکون صفحهٔ اصلی باز کنید؛ iOS 16.4 یا جدیدتر لازم است.';
     if (!supported()) return 'این مرورگر اعلان پس‌زمینه را پشتیبانی نمی‌کند؛ صدا در صفحهٔ باز قابل استفاده است.';
     if (Notification.permission === 'denied') return 'اجازهٔ اعلان بسته است؛ آن را از تنظیمات اعلان گوشی یا مرورگر فعال کنید.';
@@ -125,11 +129,13 @@ window.workshopMessages = {
   };
   window.workshopMessages.bindAlertSettings = callback => { receiver = callback; };
   window.workshopMessages.pushSubscription = async () => {
+    if (nativeMessages()) return null;
     if (!supported()) return null;
     const sub = await (await registration()).pushManager.getSubscription();
     return sub ? serialize(sub) : null;
   };
   window.workshopMessages.clearAlerts = async () => {
+    if (nativeMessages()) window.TorsepanMessages.disable();
     config = undefined; receiver = undefined;
     if (!supported()) return;
     const reg = await registration(); const sub = await reg.pushManager.getSubscription();
@@ -148,6 +154,11 @@ window.workshopMessages = {
       await report('صدای داخل برنامه روی این دستگاه خاموش شد.'); return;
     }
     if (action !== 'push' || !config || !receiver) return;
+    if (nativeMessages()) {
+      window.TorsepanMessages.enable(); await report('در حال بررسی اجازه و اتصال اعلان گوشی…');
+      for(let n=1;n<=15;n++)setTimeout(()=>{if(receiver&&config&&nativeMessages())report(window.TorsepanMessages.status());},n*2000);
+      return;
+    }
     if (ios() && !standalone()) { await report('در آیفون، ابتدا برنامه را از آیکون صفحهٔ اصلی باز کنید.'); return; }
     if (!supported()) { await report('اعلان پس‌زمینه در این مرورگر پشتیبانی نمی‌شود.'); return; }
     // Request permission immediately in the trusted click, before any async work.

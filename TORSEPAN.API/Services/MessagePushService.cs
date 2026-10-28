@@ -113,7 +113,9 @@ public sealed class MessagePushWorker(IServiceScopeFactory scopes, ILogger<Messa
                 var totalIncoming = await db.WorkshopMessageReceipts.LongCountAsync(x => x.RecipientId == delivery.UserId && x.Message.SenderId != delivery.UserId, ct);
                 var payload = JsonSerializer.Serialize(new { title = "تورسپن · پیام جدید", body = "پیام جدیدی در کارگاه دارید. برای مشاهده لمس کنید.", tag = $"message-{delivery.MessageId:N}", url = "/notifications", userId = delivery.UserId, totalIncoming });
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(TimeSpan.FromSeconds(15));
-                await transport.SendAsync(subscription!, keys, subject, payload, timeout.Token);
+                if(subscription!.Endpoint.StartsWith(NativeMessagePushConfiguration.Prefix,StringComparison.Ordinal))
+                    await scope.ServiceProvider.GetRequiredService<INativeMessagePushTransport>().SendAsync(subscription,delivery.MessageId,timeout.Token);
+                else await transport.SendAsync(subscription, keys, subject, payload, timeout.Token);
                 await RemoveDelivery();
             }
             catch (MessagePushTransportException ex) when (ex.StatusCode is HttpStatusCode.Gone or HttpStatusCode.NotFound)

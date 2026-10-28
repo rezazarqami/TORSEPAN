@@ -18,7 +18,9 @@ using TORSEPAN.Infrastructure.Persistence;
 void Check(bool value, string text) { if (!value) throw new Exception(text); Console.WriteLine("PASS " + text); }
 using var connection = new SqliteConnection("Data Source=:memory:"); await connection.OpenAsync();
 var transport = new FixtureTransport();
+var nativeTransport=new FixtureNativeTransport();
 var services = new ServiceCollection(); services.AddLogging();
+services.AddSingleton<INativeMessagePushTransport>(nativeTransport);
 services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
 services.AddDbContext<TORSEPANDbContext>(o => o.UseSqlite(connection)); services.AddScoped<MessagePushKeyStore>(); services.AddSingleton<IMessagePushTransport>(transport);
 await using var provider = services.BuildServiceProvider(); await using var scope = provider.CreateAsyncScope();
@@ -77,6 +79,38 @@ await worker.DispatchAsync(default);
 Check(!await db.MessagePushSubscriptions.AnyAsync(x => x.UserId == recipient.Id) && await db.MessagePushDeliveries.CountAsync() == 0, "expired push endpoints and their pending deliveries are cleaned up");
 await Push(other.Id).Unsubscribe(new(Sub("device-1").Endpoint), default);
 Check(await db.MessagePushSubscriptions.CountAsync() == 0, "explicit logout or opt-out removes the current device subscription");
+// Native subscriptions reuse the same durable, message-only outbox without a schema change.
+var nativeConfigPath=Path.GetTempFileName();
+try {
+    var nativeConfiguration=new NativeMessagePushConfiguration(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{{"Firebase:ServiceAccountPath",nativeConfigPath},{"Firebase:AndroidAppId","fixture-app"},{"Firebase:AndroidApiKey","fixture-api"},{"Firebase:ProjectId","fixture-project"},{"Firebase:SenderId","fixture-sender"}}).Build());
+    using(var rsa=System.Security.Cryptography.RSA.Create(2048))
+        await File.WriteAllTextAsync(nativeConfigPath,JsonSerializer.Serialize(new{project_id="fixture-project",client_email="fixture@example.invalid",private_key=rsa.ExportPkcs8PrivateKeyPem()}));
+    var inlineSettings=new Dictionary<string,string?>{{"Firebase:ServiceAccountJson",await File.ReadAllTextAsync(nativeConfigPath)},{"Firebase:ServiceAccountPath","/missing/private-file"},{"Firebase:AndroidAppId","fixture-app"},{"Firebase:AndroidApiKey","fixture-api"},{"Firebase:ProjectId","fixture-project"},{"Firebase:SenderId","fixture-sender"}};
+    var inlineConfiguration=new NativeMessagePushConfiguration(new ConfigurationBuilder().AddInMemoryCollection(inlineSettings).Build());
+    Check(inlineConfiguration.Configured && await inlineConfiguration.ReadAccountAsync(default)==await File.ReadAllTextAsync(nativeConfigPath),"private environment credentials work without a mounted file");
+    await new NativeMessagePushTransport(new FixtureClients(new FixtureFcmHttp()),inlineConfiguration).SendAsync(new MessagePushSubscription{Endpoint="fcm:fixture-token",UserId=recipient.Id,Auth="enrollment-fixture"},Guid.NewGuid(),default);
+    var fcmHttp=new FixtureFcmHttp();var fcm=new NativeMessagePushTransport(new FixtureClients(fcmHttp),nativeConfiguration);
+    await fcm.SendAsync(new MessagePushSubscription{Endpoint="fcm:fixture-token",UserId=recipient.Id,Auth="enrollment-fixture"},Guid.NewGuid(),default);
+    using(var sentMessage=JsonDocument.Parse(fcmHttp.Payload)){
+        var root=sentMessage.RootElement.GetProperty("message");
+        Check(root.GetProperty("data").GetProperty("kind").GetString()=="workshop-message"&&root.GetProperty("data").GetProperty("userId").GetGuid()==recipient.Id&&!root.TryGetProperty("notification",out _),"FCM payload is message-only and allows client account checks before display");
+        Check(root.GetProperty("android").GetProperty("priority").GetString()=="high"&&!fcmHttp.Payload.Contains(message.Body!),"native push requests prompt delivery without leaking message text");
+    }
+    fcmHttp.Unregistered=true;
+    try{await fcm.SendAsync(new MessagePushSubscription{Endpoint="fcm:expired",UserId=recipient.Id},Guid.NewGuid(),default);throw new Exception("expired token accepted");}
+    catch(MessagePushTransportException ex){Check(ex.StatusCode==HttpStatusCode.Gone,"FCM UNREGISTERED removes only expired native subscriptions");}
+    NativeMessagePushController Native(Guid user)=>new(db,nativeConfiguration){ControllerContext=As(user)};
+    var device=Guid.NewGuid();var enrollment=Guid.NewGuid();var nativeToken="fixture-native-token-with-at-least-20-chars";
+    Check(await Native(recipient.Id).Register(new(device,enrollment,"https://attacker.test"),default) is BadRequestResult,"native registration rejects non-FCM tokens");
+    Check(await Native(recipient.Id).Register(new(device,enrollment,nativeToken),default) is NoContentResult,"native app registers its device and enrollment for the signed-in user");
+    await notifications.Send(message with{Id=Guid.NewGuid()},default);await worker.DispatchAsync(default);
+    Check(nativeTransport.Messages.Count==1&&await db.MessagePushDeliveries.CountAsync()==0,"message outbox delivers to native FCM without browser transport");
+    await notifications.Send(message with{Id=Guid.NewGuid()},default);
+    await Native(other.Id).Register(new(device,Guid.NewGuid(),nativeToken),default);
+    Check(await db.MessagePushDeliveries.CountAsync()==0&&await db.MessagePushSubscriptions.AllAsync(x=>x.UserId==other.Id),"native account switch clears old-account pending deliveries");
+    await Native(recipient.Id).Remove(device,default);Check(await db.MessagePushSubscriptions.CountAsync()==1,"native opt-out cannot remove another user's device");
+    await Native(other.Id).Remove(device,default);Check(await db.MessagePushSubscriptions.CountAsync()==0,"native opt-out removes registration and pending deliveries");
+} finally{File.Delete(nativeConfigPath);}
 await using var postgres = new TORSEPANDbContext(new DbContextOptionsBuilder<TORSEPANDbContext>().UseNpgsql("Host=fixture.invalid;Database=fixture").Options);
 var sql = postgres.GetService<IMigrator>().GenerateScript("20261006110000_AddUserDeletion", "20261006133310_AddMessagePush");
 Check(sql.Contains("CREATE TABLE \"MessagePushSubscriptions\"") && sql.Contains("CREATE TABLE \"MessagePushKeys\"") && !sql.Contains("DROP TABLE"), "PostgreSQL migration is additive and includes persistent device/key tables");
@@ -94,5 +128,21 @@ sealed class FixtureHttp : HttpMessageHandler
     {
         Encoding = request.Content!.Headers.ContentEncoding.Single(); Authorization = request.Headers.Authorization!.ToString();
         Payload = await request.Content.ReadAsByteArrayAsync(ct); return new(HttpStatusCode.Created);
+    }
+}
+
+sealed class FixtureNativeTransport:INativeMessagePushTransport {
+    public List<Guid> Messages=[];
+    public Task SendAsync(MessagePushSubscription subscription,Guid messageId,CancellationToken ct){Messages.Add(messageId);return Task.CompletedTask;}
+}
+
+sealed class FixtureClients(HttpMessageHandler handler):IHttpClientFactory{public HttpClient CreateClient(string name)=>new(handler,false);}
+sealed class FixtureFcmHttp:HttpMessageHandler{
+    public string Payload="";public bool Unregistered;
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage r,CancellationToken ct){
+        if(r.RequestUri!.Host=="oauth2.googleapis.com")return new(HttpStatusCode.OK){Content=new StringContent("{\"access_token\":\"fixture-oauth\",\"expires_in\":3600}")};
+        if(r.Headers.Authorization?.ToString()!="Bearer fixture-oauth")throw new Exception("FCM missing authorization");
+        Payload=await r.Content!.ReadAsStringAsync(ct);
+        return Unregistered?new(HttpStatusCode.NotFound){Content=new StringContent("{\"error\":{\"details\":[{\"errorCode\":\"UNREGISTERED\"}]}}")}:new(HttpStatusCode.OK){Content=new StringContent("{}")};
     }
 }

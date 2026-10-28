@@ -7,6 +7,8 @@ public sealed class PersonalWorkspaceService(ApiClient api)
 {
     public async Task<string> ConfigureAlertsAsync(IJSRuntime js, object? callback = null)
     {
+        if(await js.InvokeAsync<bool>("workshopMessages.hasNativeMessages"))
+            return await js.InvokeAsync<string>("workshopMessages.configureAlerts",new {},callback);
         var settings = await api.GetAsync<MessagePushKeyDto>("notifications/push/key") ?? throw new InvalidOperationException();
         var result = await js.InvokeAsync<JsonElement>("workshopMessages.configureAlerts", settings, callback);
         if (result.ValueKind == JsonValueKind.Object && result.TryGetProperty("subscription", out var value))

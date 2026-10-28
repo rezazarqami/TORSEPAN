@@ -88,6 +88,7 @@ public final class MainActivity extends Activity {
         localBrowser.getSettings().setLoadWithOverviewMode(true);
         localBrowser.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         localBrowser.addJavascriptInterface(new OfflineBridge(), "OfflineNative");
+        localBrowser.addJavascriptInterface(new MessageAlertsBridge(true), "TorsepanMessages");
         // A separate WebView never navigates to remote content. Every non-allowlisted resource is blocked.
         localBrowser.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){return !isLocal(request.getUrl());}
@@ -106,6 +107,8 @@ public final class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         CookieManager.getInstance().setAcceptCookie(true);
         browser.addJavascriptInterface(new PdfDownloads(), "TorsepanPdf");
+        browser.addJavascriptInterface(new MessageAlertsBridge(false), "TorsepanMessages");
+        offlineWorker.scheduleWithFixedDelay(()->runOnUiThread(()->captureMessageSession(false)),10,15,TimeUnit.SECONDS);
         browser.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
                     FileChooserParams params) {
@@ -184,6 +187,7 @@ public final class MainActivity extends Activity {
                     while ((count = stream.read(buffer)) != -1) output.write(buffer, 0, count);
                     view.evaluateJavascript("window.torsepanOfflineDevice=" + JSONObject.quote(offlineStore.device()) + ";" + output.toString("UTF-8"), null);
                 } catch (Exception ignored) { }
+                captureMessageSession(false);
                 // The panel creates payroll PDFs as blob: URLs, which Android's DownloadManager cannot read.
                 view.evaluateJavascript("(function(){if(!window.torsepanReports)return;window.torsepanReports.download=function(name,bytes){" +
                     "var s='';for(var i=0;i<bytes.length;i+=8192)s+=String.fromCharCode.apply(null,bytes.slice(i,i+8192));" +
@@ -204,7 +208,8 @@ public final class MainActivity extends Activity {
                 Toast.makeText(this, "دانلود آغاز شد", Toast.LENGTH_SHORT).show();
             } catch (Exception e) { Toast.makeText(this, "دانلود انجام نشد", Toast.LENGTH_SHORT).show(); }
         });
-        if (!preferLocal) { if (state == null) browser.loadUrl(HOME); else browser.restoreState(state); }
+        if (NativeMessagePush.ACTION.equals(getIntent().getAction())) { preferLocal=false;localVisible=false;localBrowser.setVisibility(View.GONE);browser.setVisibility(View.VISIBLE);browser.loadUrl(HOME+"notifications"); }
+        else if (!preferLocal) { if (state == null) browser.loadUrl(HOME); else browser.restoreState(state); }
         else { localUnlocked=true;showLocal(); }
     }
 
@@ -400,6 +405,34 @@ public final class MainActivity extends Activity {
             });
         }
     }
+    private boolean trustedMessagesPage(){Uri uri=Uri.parse(browser.getUrl()==null?"":browser.getUrl());return "https".equals(uri.getScheme())&&HOST.equals(uri.getHost())&&(uri.getPort()==-1||uri.getPort()==443);}
+    private boolean pendingLocalMessagePermission;
+    private void messageStatus(String text){runOnUiThread(()->{WebView target=localVisible&&localUnlocked?localBrowser:browser;if(!isFinishing()&&(target==localBrowser||trustedMessagesPage()))target.evaluateJavascript("window.workshopMessages&&window.workshopMessages.nativeStatus&&window.workshopMessages.nativeStatus("+JSONObject.quote(text)+")",null);});}
+    private void captureMessageSession(boolean enable){
+        if(!trustedMessagesPage()||onlineLoadFailed)return;
+        browser.evaluateJavascript("JSON.stringify({token:localStorage.getItem('access_token')||''})",result->offlineWorker.execute(()->{try{
+            String decoded=new org.json.JSONTokener(result).nextValue().toString();String token=new JSONObject(decoded).optString("token");
+            if(enable){if(token.isEmpty())throw new IllegalStateException("ابتدا وارد حساب تورسپن شوید.");NativeMessagePush.enable(this,token);}
+            else NativeMessagePush.session(this,token);
+            if(enable)messageStatus(NativeMessagePush.status(this));
+        }catch(Exception e){if(enable)messageStatus(e.getMessage()==null?"فعال‌سازی اعلان انجام نشد؛ اتصال و تنظیمات سرور را بررسی کنید.":e.getMessage());}}));
+    }
+    private void enableLocalMessages(){offlineWorker.execute(()->{try{NativeMessagePush.enable(this,offlineStore.get("token"));messageStatus(NativeMessagePush.status(this));}catch(Exception e){messageStatus("فعال‌سازی اعلان انجام نشد؛ در حالت آنلاین وارد حساب شوید و تنظیمات سرور را بررسی کنید.");}});}
+    private final class MessageAlertsBridge {
+        private final boolean local;
+        MessageAlertsBridge(boolean local){this.local=local;}
+        @JavascriptInterface public String status(){return NativeMessagePush.status(MainActivity.this);}
+        @JavascriptInterface public void enable(){runOnUiThread(()->{
+            if(local?(!localUnlocked||!localVisible):!trustedMessagesPage())return;
+            pendingLocalMessagePermission=local;
+            if(android.os.Build.VERSION.SDK_INT>=33&&checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},7331);return;}
+            if(!NativeMessagePush.allowed(MainActivity.this)){startActivity(new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,getPackageName()));return;}
+            if(local)enableLocalMessages();else captureMessageSession(true);
+        });}
+        @JavascriptInterface public void disable(){NativeMessagePush.disable(MainActivity.this);messageStatus("اعلان پیام‌های گوشی خاموش شد.");}
+    }
+    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==7331){if(results.length>0&&results[0]==android.content.pm.PackageManager.PERMISSION_GRANTED){if(pendingLocalMessagePermission&&localUnlocked)enableLocalMessages();else captureMessageSession(true);}else messageStatus("اجازهٔ اعلان داده نشد؛ از تنظیمات گوشی قابل فعال‌کردن است.");}}
+    @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);if(NativeMessagePush.ACTION.equals(intent.getAction())){preferLocal=false;localVisible=false;localBrowser.setVisibility(View.GONE);browser.setVisibility(View.VISIBLE);browser.loadUrl(HOME+"notifications");}}
     @Override protected void onResume(){super.onResume();if(localVisible&&localUnlocked)refreshLocal();}
     @Override protected void onStop(){super.onStop();}
 
