@@ -185,6 +185,14 @@ app.MapMethods("/api/internal/mobile-offline/{**path}", new[] { "GET", "POST" },
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
+// Public attachment; installation must not require a chat or GitHub account.
+app.MapMethods("/downloads/torsepan-android.apk", new[] { "GET", "HEAD" }, (HttpContext context, IWebHostEnvironment environment) =>
+{
+    context.Response.Headers.CacheControl = "no-cache";
+    var path = Path.Combine(environment.ContentRootPath, "AppPackages", "torsepan-online-1.0.0.apk");
+    return Results.File(path, "application/vnd.android.package-archive", "Torsepan-Online-1.0.0.apk", enableRangeProcessing: true);
+});
+
 app.MapPost("/api/internal/handpans/{handpanId:guid}/photos", async (
     Guid handpanId, HttpRequest incoming, IHttpClientFactory httpClientFactory,
     CancellationToken cancellationToken) =>

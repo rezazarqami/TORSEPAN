@@ -604,3 +604,21 @@ body .theme-shell .operation-confirm-dialog .form-select{background-color:#08263
 body .layout.theme-shell .main .content .operation-confirm-dialog .operation-confirm-heading h4{color:#edf4fc}
 
 .passport-search #passport-code{direction:ltr;text-align:left;scroll-margin-block:24px}
+
+/* Export packaging uses the same six destination cards as export inventory. */
+.export-packaging-notice{margin:20px 0;padding:18px;border:1px solid #36586d;border-radius:18px;background:#103349;color:#d8e6f0;line-height:1.9}
+.export-packaging-destinations{margin-top:18px;padding:0;background:transparent;border:0}
+.export-packaging-destinations h3{margin:0 0 14px;color:#dce8f1;font-size:1rem;font-weight:700}
+.export-packaging-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+body .layout.theme-shell .main .content .export-packaging-destination{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-width:0;min-height:112px;padding:16px 8px;border:1px solid #46647a;border-radius:20px;background:linear-gradient(145deg,#0b2b43,#031c30);color:#dce8f1;box-shadow:inset 0 1px 0 #ffffff09;cursor:pointer;transition:border-color .15s,background .15s}
+body .layout.theme-shell .main .content .export-packaging-destination strong{font-size:1rem;font-weight:700;color:inherit;line-height:1.6;white-space:nowrap}
+.export-packaging-destination img{display:block;width:48px;height:32px;object-fit:cover;border-radius:4px;box-shadow:0 2px 7px #0003}
+body .layout.theme-shell .main .content .export-packaging-destination.selected{border-color:#e6c577;background:linear-gradient(120deg,#6c654e,#0c2e46 80%);color:#ffe5a1;box-shadow:inset 0 0 0 1px #e6c577}
+.export-packaging-destination:focus-visible,.export-packaging-actions button:focus-visible{outline:3px solid #f0d58e;outline-offset:3px}
+.export-packaging-destination:disabled{cursor:wait}
+.export-packaging-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:24px}
+body .layout.theme-shell .main .content .export-packaging-confirm,body .layout.theme-shell .main .content .export-packaging-return{min-height:54px;padding:14px 20px;border:1px solid #e2c278;border-radius:16px;font-weight:800;line-height:1.7}
+body .layout.theme-shell .main .content .export-packaging-confirm{background:linear-gradient(110deg,#f2d99b,#cda756);color:#102e43}
+body .layout.theme-shell .main .content .export-packaging-return{background:#153c55;border-color:#42677f;color:#dfebf4}
+body .layout.theme-shell .main .content .export-packaging-confirm:disabled{background:#6b634a;border-color:#93805a;color:#e6e0cc;cursor:not-allowed}
+@media(max-width:600px){.export-packaging-grid{gap:8px}body .layout.theme-shell .main .content .export-packaging-destination{min-height:98px;padding:12px 5px;border-radius:17px;gap:12px}body .layout.theme-shell .main .content .export-packaging-destination strong{font-size:.9rem}.export-packaging-destination img{width:42px;height:28px}.export-packaging-actions{flex-direction:column}.export-packaging-actions button{width:100%;font-size:.95rem}}

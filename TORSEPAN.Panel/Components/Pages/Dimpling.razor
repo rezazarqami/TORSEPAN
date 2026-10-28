@@ -253,14 +253,24 @@
             }
             else if (_bowl.Stage == 21)
             {
-                <div class="alert alert-info mt-3">این کاسه برای بسته‌بندی صادراتی آماده است.</div>
-                <div class="export-location-picker mt-3"><strong>انبار مقصد را انتخاب کنید</strong><div class="export-location-options">@foreach(var location in ExportLocations){<button type="button" class="@ExportLocationClass(location.Id)" @onclick="()=>_exportWarehouseLocation=location.Id"><span>@location.Icon</span><b>@location.Name</b></button>}</div></div>
-                <button class="btn btn-success mt-3" disabled="@(_loading || !_exportWarehouseLocation.HasValue)" @onclick="CompleteExportPackagingAsync">
-                    بسته‌بندی صادراتی انجام شد
-                </button>
-                <button class="btn btn-outline-primary mt-3 me-2" disabled="@_loading" @onclick="AskReturnExportBowlToGlue">
-                    ارسال به چسب و ادامه ساخت ساز
-                </button>
+                <p class="export-packaging-notice">این کاسه برای بسته‌بندی صادراتی آماده است.</p>
+                <section class="export-packaging-destinations" aria-labelledby="export-packaging-destination-title">
+                    <h3 id="export-packaging-destination-title">انبار مقصد را انتخاب کنید</h3>
+                    <div class="export-packaging-grid" role="group" aria-label="انبار مقصد بسته‌بندی صادراتی">
+                        @foreach (var location in ExportLocations)
+                        {
+                            <button type="button" class="export-packaging-destination @(_exportWarehouseLocation == location.Id ? "selected" : null)"
+                                    aria-pressed="@(_exportWarehouseLocation == location.Id ? "true" : "false")" disabled="@_loading" @onclick="() => _exportWarehouseLocation = location.Id">
+                                <strong>@location.Name</strong>
+                                <img src="@($"/images/flags/{location.Code}.svg")" alt="" aria-hidden="true" width="48" height="32" />
+                            </button>
+                        }
+                    </div>
+                </section>
+                <div class="export-packaging-actions">
+                    <button type="button" class="export-packaging-confirm" disabled="@(_loading || !_exportWarehouseLocation.HasValue)" @onclick="CompleteExportPackagingAsync">بسته‌بندی صادراتی انجام شد</button>
+                    <button type="button" class="export-packaging-return" disabled="@_loading" @onclick="AskReturnExportBowlToGlue">ارسال به چسب و ادامه ساخت ساز</button>
+                </div>
             }
             else if (_bowl.Stage == 10)
             {
@@ -471,7 +481,7 @@
     private bool PackagingStockInsufficient => _packagingMaterials.Any(x => _selectedPackagingMaterialIds.Contains(x.Id) && x.Quantity < PackagingMaterialConsumption.RequiredQuantity(x.Name));
     private bool _sendToExportWarehouse;
     private int? _exportWarehouseLocation;
-    private static readonly (int Id, string Name, string Icon)[] ExportLocations = [(4, "ایران", "IR"), (1, "ترکیه", "TR"), (2, "لندن", "UK"), (3, "آلمان", "DE"), (5, "مصر 🇪🇬", "🇪🇬"), (6, "ریاض 🇸🇦", "🇸🇦")];
+    private static readonly (int Id, string Name, string Code)[] ExportLocations = [(4, "ایران", "ir"), (1, "ترکیه", "tr"), (2, "لندن", "uk"), (3, "آلمان", "de"), (5, "مصر", "eg"), (6, "ریاض", "sa")];
     private string? _successMessage;
     private ElementReference _codeInput;
     private bool _focusCodeAfterOperation;

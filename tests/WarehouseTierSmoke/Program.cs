@@ -77,6 +77,13 @@ foreach(var role in new[]{"Administrator","QualityControl","Tuner"})
             Check(QHtml().Contains("ایران")&&QHtml().Contains("لندن")&&QHtml().Contains("ترکیه")&&QHtml().Contains("آلمان"),"export selection reveals four destinations");
             if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"qc-export.html"),qc.ToHtmlString());
             qi.Set("_exportWarehouseLocation",2);await qi.Call("ApproveQualityControlAsync");Check(api.LastExportLocation==2&&api.QcRequests==2,"QC persists selected export country");
+            qi.Set("_successMessage",null);qi.Set("_error",null);qi.Set("_bowl",new DimpleBowlDto{ProductionCode="EXPORT-PACK",Stage=21,BowlType=1});qi.Set("_exportWarehouseLocation",null);qi.Refresh();
+            Check(QHtml().Contains("export-packaging-grid")&&QHtml().Contains("/images/flags/uk.svg")&&QHtml().Contains("/images/flags/eg.svg")&&QHtml().Contains("/images/flags/sa.svg")&&!QHtml().Contains("export-location-picker"),"export packaging renders six flagged destinations without the light legacy picker");
+            if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"export-packaging.html"),qc.ToHtmlString());
+            await qi.Call("CompleteExportPackagingAsync");Check(QHtml().Contains("انبار مقصد را انتخاب کنید"),"export packaging still requires an explicit destination");
+            qi.Set("_error",null);qi.Set("_exportWarehouseLocation",5);qi.Refresh();
+            if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"export-packaging-selected.html"),qc.ToHtmlString());
+            await qi.Call("CompleteExportPackagingAsync");qi.Refresh();Check(QHtml().Contains("تأیید بسته‌بندی صادراتی")&&QHtml().Contains("مصر"),"packaging confirmation retains the selected Egypt destination before saving");
             ((List<MaterialDto>)qi.Get("_packagingMaterials")!).AddRange(new List<MaterialDto>{new(){Id=Guid.NewGuid(),Name="روغن",Quantity=20},new(){Id=Guid.NewGuid(),Name="دستمال",Quantity=20},new(){Id=Guid.NewGuid(),Name="پایه",Quantity=20},new(){Id=Guid.NewGuid(),Name="پنگارد",Quantity=20},new(){Id=Guid.NewGuid(),Name="کارتن",Quantity=20},new(){Id=Guid.NewGuid(),Name="مثلثی",Quantity=20},new(){Id=Guid.NewGuid(),Name="سافت کیس",Quantity=20},new(){Id=Guid.NewGuid(),Name="هارد کیس",Quantity=20}});
             await qi.Call("SelectDefaultPackagingMaterials");Check(((HashSet<Guid>)qi.Get("_selectedPackagingMaterialIds")!).Count==7,"packaging defaults select six accessories plus soft case");
         }

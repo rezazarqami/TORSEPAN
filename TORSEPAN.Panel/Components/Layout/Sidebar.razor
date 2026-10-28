@@ -91,7 +91,7 @@
     <NavLink href="/payroll/exclusions"><span>✅</span><span class="navigation-copy"><strong>دستمزدهای قبلاً محاسبه‌شده</strong><small>سوابق محاسبه دستمزد</small></span></NavLink>
     </AuthorizeView>
 
-    <button type="button" class="sidebar-install" @onclick="InstallThemeAppAsync"><span aria-hidden="true">↓</span><span>نصب روی گوشی</span></button>
+    <NavLink href="/app-downloads"><span aria-hidden="true">↓</span><span class="navigation-copy"><strong>دانلود اپلیکیشن</strong><small>اندروید و iOS</small></span></NavLink>
     <button type="button" class="sidebar-logout" disabled="@_loggingOut" @onclick="LogoutAsync"><span>↪</span><span>@(_loggingOut ? "در حال خروج…" : "خروج از سامانه")</span></button>
 
 </nav>
@@ -101,7 +101,6 @@
 </div>
 
 @code {
-    private Task InstallThemeAppAsync() => ThemeJS.InvokeVoidAsync("torsepanPwa.install").AsTask();
     private bool _loggingOut;
     private async Task LogoutAsync(){if(_loggingOut)return;_loggingOut=true;await AuthenticationService.LogoutAsync();Navigation.NavigateTo("/login",true);}
 }
