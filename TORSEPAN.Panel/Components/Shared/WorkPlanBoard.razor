@@ -1,8 +1,8 @@
 @inject ApiClient Api
-<section class="work-plan-board" dir="rtl">
+<section class="work-plan-board @(Editing ? "plan-editor" : "")" dir="rtl">
     <div class="plan-toolbar account-card">
         <label>@(Editing ? "تاریخ اجرای برنامه" : "تاریخ برنامه")<PersianDatePicker Value="_date" ValueChanged="ChangeDate" /></label>
-        <div class="plan-quick-days"><button disabled="@_busy" @onclick="()=>SelectDay(-1)">دیروز</button><button disabled="@_busy" @onclick="()=>SelectDay(0)">امروز</button><button disabled="@_busy" @onclick="Load">بارگذاری مجدد</button></div>
+        <div class="plan-quick-days"><button disabled="@_busy" @onclick="()=>SelectDay(-1)">دیروز</button><button disabled="@_busy" @onclick="()=>SelectDay(0)">امروز</button><button disabled="@_busy" @onclick="()=>SelectDay(1)">فردا</button><button disabled="@_busy" @onclick="()=>SelectDay(7)">یک هفته بعد</button><button disabled="@_busy" @onclick="Load">بارگذاری مجدد</button></div>
         @if (Editing)
         {
             <label>نوع برنامه<select value="@_exception" @onchange="ChangeMode" disabled="@_busy"><option value="false">برنامهٔ روزانه از این تاریخ</option><option value="true">استثنا فقط برای همین روز</option></select></label>
@@ -15,17 +15,30 @@
     @if (_data is not null)
     {
         @if (_data.Users.Count == 0) { <div class="account-card">برنامه‌ای برای نمایش وجود ندارد. مدیر تولید در فهرست برنامه قرار نمی‌گیرد.</div> }
+        @if (Editing)
+        {
+            <div class="plan-list-heading"><div><h2>برنامهٔ روزانهٔ همکاران</h2><small>تعداد هر وظیفه را با + و − یا ورود مستقیم عدد تعیین کنید. صفر یعنی بدون هدف.</small></div><button disabled="@_busy" @onclick="ClearTargets">صفر کردن تعدادها</button></div>
+        }
         <div class="plan-people">
         @foreach (var person in _data.Users.Where(x => !Editing || x.IsActive))
         {
             <article class="account-card plan-person" @key="person.UserId">
-                <header><div><h2>@person.FullName</h2><small>@person.Title</small></div><span>@(person.IsException ? "استثنای یک‌روزه" : person.HasPlan ? "برنامهٔ روزانه" : "برنامه تعیین نشده")</span></header>
-                @if (person.EffectiveDate.HasValue) { <small>تاریخ اجرا: @PersianDatePicker.Format(person.EffectiveDate.Value)</small> }
+                <header><span class="plan-person-index">@(_data.Users.Where(x => !Editing || x.IsActive).ToList().IndexOf(person) + 1)</span><div><h2>@person.FullName</h2><small>@person.Title</small></div><span class="plan-person-state">@(person.IsException ? "استثنای یک‌روزه" : person.HasPlan ? "برنامهٔ روزانه" : "برنامه تعیین نشده")</span></header>
+                @if (!Editing && person.EffectiveDate.HasValue) { <small>تاریخ اجرا: @PersianDatePicker.Format(person.EffectiveDate.Value)</small> }
                 @if (Editing)
                 {
+                    <div class="plan-task-controls">
                     @foreach (var task in person.Tasks)
-                    { <label class="plan-target">@task.Label<input type="number" min="0" max="100000" step="1" @bind="task.Target" disabled="@_busy" /></label> }
-                    <label class="plan-notes">توضیحات و وظایف روزانه<textarea maxlength="2000" @bind="person.Notes" disabled="@_busy" rows="3"></textarea></label>
+                    {
+                        <div class="plan-target" role="group" aria-label="@($"{task.Label} برای {person.FullName}")"><span>@task.Label</span><span class="plan-stepper" dir="ltr">
+                            <button type="button" aria-label="@($"کاهش {task.Label} برای {person.FullName}")" disabled="@(_busy || task.Target <= 0)" @onclick="()=>Adjust(task, -1)">−</button>
+                            <input aria-label="@($"تعداد {task.Label} برای {person.FullName}")" type="number" min="0" max="100000" step="1" @bind="task.Target" disabled="@_busy" />
+                            <button type="button" aria-label="@($"افزایش {task.Label} برای {person.FullName}")" disabled="@(_busy || task.Target >= 100000)" @onclick="()=>Adjust(task, 1)">+</button>
+                        </span></div>
+                    }
+                    @if (person.Tasks.Count == 0) { <small class="plan-no-tasks">وظایف این همکار را در توضیحات وارد کنید.</small> }
+                    </div>
+                    <details class="plan-notes"><summary>توضیحات @(!string.IsNullOrWhiteSpace(person.Notes) ? "•" : "")</summary><label>توضیحات و وظایف روزانهٔ @person.FullName<textarea maxlength="2000" @bind="person.Notes" disabled="@_busy" rows="2"></textarea></label></details>
                 }
                 else
                 {
@@ -41,7 +54,7 @@
         </div>
         @if (Editing)
         {
-            <footer class="account-card plan-save"><label>تاریخ اجرا<PersianDatePicker Value="_date" ValueChanged="ChangeEffectiveDate" /></label><button class="plan-primary primary-action" disabled="@(_busy || !_data.Users.Any(x=>x.IsActive))" @onclick="Save">@(_exception ? "تأیید استثنای همین روز" : "تأیید برنامهٔ روزانه")</button><small>تغییر تاریخ اجرای این بخش، تعدادها و توضیحات واردشده را حفظ می‌کند. انتخاب تاریخ بالای صفحه یا تغییر نوع برنامه، اطلاعات آن روز را دوباره بارگذاری می‌کند.</small></footer>
+            <footer class="account-card plan-save"><label>تاریخ اجرا<PersianDatePicker Value="_date" ValueChanged="ChangeEffectiveDate" /></label><button type="button" disabled="@_busy" @onclick="ClearTargets">صفر کردن تعدادها</button><button class="plan-primary primary-action" disabled="@(_busy || !_data.Users.Any(x=>x.IsActive))" @onclick="Save">@(_exception ? "تأیید استثنای همین روز" : "تأیید برنامهٔ روزانه")</button><small>تغییر تاریخ اجرای این بخش، تعدادها و توضیحات واردشده را حفظ می‌کند. انتخاب تاریخ بالای صفحه یا تغییر نوع برنامه، اطلاعات آن روز را دوباره بارگذاری می‌کند.</small></footer>
         }
     }
 </section>
@@ -70,6 +83,13 @@
                 task.Target = edited.Tasks.FirstOrDefault(x=>x.Key==task.Key)?.Target ?? task.Target;
         }
         _notice="تاریخ اجرا تغییر کرد؛ تعدادها و توضیحات واردشده حفظ شدند.";
+    }
+    private void Adjust(WorkPlanTaskDto task, int delta) { if (!_busy) task.Target = Math.Clamp(task.Target + delta, 0, 100000); }
+    private void ClearTargets()
+    {
+        if (_busy || _data is null) return;
+        foreach (var person in _data.Users.Where(x => x.IsActive)) foreach (var task in person.Tasks) task.Target = 0;
+        _notice = "تعدادها صفر شدند؛ برای ذخیره، تأیید برنامه را بزنید. توضیحات حفظ شدند.";
     }
     private Task SelectDay(int offset) => ChangeDate(DateTime.UtcNow.AddHours(3.5).Date.AddDays(offset));
     private async Task ChangeMode(ChangeEventArgs e) { _exception = bool.TryParse(e.Value?.ToString(), out var value) && value; await Load(); }
