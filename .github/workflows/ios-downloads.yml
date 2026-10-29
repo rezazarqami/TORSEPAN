@@ -1,0 +1,20 @@
+name: Verify iOS download page
+on:
+  push:
+    branches: [master]
+    paths: ['TORSEPAN.Panel/Components/Pages/AppDownloads*', 'TORSEPAN.Panel/Models/IosDistributionLink.cs', 'tests/IosDownloadsSmoke/**', '.github/workflows/ios-downloads.yml']
+  pull_request:
+    paths: ['TORSEPAN.Panel/Components/Pages/AppDownloads*', 'TORSEPAN.Panel/Models/IosDistributionLink.cs', 'tests/IosDownloadsSmoke/**', '.github/workflows/ios-downloads.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet run --project tests/IosDownloadsSmoke -c Release
+      - run: dotnet build TORSEPAN.Panel -c Release
+      - run: dotnet build TORSEPAN.Panel.Offline -c Release

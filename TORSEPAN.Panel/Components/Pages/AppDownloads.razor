@@ -1,4 +1,5 @@
 @page "/app-downloads"
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 <PageTitle>دانلود اپلیکیشن | تورسپن</PageTitle>
 <section class="navy-management-page app-downloads" dir="rtl">
     <header class="download-heading"><span>TORSEPAN · APPLICATION</span><h1>دانلود اپلیکیشن</h1><p>تورسپن روی گوشی شما</p></header>
@@ -11,10 +12,25 @@
             <small>پس از نصب، با حساب سامانه وارد شوید. استفاده از برنامه به اینترنت نیاز دارد.</small>
         </article>
         <article class="download-card">
-            <div class="platform-heading"><span class="platform-icon" aria-hidden="true">◇</span><div><h2>آیفون</h2><span lang="en" dir="ltr">iOS</span></div><span class="release-status pending">به‌زودی</span></div>
-            <p>نسخهٔ آیفون هنوز آماده نشده است. لینک نصب پس از انتشار در همین صفحه قرار می‌گیرد.</p>
-            <button class="download-action" type="button" disabled>دانلود اپلیکیشن برای iOS</button>
-            <small>در حال حاضر فایل یا لینک نصب iOS در دسترس نیست.</small>
+            <div class="platform-heading"><span class="platform-icon" aria-hidden="true">◇</span><div><h2>آیفون</h2><span lang="en" dir="ltr">iOS</span></div><span class="release-status @(IosInstallUrl is null ? "pending" : "")">@(IosInstallUrl is null ? "در انتظار انتشار" : "آمادهٔ نصب")</span></div>
+            @if (IosInstallUrl is not null)
+            {
+                <p>نسخهٔ آیفون تورسپن؛ با حساب فعلی خود وارد سامانه شوید.</p>
+                <dl><div><dt>سیستم‌عامل</dt><dd>iOS 16.4 و بالاتر</dd></div><div><dt>روش نصب</dt><dd>@(IsTestFlight ? "TestFlight" : "App Store")</dd></div></dl>
+                <a class="download-action" href="@IosInstallUrl" target="_blank" rel="noopener noreferrer">نصب اپلیکیشن برای آیفون <span aria-hidden="true">↓</span></a>
+                <small>@(IsTestFlight ? "ابتدا TestFlight را از App Store نصب کنید؛ سپس با این لینک، تورسپن را نصب کنید." : "این لینک صفحهٔ رسمی تورسپن در App Store را باز می‌کند.") استفاده از برنامه به اینترنت نیاز دارد.</small>
+            }
+            else
+            {
+                <p>نسخهٔ بومی آیفون در انتظار امضا، آزمایش و انتشار اپل است.</p>
+                <button class="download-action" type="button" disabled>لینک نصب آیفون هنوز منتشر نشده</button>
+                <small>پس از انتشار در TestFlight یا App Store، لینک نصب در همین بخش فعال می‌شود.</small>
+            }
         </article>
     </div>
 </section>
+
+@code {
+    private string? IosInstallUrl => IosDistributionLink.Validate(Configuration["AppDownloads:IosInstallUrl"]);
+    private bool IsTestFlight => IosInstallUrl is not null && new Uri(IosInstallUrl).Host.Equals("testflight.apple.com", StringComparison.OrdinalIgnoreCase);
+}

@@ -1,0 +1,43 @@
+name: Torsepan
+options:
+  bundleIdPrefix: ir.torsepan
+  deploymentTarget:
+    iOS: '16.4'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    MARKETING_VERSION: '1.0.0'
+    CURRENT_PROJECT_VERSION: '1'
+    TARGETED_DEVICE_FAMILY: '1,2'
+targets:
+  Torsepan:
+    type: application
+    platform: iOS
+    sources: [Torsepan]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ir.torsepan.mobile
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Torsepan
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: 'برای ثبت تصویر ساز و بارگذاری در تورسپن.'
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: 'برای انتخاب تصویر ساز در تورسپن.'
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+  TorsepanTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: Torsepan
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Torsepan:
+    build:
+      targets:
+        Torsepan: all
+    test:
+      targets: [TorsepanTests]
