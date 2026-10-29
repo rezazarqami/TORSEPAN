@@ -19,8 +19,8 @@ android {
         applicationId 'ir.torsepan.mobile.online'
         minSdk 29
         targetSdk 34
-        versionCode 1
-        versionName '1.0.0-online'
+        versionCode 2
+        versionName '1.0.1-online'
     }
     sourceSets.main.java.srcDir sharedPush
     sourceSets.main.res.srcDir '../app/src/main/res'

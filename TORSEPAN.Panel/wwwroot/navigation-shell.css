@@ -20,7 +20,7 @@ body .layout.theme-shell .content .production-detail-surface {
 }
 /* Four equal touch targets, in the reference's left-to-right order. */
 body .theme-shell .bottom-navigation {
-    position: fixed; z-index: 1045; inset: auto 0 0; direction: ltr;
+    position: fixed; z-index: 1060; inset: auto 0 var(--tp-viewport-bottom, 0px); direction: ltr;
     display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
     min-height: var(--tp-dock-height); padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
     border: 1px solid #749fc6; border-radius: 24px 24px 0 0;
@@ -508,4 +508,8 @@ body .layout.theme-shell .main .content :is(.sale-dialog,.edit-sale-dialog) :is(
 body .layout.theme-shell .main:has(.sale-overlay),body .layout.theme-shell .main:has(.edit-sale-overlay){z-index:10001}
 @media(max-width:359px){body .layout.theme-shell .main .content .sale-money-group{grid-template-columns:72px minmax(0,1fr)}body .layout.theme-shell .main .content .sale-money-input{grid-template-columns:minmax(0,1fr) 90px}body .layout.theme-shell .main .content :is(.sale-fields,.edit-sale-fields){gap:6px;padding:8px}}
 
-@media(max-width:900px){html.mobile-input-active body .theme-shell .bottom-navigation{display:none!important}}
+/* Keep navigation accessible while typing, including WebViews whose keyboard
+   shrinks only the visual viewport. mobile-input.js supplies the bottom inset. */
+html:has(.theme-shell), body .layout.theme-shell > .main {
+    scroll-padding-bottom: calc(var(--tp-dock-height, 82px) + env(safe-area-inset-bottom, 0px) + 20px);
+}

@@ -2,6 +2,7 @@
 """Verify the shipped online package cannot contain the offline workshop implementation."""
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import zipfile
@@ -15,6 +16,8 @@ assert 'ir.torsepan.mobile.online.firebaseinitprovider' in manifest
 assert 'FOREGROUND_SERVICE' not in manifest
 assert 'OfflineSyncJob' not in manifest
 assert 'POST_NOTIFICATIONS' in manifest
+assert 'android:label' in manifest and '"Torsepan"' in manifest, 'online launcher label must be exactly Torsepan'
+assert re.search(r'android:windowSoftInputMode[^\n]*0x10\b', manifest), 'online WebView must resize for the keyboard'
 if '--release' in sys.argv:
     assert 'android:debuggable' not in manifest
 with zipfile.ZipFile(apk) as contents:

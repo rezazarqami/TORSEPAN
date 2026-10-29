@@ -8,10 +8,15 @@
 <WorkspacePhotoHero CssClass="account-hero" Kind="account" Title="ناحیهٔ کاربری" Eyebrow="TORSEPAN · MY ACCOUNT" Description='@((_profile?.FullName ?? "همکار تورسپن") + " · عملکرد و تنظیمات حساب شما")' />
 <nav class="account-tabs" aria-label="بخش‌های ناحیهٔ کاربری">
     <button class="@(_section == AccountSection.Performance ? "active" : "")" aria-pressed="@(_section == AccountSection.Performance)" @onclick="()=>_section=AccountSection.Performance">عملکرد من</button>
+    <button class="@(_section == AccountSection.WorkPlan ? "active" : "")" aria-pressed="@(_section == AccountSection.WorkPlan)" @onclick="()=>_section=AccountSection.WorkPlan">برنامهٔ کاری من</button>
     <button class="@(_section == AccountSection.Payroll ? "active" : "")" aria-pressed="@(_section == AccountSection.Payroll)" @onclick="()=>_section=AccountSection.Payroll">دستمزد من</button>
     <button class="@(_section == AccountSection.Security ? "active" : "")" aria-pressed="@(_section == AccountSection.Security)" @onclick="()=>_section=AccountSection.Security">تنظیمات امنیتی</button>
 </nav>
-@if (_section == AccountSection.Security)
+@if (_section == AccountSection.WorkPlan)
+{
+    <WorkPlanBoard Mine="true" />
+}
+else if (_section == AccountSection.Security)
 {
     @if (_profileError is not null) { <div class="account-alert error" role="alert">@_profileError</div> }
     @if (_notice is not null) { <div class="account-alert success" role="status">@_notice</div> }
@@ -91,7 +96,7 @@ else
     private MyPayrollDto? _payroll;
     private OwnProfileDto? _profile;
     private bool _loading,_busy;
-    private enum AccountSection { Performance, Payroll, Security }
+    private enum AccountSection { Performance, WorkPlan, Payroll, Security }
     private AccountSection _section = AccountSection.Performance;
     private readonly string _avatarInputId = $"profile-photo-{Guid.NewGuid():N}";
     private string? _error,_profileError,_notice,_payrollError;

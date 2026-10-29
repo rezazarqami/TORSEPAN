@@ -189,8 +189,8 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapMethods("/downloads/torsepan-android.apk", new[] { "GET", "HEAD" }, (HttpContext context, IWebHostEnvironment environment) =>
 {
     context.Response.Headers.CacheControl = "no-cache";
-    var path = Path.Combine(environment.ContentRootPath, "AppPackages", "torsepan-online-1.0.0.apk");
-    return Results.File(path, "application/vnd.android.package-archive", "Torsepan-Online-1.0.0.apk", enableRangeProcessing: true);
+    var path = Path.Combine(environment.ContentRootPath, "AppPackages", "torsepan-online-1.0.1.apk");
+    return Results.File(path, "application/vnd.android.package-archive", "Torsepan-1.0.1.apk", enableRangeProcessing: true);
 });
 
 app.MapPost("/api/internal/handpans/{handpanId:guid}/photos", async (

@@ -32,7 +32,7 @@ internal static class UiSmoke
    async Task Save(string name){if(output is not null)await File.WriteAllTextAsync(Path.Combine(output,name+".html"),rendered.ToHtmlString());}
    Check(Html().Contains("ناحیهٔ کاربری")&&Html().Contains("عملکرد من")&&Html().Contains("تنظیمات امنیتی"),"account hero and performance/security tabs render");
    Check(Html().Contains("activity-log")&&Html().Contains("کد بلند")&&!Html().Contains("<table"),"performance records use compact cards instead of a wide table");
-   Check(Html().Contains("دستمزد من") && !Html().Contains("payroll-total"),"three account tabs remain visible without exposing disabled payroll");await Save("performance");
+   Check(Html().Contains("دستمزد من") && Html().Contains("برنامهٔ کاری من") && !Html().Contains("payroll-total"),"four account tabs remain visible without exposing disabled payroll");await Save("performance");
    page.Section("Payroll");page.Refresh();Check(Html().Contains("نمایش دستمزد برای حساب شما فعال نیست")&&!Html().Contains("activity-log"),"disabled payroll tab gives a permission message without showing activity");
    api.PayrollEnabled=true;await page.Call("Load",1);page.Refresh();Check(Html().Contains("payroll-total")&&Html().Contains("120,000")&&!Html().Contains("activity-log"),"payroll is a separate tab with totals and lines");await Save("payroll");
    page.Section("Performance");page.Refresh();Check(Html().Contains("activity-log")&&!Html().Contains("payroll-total"),"performance tab no longer embeds payroll");

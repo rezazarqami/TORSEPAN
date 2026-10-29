@@ -13,6 +13,7 @@ public class TORSEPANDbContext : DbContext
     public DbSet<OfflineDevice> OfflineDevices => Set<OfflineDevice>();
     public DbSet<OfflineReceipt> OfflineReceipts => Set<OfflineReceipt>();
 
+    public DbSet<WorkPlan> WorkPlans => Set<WorkPlan>();
     public DbSet<User> Users => Set<User>();
     public DbSet<MessagePushKeys> MessagePushKeys => Set<MessagePushKeys>();
     public DbSet<MessagePushSubscription> MessagePushSubscriptions => Set<MessagePushSubscription>();
@@ -72,6 +73,15 @@ public class TORSEPANDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<WorkPlan>(b => {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.EffectiveDate).HasColumnType("date");
+            b.Property(x => x.TasksJson).HasMaxLength(12000);
+            b.Property(x => x.Notes).HasMaxLength(2000);
+            b.Property(x => x.Revision).IsConcurrencyToken();
+            b.HasIndex(x => new { x.UserId, x.EffectiveDate, x.IsException }).IsUnique();
+            b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
 
         modelBuilder.Entity<OfflineDevice>().ToTable("OfflineDevices", t => t.HasCheckConstraint("CK_OfflineDevices_Singleton", "\"Id\" = 1"));
         modelBuilder.Entity<OfflineDevice>().HasKey(x => x.Id);

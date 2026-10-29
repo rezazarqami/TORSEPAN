@@ -1,0 +1,106 @@
+@inject ApiClient Api
+<section class="work-plan-board" dir="rtl">
+    <div class="plan-toolbar account-card">
+        <label>@(Editing ? "تاریخ اجرای برنامه" : "تاریخ برنامه")<PersianDatePicker Value="_date" ValueChanged="ChangeDate" /></label>
+        <div class="plan-quick-days"><button disabled="@_busy" @onclick="()=>SelectDay(-1)">دیروز</button><button disabled="@_busy" @onclick="()=>SelectDay(0)">امروز</button><button disabled="@_busy" @onclick="Load">بارگذاری مجدد</button></div>
+        @if (Editing)
+        {
+            <label>نوع برنامه<select value="@_exception" @onchange="ChangeMode" disabled="@_busy"><option value="false">برنامهٔ روزانه از این تاریخ</option><option value="true">استثنا فقط برای همین روز</option></select></label>
+            <p>برنامهٔ روزانه تا شروع برنامهٔ روزانهٔ بعدی معتبر است. استثنا فقط همان روز را تغییر می‌دهد. عدد صفر یعنی هدفی تعیین نشده است.</p>
+        }
+    </div>
+    @if (_error is not null) { <div class="plan-message error" role="alert">@_error</div> }
+    @if (_notice is not null) { <div class="plan-message" role="status">@_notice</div> }
+    @if (_busy) { <p role="status">در حال دریافت یا ذخیرهٔ برنامه…</p> }
+    @if (_data is not null)
+    {
+        @if (_data.Users.Count == 0) { <div class="account-card">برنامه‌ای برای نمایش وجود ندارد. مدیر تولید در فهرست برنامه قرار نمی‌گیرد.</div> }
+        <div class="plan-people">
+        @foreach (var person in _data.Users.Where(x => !Editing || x.IsActive))
+        {
+            <article class="account-card plan-person" @key="person.UserId">
+                <header><div><h2>@person.FullName</h2><small>@person.Title</small></div><span>@(person.IsException ? "استثنای یک‌روزه" : person.HasPlan ? "برنامهٔ روزانه" : "برنامه تعیین نشده")</span></header>
+                @if (person.EffectiveDate.HasValue) { <small>تاریخ اجرا: @PersianDatePicker.Format(person.EffectiveDate.Value)</small> }
+                @if (Editing)
+                {
+                    @foreach (var task in person.Tasks)
+                    { <label class="plan-target">@task.Label<input type="number" min="0" max="100000" step="1" @bind="task.Target" disabled="@_busy" /></label> }
+                    <label class="plan-notes">توضیحات و وظایف روزانه<textarea maxlength="2000" @bind="person.Notes" disabled="@_busy" rows="3"></textarea></label>
+                }
+                else
+                {
+                    @foreach (var task in person.Tasks)
+                    {
+                        <div class="plan-result"><strong>@task.Label</strong><span>هدف: @(person.HasPlan ? task.Target.ToString() : "—")</span><span>انجام‌شده: @task.Actual</span><b class="@(task.Passed == true ? "passed" : task.Passed == false ? "failed" : "neutral")">@(task.Passed == true ? "✓ تکمیل" : task.Passed == false ? "✕ تکمیل نشده" : "بدون هدف")</b></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(person.Notes)) { <p class="plan-note-text">@person.Notes</p> }
+                    @if (person.Tasks.Count == 0) { <small>وظایف این همکار در توضیحات مشخص می‌شود.</small> }
+                }
+            </article>
+        }
+        </div>
+        @if (Editing)
+        {
+            <footer class="account-card plan-save"><label>تاریخ اجرا<PersianDatePicker Value="_date" ValueChanged="ChangeEffectiveDate" /></label><button class="plan-primary primary-action" disabled="@(_busy || !_data.Users.Any(x=>x.IsActive))" @onclick="Save">@(_exception ? "تأیید استثنای همین روز" : "تأیید برنامهٔ روزانه")</button><small>تغییر تاریخ اجرای این بخش، تعدادها و توضیحات واردشده را حفظ می‌کند. انتخاب تاریخ بالای صفحه یا تغییر نوع برنامه، اطلاعات آن روز را دوباره بارگذاری می‌کند.</small></footer>
+        }
+    }
+</section>
+@code {
+    [Parameter] public bool Editing { get; set; }
+    [Parameter] public bool Mine { get; set; }
+    private DateTime? _date = DateTime.UtcNow.AddHours(3.5).Date;
+    private bool _exception, _busy;
+    private WorkPlanDayDto? _data;
+    private string? _error, _notice;
+    protected override Task OnInitializedAsync() => Load();
+    private async Task ChangeDate(DateTime? date) { if (_busy) return; _date = date; await Load(); }
+    private async Task ChangeEffectiveDate(DateTime? date)
+    {
+        if (_busy) return;
+        if (!date.HasValue) { _error="تاریخ اجرا را انتخاب کنید."; return; }
+        var previous = _data; var previousDate = _date;
+        _date = date; await Load();
+        if (_data is null) { _data=previous; _date=previousDate; return; }
+        foreach (var person in _data.Users)
+        {
+            var edited = previous?.Users.FirstOrDefault(x=>x.UserId==person.UserId);
+            if (edited is null) continue;
+            person.Notes = edited.Notes;
+            foreach (var task in person.Tasks)
+                task.Target = edited.Tasks.FirstOrDefault(x=>x.Key==task.Key)?.Target ?? task.Target;
+        }
+        _notice="تاریخ اجرا تغییر کرد؛ تعدادها و توضیحات واردشده حفظ شدند.";
+    }
+    private Task SelectDay(int offset) => ChangeDate(DateTime.UtcNow.AddHours(3.5).Date.AddDays(offset));
+    private async Task ChangeMode(ChangeEventArgs e) { _exception = bool.TryParse(e.Value?.ToString(), out var value) && value; await Load(); }
+    private async Task Load()
+    {
+        if (_busy) return;
+        _error = _notice = null; _data = null;
+        if (!_date.HasValue) { _error = "تاریخ را انتخاب کنید."; return; }
+        _busy = true;
+        try
+        {
+            _data = await Api.GetAsync<WorkPlanDayDto>($"work-plans{(Mine ? "/mine" : "")}?date={_date.Value.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}&recurringOnly={Editing && !_exception}") ?? throw new InvalidOperationException();
+            if (Editing) foreach (var person in _data.Users)
+                person.Tasks = person.Options.Select(o => new WorkPlanTaskDto { Key=o.Key, Label=o.Label, Target=person.Tasks.FirstOrDefault(t=>t.Key==o.Key)?.Target ?? 0 }).ToList();
+        }
+        catch { _error = "دریافت برنامه انجام نشد. اتصال به سامانهٔ آنلاین را بررسی و دوباره تلاش کنید."; }
+        finally { _busy = false; }
+    }
+    private async Task Save()
+    {
+        if (_busy || _data is null || !_date.HasValue) return;
+        var people = _data.Users.Where(x=>x.IsActive).ToArray();
+        if (people.Any(p=>p.Tasks.Any(t=>t.Target<0 || t.Target>100000))) { _error="تعدادها باید بین صفر تا ۱۰۰۰۰۰ باشند."; return; }
+        _busy=true; _error=_notice=null;
+        try
+        {
+            await Api.PutAccountAsync<object,object>("work-plans",new { Date=_date.Value, IsException=_exception,
+                Users=people.Select(p=>new {p.UserId,p.Revision,p.Notes,Tasks=p.Tasks.Select(t=>new {t.Key,t.Label,t.Target})}) });
+            _busy=false; await Load(); _notice="برنامه با موفقیت ذخیره شد.";
+        }
+        catch (Exception e) { _error=e is AccountActionException ? e.Message : "ذخیره انجام نشد؛ دوباره تلاش کنید."; }
+        finally { _busy=false; }
+    }
+}

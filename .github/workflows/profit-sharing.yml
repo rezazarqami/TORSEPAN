@@ -38,6 +38,10 @@ jobs:
         env:
           PROFIT_PLAYWRIGHT: /tmp/profit-browser/node_modules/playwright
         run: node tests/production-search-layout.cjs
+      - name: Verify persistent navigation while typing and switching pages
+        env:
+          PROFIT_PLAYWRIGHT: /tmp/profit-browser/node_modules/playwright
+        run: node tests/persistent-navigation.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

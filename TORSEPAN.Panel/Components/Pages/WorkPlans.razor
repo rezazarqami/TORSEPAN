@@ -1,0 +1,9 @@
+@page "/work-plans"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles="Administrator,ProductionManager")]
+<PageTitle>مدیریت برنامهٔ کاری | تورسپن</PageTitle>
+<div class="navy-management-page work-plans-page" dir="rtl">
+    <header class="work-plan-heading"><span>TORSEPAN · WORK PLANS</span><h1>مدیریت برنامهٔ کاری</h1><p>برنامه‌ریزی روزانه و بررسی عملکرد همکاران</p></header>
+    <nav class="work-plan-tabs" aria-label="بخش‌های برنامهٔ کاری"><button class="@(!_report ? "active" : "")" @onclick="()=>_report=false">تنظیم برنامهٔ کاری</button><button class="@(_report ? "active" : "")" @onclick="()=>_report=true">گزارش تحقق برنامه</button></nav>
+    <WorkPlanBoard @key="_report" Editing="@(!_report)" />
+</div>
+@code { private bool _report; }

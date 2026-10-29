@@ -19,6 +19,8 @@ jobs:
         run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --bowl-code-only
       - name: Verify role policies
         run: dotnet run --project tests/AccessSmoke/AccessSmoke.csproj -c Release
+      - name: Verify dated work plans, exceptions, reports and access
+        run: dotnet run --project tests/WorkPlansSmoke/WorkPlansSmoke.csproj -c Release
       - name: Verify startup splash handoff
         run: node tests/startup-splash.cjs
       - name: Verify backup relay acknowledgements and failures

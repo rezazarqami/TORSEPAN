@@ -17,9 +17,10 @@ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p
  const ib=await input.boundingBox(),bb=await button.boundingBox();assert(bb.x>=ib.x+ib.width-1,'search button is on the right');
  assert.equal(await input.evaluate(e=>getComputedStyle(e).textAlign),'left');
  await input.focus();await page.setViewportSize({width,height:400});
- await page.waitForFunction(()=>getComputedStyle(document.querySelector('.bottom-navigation')).display==='none');
- await page.waitForFunction(()=>{const b=document.querySelector('#passport-code').getBoundingClientRect();return b.top>=0&&b.bottom<=innerHeight});
+ await page.waitForFunction(()=>getComputedStyle(document.querySelector('.bottom-navigation')).display==='grid');
+ await page.waitForFunction(()=>{const b=document.querySelector('#passport-code').getBoundingClientRect();return b.top>=0&&b.bottom<=document.querySelector('.bottom-navigation').getBoundingClientRect().top});
  await input.evaluate(e=>{e.setSelectionRange(e.value.length,e.value.length)});await page.keyboard.press('Backspace');assert.equal(await input.inputValue(),'S2015');
+ const dock=await page.locator('.bottom-navigation').boundingBox();assert(Math.abs(dock.y+dock.height-400)<2,'dock stays at the visible bottom while typing');
  await input.blur();await page.waitForFunction(()=>getComputedStyle(document.querySelector('.bottom-navigation')).display!=='none');
  console.log('PASS search and keyboard viewport',width);
  }
