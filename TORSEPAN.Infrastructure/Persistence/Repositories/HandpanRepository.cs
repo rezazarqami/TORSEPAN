@@ -44,6 +44,7 @@ public class HandpanRepository
     {
         return await _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Where(x => x.Stage == ProductionStage.FinishedWarehouse)
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.TopBowl)
@@ -97,6 +98,7 @@ public class HandpanRepository
     {
         return await _dbSet
             .AsNoTracking()
+            .AsSplitQuery()
             .Where(x => x.Stage != ProductionStage.FinishedWarehouse && x.Stage != ProductionStage.Sold)
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.TopBowl)

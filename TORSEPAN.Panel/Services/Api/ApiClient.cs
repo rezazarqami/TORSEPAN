@@ -14,6 +14,8 @@ public class ApiClient
     private readonly HttpClient _http;
     private readonly TokenStorage _tokenStorage;
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
+    private readonly LookupResponseCache _lookups = new();
+    private static readonly JsonSerializerOptions ResponseJson = new(JsonSerializerDefaults.Web);
 
     public ApiClient(HttpClient http, TokenStorage tokenStorage)
     {
@@ -42,10 +44,22 @@ public class ApiClient
     public Task<bool> RefreshAfterUnauthorizedAsync(string? failedAccessToken) =>
         TryRefreshAsync(failedAccessToken);
 
-    public async Task<T?> GetAsync<T>(string url)
+    public async Task<T?> GetAsync<T>(string url, bool forceRefresh = false)
     {
-        var response = await SendWithRefreshAsync(() => _http.GetAsync(url));
-        return await ReadResponseAsync<T>(response);
+        if (forceRefresh) _lookups.Clear();
+        // Only small catalogs are cached; operational and financial data stay live.
+        if (url is "scales" or "scales/legacy-top-bowls" or "designs/types" or "instrument-warehouses")
+        {
+            var token = await _tokenStorage.GetAccessTokenAsync();
+            return await _lookups.GetAsync<T>(token ?? "", url, async () =>
+            {
+                using var response = await SendWithRefreshAsync(() => _http.GetAsync(url), isReadOnly: true);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStringAsync();
+            });
+        }
+        using var liveResponse = await SendWithRefreshAsync(() => _http.GetAsync(url), isReadOnly: true);
+        return await ReadResponseAsync<T>(liveResponse);
     }
 
     public async Task<TResult?> PostAsync<TRequest, TResult>(
@@ -141,13 +155,13 @@ public class ApiClient
 
     public async Task DeleteAsync(string url)
     {
-        var response = await SendWithRefreshAsync(() => _http.DeleteAsync(url));
+        using var response = await SendWithRefreshAsync(() => _http.DeleteAsync(url));
         response.EnsureSuccessStatusCode();
     }
 
     public async Task<byte[]> GetBytesAsync(string url)
     {
-        var response = await SendWithRefreshAsync(() => _http.GetAsync(url));
+        using var response = await SendWithRefreshAsync(() => _http.GetAsync(url), isReadOnly: true);
         response.EnsureSuccessStatusCode(); return await response.Content.ReadAsByteArrayAsync();
     }
 
@@ -155,7 +169,7 @@ public class ApiClient
     {
         async Task<HttpResponseMessage> Send()
         {
-            var form = new MultipartFormDataContent();
+            using var form = new MultipartFormDataContent();
             var file = new ByteArrayContent(image); file.Headers.ContentType = new MediaTypeHeaderValue("image/webp");
             var thumb = new ByteArrayContent(thumbnail); thumb.Headers.ContentType = new MediaTypeHeaderValue("image/webp");
             form.Add(file, "file", fileName + ".webp"); form.Add(thumb, "thumbnail", fileName + "-thumb.webp"); return await _http.PostAsync(url, form);
@@ -166,7 +180,19 @@ public class ApiClient
 
     private async Task<HttpResponseMessage> SendWithRefreshAsync(
         Func<Task<HttpResponseMessage>> send,
-        bool allowRefresh = true)
+        bool allowRefresh = true, bool isReadOnly = false)
+    {
+        if (!isReadOnly) _lookups.Clear();
+        try { return await SendCoreAsync(send, allowRefresh); }
+        finally
+        {
+            // Discard reads started while a write was in flight as well.
+            if (!isReadOnly) _lookups.Clear();
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendCoreAsync(
+        Func<Task<HttpResponseMessage>> send, bool allowRefresh)
     {
         var accessToken = await _tokenStorage.GetAccessTokenAsync();
         SetBearerToken(accessToken);
@@ -201,7 +227,7 @@ public class ApiClient
             if (string.IsNullOrWhiteSpace(refreshToken))
                 return false;
 
-            var response = await _http.PostAsJsonAsync(
+            using var response = await _http.PostAsJsonAsync(
                 ApiEndpoints.Refresh,
                 new RefreshTokenRequest { RefreshToken = refreshToken });
 
@@ -234,6 +260,7 @@ public class ApiClient
     private static async Task<TResult?> ReadResponseAsync<TResult>(
         HttpResponseMessage response)
     {
+        using var ownedResponse = response;
         response.EnsureSuccessStatusCode();
 
         if (response.StatusCode == HttpStatusCode.NoContent ||
@@ -247,7 +274,7 @@ public class ApiClient
 
         return JsonSerializer.Deserialize<TResult>(
             content,
-            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            ResponseJson);
     }
 }
 

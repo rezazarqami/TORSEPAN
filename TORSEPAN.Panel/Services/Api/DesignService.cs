@@ -2,7 +2,7 @@ using TORSEPAN.Panel.Models;
 namespace TORSEPAN.Panel.Services.Api;
 public sealed class DesignService(ApiClient api)
 {
-    public async Task<List<DesignTypeDto>> GetTypesAsync()=>await api.GetAsync<List<DesignTypeDto>>("designs/types")??[];
+    public async Task<List<DesignTypeDto>> GetTypesAsync(bool forceRefresh = false)=>await api.GetAsync<List<DesignTypeDto>>("designs/types", forceRefresh)??[];
     public async Task<List<DesignUserDto>> GetUsersAsync()=>await api.GetAsync<List<DesignUserDto>>("designs/users")??[];
     public Task<BowlDesignLookupDto?> GetBowlAsync(string code)=>api.GetAsync<BowlDesignLookupDto>($"designs/bowls/{Uri.EscapeDataString(code)}");
     public Task AddTypeAsync(string name,decimal rate,decimal exportRate)=>api.PostAsync<object,object?>("designs/types",new{Name=name,Rate=rate,ExportRate=exportRate});

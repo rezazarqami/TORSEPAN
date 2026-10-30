@@ -31,6 +31,27 @@ static class BackendChecks
         var actor=new User("warehouse-fixture","مدیر آزمایشی");var material=new Material("Ember Steel",MaterialCategory.BowlMaterial);material.SetBowlStock(20,20);var scale=new Scale("D Kurd 9",ScaleUsage.All);db.AddRange(actor,material,scale);await db.SaveChangesAsync();
         Handpan Add(string code,ProductionStage stage){var top=new Bowl(code,BowlType.Top,true,InstrumentType.Standard,material.Id);var bottom=new Bowl(code+"-B",BowlType.Bottom,false,InstrumentType.Standard,material.Id);top.ChangeStage(stage);bottom.ChangeStage(stage);var a=new HandpanAssembly(top.Id,bottom.Id);var h=new Handpan(a.Id,code,scale.Id);h.ChangeStage(stage);db.AddRange(top,bottom,a,h);return h;}
         var stock1=Add("ST-001",ProductionStage.FinishedWarehouse);var stock2=Add("ST-002",ProductionStage.FinishedWarehouse);var pending=Add("ST-QC",ProductionStage.WaitingForQualityControl);var sold=Add("ST-SOLD",ProductionStage.Sold);await db.SaveChangesAsync();db.ChangeTracker.Clear();
+        // Multiple event collections must survive split reads without duplicates.
+        foreach (var instrument in new[] { stock1, pending })
+        {
+            var assembly = await db.HandpanAssemblies.SingleAsync(x => x.Id == instrument.AssemblyId);
+            for (var i = 0; i < 3; i++)
+            {
+                db.Add(new ProductionEvent(instrument.Id, null, null, actor.Id, ProductionAction.Tune, EventResult.Completed, null, "fixture"));
+                db.Add(new ProductionEvent(null, null, assembly.TopBowlId, actor.Id, ProductionAction.Shape, EventResult.Completed, null, "fixture"));
+                db.Add(new ProductionEvent(null, null, assembly.BottomBowlId, actor.Id, ProductionAction.Shape, EventResult.Completed, null, "fixture"));
+            }
+        }
+        await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+        var repository = new HandpanRepository(db);
+        var activeRead = (await repository.GetAllWithAssemblyAsync()).Single(x => x.Id == pending.Id);
+        var stockRead = (await repository.GetWarehouseInventoryAsync()).Single(x => x.Id == stock1.Id);
+        foreach (var instrument in new[] { activeRead, stockRead })
+            Check(instrument.ProductionEvents.Count == 3 && instrument.Assembly.TopBowl.ProductionEvents.Count == 3 &&
+                instrument.Assembly.BottomBowl.ProductionEvents.Count == 3 &&
+                instrument.ProductionEvents.All(x => x.User.UserName == actor.UserName),
+                "split inventory reads preserve all event collections and performer details");
+        Check(!db.ChangeTracker.Entries().Any(), "inventory reads do not retain tracked entity graphs");
         Check(await db.Handpans.AllAsync(x=>x.QualityWarehouseId==1),"existing/default instruments belong to Economy");
         var http=new HttpContextAccessor{HttpContext=new DefaultHttpContext{User=new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,actor.Id.ToString()),new Claim(ClaimTypes.Role,"Administrator")},"fixture"))}};
         var uow=new UnitOfWork(db,new UserRepository(db),new RoleRepository(db),new UserRoleRepository(db),new RefreshTokenRepository(db),new HandpanRepository(db),new HandpanAssemblyRepository(db),new BowlRepository(db),new MaterialRepository(db),new ScaleRepository(db),new ProductionEventRepository(db));

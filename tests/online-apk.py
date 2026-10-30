@@ -12,6 +12,12 @@ sdk = pathlib.Path(os.environ['ANDROID_HOME'])
 aapt = sdk / 'build-tools/35.0.0/aapt'
 manifest = subprocess.check_output([str(aapt), 'dump', 'xmltree', str(apk), 'AndroidManifest.xml'], text=True)
 assert 'package="ir.torsepan.mobile.online"' in manifest
+config = (pathlib.Path(__file__).resolve().parents[1] / 'android/online/build.gradle').read_text()
+expected_code = int(re.search(r'versionCode\s+(\d+)', config).group(1))
+expected_name = re.search(r"versionName\s+'([^']+)'", config).group(1)
+assert re.search(r'android:versionCode[^\n]*0x' + format(expected_code, 'x') + r'\b', manifest), 'APK versionCode differs from source'
+assert expected_name in manifest, 'APK versionName differs from source'
+
 assert 'ir.torsepan.mobile.online.firebaseinitprovider' in manifest
 assert 'FOREGROUND_SERVICE' not in manifest
 assert 'OfflineSyncJob' not in manifest

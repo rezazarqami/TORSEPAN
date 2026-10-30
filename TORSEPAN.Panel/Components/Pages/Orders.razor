@@ -272,7 +272,7 @@ else
     private async Task RefreshCatalogAsync()
     {
         if(_catalogLoading)return;_catalogLoading=true;
-        try {var scales=ScaleService.GetAsync();var designs=DesignService.GetTypesAsync();await Task.WhenAll(scales,designs);_scales=(await scales).Where(x=>(x.Usage&InstrumentScaleUsage)!=0).OrderBy(x=>x.Name).ToList();_designs=(await designs).OrderBy(x=>x.Name).ToList();}
+        try {var scales=ScaleService.GetAsync(forceRefresh:true);var designs=DesignService.GetTypesAsync(forceRefresh:true);await Task.WhenAll(scales,designs);_scales=(await scales).Where(x=>(x.Usage&InstrumentScaleUsage)!=0).OrderBy(x=>x.Name).ToList();_designs=(await designs).OrderBy(x=>x.Name).ToList();}
         catch{ShowError("فهرست دیزاین‌ها و اسکیل‌ها به‌روز نشد.");}finally{_catalogLoading=false;}
     }
     private async Task RefreshAsync(){if(_refreshing)return;_refreshing=true;try{_orders=(await OrderService.GetAsync()).ToList();_now=DateTime.UtcNow;}catch{ShowError("به‌روزرسانی انجام نشد؛ اطلاعات قبلی نمایش داده می‌شود.");}finally{_refreshing=false;}}

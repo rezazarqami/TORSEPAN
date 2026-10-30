@@ -138,6 +138,7 @@ app.MapGet("/health", async (DatabaseBackupStatus backup, TelegramAlertStatus al
 {
     databaseMigration = (await db.Database.GetAppliedMigrationsAsync()).LastOrDefault(),
     status = "healthy",
+    release = TORSEPAN.Application.ReleaseInfo.Version,
     telegram = new
     {
         relayConfigured = !string.IsNullOrWhiteSpace(configuration["Telegram:RelayUrl"]),

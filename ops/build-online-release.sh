@@ -6,7 +6,7 @@ export ANDROID_HOME=${1:?Pass Android SDK directory}
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export TORSEPAN_ANDROID_KEYSTORE=${2:?Pass the existing signing keystore}
 previous=${3:?Pass the previously shipped signed online APK}
-out=${4:-"$repo/TORSEPAN.Panel/AppPackages/torsepan-online-1.0.1.apk"}
+out=${4:-"$repo/TORSEPAN.Panel/AppPackages/torsepan-online-1.0.2.apk"}
 signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
 [[ -f "$TORSEPAN_ANDROID_KEYSTORE" && -f "$previous" ]] || { echo 'Signing keystore or previous APK not found.' >&2; exit 1; }
 (cd "$repo/android" && "${GRADLE:-gradle}" :online:assembleRelease --no-daemon)

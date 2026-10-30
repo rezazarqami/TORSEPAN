@@ -7,8 +7,8 @@ public sealed class ScaleService
     private readonly ApiClient _api;
     public ScaleService(ApiClient api) => _api = api;
 
-    public async Task<IReadOnlyList<ScaleDto>> GetAsync() =>
-        await _api.GetAsync<List<ScaleDto>>("scales") ?? [];
+    public async Task<IReadOnlyList<ScaleDto>> GetAsync(bool forceRefresh = false) =>
+        await _api.GetAsync<List<ScaleDto>>("scales", forceRefresh) ?? [];
 
     public async Task<IReadOnlyList<LegacyTopBowlScaleDto>> GetLegacyTopBowlsAsync() =>
         await _api.GetAsync<List<LegacyTopBowlScaleDto>>("scales/legacy-top-bowls") ?? [];

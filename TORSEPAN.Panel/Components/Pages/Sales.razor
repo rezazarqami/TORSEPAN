@@ -175,7 +175,7 @@ else
     private string SegmentClass(int segment)=>_saleSegment==segment?"sales-segment active":"sales-segment";
     private static string ShippingName(string? value)=>value switch{"air"=>"هوایی","land"=>"زمینی","sea"=>"دریایی",_=>"ثبت نشده"};
     private static string SettledName(bool? value)=>value switch{true=>"تسویه شده",false=>"تسویه نشده",_=>"ثبت نشده"};
-    protected override async Task OnInitializedAsync(){_attribution=await AttributionService.OptionsAsync();await LoadAsync();}
+    protected override async Task OnInitializedAsync(){var attribution=AttributionService.OptionsAsync();await Task.WhenAll(attribution,LoadAsync());_attribution=await attribution;}
     private async Task LoadAsync(){_loading=true;try{var sales=ProductionService.GetSalesAsync();var parties=AccountingService.PartiesAsync();await Task.WhenAll(sales,parties);_items=(await sales).ToList();_parties=await parties;}finally{_loading=false;}}
     private void Edit(SaleItemDto item){_editing=item;_buyer=item.BuyerName;_buyerPhone=item.BuyerPhoneNumber;_isExportSale=item.IsExportSale;_destination=item.Destination;_price=item.Price;_priceCurrency=item.PriceCurrency;_netProfit=item.NetProfit;_profitCurrency=item.ProfitCurrency;_receivedAmount=item.PaidAmount;_partyId=item.PartyId;_leadSourceId=item.LeadSourceId;_referrerId=item.ReferrerId;_editError=null;}
     private void LeadSourceChanged(){if(!SelectedSourceRequiresReferrer)_referrerId=null;}

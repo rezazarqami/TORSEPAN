@@ -213,7 +213,29 @@ else
     private bool HasActiveFilter=>!string.IsNullOrWhiteSpace(_search)||!string.IsNullOrWhiteSpace(_appliedMaterialFilter)||!string.IsNullOrWhiteSpace(_appliedScaleFilter)||_appliedNotesFilter!="all";
     private bool AllVisibleSelected=>Items.Any()&&Items.All(x=>_selected.Contains(x.HandpanId));
     private IEnumerable<string> SaleCodes=>_items.Where(x=>_saleIds.Contains(x.HandpanId)).Select(x=>x.SerialNumber);
-    protected override async Task OnInitializedAsync(){try{var user=(await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;_canManage=user.IsInRole("Administrator");_canTransfer=_canManage||user.IsInRole("ProductionManager")||user.IsInRole("QualityControl");_warehouses=await ProductionService.GetInstrumentWarehousesAsync();_canSell=user.IsInRole("Administrator")||user.IsInRole("ProductionManager")||user.IsInRole("SalesAdmin");_items=(await ProductionService.GetWarehouseAsync()).ToList();if(_canSell){_parties=await AccountingService.PartiesAsync();_attribution=await AttributionService.OptionsAsync();}OpenRequestedSale();}catch(Exception e){_error=e.Message;}finally{_loading=false;}}
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var user = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+            _canManage = user.IsInRole("Administrator");
+            _canTransfer = _canManage || user.IsInRole("ProductionManager") || user.IsInRole("QualityControl");
+            _canSell = _canManage || user.IsInRole("ProductionManager") || user.IsInRole("SalesAdmin");
+            var warehouses = ProductionService.GetInstrumentWarehousesAsync();
+            var items = ProductionService.GetWarehouseAsync();
+            var parties = _canSell ? AccountingService.PartiesAsync() : Task.FromResult(new List<AccountingPartyDto>());
+            var attribution = _canSell ? AttributionService.OptionsAsync() : Task.FromResult(new SalesAttributionOptionsDto());
+            await Task.WhenAll(warehouses, items, parties, attribution);
+            _warehouses = await warehouses;
+            _items = (await items).ToList();
+            _parties = await parties;
+            _attribution = await attribution;
+            OpenRequestedSale();
+        }
+        catch (Exception e) { _error = e.Message; }
+        finally { _loading = false; }
+    }
+
     private Guid? _openedSaleId;
     protected override void OnParametersSet()
     {
@@ -236,7 +258,7 @@ else
     private void ClearFilters(){_search=_materialFilter=_scaleFilter=_appliedMaterialFilter=_appliedScaleFilter="";_notesFilter=_appliedNotesFilter="all";_selected.Clear();}
     private void OpenWarehouseManagement(){if(!_canManage)return;_warehouseNames=_warehouses.ToDictionary(x=>x.Id,x=>x.Name);_manageError=null;_manageWarehouses=true;}
     private void CloseWarehouseManagement(){if(!_renameBusyId.HasValue)_manageWarehouses=false;}
-    private async Task ReloadWarehousesAsync(){try{_warehouses=await ProductionService.GetInstrumentWarehousesAsync();_manageError=null;}catch(Exception ex){_manageError=ex.Message;}}
+    private async Task ReloadWarehousesAsync(){try{_warehouses=await ProductionService.GetInstrumentWarehousesAsync(forceRefresh:true);_manageError=null;}catch(Exception ex){_manageError=ex.Message;}}
     private async Task RenameWarehouseAsync(int id){if(!_canManage||_renameBusyId.HasValue)return;_renameBusyId=id;_manageError=null;try{var item=_warehouses.Single(x=>x.Id==id);var updated=await ProductionService.RenameWarehouseAsync(id,_warehouseNames[id],item.Version);if(updated is null)throw new InvalidOperationException("ذخیره نام انجام نشد.");item.Name=updated.Name;item.Version=updated.Version;_warehouseNames[id]=item.Name;_notice="نام انبار ذخیره شد.";}catch(Exception ex){_manageError=ex.Message;}finally{_renameBusyId=null;}}
     private void BeginTransfer(WarehouseHandpanDto item){if(!_canTransfer)return;_transferItems=[item];_transferWarehouseId=null;_transferExportLocation=null;_showTransferOptions=true;_transferError=null;}
     private void BeginSelectedTransfer(){if(!_canTransfer)return;_transferItems=Items.Where(x=>_selected.Contains(x.HandpanId)).ToList();_transferWarehouseId=null;_transferExportLocation=null;_showTransferOptions=true;_transferError=null;}

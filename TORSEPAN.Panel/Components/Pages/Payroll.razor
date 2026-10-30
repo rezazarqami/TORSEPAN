@@ -190,7 +190,15 @@ else
     private IEnumerable<UserPayrollGroup> ExportUserGroups => GroupLines(_payroll.Lines.Where(x => x.IsExport));
     private IEnumerable<PayrollRateDto> SortedRates => _payroll.Rates.OrderBy(x => x.IsExport ? 2 : x.IsCustom ? 1 : 0).ThenBy(x => ActionOrder(x.Action)).ThenBy(x => x.MaterialName).ThenBy(x => x.BowlType).ThenBy(x => x.ScaleName).ThenBy(x => x.Amount);
     private static IEnumerable<UserPayrollGroup> GroupLines(IEnumerable<PayrollLineDto> lines) => lines.GroupBy(x => new { x.UserId, x.UserName, x.DisplayOrder }).OrderBy(x => x.Key.DisplayOrder).ThenBy(x => x.Key.UserName).Select(x => new UserPayrollGroup(x.Key.UserName, x.OrderBy(y => ActionOrder(y.Action)).ThenBy(y => y.MaterialName).ThenBy(y => y.BowlType).ThenBy(y => y.ScaleName).ToList()));
-    protected override async Task OnInitializedAsync() { _materials = (await MaterialService.GetAsync()).Where(x => x.Category == 4).ToList(); _scales = (await ScaleService.GetAsync()).ToList(); await LoadAsync(); }
+    protected override async Task OnInitializedAsync()
+    {
+        var materials = MaterialService.GetAsync();
+        var scales = ScaleService.GetAsync();
+        var payroll = LoadAsync();
+        await Task.WhenAll(materials, scales, payroll);
+        _materials = (await materials).Where(x => x.Category == 4).ToList();
+        _scales = (await scales).ToList();
+    }
     private bool HasStageFilter => _readyForQc || _readyForPackaging || _enteredWarehouse || _readyForExportPackaging || _exportWarehouse;
     private string SectionClass(int section) => _activeSection == section ? "payroll-section-tab active" : "payroll-section-tab";
     private bool IsHandpanRate => _rateAction == 7;
