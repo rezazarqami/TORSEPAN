@@ -121,9 +121,9 @@ else
         @if (_transferWarehouseId==0)
         {
             <div class="transfer-locations" role="group" aria-label="مقصد انبار صادراتی">
-                @foreach(var location in new (int Id,string Name)[]{(4,"ایران"),(1,"ترکیه"),(2,"لندن"),(3,"آلمان"),(5,"مصر 🇪🇬"),(6,"ریاض 🇸🇦")})
+                @foreach(var location in new (int Id,string Name)[]{(4,"ایران 🇮🇷"),(1,"ترکیه 🇹🇷"),(2,"لندن 🇬🇧"),(3,"آلمان 🇩🇪"),(5,"مصر 🇪🇬"),(6,"ریاض 🇸🇦")})
                 {
-                    <button type="button" disabled="@_transferring" class="@(_transferExportLocation==location.Id?"selected":"")" aria-pressed="@(_transferExportLocation==location.Id)" @onclick="()=>_transferExportLocation=location.Id">@location.Name</button>
+                    <button type="button" disabled="@_transferring" class="@(_transferExportLocation==location.Id?"selected":"")" aria-pressed="@(_transferExportLocation==location.Id)" @onclick="()=>SelectTransferLocation(location.Id)">@location.Name</button>
                 }
             </div>
         }
@@ -194,7 +194,8 @@ else
     private bool _showTransferOptions;
     private string TransferSourceName => string.Join("، ",_transferItems.Select(x=>_warehouses.FirstOrDefault(w=>w.Id==x.QualityWarehouseId)?.Name??"انبار").Distinct());
     private string TransferTargetName => _transferWarehouseId==0?"انبار صادراتی":_warehouses.FirstOrDefault(x=>x.Id==_transferWarehouseId)?.Name??"انتخاب کنید";
-    private void SelectTransferWarehouse(int id){_transferWarehouseId=id;_transferExportLocation=null;_showTransferOptions=id==0;}
+    private void SelectTransferLocation(int id){_transferExportLocation=id;_showTransferOptions=false;}
+    private void SelectTransferWarehouse(int id){_transferWarehouseId=id;_transferExportLocation=null;_showTransferOptions=false;}
 
     private List<InstrumentWarehouseDto> _warehouses=InstrumentWarehouseDto.Defaults();
     private Dictionary<int,string> _warehouseNames=[];

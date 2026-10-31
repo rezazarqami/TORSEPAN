@@ -16,10 +16,11 @@ public sealed class LegacyStockDraft
     public Guid? TuneUserId { get; set; }
     public Guid? FineTuneUserId { get; set; }
     public Guid? DesignUserId { get; set; }
+    public Guid? DesignTypeId { get; set; }
     public Guid? TopScaleId { get; set; }
     public Guid? BottomScaleId { get; set; }
 }
 public sealed record LegacyStockRequest(Guid RegistrationId, string Code, Guid MaterialId, Guid ScaleId, int TopNotes, int BottomNotes,
     int WarehouseId, int? ExportLocation, Guid? DimpleUserId, Guid? ShapeUserId, Guid? TuneUserId, Guid? FineTuneUserId, Guid? DesignUserId,
-    Guid? TopScaleId = null, Guid? BottomScaleId = null);
+    Guid? TopScaleId = null, Guid? BottomScaleId = null, Guid? DesignTypeId = null);
 public sealed record LegacyStockReceipt(Guid HandpanId, string Code, int Stage, int WarehouseId, int? ExportLocation);

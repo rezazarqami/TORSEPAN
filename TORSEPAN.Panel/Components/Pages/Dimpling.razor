@@ -135,10 +135,9 @@
             </div>
             <section class="passport-timeline" aria-labelledby="history-title">
                 <header><h3 id="history-title"><span class="history-heading-icon"><PassportIcon Kind="clock" /></span> سوابق انجام کار</h3>
-                    @if (_bowl.History.Count > 6) { <button type="button" class="history-toggle" aria-expanded="@_showAllHistory" @onclick="() => _showAllHistory = !_showAllHistory">@(_showAllHistory ? "نمایش کمتر" : "نمایش همه")</button> }
                 </header>
                 @if (_bowl.History.Count == 0) { <p class="history-empty">هنوز سابقه‌ای ثبت نشده است.</p> }
-                @foreach (var item in _bowl.History.OrderByDescending(x => x.PerformedAt).Take(_showAllHistory ? int.MaxValue : 6))
+                @foreach (var item in _bowl.History.OrderByDescending(x => x.PerformedAt))
                 {
                     <article class="passport-timeline-row">
                         <div class="history-operation"><span class="history-operation-icon" data-action="@item.Action" aria-hidden="true"><PassportIcon Kind="@HistoryIcon(item.Action)" /></span><strong>@item.ActionTitle</strong></div>
@@ -403,11 +402,8 @@
             }
             else if (_bowl.Stage == 18)
             {
-                <div class="alert alert-success mt-3 mb-0">
-                    این ساز در انبار است. تاریخ بسته‌بندی و سایر مراحل انجام‌شده در جدول بالا نمایش داده شده‌اند.
-                </div>
                 <AuthorizeView Roles="Administrator,ProductionManager,SalesAdmin">
-                    <button class="btn btn-success mt-3" @onclick="OpenPassportSale">فروخته شد</button>
+                    <button class="btn btn-success mt-3" @onclick="OpenPassportSale">ثبت فروش</button>
                 </AuthorizeView>
             }
             @if (_bowl.Stage is 14 or 16 or 18 or 20)
@@ -441,7 +437,6 @@
 }
 
 @code {
-    private bool _showAllHistory;
     private string PassportScaleTitle
     {
         get
@@ -550,7 +545,6 @@
 
         await ExecuteAsync(async () =>
         {
-            _showAllHistory = false;
             _pairedProductionCode = string.Empty;
             _successMessage = null;
             _showQcRejection = false;

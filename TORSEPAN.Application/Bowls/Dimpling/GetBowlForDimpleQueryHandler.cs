@@ -97,27 +97,28 @@ public sealed class GetBowlForDimpleQueryHandler
         Guid? bottomBowlId = assembly?.BottomBowlId ?? (bowl.BowlType == BowlType.Bottom ? bowl.Id : null);
 
         dto.History.AddRange(events
-            .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:") &&
-                        x.Description != "Released from glue room" &&
+            .Where(x => !x.Description.StartsWith("NOTE:") &&
                         ((x.BowlId.HasValue && relatedBowlIds.Contains(x.BowlId.Value)) ||
                          (handpanId.HasValue && x.HandpanId == handpanId)))
-            .GroupBy(x => new { x.Action, PackagingKind = x.Action == ProductionAction.Packaging ? (x.BowlId.HasValue ? 2 : 1) : 0, RegistrationBowlId = x.Action == ProductionAction.Created ? x.BowlId : null })
+            .GroupBy(x => new { x.Id, x.Action, PackagingKind = x.Action == ProductionAction.Packaging ? (x.BowlId.HasValue ? 2 : 1) : 0, RegistrationBowlId = x.Action == ProductionAction.Created ? x.BowlId : null })
             .Select(group => new BowlStageHistoryDto
             {
                 BowlPerformers = group.Key.Action is ProductionAction.Shape or ProductionAction.Tune or ProductionAction.Furnace
                     ? BowlPerformers(group, group.Key.Action, topBowlId, bottomBowlId, users)
                     : [],
                 Action = (int)group.Key.Action,
-                ActionTitle = group.Key.Action == ProductionAction.Created && group.Key.RegistrationBowlId.HasValue
+                ActionTitle = group.First().Description == "Released from glue room" ? "خروج از اتاق چسب" : group.Key.Action == ProductionAction.Created && group.Key.RegistrationBowlId.HasValue
                     ? group.Key.RegistrationBowlId == topBowlId ? "ثبت کاسه رو"
                         : group.Key.RegistrationBowlId == bottomBowlId ? "ثبت کاسه زیر" : "ثبت اولیه"
                     : ActionTitle(group.Key.Action, group.Key.PackagingKind),
                 PerformedBy = string.Join("، ", group.Select(x =>
                         string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)
                     .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct()),
-                Details = group.Key.Action == ProductionAction.Shape
+                Details = group.First().Result != EventResult.Completed
+                    ? group.First().Result switch { EventResult.Failed => "ناموفق", EventResult.Rejected => "رد شده", EventResult.Skipped => "رد شدن از مرحله", _ => "" }
+                    : group.Key.Action == ProductionAction.Shape
                     ? ShapeContributionDetails(group.Select(x => x.Description), users)
-                    : string.Empty,
+                    : group.Key.Action == ProductionAction.Design ? DesignNames(group) : string.Empty,
                 PerformedAt = group.Max(x => x.EventDate)
             }).OrderBy(x => x.PerformedAt));
         return Result<BowlDimpleDto>.Success(dto);
@@ -150,7 +151,9 @@ public sealed class GetBowlForDimpleQueryHandler
     {
         var names = designEvents.Select(x =>
         {
-            var parts = x.Description.Split(':');
+            var description = x.Description.StartsWith(TORSEPAN.Domain.Entities.LegacyStockRecord.Prefix)
+                ? x.Description[TORSEPAN.Domain.Entities.LegacyStockRecord.Prefix.Length..] : x.Description;
+            var parts = description.Split(':');
             return parts.Length >= 3 ? parts[2] : "دیزاین‌شده";
         }).Distinct().ToList();
         return names.Count == 0 ? "ساده" : string.Join("، ", names);
@@ -187,6 +190,10 @@ public sealed class GetBowlForDimpleQueryHandler
         ProductionAction.QualityCheck => "کنترل کیفیت",
         ProductionAction.Packaging => packagingKind == 2 ? "بسته‌بندی صادراتی" : "بسته‌بندی عادی",
         ProductionAction.Design => "دیزاین",
+        ProductionAction.WarehouseEntry => "ورود به انبار",
+        ProductionAction.WarehouseTransfer => "انتقال انبار",
+        ProductionAction.Sale => "ثبت فروش",
+        ProductionAction.Reject => "رد مرحله",
         _ => action.ToString()
     };
 }

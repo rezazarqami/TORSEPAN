@@ -21,7 +21,7 @@ static class UiChecks
     {
         var api=new FixtureApi();var services=new ServiceCollection();services.AddLogging();services.AddAuthorizationCore();services.AddCascadingAuthenticationState();
         services.AddSingleton<AuthenticationStateProvider>(new FixtureAuth());services.AddSingleton<IJSRuntime,FixtureJs>();services.AddSingleton<NavigationManager,FixtureNavigation>();
-        services.AddSingleton(new HttpClient(api){BaseAddress=new Uri("https://fixture.invalid/api/")});services.AddScoped<TokenStorage>();services.AddScoped<ApiClient>();services.AddScoped<UserApiClient>();services.AddScoped<IUserService,UserService>();services.AddScoped<MaterialService>();services.AddScoped<ScaleService>();services.AddScoped<ProductionService>();services.AddScoped<LegacyStockService>();
+        services.AddSingleton(new HttpClient(api){BaseAddress=new Uri("https://fixture.invalid/api/")});services.AddScoped<TokenStorage>();services.AddScoped<ApiClient>();services.AddScoped<UserApiClient>();services.AddScoped<IUserService,UserService>();services.AddScoped<MaterialService>();services.AddScoped<ScaleService>();services.AddScoped<ProductionService>();services.AddScoped<LegacyStockService>();services.AddScoped<DesignService>();
         await using var provider=services.BuildServiceProvider();await using var renderer=new HtmlRenderer(provider,provider.GetRequiredService<ILoggerFactory>());
         await renderer.Dispatcher.InvokeAsync(async()=>{
             var root=await renderer.RenderComponentAsync<LegacyPreview>(ParameterView.Empty);var view=LegacyPreview.Instance!;string Html()=>WebUtility.HtmlDecode(root.ToHtmlString());

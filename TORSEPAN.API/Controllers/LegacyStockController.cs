@@ -51,6 +51,10 @@ public sealed class LegacyStockController(TORSEPANDbContext db) : ControllerBase
             || !ScaleFits(request.TopScaleId, ScaleUsage.TopBowl) || !ScaleFits(request.BottomScaleId, ScaleUsage.BottomBowl)
             || (request.BottomNotes == 0 && request.BottomScaleId.HasValue))
             return Invalid("اسکیل ساز و کاسه‌ها را متناسب با نوع آن‌ها انتخاب کنید.");
+        var designType = request.DesignTypeId.HasValue
+            ? await db.DesignTypes.SingleOrDefaultAsync(x => x.Id == request.DesignTypeId && x.IsActive, ct) : null;
+        if (request.DesignTypeId.HasValue && (designType is null || !request.DesignUserId.HasValue))
+            return Invalid("نوع دیزاین معتبر و سازنده دیزاین را انتخاب کنید.");
         var assignments = new (ProductionAction Action, Guid? UserId)[] {
             (ProductionAction.Dimple, request.DimpleUserId), (ProductionAction.Shape, request.ShapeUserId),
             (ProductionAction.Tune, request.TuneUserId), (ProductionAction.FineTune, request.FineTuneUserId),
@@ -77,9 +81,9 @@ public sealed class LegacyStockController(TORSEPANDbContext db) : ControllerBase
         db.ProductionEvents.Add(new ProductionEvent(handpan.Id, assembly.Id, null, actor, ProductionAction.Created, EventResult.Completed, null, fingerprint));
         foreach (var (action, user) in assignments.Where(x => x.UserId.HasValue))
         {
-            var bowlId = action is ProductionAction.Dimple or ProductionAction.Shape or ProductionAction.Tune ? top.Id : (Guid?)null;
+            var bowlId = action is ProductionAction.Dimple or ProductionAction.Shape or ProductionAction.Tune or ProductionAction.Design ? top.Id : (Guid?)null;
             var item = new ProductionEvent(handpan.Id, assembly.Id, bowlId, user!.Value, action, EventResult.Completed, null,
-                LegacyStockRecord.Prefix + " سابقه پیش از سامانه؛ دستمزد قبلاً محاسبه شده؛ زمان نمایش‌داده‌شده زمان ورود سابقه است.");
+                LegacyStockRecord.Prefix + (action == ProductionAction.Design && designType is not null ? $"DESIGN:{designType.Id}:{designType.Name}:" : "") + " سابقه پیش از سامانه؛ دستمزد قبلاً محاسبه شده؛ زمان نمایش‌داده‌شده زمان ورود سابقه است.");
             item.SetPayrollExcluded(true, actor); db.ProductionEvents.Add(item);
         }
         try { await db.SaveChangesAsync(ct); }
@@ -107,5 +111,5 @@ public sealed class LegacyStockController(TORSEPANDbContext db) : ControllerBase
 }
 public sealed record LegacyStockRequest(Guid RegistrationId, string Code, Guid MaterialId, Guid ScaleId, int TopNotes, int BottomNotes,
     int WarehouseId, int? ExportLocation, Guid? DimpleUserId, Guid? ShapeUserId, Guid? TuneUserId, Guid? FineTuneUserId, Guid? DesignUserId,
-    Guid? TopScaleId = null, Guid? BottomScaleId = null);
+    Guid? TopScaleId = null, Guid? BottomScaleId = null, Guid? DesignTypeId = null);
 public sealed record LegacyStockReceipt(Guid HandpanId, string Code, int Stage, int WarehouseId, int? ExportLocation);

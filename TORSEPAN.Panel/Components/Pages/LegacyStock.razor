@@ -3,6 +3,7 @@
 @using TORSEPAN.Application.Auth.Queries.GetUsers
 @attribute [Authorize(Roles = "Administrator")]
 @inject LegacyStockService LegacyService
+@inject DesignService DesignService
 @inject MaterialService MaterialService
 @inject ScaleService ScaleService
 @inject IUserService UserService
@@ -71,6 +72,7 @@
                             <label for="legacy-tune">تیون<InputSelect id="legacy-tune" @bind-Value="_draft.TuneUserId"><option value="">نامشخص</option>@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</InputSelect></label>
                             <label for="legacy-fine">فاین‌تیون<InputSelect id="legacy-fine" @bind-Value="_draft.FineTuneUserId"><option value="">نامشخص</option>@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</InputSelect></label>
                             <label for="legacy-design">دیزاین<InputSelect id="legacy-design" @bind-Value="_draft.DesignUserId"><option value="">نامشخص</option>@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</InputSelect></label>
+                            <label for="legacy-design-type">نوع دیزاین<InputSelect id="legacy-design-type" @bind-Value="_draft.DesignTypeId"><option value="">نامشخص / ساده</option>@foreach(var type in _designTypes){<option value="@type.Id">@type.Name</option>}</InputSelect></label>
                         </div>
                     </section>
                 </fieldset>
@@ -87,6 +89,7 @@
 </div>
 @code {
     private LegacyStockDraft _draft = new();
+    private List<DesignTypeDto> _designTypes = [];
     private List<MaterialDto> _materials = [];
     private List<ScaleDto> _scales = [];
     private List<UserDto> _users = [];
@@ -102,6 +105,7 @@
         _loading = true; _loadFailed = false;
         try
         {
+            _designTypes = await DesignService.GetTypesAsync();
             var materials = MaterialService.GetAsync(); var scales = ScaleService.GetAsync(); var users = UserService.GetUsersAsync();
             var warehouses = ProductionService.GetInstrumentWarehousesAsync(); var recent = LegacyService.RecentAsync();
             await Task.WhenAll(materials, scales, users, warehouses, recent);
@@ -119,7 +123,7 @@
         if (_draft.Destination == "export" && !_draft.ExportLocation.HasValue){_error = "انبار صادراتی را انتخاب کنید.";return;}
         _pending ??= new(Guid.NewGuid(), _draft.Code, _draft.MaterialId!.Value, _draft.ScaleId!.Value, _draft.TopNotes!.Value, _draft.BottomNotes!.Value,
             _draft.WarehouseId ?? 1, _draft.Destination == "export" ? _draft.ExportLocation : null,
-            _draft.DimpleUserId, _draft.ShapeUserId, _draft.TuneUserId, _draft.FineTuneUserId, _draft.DesignUserId, _draft.TopScaleId, _draft.BottomNotes == 0 ? null : _draft.BottomScaleId);
+            _draft.DimpleUserId, _draft.ShapeUserId, _draft.TuneUserId, _draft.FineTuneUserId, _draft.DesignUserId, _draft.TopScaleId, _draft.BottomNotes == 0 ? null : _draft.BottomScaleId, _draft.DesignTypeId);
         _saving = true;
         try
         {
