@@ -46,6 +46,14 @@ await renderer.Dispatcher.InvokeAsync(async () =>
         var notesHtml = WebUtility.HtmlDecode(notesView.ToHtmlString());
         Check(notesHtml.Contains(title) && notesHtml.Contains(split) && notesHtml.Contains("class=\"passport-note-breakdown\" dir=\"ltr\""), "scale total and ordered breakdown: " + split);
     }
+    foreach (var code in new[] { "", "LEGACY-BOTTOM-FB81B83C712D4C6B91C5A77300A1A067", "67" })
+    {
+        var passport = await renderer.RenderComponentAsync<PassportPreview>(ParameterView.FromDictionary(new Dictionary<string,object?> {
+            [nameof(PassportPreview.BottomCode)] = code, [nameof(PassportPreview.Stage)] = 22, [nameof(PassportPreview.ExportLocation)] = 7 }));
+        var output = WebUtility.HtmlDecode(passport.ToHtmlString());
+        Check(!output.Contains("LEGACY-BOTTOM-") && output.Contains(code == "67" ? ">67</bdi>" : "ثبت نشده"), "passport hides synthetic bottom IDs and preserves real codes");
+        Check(output.Contains("انبار صادراتی (لبنان)"), "export status includes the selected country");
+    }
     var icon = await renderer.RenderComponentAsync<PassportIcon>(ParameterView.FromDictionary(new Dictionary<string,object?> { [nameof(PassportIcon.Kind)] = "status" }));
     Check(icon.ToHtmlString().Contains("stroke-dasharray") && !icon.ToHtmlString().Contains("l-7 7"), "status uses a circular ring without an arrow");
     var navigation = (FixtureNavigation)provider.GetRequiredService<NavigationManager>();
@@ -88,6 +96,8 @@ await ProcessFlowChecks.Run();
 static void Check(bool value, string message) { if (!value) throw new Exception(message); Console.WriteLine("PASS " + message); }
 public sealed class PassportPreview : Dimpling
 {
+    [Parameter] public string BottomCode { get; set; } = "196";
+    [Parameter] public int? ExportLocation { get; set; }
     [Parameter] public int Stage { get; set; } = 18;
     [Parameter] public int BowlType { get; set; }
     [Parameter] public int? TopCount { get; set; } = 9;
@@ -96,7 +106,7 @@ public sealed class PassportPreview : Dimpling
     [Parameter] public string? CustomerName { get; set; }
     protected override Task OnInitializedAsync()
     {
-        var record = new DimpleBowlDto { OrderCustomerName = CustomerName, HandpanId = Guid.NewGuid(), HandpanCode = "855", BottomBowlCode = "196", BottomDesignName = "اسیدی", DesignName = "ساده", ScaleName = ScaleTitle, TopNoteCount = TopCount, BottomNoteCount = BottomCount, IsHandpanScale = true, Stage = Stage };
+        var record = new DimpleBowlDto { OrderCustomerName = CustomerName, HandpanId = Guid.NewGuid(), HandpanCode = "855", BottomBowlCode = BottomCode, PackagingExportLocation = ExportLocation, BottomDesignName = "اسیدی", DesignName = "ساده", ScaleName = ScaleTitle, TopNoteCount = TopCount, BottomNoteCount = BottomCount, IsHandpanScale = true, Stage = Stage };
         if (BowlType != 0)
         {
             record.HandpanId = null; record.HandpanCode = ""; record.ProductionCode = "SS-00090";
