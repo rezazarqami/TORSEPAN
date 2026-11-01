@@ -62,3 +62,11 @@ test('warehouse transfer projects country stock, supports return and rejects sol
 test('cached sold instrument wins over stale component warehouse stage',()=>{
  const s=fixture(),w=s.snapshot.workspace.sections,b=s.snapshot.bowls[0];b.stage=18;b.instrumentCode=b.code;w.assemblies=[{id:id(7),topBowlId:b.id}];w.handpans=[{id:id(8),assemblyId:id(7),stage:20}];const h=harness(s);assert.equal(h.request('GET','production/warehouse').value.length,0);assert.equal(h.request('POST','instrument-warehouses/transfer',{warehouseId:2,items:[{handpanId:id(8),expectedVersion:id(9)}]}).status,409);assert.equal(s.operations.length,0);
 });
+
+test('export bowl sale keeps price and net profit and splits a batch exactly once',()=>{
+ const s=fixture();s.snapshot.bowls[0].stage=22;const first=s.snapshot.bowls[0];s.snapshot.bowls.push({...first,id:id(45),code:'EXPORT-2'});const h=harness(s);
+ const result=h.request('POST','export-warehouse/ship',{items:[{id:first.id,itemType:'bowl'},{id:id(45),itemType:'bowl'}],price:100.01,receivedAmount:50.01,netProfit:20.01,priceCurrency:2,profitCurrency:2,isExportSale:true});
+ assert.equal(result.status,200);assert.equal(s.operations.length,2);
+ for(const [key,total] of [['price',10001],['receivedAmount',5001],['netProfit',2001]])assert.equal(Math.round(s.operations.reduce((sum,row)=>sum+row.body[key],0)*100),total);
+ assert.equal(h.request('GET','export-warehouse').value.length,0);assert.equal(h.request('GET','accounting/documents').value.length,2);const sales=h.request('GET','production/sales').value;assert.equal(sales.filter(x=>x.isBowl).length,2);assert.equal(Math.round(sales.reduce((n,x)=>n+x.netProfit,0)*100),2001);
+});

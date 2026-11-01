@@ -104,7 +104,7 @@ public class Handpan : Entity
 
     public void Sell(string? buyerName, string? buyerPhoneNumber, decimal? price, string? destination, bool isExportSale, Guid soldByUserId)
     {
-        if (Stage != ProductionStage.FinishedWarehouse && !(Stage == ProductionStage.ExportWarehouse && isExportSale)) throw new InvalidOperationException("Handpan is not in warehouse.");
+        if (Stage is not (ProductionStage.FinishedWarehouse or ProductionStage.ExportWarehouse)) throw new InvalidOperationException("Handpan is not in warehouse.");
         if (price < 0) throw new ArgumentOutOfRangeException(nameof(price));
         BuyerName = string.IsNullOrWhiteSpace(buyerName) ? null : buyerName.Trim();
         BuyerPhoneNumber = string.IsNullOrWhiteSpace(buyerPhoneNumber) ? null : buyerPhoneNumber.Trim();

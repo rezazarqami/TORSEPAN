@@ -59,11 +59,18 @@ internal static class ExportWorkflowSmoke
         ExportItemsShipmentRequest Shipment(params ExportShipmentItem[] items) => new(items, "buyer", null, "Germany", "air", true);
         Check(await controller.Ship(Shipment(new ExportShipmentItem(bowl.Id, "bowl"), new ExportShipmentItem(Guid.NewGuid(), "handpan")), default) is ConflictObjectResult && bowl.Stage == ProductionStage.ExportWarehouse,
             "unavailable selected item rejects the whole batch before changing stock");
-        Check(await controller.Ship(Shipment(new ExportShipmentItem(bowl.Id, "bowl"), new ExportShipmentItem(handpan.Id, "handpan")), default) is NoContentResult,
+        (await db.SaleProfitRules.SingleAsync(x=>x.Action==HallProfitAccount.Action)).Set(10);await db.SaveChangesAsync();
+        var financialSale=Shipment(new ExportShipmentItem(bowl.Id,"bowl"),new ExportShipmentItem(handpan.Id,"handpan")) with {Price=100.01m,ReceivedAmount=50.01m,NetProfit=20.01m,PriceCurrency=MoneyCurrency.Usd,ProfitCurrency=MoneyCurrency.Usd,FinancialsSpecified=true};
+        Check(await controller.Ship(financialSale with {ReceivedAmount=200m},default) is BadRequestObjectResult,"overpayment is rejected before stock is sold");
+        Check(await controller.Ship(financialSale, default) is NoContentResult,
             "bowls and instruments ship in one transaction");
         Check(bowl.Stage == ProductionStage.Sold && handpan.Stage == ProductionStage.Sold && handpan.IsExportSale == true && handpan.SoldByUserId == user.Id &&
             await db.ProductionEvents.CountAsync(x => x.Action == ProductionAction.Sale) == 2,
             "shipment preserves sale details and creates one sale event per item");
+        Check((await db.AccountingDocuments.ToListAsync()).Sum(x=>x.TotalAmount)==100.01m&&(await db.AccountingDocuments.ToListAsync()).Sum(x=>x.PaidAmount)==50.01m,"export bulk financial totals are divided once with exact cents");
+        Check(await db.SaleProfitEntries.AnyAsync(x=>x.HandpanId==bowl.Id&&x.Action==HallProfitAccount.Action)&&await db.SaleProfitEntries.AnyAsync(x=>x.HandpanId==handpan.Id&&x.Action==HallProfitAccount.Action),"both standalone bowls and instruments allocate configured profit percentages");
+        var bowlMetadata=TORSEPAN.Application.Sales.ExportSaleMetadata.Decode((await db.ProductionEvents.SingleAsync(x=>x.BowlId==bowl.Id&&x.Action==ProductionAction.Sale)).Description);
+        Check(bowlMetadata?.NetProfit.HasValue==true&&bowlMetadata.PriceCurrency==MoneyCurrency.Usd,"bowl sale metadata retains profit and currency for sales reports");
         Check(await controller.Ship(Shipment(new ExportShipmentItem(bowl.Id, "bowl")), default) is ConflictObjectResult, "shipped item cannot be shipped again");
         Check(await controller.Ship(Shipment(), default) is BadRequestObjectResult, "empty selection is rejected");
 

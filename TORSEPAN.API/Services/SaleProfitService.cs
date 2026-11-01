@@ -23,9 +23,23 @@ public sealed class SaleProfitService(TORSEPANDbContext db)
    foreach(var rule in await db.SaleProfitRules.AsNoTracking().Where(x=>x.Percent>0).ToListAsync())
     roles.Add((rule.Action,rule.Percent,rule.Action==HallProfitAccount.Action ? [(HallProfitAccount.Id,HallProfitAccount.Name)] : events.Where(x=>x.Action==rule.Action).Select(x=>(x.UserId,string.IsNullOrWhiteSpace(x.User.FullName)?x.User.UserName:x.User.FullName)).DistinctBy(x=>x.UserId).ToList()));
   }
+  Allocate(handpan.Id,handpan.SerialNumber,handpan.SoldAt??DateTime.UtcNow,profit.Value,currency,roles);
+ }
+ public async Task AllocateBowlAsync(Bowl bowl,decimal? profit,MoneyCurrency currency)
+ {
+  if(!profit.HasValue||profit==0)return;
+  var events=await db.ProductionEvents.AsNoTracking().Include(x=>x.User).Where(x=>x.BowlId==bowl.Id&&x.Result==EventResult.Completed&&!x.Description.StartsWith("NOTE:")).ToListAsync();
+  var roles=new List<(ProductionAction Action,decimal Percent,List<(Guid Id,string Name)> People)>();
+  foreach(var rule in await db.SaleProfitRules.AsNoTracking().Where(x=>x.Percent>0).ToListAsync())
+   roles.Add((rule.Action,rule.Percent,rule.Action==HallProfitAccount.Action?[(HallProfitAccount.Id,HallProfitAccount.Name)]:events.Where(x=>x.Action==rule.Action).Select(x=>(x.UserId,string.IsNullOrWhiteSpace(x.User.FullName)?x.User.UserName:x.User.FullName)).DistinctBy(x=>x.UserId).ToList()));
+  // The allocation stock key has no instrument FK; standalone bowls use their own ID.
+  Allocate(bowl.Id,bowl.ProductionCode,DateTime.UtcNow,profit.Value,currency,roles);
+ }
+ private void Allocate(Guid stockId,string code,DateTime soldAt,decimal profit,MoneyCurrency currency,List<(ProductionAction Action,decimal Percent,List<(Guid Id,string Name)> People)> roles)
+ {
   var factor=currency==MoneyCurrency.Usd?100m:1m;
   var eligible=roles.Where(x=>x.People.Count>0).OrderBy(x=>x.Action).ToList();
-  var units=eligible.Select(x=>profit.Value*x.Percent*factor/100).ToArray();
+  var units=eligible.Select(x=>profit*x.Percent*factor/100).ToArray();
   var allocated=units.Select(decimal.Floor).ToArray();
   var target=decimal.Round(units.Sum(),0,MidpointRounding.AwayFromZero);
   foreach(var index in Enumerable.Range(0,units.Length).OrderByDescending(i=>units[i]-allocated[i]).ThenBy(i=>eligible[i].Action).Take((int)(target-allocated.Sum())))allocated[index]++;
@@ -33,7 +47,7 @@ public sealed class SaleProfitService(TORSEPANDbContext db)
   for(int r=0;r<eligible.Count;r++){
    var role=eligible[r];var people=role.People.OrderBy(x=>x.Id).ToList();var total=allocated[r]/factor;
    var each=Math.Floor(total*factor/people.Count)/factor;
-   for(int i=0;i<people.Count;i++)db.SaleProfitEntries.Add(new(handpan.Id,handpan.SerialNumber,people[i].Id,people[i].Name,role.Action,role.Percent,profit.Value,i==people.Count-1?total-each*(people.Count-1):each,currency,handpan.SoldAt??DateTime.UtcNow,allocationId));
+   for(int i=0;i<people.Count;i++)db.SaleProfitEntries.Add(new(stockId,code,people[i].Id,people[i].Name,role.Action,role.Percent,profit,i==people.Count-1?total-each*(people.Count-1):each,currency,soldAt,allocationId));
   }
  }
 }

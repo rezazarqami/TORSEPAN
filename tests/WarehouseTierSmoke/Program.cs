@@ -77,7 +77,7 @@ foreach(var role in new[]{"Administrator","QualityControl","Tuner"})
             for(var index=0;index<74;index++)shipmentItems.Add(new ExportWarehouseItemDto{Id=Guid.NewGuid(),ProductionCode=$"B-{index}",ItemType="bowl",Location=1});
             await ei.Call("OpenShipment",shipmentTemplate);
             var shipmentIds=(List<Guid>)ei.Get("_shipmentIds")!;shipmentIds.Clear();shipmentIds.AddRange(shipmentItems.TakeLast(74).Select(x=>x.Id));ei.Refresh();
-            Check(EHtml().Contains("shipment-body")&&EHtml().Contains("تأیید و انتقال به فروش"),"large shipment keeps scrolling content separate from action footer");
+            Check(EHtml().Contains("export-sale-body")&&EHtml().Contains("قیمت فروش")&&EHtml().Contains("سود خالص")&&EHtml().Contains("ثبت فروش"),"large shipment keeps scrolling content separate from action footer");
             if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"export-shipment.html"),export.ToHtmlString());
             await ei.Call("CloseShipment");
             var qc=await renderer.RenderComponentAsync<QcPreview>(ParameterView.Empty);var qi=QcPreview.Instance!;string QHtml()=>WebUtility.HtmlDecode(qc.ToHtmlString());Check(QHtml().Contains("انبار مقصد را انتخاب کنید")&&QHtml().Contains("Economy")&&QHtml().Contains("Signature"),"QC shows the three warehouse destination choices");if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"qc-warehouse.html"),qc.ToHtmlString());await qi.Call("ApproveQualityControlAsync");Check(api.QcRequests==0,"QC approval cannot submit before choosing a destination");qi.Set("_qualityWarehouseId",3);await qi.Call("ApproveQualityControlAsync");Check(api.QcRequests==1&&api.LastQualityWarehouse==3,"QC approval submits the selected warehouse");

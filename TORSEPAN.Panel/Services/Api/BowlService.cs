@@ -135,6 +135,9 @@ public sealed class BowlService
         return _api.PostAsync<object, DimpleBowlDto>($"bowls/production/{code}/glue/send-to-export", new { });
     }
 
+    public Task<object?> SellExportItemsAsync(IEnumerable<ExportWarehouseItemDto> items,string? buyer,string? phone,Guid? partyId,string? destination,decimal? price,decimal? received,decimal? profit,int currency,int profitCurrency,bool export,Guid? source,Guid? referrer)
+        => _api.OrderActionAsync<object,object?>("export-warehouse/ship",new {Items=items.Select(x=>new{x.Id,x.ItemType}).ToArray(),BuyerName=buyer,BuyerPhoneNumber=phone,PartyId=partyId,Destination=destination,ShippingMethod=(string?)null,IsSettled=(bool?)null,Price=price,ReceivedAmount=received,NetProfit=profit,PriceCurrency=currency,ProfitCurrency=profitCurrency,IsExportSale=export,LeadSourceId=source,ReferrerId=referrer,FinancialsSpecified=true});
+
     public Task<object?> ShipExportItemsAsync(IEnumerable<ExportWarehouseItemDto> items, string? buyerName,
         Guid? partyId, string? destination, string? shippingMethod, bool? isSettled)
         => _api.PostAsync<object, object?>("export-warehouse/ship", new

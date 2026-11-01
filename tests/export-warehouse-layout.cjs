@@ -14,8 +14,8 @@ for(const width of [320,412,768])for(const height of [480,900]){
 await page.setViewportSize({width,height});
 await page.setContent(`<html lang="fa" dir="rtl"><head><base href="http://fixture/"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${styles}</style></head><body><div class="layout theme-shell"><div class="main"><main class="content">${fs.readFileSync(path.join(preview,'export-shipment.html'),'utf8')}</main></div><nav class="bottom-navigation"><button>منو</button></nav></div></body></html>`);
 for(const scroll of [0,100000]){
-await page.locator('.shipment-body').evaluate((e,y)=>e.scrollTop=y,scroll);
-const reachable=await page.locator('.shipment-dialog>footer .btn-success').evaluate(e=>{const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(x,y));});
+await page.locator('.export-sale-body').evaluate((e,y)=>e.scrollTop=y,scroll);
+const reachable=await page.locator('.sale-dialog>footer .btn-success').evaluate(e=>{const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(x,y));});
 assert(reachable,'shipment confirm stays visible above dock '+width+'x'+height+' scroll '+scroll);
 }
 console.log('PASS 74-item shipment actions above dock',width,height);

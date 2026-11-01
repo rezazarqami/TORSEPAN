@@ -50,6 +50,7 @@ public sealed class GetSalesQueryHandler(IUnitOfWork unitOfWork)
                 {
                     HandpanId = bowl.Id,
                     IsBowl = true,
+                    IsExportSale=metadata?.IsExportSale??true,Price=metadata?.Price,PaidAmount=metadata?.ReceivedAmount??0,NetProfit=metadata?.NetProfit,PriceCurrency=(int)(metadata?.PriceCurrency??TORSEPAN.Domain.Entities.MoneyCurrency.Toman),ProfitCurrency=(int)(metadata?.ProfitCurrency??TORSEPAN.Domain.Entities.MoneyCurrency.Toman),BuyerPhoneNumber=metadata?.BuyerPhoneNumber??"",LeadSourceId=metadata?.LeadSourceId,ReferrerId=metadata?.ReferrerId,
                     BowlType = (int)bowl.BowlType,
                     HasNotes = bowl.HasNotes,
                     ItemType = "کاسه صادراتی",

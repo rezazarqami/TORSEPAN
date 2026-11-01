@@ -117,7 +117,8 @@ public sealed partial class OfflineProductionService
                 Require(bowl!.InstrumentCode is null && bowl.Stage==22,"کاسه صادراتی باید در انبار باشد.");
                 if(op.PartyId.HasValue) Require(await db.AccountingParties.AnyAsync(x=>x.Id==op.PartyId && x.IsActive,ct),"طرف حساب معتبر نیست.");
                 Require((op.BuyerName?.Length??0)<=200 && (op.Destination?.Length??0)<=200 && (op.ShippingMethod?.Length??0)<=200,"اطلاعات ارسال طولانی است.");
-                await mediator.Send(new ShipExportBowlCommand(bowl.Id,op.BuyerName,op.PartyId,op.Destination,op.ShippingMethod,op.IsSettled),ct);
+                var shipResult=await Controller<TORSEPAN.API.Controllers.ExportWarehouseController>().Ship(new([new(bowl.Id,"bowl")],op.BuyerName,op.PartyId,op.Destination,op.ShippingMethod,op.IsSettled,op.BuyerPhoneNumber,op.Price,op.ReceivedAmount,op.NetProfit,(MoneyCurrency)(op.PriceCurrency==0?1:op.PriceCurrency),(MoneyCurrency)(op.ProfitCurrency==0?1:op.ProfitCurrency),op.IsExportSale,op.LeadSourceId,op.ReferrerId,true),ct);
+                Require(shipResult is Microsoft.AspNetCore.Mvc.NoContentResult,"ثبت مالی فروش صادراتی انجام نشد؛ مبلغ و اطلاعات خریدار را بررسی کنید.");
                 break;
             case "note":
                 Require(!string.IsNullOrWhiteSpace(op.Details),"متن یادداشت لازم است.");

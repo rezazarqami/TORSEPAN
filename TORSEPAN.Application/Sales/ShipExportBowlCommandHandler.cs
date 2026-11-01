@@ -68,7 +68,9 @@ public sealed class ShipExportBowlsCommandHandler(IUnitOfWork unitOfWork, IUserC
 }
 
 public sealed record ExportSaleDetails(string? BuyerName, Guid? PartyId, string? Destination,
-    string? ShippingMethod, bool? IsSettled);
+    string? ShippingMethod, bool? IsSettled,decimal? Price=null,decimal? ReceivedAmount=null,decimal? NetProfit=null,
+    MoneyCurrency PriceCurrency=MoneyCurrency.Toman,MoneyCurrency ProfitCurrency=MoneyCurrency.Toman,
+    string? BuyerPhoneNumber=null,bool IsExportSale=true,Guid? LeadSourceId=null,Guid? ReferrerId=null);
 
 public static class ExportSaleMetadata
 {
