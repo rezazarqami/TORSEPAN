@@ -121,7 +121,7 @@ else
     private int _activeLocation=4, _newLocation=4;
     private string _activeInventoryTab="bowls";
     private ElementReference _inventorySection;
-    private static readonly (int Id,string Name,string Code)[] Warehouses=[(4,"ایران","IR"),(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE"),(5,"مصر","EG"),(6,"ریاض","SA")];
+    private static readonly (int Id,string Name,string Code)[] Warehouses=[(7,"لبنان","LB"),(4,"ایران","IR"),(1,"ترکیه","TR"),(2,"لندن","UK"),(3,"آلمان","DE"),(5,"مصر","EG"),(6,"ریاض","SA")];
     private IEnumerable<ExportWarehouseItemDto> WarehouseItems => _items.Where(x=>string.IsNullOrWhiteSpace(_search) ? x.Location==_activeLocation : x.ProductionCode.Contains(_search, StringComparison.OrdinalIgnoreCase) || x.Detail.Contains(_search, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<ExportWarehouseItemDto> WarehouseBowls => WarehouseItems.Where(x=>x.ItemType=="bowl");
     private IEnumerable<ExportWarehouseItemDto> WarehouseHandpans => WarehouseItems.Where(x=>x.ItemType=="handpan");

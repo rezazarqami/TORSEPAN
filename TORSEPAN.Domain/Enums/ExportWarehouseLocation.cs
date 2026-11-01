@@ -7,5 +7,6 @@ public enum ExportWarehouseLocation
     Germany = 3,
     Iran = 4,
     Egypt = 5,
-    Riyadh = 6
+    Riyadh = 6,
+    Lebanon = 7
 }

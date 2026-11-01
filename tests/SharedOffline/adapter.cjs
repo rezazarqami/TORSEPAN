@@ -54,6 +54,9 @@ test('warehouse transfer projects country stock, supports return and rejects sol
  const h=harness(s);assert.equal(h.request('GET','production/warehouse').value[0].orderCustomerName,'امید همدانی');
  const r=h.request('POST','instrument-warehouses/transfer',{warehouseId:0,exportLocation:5,items:[{handpanId:id(8),expectedVersion:id(9)}]});assert.equal(r.status,200);assert.equal(r.value[0].stage,'ExportWarehouse');assert.equal(h.request('GET','production/warehouse').value.length,0);const stock=h.request('GET','export-warehouse').value;assert.equal(stock.length,1);assert.equal(stock[0].location,5);
  assert.equal(h.request('PUT','export-warehouse/handpan/'+id(8)+'/location',{location:6}).status,200);assert.equal(h.request('GET','export-warehouse').value[0].location,6);
+ assert.equal(h.request('PUT','export-warehouse/handpan/'+id(8)+'/location',{location:7}).status,200);assert.equal(h.request('GET','export-warehouse').value[0].location,7);
+ assert.equal(h.request('POST','instrument-warehouses/transfer',{warehouseId:0,exportLocation:7,items:[{handpanId:id(8),expectedVersion:id(9)}]}).status,200);assert.equal(h.request('GET','export-warehouse').value[0].location,7);
+ assert.equal(h.request('PUT','export-warehouse/handpan/'+id(8)+'/location',{location:8}).status,409);
  assert.equal(h.request('POST','instrument-warehouses/transfer',{warehouseId:3,items:[{handpanId:id(8),expectedVersion:id(9)}]}).status,200);assert.equal(h.request('GET','production/warehouse').value[0].qualityWarehouseId,3);assert.equal(h.request('GET','export-warehouse').value.length,0);
 });
 test('cached sold instrument wins over stale component warehouse stage',()=>{

@@ -476,7 +476,7 @@
     private bool PackagingStockInsufficient => _packagingMaterials.Any(x => _selectedPackagingMaterialIds.Contains(x.Id) && x.Quantity < PackagingMaterialConsumption.RequiredQuantity(x.Name));
     private bool _sendToExportWarehouse;
     private int? _exportWarehouseLocation;
-    private static readonly (int Id, string Name, string Code)[] ExportLocations = [(4, "ایران", "ir"), (1, "ترکیه", "tr"), (2, "لندن", "uk"), (3, "آلمان", "de"), (5, "مصر", "eg"), (6, "ریاض", "sa")];
+    private static readonly (int Id, string Name, string Code)[] ExportLocations = [(4, "ایران", "ir"), (1, "ترکیه", "tr"), (2, "لندن", "uk"), (3, "آلمان", "de"), (5, "مصر", "eg"), (6, "ریاض", "sa"), (7, "لبنان", "lb")];
     private string? _successMessage;
     private ElementReference _codeInput;
     private bool _focusCodeAfterOperation;

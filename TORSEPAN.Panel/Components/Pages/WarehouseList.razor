@@ -121,7 +121,7 @@ else
         @if (_transferWarehouseId==0)
         {
             <div class="transfer-locations" role="group" aria-label="مقصد انبار صادراتی">
-                @foreach(var location in new (int Id,string Name)[]{(4,"ایران 🇮🇷"),(1,"ترکیه 🇹🇷"),(2,"لندن 🇬🇧"),(3,"آلمان 🇩🇪"),(5,"مصر 🇪🇬"),(6,"ریاض 🇸🇦")})
+                @foreach(var location in new (int Id,string Name)[]{(4,"ایران 🇮🇷"),(1,"ترکیه 🇹🇷"),(2,"لندن 🇬🇧"),(3,"آلمان 🇩🇪"),(5,"مصر 🇪🇬"),(6,"ریاض 🇸🇦"),(7,"لبنان 🇱🇧")})
                 {
                     <button type="button" disabled="@_transferring" class="@(_transferExportLocation==location.Id?"selected":"")" aria-pressed="@(_transferExportLocation==location.Id)" @onclick="()=>SelectTransferLocation(location.Id)">@location.Name</button>
                 }

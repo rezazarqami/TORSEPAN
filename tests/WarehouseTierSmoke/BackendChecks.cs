@@ -107,6 +107,12 @@ static class BackendChecks
         var exportController=new ExportWarehouseController(db);
         Check(await exportController.ChangeLocation("handpan",newExport.Id,new(ExportWarehouseLocation.Riyadh),default) is NoContentResult,"Riyadh accepts export location changes");db.ChangeTracker.Clear();
         Check(await db.Handpans.AnyAsync(x=>x.Id==newExport.Id&&x.ExportWarehouseLocation==ExportWarehouseLocation.Riyadh&&x.Stage==ProductionStage.ExportWarehouse),"Riyadh destination is persisted without changing export stock status");
+        Check(await controller.Transfer(new(0,[new(current.Id,current.OfflineVersion)],ExportWarehouseLocation.Lebanon),default) is OkObjectResult,"Lebanon accepts instrument transfers");db.ChangeTracker.Clear();
+        current=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==current.Id);
+        Check(await db.Handpans.AnyAsync(x=>x.Id==current.Id&&x.ExportWarehouseLocation==ExportWarehouseLocation.Lebanon&&x.Stage==ProductionStage.ExportWarehouse),"Lebanon is persisted as a separate export warehouse");
+        Check(await controller.Transfer(new(2,[new(current.Id,current.OfflineVersion)]),default) is OkObjectResult,"Lebanon stock can return to domestic inventory");db.ChangeTracker.Clear();
+        current=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==current.Id);
+        Check(await exportController.ChangeLocation("handpan",newExport.Id,new(ExportWarehouseLocation.Lebanon),default) is NoContentResult,"existing export stock can change location to Lebanon");db.ChangeTracker.Clear();
         var customerOrder=new CustomerOrder("امید همدانی",scale.Id,scale.Name,7,actor.Id,DateTime.UtcNow);
         var topId=await db.HandpanAssemblies.Where(x=>x.Id==current.AssemblyId).Select(x=>x.TopBowlId).SingleAsync();
         customerOrder.AssignInstrument(current.SerialNumber,topId,current.Id,actor.Id,DateTime.UtcNow);db.Add(customerOrder);await db.SaveChangesAsync();

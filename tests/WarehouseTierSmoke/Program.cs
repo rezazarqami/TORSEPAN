@@ -66,7 +66,7 @@ foreach(var role in new[]{"Administrator","QualityControl","Tuner"})
         if(role=="Administrator")
         {
             var export=await renderer.RenderComponentAsync<ExportPreview>(ParameterView.Empty);var ei=ExportPreview.Instance!;string EHtml()=>WebUtility.HtmlDecode(export.ToHtmlString());
-            Check(EHtml().Contains("مصر")&&EHtml().Contains("ریاض")&&EHtml().Contains("/images/flags/eg.svg")&&EHtml().Contains("/images/flags/sa.svg"),"export warehouse has six destinations and real Egypt/Saudi flags");
+            Check(EHtml().Contains("لبنان")&&EHtml().Contains("/images/flags/lb.svg")&&EHtml().Contains("مصر")&&EHtml().Contains("ریاض")&&EHtml().Contains("/images/flags/eg.svg")&&EHtml().Contains("/images/flags/sa.svg"),"export warehouse has seven destinations and real Egypt/Saudi flags");
             if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"export-inventory.html"),export.ToHtmlString());
             await ei.Call("SelectInventoryTab","handpans");ei.Refresh();
             if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"export-handpans.html"),export.ToHtmlString());
@@ -78,7 +78,7 @@ foreach(var role in new[]{"Administrator","QualityControl","Tuner"})
             if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"qc-export.html"),qc.ToHtmlString());
             qi.Set("_exportWarehouseLocation",2);await qi.Call("ApproveQualityControlAsync");Check(api.LastExportLocation==2&&api.QcRequests==2,"QC persists selected export country");
             qi.Set("_successMessage",null);qi.Set("_error",null);qi.Set("_bowl",new DimpleBowlDto{ProductionCode="EXPORT-PACK",Stage=21,BowlType=1});qi.Set("_exportWarehouseLocation",null);qi.Refresh();
-            Check(QHtml().Contains("export-packaging-grid")&&QHtml().Contains("/images/flags/uk.svg")&&QHtml().Contains("/images/flags/eg.svg")&&QHtml().Contains("/images/flags/sa.svg")&&!QHtml().Contains("export-location-picker"),"export packaging renders six flagged destinations without the light legacy picker");
+            Check(QHtml().Contains("/images/flags/lb.svg")&&QHtml().Contains("export-packaging-grid")&&QHtml().Contains("/images/flags/uk.svg")&&QHtml().Contains("/images/flags/eg.svg")&&QHtml().Contains("/images/flags/sa.svg")&&!QHtml().Contains("export-location-picker"),"export packaging renders seven flagged destinations without the light legacy picker");
             if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"export-packaging.html"),qc.ToHtmlString());
             await qi.Call("CompleteExportPackagingAsync");Check(QHtml().Contains("انبار مقصد را انتخاب کنید"),"export packaging still requires an explicit destination");
             qi.Set("_error",null);qi.Set("_exportWarehouseLocation",5);qi.Refresh();
