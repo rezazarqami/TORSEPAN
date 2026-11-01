@@ -83,6 +83,7 @@ else
 {
     <div class="shipment-overlay" @onclick="CloseShipment"><section class="shipment-dialog" role="dialog" aria-modal="true" aria-labelledby="shipment-title" @onclick:stopPropagation="true">
         <header><div><small>ثبت خروج از انبار صادراتی</small><h3 id="shipment-title">اطلاعات ارسال</h3><p>@_shipmentIds.Count کالا انتخاب شده است</p></div><button @onclick="CloseShipment" aria-label="بستن">×</button></header>
+        <div class="shipment-body">
         <div class="shipment-codes">@foreach(var id in _shipmentIds){<span>@_items.First(x=>x.Id==id).ProductionCode</span>}</div>
         <div class="shipment-fields">
             <label><span>نام خریدار از حسابداری</span><select class="form-select" @bind="_partyId"><option value="">انتخاب نشده</option>@foreach(var party in _parties){<option value="@party.Id">@party.DisplayName</option>}</select></label>
@@ -93,6 +94,7 @@ else
         </div>
         <p class="shipment-hint">تمام فیلدها اختیاری هستند و ارسال بدون تکمیل آن‌ها نیز ثبت می‌شود.</p>
         @if(!string.IsNullOrWhiteSpace(_error)){<div class="shipment-error">@_error</div>}
+        </div>
         <footer><button class="btn btn-light" disabled="@_saving" @onclick="CloseShipment">انصراف</button><button class="btn btn-success" disabled="@_saving" @onclick="ConfirmShipmentAsync">@(_saving?"در حال ثبت…":"تأیید و انتقال به فروش")</button></footer>
     </section></div>
 }

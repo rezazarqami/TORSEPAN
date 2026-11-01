@@ -72,6 +72,14 @@ foreach(var role in new[]{"Administrator","QualityControl","Tuner"})
             if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"export-handpans.html"),export.ToHtmlString());
             var exportItem=((List<ExportWarehouseItemDto>)ei.Get("_items")!).First();await ei.Call("OpenLocationEditor",exportItem);ei.Refresh();Check(EHtml().Contains("/images/flags/sa.svg")&&EHtml().Contains("مصر"),"change export location includes the new flagged destinations");
             if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"export-location.html"),export.ToHtmlString());await ei.Call("CloseLocationEditor");
+            var shipmentItems=(List<ExportWarehouseItemDto>)ei.Get("_items")!;
+            var shipmentTemplate=shipmentItems.First();
+            for(var index=0;index<74;index++)shipmentItems.Add(new ExportWarehouseItemDto{Id=Guid.NewGuid(),ProductionCode=$"B-{index}",ItemType="bowl",Location=1});
+            await ei.Call("OpenShipment",shipmentTemplate);
+            var shipmentIds=(List<Guid>)ei.Get("_shipmentIds")!;shipmentIds.Clear();shipmentIds.AddRange(shipmentItems.TakeLast(74).Select(x=>x.Id));ei.Refresh();
+            Check(EHtml().Contains("shipment-body")&&EHtml().Contains("تأیید و انتقال به فروش"),"large shipment keeps scrolling content separate from action footer");
+            if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"export-shipment.html"),export.ToHtmlString());
+            await ei.Call("CloseShipment");
             var qc=await renderer.RenderComponentAsync<QcPreview>(ParameterView.Empty);var qi=QcPreview.Instance!;string QHtml()=>WebUtility.HtmlDecode(qc.ToHtmlString());Check(QHtml().Contains("انبار مقصد را انتخاب کنید")&&QHtml().Contains("Economy")&&QHtml().Contains("Signature"),"QC shows the three warehouse destination choices");if(preview is not null)await File.WriteAllTextAsync(Path.Combine(preview,"qc-warehouse.html"),qc.ToHtmlString());await qi.Call("ApproveQualityControlAsync");Check(api.QcRequests==0,"QC approval cannot submit before choosing a destination");qi.Set("_qualityWarehouseId",3);await qi.Call("ApproveQualityControlAsync");Check(api.QcRequests==1&&api.LastQualityWarehouse==3,"QC approval submits the selected warehouse");
             qi.Set("_successMessage",null);qi.Set("_bowl",new DimpleBowlDto{ProductionCode="QC-FIXTURE",Stage=14,BowlType=1});await qi.Call("SelectQcExport");qi.Refresh();await qi.Call("ApproveQualityControlAsync");Check(api.QcRequests==1,"export QC requires a country before submitting");
             Check(QHtml().Contains("ایران")&&QHtml().Contains("لندن")&&QHtml().Contains("ترکیه")&&QHtml().Contains("آلمان"),"export selection reveals four destinations");

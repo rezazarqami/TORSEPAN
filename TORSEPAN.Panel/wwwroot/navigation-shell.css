@@ -513,3 +513,17 @@ body .layout.theme-shell .main:has(.sale-overlay),body .layout.theme-shell .main
 html:has(.theme-shell), body .layout.theme-shell > .main {
     scroll-padding-bottom: calc(var(--tp-dock-height, 82px) + env(safe-area-inset-bottom, 0px) + 20px);
 }
+
+/* Dialogs must escape the main stacking context and cover the navigation dock. */
+body .layout.theme-shell > .main:has(:is(.shipment-overlay,.warehouse-dialog-overlay,.inventory-gallery-overlay,.gallery-preview-overlay,.sale-overlay,.edit-sale-overlay)){
+    z-index:10001;
+}
+body .layout.theme-shell .main .content :is(.shipment-overlay,.warehouse-dialog-overlay,.inventory-gallery-overlay,.gallery-preview-overlay,.sale-overlay,.edit-sale-overlay){
+    bottom:var(--tp-viewport-bottom,0px);
+    box-sizing:border-box;
+}
+body .layout.theme-shell .main .content :is(.shipment-dialog,.location-dialog,.warehouse-transfer-dialog,.warehouse-settings-dialog,.inventory-gallery-dialog,.sale-dialog,.edit-sale-dialog){
+    max-height:calc(100dvh - var(--tp-viewport-bottom,0px) - 32px);
+    overscroll-behavior:contain;
+}
+body .layout.theme-shell .main .content :is(.location-dialog,.warehouse-transfer-dialog,.warehouse-settings-dialog){overflow-y:auto}

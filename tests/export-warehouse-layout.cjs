@@ -10,4 +10,14 @@ const destinationRows=await page.locator('.destination-picker .warehouse-card').
 assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal overflow '+fixture+' '+width);
 const ratios=await page.locator('.inventory-tabs button strong,.inventory-tabs button b').evaluateAll(nodes=>{const lum=s=>{const c=s.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return c.reduce((s,x,i)=>s+x*[.2126,.7152,.0722][i],0)};return nodes.map(n=>{let p=n,bg;while(p){const s=getComputedStyle(p).backgroundColor;if(s!=='rgba(0, 0, 0, 0)'&&s!=='transparent'){bg=s;break;}p=p.parentElement;}const f=lum(getComputedStyle(n).color),b=lum(bg);return (Math.max(f,b)+.05)/(Math.min(f,b)+.05);});});if(!ratios.every(x=>x>=4.5))console.log(await page.locator('.inventory-tabs button').evaluateAll(ns=>ns.map(n=>({bg:getComputedStyle(n).backgroundColor,gradient:getComputedStyle(n).backgroundImage,color:getComputedStyle(n).color,strong:getComputedStyle(n.querySelector('strong')).color,html:n.outerHTML}))));assert(ratios.every(x=>x>=4.5),'tab labels/counts contrast >=4.5:1 '+ratios);
 if(width===360&&fixture==='export-handpans')await page.locator('.selected-inventory').screenshot({path:path.join(preview,'export-mobile.png')});console.log('PASS seven flags, tab contrast and overflow',width,fixture);}
+for(const width of [320,412,768])for(const height of [480,900]){
+await page.setViewportSize({width,height});
+await page.setContent(`<html lang="fa" dir="rtl"><head><base href="http://fixture/"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${styles}</style></head><body><div class="layout theme-shell"><div class="main"><main class="content">${fs.readFileSync(path.join(preview,'export-shipment.html'),'utf8')}</main></div><nav class="bottom-navigation"><button>منو</button></nav></div></body></html>`);
+for(const scroll of [0,100000]){
+await page.locator('.shipment-body').evaluate((e,y)=>e.scrollTop=y,scroll);
+const reachable=await page.locator('.shipment-dialog>footer .btn-success').evaluate(e=>{const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(x,y));});
+assert(reachable,'shipment confirm stays visible above dock '+width+'x'+height+' scroll '+scroll);
+}
+console.log('PASS 74-item shipment actions above dock',width,height);
+}
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1)});

@@ -101,3 +101,10 @@ body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy
 .destination-picker .warehouse-card{grid-column:span 3}
 .destination-picker .warehouse-card:nth-child(n+5){grid-column:span 4}
 @media(max-width:600px){body .layout.theme-shell .main .content .navy-workspace-page.navy-warehouse.navy-export .location-choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Keep actions outside the scrolling list, including large export selections. */
+.shipment-dialog{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.shipment-dialog>header,.shipment-dialog>footer{flex-shrink:0;position:relative;z-index:2}
+.shipment-body{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.shipment-dialog>footer{padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
+.location-dialog{max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain}
