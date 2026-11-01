@@ -38,7 +38,7 @@ public sealed class ProductionService
     public async Task<InstrumentWarehouseDto?> RenameWarehouseAsync(int id, string name, Guid expectedVersion) =>
         await _api.PutAsync<object, InstrumentWarehouseDto>($"instrument-warehouses/{id}", new { Name=name, ExpectedVersion=expectedVersion });
     public async Task<List<WarehouseMoveResult>> TransferWarehouseAsync(int id, IReadOnlyList<WarehouseMoveItem> items, int? exportLocation = null) =>
-        await _api.PostAsync<object, List<WarehouseMoveResult>>("instrument-warehouses/transfer", new { WarehouseId=id, Items=items, ExportLocation=exportLocation }) ?? [];
+        await _api.OrderActionAsync<object, List<WarehouseMoveResult>>("instrument-warehouses/transfer", new { WarehouseId=id, Items=items, ExportLocation=exportLocation }) ?? [];
 
     public async Task<IReadOnlyList<WarehouseHandpanDto>> GetWarehouseAsync()
     {

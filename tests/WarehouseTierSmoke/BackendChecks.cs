@@ -84,6 +84,15 @@ static class BackendChecks
         Check(typeof(InstrumentWarehousesController).GetMethod("Rename")!.GetCustomAttribute<AuthorizeAttribute>()!.Roles=="Administrator","warehouse naming is administrator-only");
         Check(typeof(InstrumentWarehousesController).GetMethod("Transfer")!.GetCustomAttribute<AuthorizeAttribute>()!.Roles!.Contains("QualityControl"),"quality control and stock managers can transfer, without sales-only access");
         var current=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==stock1.Id);
+        // Reproduce an untouched pre-offline instrument (migration default version).
+        await db.Handpans.Where(x=>x.Id==current.Id).ExecuteUpdateAsync(set=>set.SetProperty(x=>x.OfflineVersion,Guid.Empty));
+        current=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==current.Id);
+        Check(await controller.Transfer(new(0,[new(current.Id,null)],ExportWarehouseLocation.Turkey),default) is BadRequestObjectResult,"missing version is rejected even for legacy stock");
+        Check(await controller.Transfer(new(0,[new(current.Id,Guid.NewGuid())],ExportWarehouseLocation.Turkey),default) is ConflictObjectResult,"wrong version cannot move legacy stock");db.ChangeTracker.Clear();
+        var legacyExport=await controller.Transfer(new(0,[new(current.Id,Guid.Empty)],ExportWarehouseLocation.Turkey),default);db.ChangeTracker.Clear();
+        current=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==current.Id);
+        Check(legacyExport is OkObjectResult&&current.Stage==ProductionStage.ExportWarehouse&&current.ExportWarehouseLocation==ExportWarehouseLocation.Turkey&&current.OfflineVersion!=Guid.Empty,"legacy zero-version stock transfers to Turkey and receives a new version");
+        Check(await controller.Transfer(new(2,[new(current.Id,Guid.Empty)]),default) is ConflictObjectResult,"old zero version cannot be replayed after a transfer");db.ChangeTracker.Clear();
         var invalidExport=await controller.Transfer(new(0,[new(current.Id,current.OfflineVersion)],(ExportWarehouseLocation)99),default);db.ChangeTracker.Clear();Check(invalidExport is BadRequestObjectResult,"invalid export destination is rejected");
         var exported=await controller.Transfer(new(0,[new(current.Id,current.OfflineVersion)],ExportWarehouseLocation.Iran),default);db.ChangeTracker.Clear();
         current=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==stock1.Id);

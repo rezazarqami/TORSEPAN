@@ -40,7 +40,7 @@ public sealed class InstrumentWarehousesController(TORSEPANDbContext db) : Contr
     public async Task<IActionResult> Transfer(WarehouseTransferRequest request, CancellationToken ct)
     {
         if ((request.ExportLocation.HasValue ? !Enum.IsDefined(request.ExportLocation.Value) : !InstrumentWarehouse.IsValidId(request.WarehouseId)) || request.Items is null || request.Items.Count is < 1 or > 200
-            || request.Items.Any(x => x.HandpanId == Guid.Empty || x.ExpectedVersion == Guid.Empty)
+            || request.Items.Any(x => x.HandpanId == Guid.Empty || !x.ExpectedVersion.HasValue)
             || request.Items.Select(x => x.HandpanId).Distinct().Count() != request.Items.Count)
             return BadRequest(new { Message = "سازها و انبار مقصد را بررسی کنید." });
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
@@ -87,5 +87,6 @@ public sealed class InstrumentWarehousesController(TORSEPANDbContext db) : Contr
     }
 }
 public sealed record WarehouseNameRequest(string Name, Guid ExpectedVersion);
-public sealed record WarehouseTransferItem(Guid HandpanId, Guid ExpectedVersion);
+// Legacy rows start at Guid.Empty; null means the caller omitted the concurrency token.
+public sealed record WarehouseTransferItem(Guid HandpanId, Guid? ExpectedVersion);
 public sealed record WarehouseTransferRequest(int WarehouseId, IReadOnlyList<WarehouseTransferItem> Items, ExportWarehouseLocation? ExportLocation = null);
