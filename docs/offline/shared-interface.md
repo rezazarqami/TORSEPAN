@@ -1,4 +1,4 @@
-> Current prepared update: [Torsepan Offline 2.11.1](../changes/2026-11-03-offline-2.11.1.md). The 2.8 candidate notes below are historical.
+> Current independent installation: [Torsepan Offline 3.0.0](../changes/2026-11-03-offline-3.0.0.md). Earlier same-package update notes below are historical.
 
 # Shared cached workshop candidate 2.8
 

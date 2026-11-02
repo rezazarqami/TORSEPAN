@@ -11,6 +11,10 @@
 <ManagementPhotoHeader Kind="backups" Title="پشتیبان‌گیری" SecondLine="و آرشیو" Description="یک نسخه از اطلاعات فعلی کارگاه را روی دستگاه خود نگه دارید." CssClass="backup-hero" />
 @if(LocalServices.GetService(typeof(ILocalDataRefresh)) is not null){<article class="card p-4"><h2>پشتیبان اطلاعات گوشی</h2><p>اطلاعات دریافت‌شده، عکس‌های موجود روی گوشی و ثبت‌های در صف. بکاپ کامل سرور هنگام اتصال تهیه می‌شود.</p><button class="btn btn-primary" @onclick="BackupPhoneAsync">ذخیرهٔ پشتیبان گوشی</button></article>}
 <div class="backup-options">
+    @if (IsLocal)
+    {
+        <article><span class="backup-icon">↗</span><h2>خروجی گزارش‌های آفلاین</h2><p>گزارش‌های کارگاه از اطلاعات ذخیره‌شدهٔ گوشی، همراه امکان چاپ و ذخیرهٔ PDF.</p><NavLink class="btn btn-primary" href="/reports">نمایش و خروجی گزارش‌ها</NavLink></article>
+    }
     <article><span class="backup-icon">↓</span><h2>بکاپ کامل همراه عکس‌ها</h2><p>تمام اطلاعات دیتابیس، عکس‌های ساز و پیش‌نمایش‌ها در یک فایل قابل بازیابی.</p><button class="btn btn-primary" disabled="@(_busy || _downloading)" @onclick='() => StartAsync("full")'>دریافت بکاپ کامل</button></article>
     <article><span class="backup-icon">PDF</span><h2>آرشیو شناسنامه‌ها و موجودی</h2><p>ریز سوابق سازها و کاسه‌ها، مراحل تولید، آماده QC، بسته‌بندی، انبار و فروش؛ همراه موجودی فعلی مواد اولیه.</p><button class="btn btn-primary" disabled="@(_busy || _downloading)" @onclick='() => StartAsync("pdf")'>تهیه گزارش PDF</button></article>
 </div>
@@ -29,11 +33,13 @@
     </section>
 }
 @if (_message is not null) { <p class="backup-error" role="alert">@_message</p> }
+@if (IsLocal) { <p class="backup-note">بکاپ گوشی و گزارش‌های آفلاین بدون اینترنت در دسترس‌اند. برای بکاپ کامل سرور و آرشیو کامل شناسنامه‌ها، صفحهٔ پشتیبان‌گیری آنلاین باز می‌شود و اتصال اینترنت لازم است.</p> }
 <p class="backup-note">بکاپ شبانهٔ تلگرام مستقل است و همچنان بدون عکس ارسال می‌شود. PDF برای خواندن سوابق است؛ بازیابی نرم‌افزار با بکاپ کامل انجام می‌شود.</p>
 
 </div>
 
 @code {
+    private bool IsLocal => LocalServices.GetService(typeof(ILocalDataRefresh)) is not null;
     private Task BackupPhoneAsync()=>JS.InvokeVoidAsync("OfflinePanel.backup").AsTask();
     private Job? _job;
     private bool _busy, _downloading;
@@ -41,7 +47,7 @@
     private readonly CancellationTokenSource _lifetime = new();
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
+        if (!firstRender || IsLocal) return;
         try
         {
             var saved = await JS.InvokeAsync<string?>("localStorage.getItem", "torsepan_backup_job");
@@ -60,6 +66,13 @@
     }
     private async Task StartAsync(string kind)
     {
+        // Server-wide archives use the real authenticated online page; they cannot
+        // be created from a phone snapshot through the local-only HTTP adapter.
+        if (IsLocal)
+        {
+            await JS.InvokeVoidAsync("OfflinePanel.serverBackups");
+            return;
+        }
         _busy = true; _message = null; _job = null;
         try
         {

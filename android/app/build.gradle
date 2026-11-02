@@ -25,11 +25,12 @@ android {
     androidResources { ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~' }
     testOptions { unitTests.includeAndroidResources = true }
     defaultConfig {
-        applicationId 'ir.torsepan.mobile.offline'
+        // Independent installation: never replaces either legacy offline or online.
+        applicationId 'ir.torsepan.offline'
         minSdk 29
         targetSdk 34
-        versionCode 18
-        versionName '2.11.1-offline'
+        versionCode 19
+        versionName '3.0.0-offline'
     }
 }
 

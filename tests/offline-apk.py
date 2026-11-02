@@ -2,7 +2,9 @@
 import re, subprocess, sys, zipfile
 from pathlib import Path
 bundle_only = len(sys.argv) == 3 and sys.argv[1] == "--bundle-only"
+fresh_install = len(sys.argv) == 5 and sys.argv[1] == "--fresh-install"
 if bundle_only: current = sys.argv[2]
+elif fresh_install: signer, aapt, current = sys.argv[2:]
 else: signer, aapt, previous, current = sys.argv[1:]
 def certificate(apk):
     output = subprocess.check_output([signer, 'verify', '--print-certs', apk], text=True)
@@ -15,10 +17,16 @@ def package(apk):
     assert match, 'Missing Android package metadata'
     return match[1], int(match[2]), match[3], output
 if not bundle_only:
-    old, new = package(previous), package(current)
-    assert old[0] == new[0] == 'ir.torsepan.mobile.offline', 'Offline application identity changed'
-    assert new[1] > old[1], 'Update version code must increase'
-    assert certificate(previous) == certificate(current), 'Signing identity changed; refuse update'
+    new = package(current)
+    assert new[0] == 'ir.torsepan.offline', 'Independent offline application identity is incorrect'
+    assert new[1] >= 19, 'Independent offline version is incorrect'
+    if fresh_install:
+        certificate(current)
+    else:
+        old = package(previous)
+        assert old[0] == new[0], 'Refuse to describe a different package as an in-place update'
+        assert new[1] > old[1], 'Update version code must increase'
+        assert certificate(previous) == certificate(current), 'Signing identity changed; refuse update'
     assert "application-label:'Torsepan Offline'" in new[3], 'Offline launcher name is incorrect'
     assert 'application-debuggable' not in new[3], 'Release must not be debuggable'
 with zipfile.ZipFile(current) as archive:
@@ -34,4 +42,4 @@ with zipfile.ZipFile(current) as archive:
         assert archive.read(name) == file.read_bytes(), 'Stale bundled asset: ' + name
     assert b'workPlanDay'  in archive.read('assets/panel/offline-panel.js'), 'Stale offline adapter'
 if bundle_only: print('PASS complete APK offline bundle including every WebAssembly runtime asset')
-else: print(f'PASS verified in-place offline update: {new[0]} {new[2]} ({new[1]}); same signer; complete offline bundle; release build')
+else: print(f'PASS verified {"independent offline installation" if fresh_install else "in-place offline update"}: {new[0]} {new[2]} ({new[1]}); verified signer; complete offline bundle; release build')

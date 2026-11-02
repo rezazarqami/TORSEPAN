@@ -15,6 +15,29 @@ import java.time.Instant;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=29)
 public class OfflineStoreTest {
+    @Test public void phoneBackupContainsLocalWorkAndPhotosWithoutSessionSecrets() throws Exception {
+        String name=UUID.randomUUID()+".db";OfflineStore store=create(name);setup(store);
+        try {
+            store.installSnapshot(snapshot(store).put("workspace",new JSONObject().put("version","backup-fixture").put("sections",new JSONObject())));
+            store.put("refresh_token","fixture-refresh-secret");
+            store.put("photo:"+UUID.randomUUID()+":full",new JSONObject().put("contentType","image/jpeg").put("data","YQ==").toString());
+            store.enqueue(op("@users","workspace").put("workspaceModule","users").put("workspaceAction","save")
+                .put("workspaceData",new JSONObject().put("name","Fixture").put("password","fixture-private-password")).toString());
+            java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream();store.writePhoneBackup(output);
+            java.util.Map<String,String> files=new java.util.HashMap<>();
+            try(java.util.zip.ZipInputStream zip=new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(output.toByteArray()))) {
+                java.util.zip.ZipEntry entry;while((entry=zip.getNextEntry())!=null)
+                    files.put(entry.getName(),new String(zip.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));
+            }
+            assertEquals("owner",new JSONObject(files.get("snapshot.json")).getString("ownerId"));
+            JSONObject data=new JSONArray(files.get("outbox.json")).getJSONObject(0).getJSONObject("body").getJSONObject("workspaceData");
+            assertFalse(data.has("password"));assertTrue(data.getBoolean("requiresCredentialReentry"));
+            assertTrue(files.keySet().stream().anyMatch(x->x.startsWith("photos/")));
+            String exported=files.values().toString();
+            for(String secret:new String[]{"fixture-token","fixture-refresh-secret","fixture-private-password"})assertFalse(exported.contains(secret));
+            assertEquals("fixture-private-password",store.operations().getJSONObject(0).getJSONObject("body").getJSONObject("workspaceData").getString("password"));
+        } finally { store.close();context().deleteDatabase(name); }
+    }
     // Host JVM exercises real Android SQLite. The production AndroidKeyStore codec is device-only.
     private final OfflineCodec codec = new OfflineCodec() {
         public String encrypt(String text) { return "fixture:"+text; }
