@@ -34,6 +34,10 @@ jobs:
           dotnet-version: 10.0.x
       - name: Verify lookup caching, live inventory and mutation invalidation
         run: dotnet run --project tests/PerformanceSmoke/PerformanceSmoke.csproj -c Release
+      - name: Verify bounded dashboard queries and unchanged report values
+        run: dotnet run --project tests/DashboardPerformanceSmoke/DashboardPerformanceSmoke.csproj -c Release
+      - name: Verify usable dashboard startup and lazy statistics tabs
+        run: dotnet run --project tests/HallStockSmoke/HallStockSmoke.csproj -c Release
       - name: Verify production tabs, mobile markup and empty-result filters
         run: dotnet run --project tests/WorkspaceSmoke/WorkspaceSmoke.csproj -c Release -- --production-ui-only
       - name: Verify operation confirmation and immediate same-code lookup

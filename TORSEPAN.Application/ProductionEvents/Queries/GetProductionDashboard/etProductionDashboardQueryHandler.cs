@@ -15,11 +15,16 @@ public sealed class GetProductionDashboardQueryHandler
         GetProductionDashboardQuery request,
         CancellationToken cancellationToken)
     {
-        var bowls = (await _unitOfWork.Bowls.GetAllAsync()).ToList();
-        var allHandpans = (await _unitOfWork.Handpans.GetAllAsync()).ToList();
-        var handpans = (await _unitOfWork.Handpans.GetAllWithAssemblyAsync()).ToList();
-        var assemblies = await _unitOfWork.HandpanAssemblies.GetAllAsync();
-        var hallStock = ProductionHallStockResponse.Calculate(bowls, allHandpans, assemblies);
+        var includeQueues = request.Section is DashboardSection.All or DashboardSection.Queues;
+        var includeDaily = request.Section is DashboardSection.All or DashboardSection.Daily;
+        var includeMonthly = request.Section is DashboardSection.All or DashboardSection.Monthly;
+        var bowls = includeQueues || includeDaily
+            ? (await _unitOfWork.Bowls.GetAllAsync()).ToList() : [];
+        var allHandpans = includeQueues || includeDaily
+            ? (await _unitOfWork.Handpans.GetAllAsync()).ToList() : [];
+        var assemblies = includeQueues ? (await _unitOfWork.HandpanAssemblies.GetAllAsync()).ToList() : [];
+        var assembliesById = assemblies.ToDictionary(x => x.Id);
+        var hallStock = includeQueues ? ProductionHallStockResponse.Calculate(bowls, allHandpans, assemblies) : new();
         var finished = allHandpans.Count(x => x.Stage == ProductionStage.FinishedWarehouse);
         var rejected = allHandpans.Count(x => x.Stage == ProductionStage.Rejected);
         var tehranNow = DateTime.UtcNow.AddHours(3.5);
@@ -31,14 +36,29 @@ public sealed class GetProductionDashboardQueryHandler
         var selectedDay = calendar.GetDayOfMonth(selectedTehran);
         var monthStartTehran = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
         var monthStartUtc = DateTime.SpecifyKind(monthStartTehran.AddHours(-3.5), DateTimeKind.Utc);
-        var allEvents = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, EventResult.Completed);
-        var bowlStageDates = allEvents.Where(x => x.BowlId.HasValue && !x.Description.StartsWith("NOTE:"))
+        var selectedStartUtc = DateTime.SpecifyKind(selectedTehran.AddHours(-3.5), DateTimeKind.Utc);
+        var activeBowlIds = includeQueues
+            ? bowls.Where(x => x.Stage is ProductionStage.WaitingForDimple or ProductionStage.WaitingForShape or
+                ProductionStage.WaitingForBake or ProductionStage.WaitingForTune or ProductionStage.WaitingForGlue or
+                ProductionStage.WaitingForExportPackaging).Select(x => x.Id)
+                .Concat(allHandpans.Where(x => x.Stage == ProductionStage.WaitingForFinalTune)
+                    .Select(x => assembliesById.GetValueOrDefault(x.AssemblyId)?.TopBowlId ?? Guid.Empty))
+                .Where(x => x != Guid.Empty).Distinct().ToArray() : [];
+        var dailyOnly = request.Section == DashboardSection.Daily;
+        var allEvents = await _unitOfWork.ProductionEvents.GetDashboardEventsAsync(
+            dailyOnly ? selectedStartUtc : monthStartUtc, dailyOnly ? selectedStartUtc.AddDays(1) : null,
+            activeBowlIds, request.Section == DashboardSection.Queues, cancellationToken);
+        // Index once, instead of scanning and sorting the entire history for each
+        // bowl in several grouped queues. Input is already newest first.
+        var performers = includeQueues ? allEvents.Where(x => x.BowlId.HasValue)
+            .GroupBy(x => (x.BowlId!.Value, x.Action)).ToDictionary(x => x.Key, x => x.First()) : [];
+        var bowlStageDates = includeQueues ? allEvents.Where(x => x.BowlId.HasValue && !x.Description.StartsWith("NOTE:"))
             .GroupBy(x => x.BowlId!.Value)
-            .ToDictionary(x => x.Key, x => x.Max(e => e.EventDate));
+            .ToDictionary(x => x.Key, x => x.Max(e => e.EventDate)) : [];
         var events = allEvents.Where(x => x.EventDate >= monthStartUtc).ToList();
         var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Design, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune, ProductionAction.QualityCheck, ProductionAction.Packaging };
-        var bowlCodes = bowls.ToDictionary(x => x.Id, x => x.ProductionCode);
-        var handpanCodes = allHandpans.ToDictionary(x => x.Id, x => x.SerialNumber);
+        var bowlCodes = includeDaily ? bowls.ToDictionary(x => x.Id, x => x.ProductionCode) : [];
+        var handpanCodes = includeDaily ? allHandpans.ToDictionary(x => x.Id, x => x.SerialNumber) : [];
         List<MonthlyUserOperationResponse> Summarize(IEnumerable<TORSEPAN.Domain.Entities.ProductionEvent> source, bool includeCodes = false) => source.Where(x => tracked.Contains(x.Action) &&
                                         !x.Description.StartsWith("NOTE:") &&
                                         x.Description != "Released from glue room")
@@ -68,9 +88,8 @@ public sealed class GetProductionDashboardQueryHandler
             })
             .Where(x => x.Count > 0)
             .OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ThenBy(x => x.Operation).ToList();
-        var monthly = Summarize(events);
-        var selectedStartUtc = DateTime.SpecifyKind(selectedTehran.AddHours(-3.5), DateTimeKind.Utc);
-        var daily = Summarize(allEvents.Where(x => x.EventDate >= selectedStartUtc && x.EventDate < selectedStartUtc.AddDays(1)), includeCodes: true);
+        var monthly = includeMonthly ? Summarize(events) : [];
+        var daily = includeDaily ? Summarize(allEvents.Where(x => x.EventDate >= selectedStartUtc && x.EventDate < selectedStartUtc.AddDays(1)), includeCodes: true) : [];
         var firstDay = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
 
         return new GetProductionDashboardResponse
@@ -89,7 +108,7 @@ public sealed class GetProductionDashboardQueryHandler
             SelectedPersianDay = selectedDay,
             DaysInMonth = calendar.GetDaysInMonth(year, month),
             FirstDayOffset = ((int)firstDay.DayOfWeek + 1) % 7,
-            Queues =
+            Queues = includeQueues ?
             [
                 BowlQueue("آماده دیمپل", ProductionStage.WaitingForDimple),
                 GroupedBowlQueue("آماده شیپ", ProductionStage.WaitingForShape, ProductionAction.Dimple, splitByBowlType: true),
@@ -103,7 +122,7 @@ public sealed class GetProductionDashboardQueryHandler
                 HandpanQueue("آماده کنترل کیفیت (QC)", ProductionStage.WaitingForQualityControl),
                 HandpanQueue("آماده بسته‌بندی عادی", ProductionStage.WaitingForPackaging),
                 MonthlyWarehouseQueue()
-            ]
+            ] : []
         };
 
         ProductionQueueItemResponse BowlQueue(string title, ProductionStage stage) => new()
@@ -168,13 +187,13 @@ public sealed class GetProductionDashboardQueryHandler
 
         ProductionQueueItemResponse GroupedHandpanQueue(string title, ProductionStage stage)
         {
-            var items = handpans.Where(x => x.Stage == stage).ToList();
+            var items = allHandpans.Where(x => x.Stage == stage && assembliesById.ContainsKey(x.AssemblyId)).ToList();
             return new ProductionQueueItemResponse
             {
                 Stage = title,
                 Codes = items.Select(x => x.SerialNumber).OrderBy(x => x).ToList(),
                 Items = items.Select(HandpanItem).OrderBy(x => x.Code).ToList(),
-                Groups = items.GroupBy(x => PerformerForBowl(x.Assembly.TopBowlId, ProductionAction.Tune))
+                Groups = items.GroupBy(x => PerformerForBowl(assembliesById[x.AssemblyId].TopBowlId, ProductionAction.Tune))
                     .OrderBy(x => x.Key)
                     .Select(x => new ProductionQueueGroupResponse
                     {
@@ -187,9 +206,7 @@ public sealed class GetProductionDashboardQueryHandler
 
         string PerformerForBowl(Guid bowlId, ProductionAction action)
         {
-            var productionEvent = allEvents.Where(x => x.BowlId == bowlId && x.Action == action &&
-                                                        !x.Description.StartsWith("NOTE:"))
-                .OrderByDescending(x => x.EventDate).FirstOrDefault();
+            var productionEvent = performers.GetValueOrDefault((bowlId, action));
             if (productionEvent is null) return "نامشخص";
             return string.IsNullOrWhiteSpace(productionEvent.User.FullName)
                 ? productionEvent.User.UserName

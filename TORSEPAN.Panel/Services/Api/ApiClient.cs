@@ -44,7 +44,7 @@ public class ApiClient
     public Task<bool> RefreshAfterUnauthorizedAsync(string? failedAccessToken) =>
         TryRefreshAsync(failedAccessToken);
 
-    public async Task<T?> GetAsync<T>(string url, bool forceRefresh = false)
+    public async Task<T?> GetAsync<T>(string url, bool forceRefresh = false, CancellationToken cancellationToken = default)
     {
         if (forceRefresh) _lookups.Clear();
         // Only small catalogs are cached; operational and financial data stay live.
@@ -53,12 +53,12 @@ public class ApiClient
             var token = await _tokenStorage.GetAccessTokenAsync();
             return await _lookups.GetAsync<T>(token ?? "", url, async () =>
             {
-                using var response = await SendWithRefreshAsync(() => _http.GetAsync(url), isReadOnly: true);
+                using var response = await SendWithRefreshAsync(() => _http.GetAsync(url, cancellationToken), isReadOnly: true);
                 response.EnsureSuccessStatusCode();
                 return await response.Content.ReadAsStringAsync();
             });
         }
-        using var liveResponse = await SendWithRefreshAsync(() => _http.GetAsync(url), isReadOnly: true);
+        using var liveResponse = await SendWithRefreshAsync(() => _http.GetAsync(url, cancellationToken), isReadOnly: true);
         return await ReadResponseAsync<T>(liveResponse);
     }
 

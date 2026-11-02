@@ -73,18 +73,59 @@ FixtureApi.MissingHallStock = true;
 var unavailable = await renderer.Dispatcher.InvokeAsync(async () => (await renderer.RenderComponentAsync<Dashboard>()).ToHtmlString());
 Check(WebUtility.HtmlDecode(unavailable).Contains("آمار موجودی سالن هنوز دریافت نشده است") && !unavailable.Contains("hall-stock-grid"), "older API responses show unavailable stock instead of misleading zero counts");
 
+// A slow queue response must not keep the authenticated page or code entry behind the splash.
+FixtureApi.Pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+FixtureApi.Queries.Clear();
+var pendingRoot = await renderer.Dispatcher.InvokeAsync(() => renderer.BeginRenderingComponent<DashboardProbe>());
+var loadingHtml = await renderer.Dispatcher.InvokeAsync(pendingRoot.ToHtmlString);
+Check(loadingHtml.Contains("data-torsepan-startup-ready") && loadingHtml.Contains("production-entry-card") && loadingHtml.Contains("spinner-border"), "code entry and splash-ready marker render while queue data is still pending");
+Check(FixtureApi.Queries.SequenceEqual(["?section=queues"]), "dashboard entry makes only the queues request, leaving hidden statistics tabs untouched");
+FixtureApi.Pending.SetResult();FixtureApi.Pending=null;
+await pendingRoot.QuiescenceTask;
+await renderer.Dispatcher.InvokeAsync(async () => { await DashboardProbe.Instance!.Tab("Calendar"); DashboardProbe.Instance.Refresh(); });
+await renderer.Dispatcher.InvokeAsync(async () => { await DashboardProbe.Instance!.Tab("Calendar"); DashboardProbe.Instance.Refresh(); });
+Check(FixtureApi.Queries.Count(x=>x=="?section=daily")==1, "calendar loads on first selection and reuses its successful result within the page");
+FixtureApi.FailMonthly=true;
+await renderer.Dispatcher.InvokeAsync(async () => { await DashboardProbe.Instance!.Tab("Performance"); DashboardProbe.Instance.Refresh(); });
+var failedHtml=WebUtility.HtmlDecode(await renderer.Dispatcher.InvokeAsync(pendingRoot.ToHtmlString));
+Check(failedHtml.Contains("دریافت عملکرد ماهانه انجام نشد")&&!failedHtml.Contains("هنوز عملیاتی در این ماه ثبت نشده"), "failed statistics remain retryable and never masquerade as empty results");
+await renderer.Dispatcher.InvokeAsync(async () => { await DashboardProbe.Instance!.Tab("Performance"); DashboardProbe.Instance.Refresh(); });
+await renderer.Dispatcher.InvokeAsync(async () => { await DashboardProbe.Instance!.Tab("Queues"); await DashboardProbe.Instance.Tab("Performance"); DashboardProbe.Instance.Refresh(); });
+Check(FixtureApi.Queries.Count(x=>x=="?section=monthly")==2 && FixtureApi.Queries.Count(x=>x=="?section=queues")==1, "monthly failure is retried once; returning to loaded tabs reloads neither queues nor statistics");
+
+FixtureApi.Pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+var leavingRoot=await renderer.Dispatcher.InvokeAsync(()=>renderer.BeginRenderingComponent<DashboardProbe>());
+await renderer.Dispatcher.InvokeAsync(()=>DashboardProbe.Instance!.Dispose());
+await leavingRoot.QuiescenceTask.WaitAsync(TimeSpan.FromSeconds(2));FixtureApi.Pending=null;
+Check(FixtureApi.CancelledReads==1,"leaving the dashboard cancels its pending HTTP read instead of wasting background work");
+
+sealed class DashboardProbe : Dashboard
+{
+    public static DashboardProbe? Instance;
+    protected override async Task OnInitializedAsync(){ Instance=this;await base.OnInitializedAsync(); }
+    public Task Tab(string name){var method=typeof(Dashboard).GetMethod("SelectTabAsync",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;return (Task)method.Invoke(this,[Enum.Parse(method.GetParameters()[0].ParameterType,name)])!;}
+    public void Refresh()=>StateHasChanged();
+}
+
 sealed class FixtureApi : HttpMessageHandler
 {
     public static bool MissingHallStock { get; set; }
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    public static TaskCompletionSource? Pending;
+    public static List<string> Queries=[];
+    public static bool FailMonthly;
+    public static int CancelledReads;
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         if (request.RequestUri!.AbsolutePath != "/api/production/dashboard") throw new Exception("Unexpected " + request.RequestUri);
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new ProductionDashboardDto
+        Queries.Add(request.RequestUri.Query);
+        if(Pending is not null) { try { await Pending.Task.WaitAsync(ct); } catch(OperationCanceledException) { CancelledReads++;throw; } }
+        if(FailMonthly && request.RequestUri.Query=="?section=monthly"){FailMonthly=false;return new(HttpStatusCode.ServiceUnavailable);}
+        return new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new ProductionDashboardDto
         {
             HallStock = MissingHallStock ? null : new() { TopBowls = 123, BottomBowls = 45, Handpans = 67 },
             Queues = [new() { Stage = "ورودی انبار این ماه", Codes = ["WAREHOUSE-1"], Items = [new() { Code = "WAREHOUSE-1" }] }],
-            CurrentPersianMonthTitle = "مهر 1405", DaysInMonth = 30, SelectedPersianDay = 1
-        }) });
+            CurrentPersianMonthTitle = "مهر 1405", PersianYear=1405, PersianMonth=7, DaysInMonth = 30, SelectedPersianDay = 1
+        }) };
     }
 }
 sealed class FixtureNavigation : NavigationManager

@@ -11,10 +11,15 @@ public sealed class ProductionService
         _api = api;
     }
 
-    public async Task<ProductionDashboardDto?> GetDashboardAsync(DateTime? selectedDate = null)
+    public async Task<ProductionDashboardDto?> GetDashboardAsync(DateTime? selectedDate = null,
+        string section = "all", CancellationToken cancellationToken = default)
     {
+        var query = new List<string>();
+        if (section != "all") query.Add("section=" + Uri.EscapeDataString(section));
+        if (selectedDate.HasValue) query.Add($"date={selectedDate:yyyy-MM-dd}");
         return await _api.GetAsync<ProductionDashboardDto>(
-            "production/dashboard" + (selectedDate.HasValue ? $"?date={selectedDate:yyyy-MM-dd}" : string.Empty));
+            "production/dashboard" + (query.Count == 0 ? string.Empty : "?" + string.Join("&", query)),
+            cancellationToken: cancellationToken);
     }
 
     public async Task<IReadOnlyList<ProductionStageItemDto>> GetQueueAsync()

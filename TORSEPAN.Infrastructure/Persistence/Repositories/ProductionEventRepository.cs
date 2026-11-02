@@ -65,6 +65,21 @@ public sealed class ProductionEventRepository
         return await query.OrderByDescending(x => x.EventDate).ToListAsync();
     }
 
+    public async Task<List<ProductionEvent>> GetDashboardEventsAsync(DateTime from, DateTime? to,
+        IReadOnlyCollection<Guid> stageBowlIds, bool warehouseOnly, CancellationToken cancellationToken = default)
+    {
+        var ids = stageBowlIds.ToArray();
+        // Do not load historical warehouse work, handpan graphs, photos or full
+        // passport timelines just to render current queues or one statistics tab.
+        return await _context.ProductionEvents.AsNoTracking()
+            .Where(x => x.Result == EventResult.Completed && !x.Description.StartsWith("NOTE:"))
+            .Where(x => (x.EventDate >= from && (!to.HasValue || x.EventDate < to.Value) &&
+                (!warehouseOnly || x.Action == ProductionAction.Packaging && !x.BowlId.HasValue)) ||
+                x.BowlId.HasValue && ids.Contains(x.BowlId.Value))
+            .Include(x => x.User).Include(x => x.Bowl)
+            .OrderByDescending(x => x.EventDate).ToListAsync(cancellationToken);
+    }
+
     public void Update(
         ProductionEvent productionEvent)
     {

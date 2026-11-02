@@ -11,7 +11,7 @@ vm.runInNewContext(source, {
 });
 assert.equal(removed,0,'static splash stays visible before Blazor starts');
 mutation(); mutation();
-assert.equal(frames.length,0,'authentication and incomplete dashboard rendering never dismiss it');
+assert.equal(frames.length,0,'an unauthenticated or incomplete page shell never dismisses it');
 ready=true; mutation();
 assert.equal(removed,0,'ready markup is painted before splash disappears');
 frames.shift()();
@@ -23,5 +23,6 @@ const dashboard=fs.readFileSync('TORSEPAN.Panel/Components/Pages/Dashboard.razor
 assert.ok(app.indexOf('id="torsepan-startup"') < app.indexOf('<Routes '),'splash exists in the server HTML before the interactive circuit');
 assert.ok(app.includes('<p>Loading</p>') && !routes.includes('در حال بارگذاری'));
 assert.ok(routes.includes('routeData.PageType != typeof(TORSEPAN.Panel.Components.Pages.Dashboard)'));
-assert.ok(dashboard.includes('else\n{\n    <span data-torsepan-startup-ready hidden>'),'dashboard marker waits for loaded data');
-console.log('PASS startup splash: static boot, slow authentication/data, paint handoff, English label and one-time dismissal');
+assert.ok(dashboard.indexOf('data-torsepan-startup-ready') < dashboard.indexOf('@if (_loading)'), 'dashboard handoff does not wait for queue data');
+assert.ok(dashboard.indexOf('production-entry-card') < dashboard.indexOf('@if (_loading)'), 'code entry is available independently of queue data');
+console.log('PASS startup splash: static boot, authenticated usable shell, paint handoff, English label and one-time dismissal');

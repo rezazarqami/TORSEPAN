@@ -7,8 +7,8 @@
         if (finished || !document.querySelector("[data-torsepan-startup-ready]")) return;
         finished = true;
         observer.disconnect();
-        // The marker is emitted only after authentication and the initial page data have settled.
-        // Leave the splash in place until that render is ready to paint; never use a fixed delay.
+        // The marker means authenticated navigation and the page's usable shell
+        // are ready. Dashboard statistics load in their own regions afterwards.
         requestAnimationFrame(() => splash.remove());
     }
     observer.observe(document.body, { childList: true, subtree: true });
