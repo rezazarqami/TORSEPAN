@@ -2,9 +2,9 @@ name: Build Torsepan Android APK
 
 on:
   push:
-    paths: ["TORSEPAN.Panel/**", "TORSEPAN.Panel.Offline/**", "TORSEPAN.Application/**", "TORSEPAN.Domain/**", "ops/build-shared-offline.sh", "tests/SharedOffline/**", "android/**", ".github/workflows/build-android.yml"]
+    paths: ["TORSEPAN.Panel/**", "TORSEPAN.Panel.Offline/**", "TORSEPAN.Application/**", "TORSEPAN.Domain/**", "ops/build-shared-offline.sh", "tests/SharedOffline/**", "tests/offline-apk.py", "ops/build-offline-release.sh", "android/**", ".github/workflows/build-android.yml"]
   pull_request:
-    paths: ["TORSEPAN.Panel/**", "TORSEPAN.Panel.Offline/**", "TORSEPAN.Application/**", "TORSEPAN.Domain/**", "ops/build-shared-offline.sh", "tests/SharedOffline/**", "android/**", ".github/workflows/build-android.yml"]
+    paths: ["TORSEPAN.Panel/**", "TORSEPAN.Panel.Offline/**", "TORSEPAN.Application/**", "TORSEPAN.Domain/**", "ops/build-shared-offline.sh", "tests/SharedOffline/**", "tests/offline-apk.py", "ops/build-offline-release.sh", "android/**", ".github/workflows/build-android.yml"]
   workflow_dispatch:
 
 jobs:
@@ -56,6 +56,8 @@ jobs:
       - name: Build installable APK
         working-directory: android
         run: gradle :app:assembleDebug --no-daemon
+      - name: Verify actual APK contains complete offline WebAssembly runtime
+        run: python3 tests/offline-apk.py --bundle-only android/app/build/outputs/apk/debug/app-debug.apk
       - name: Compile and verify online-only shell (not a signed release artifact)
         run: |
           (cd android && gradle :online:assembleDebug --no-daemon)

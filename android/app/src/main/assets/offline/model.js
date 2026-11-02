@@ -19,6 +19,11 @@
     }
     for(const row of rows) {
       const op=row.body;
+      if(op.workspaceModule==='legacyStock'&&op.workspaceAction==='save'){
+       const d=op.workspaceData,stage=d.exportLocation?22:18;
+       for(const side of [1,2])bowls.push({code:side===1?d.code:d.bottomCode,id:side===1?d.localTopId:d.localBottomId,type:side,hasNotes:side===1||d.bottomNotes>0,materialId:d.materialId,isCustom:false,scaleId:(side===1?d.topScaleId:d.bottomScaleId)||null,noteCount:side===1?d.topNotes:d.bottomNotes,instrumentNoteCount:d.topNotes+d.bottomNotes,instrumentScaleId:d.scaleId,stage,stageName:labels[stage],qualityWarehouseId:d.warehouseId,packagingExportLocation:d.exportLocation||null,version:'new',pairCode:side===1?d.bottomCode:d.code,instrumentCode:d.code,design:side===1?d.designName:undefined,localHistory:[]});
+       continue;
+      }
       if(op.action==='create')bowls.push({code:op.code,id:row.id,type:op.bowlType,hasNotes:op.bowlType===1||op.hasNotes,materialId:op.materialId,isCustom:false,scaleId:null,
         stage:op.bowlType===2&&!op.hasNotes?6:2,stageName:labels[op.bowlType===2&&!op.hasNotes?6:2],version:'new',pairCode:null,instrumentCode:null,localHistory:[]});
       if(op.action==='workspace'&&op.workspaceModule==='production'){const d=op.workspaceData||{},targets=bowls.filter(b=>(d.codes||[d.code]).includes(b.code));

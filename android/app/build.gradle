@@ -14,14 +14,22 @@ android {
             }
         }
     }
-    buildTypes { debug { if (System.getenv('TORSEPAN_ANDROID_KEYSTORE')) signingConfig signingConfigs.existing } }
+    buildTypes {
+        debug { if (System.getenv('TORSEPAN_ANDROID_KEYSTORE')) signingConfig signingConfigs.existing }
+        release {
+            minifyEnabled false
+            if (System.getenv('TORSEPAN_ANDROID_KEYSTORE')) signingConfig signingConfigs.existing
+        }
+    }
+    // AAPT's default !_* rule drops Blazor's _framework directory and breaks offline startup.
+    androidResources { ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~' }
     testOptions { unitTests.includeAndroidResources = true }
     defaultConfig {
         applicationId 'ir.torsepan.mobile.offline'
         minSdk 29
         targetSdk 34
-        versionCode 16
-        versionName '2.10.0-message-push'
+        versionCode 18
+        versionName '2.11.1-offline'
     }
 }
 

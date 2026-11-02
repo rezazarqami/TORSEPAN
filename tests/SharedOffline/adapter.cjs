@@ -70,3 +70,37 @@ test('export bowl sale keeps price and net profit and splits a batch exactly onc
  for(const [key,total] of [['price',10001],['receivedAmount',5001],['netProfit',2001]])assert.equal(Math.round(s.operations.reduce((sum,row)=>sum+row.body[key],0)*100),total);
  assert.equal(h.request('GET','export-warehouse').value.length,0);assert.equal(h.request('GET','accounting/documents').value.length,2);const sales=h.request('GET','production/sales').value;assert.equal(sales.filter(x=>x.isBowl).length,2);assert.equal(Math.round(sales.reduce((n,x)=>n+x.netProfit,0)*100),2001);
 });
+
+
+test('offline work plans preserve recurring history, one-day exceptions and successive edits across restart',()=>{
+ const state=fixture(),w=state.snapshot.workspace.sections;w.workPlans=[];const h=harness(state);
+ const save=(date,isException,target,revision=null)=>h.request('PUT','work-plans',{date,isException,users:[{userId:id(1),revision,notes:'کارگاه',tasks:[{key:'3:1',target},{key:'3:2',target:0}]}]});
+ assert.equal(save('2026-10-10',false,2).status,200);let person=h.request('GET','work-plans?date=2026-10-18').value.users[0];assert.equal(person.tasks[0].target,2);
+ assert.equal(save('2026-10-18',true,4,person.revision).status,200);assert.equal(h.request('GET','work-plans?date=2026-10-18').value.users[0].tasks[0].target,4);assert.equal(h.request('GET','work-plans?date=2026-10-19').value.users[0].tasks[0].target,2);
+ const reopened=harness(JSON.parse(JSON.stringify(state))),r=reopened.request('GET','work-plans?date=2026-10-18&recurringOnly=true').value.users[0];assert.equal(r.tasks[0].target,2);assert.equal(reopened.request('GET','work-plans/mine?date=2026-10-18').value.users.length,1);
+ assert.equal(save('2026-10-20',false,9,r.revision).status,200);assert.equal(h.request('GET','work-plans?date=2026-10-19').value.users[0].tasks[0].target,2);assert.equal(h.request('GET','work-plans?date=2026-10-20').value.users[0].tasks[0].target,9);
+ const count=state.operations.length;assert.equal(save('2026-10-20',false,10,r.revision).status,409);assert.equal(state.operations.length,count);
+});
+test('work-plan actuals include queued stages but exclude notes, legacy history and Tehran-day boundary',()=>{
+ const state=fixture(),w=state.snapshot.workspace.sections;w.workPlans=[{userId:id(1),effectiveDate:'2026-10-10',isException:false,revision:id(77),tasksJson:JSON.stringify([{key:'3:1',label:'شیپ کاسه رو',target:2}]),notes:''}];
+ w.events=[['2026-10-17T20:30:00Z','Shape completed'],['2026-10-18T20:30:00Z','Shape completed'],['2026-10-18T12:00:00Z','NOTE: ignore'],['2026-10-18T12:00:00Z','LEGACY_STOCK: old']].map(([eventDate,description],i)=>({id:id(80+i),bowlId:id(3),userId:id(1),action:3,result:1,eventDate,description}));
+ state.snapshot.bowls[0].stage=4;const h=harness(state);assert.equal(h.request('POST','bowls/production/VS-001/shape/complete',{duration:2,noteCount:9}).status,200);const task=h.request('GET','work-plans?date=2026-10-18').value.users[0].tasks[0];assert.equal(task.actual,2);assert.equal(task.passed,true);
+});
+test('legacy import survives restart, keeps historical performers and permits transfer and sale without stock consumption',()=>{
+ const state=fixture(),w=state.snapshot.workspace.sections;w.offlineCapabilities=['legacyStock'];w.designTypes=[{id:id(8),name:'طرح قدیمی',isActive:true}];const h=harness(state),before=h.request('GET','materials').value[0].topBowlQuantity;
+ const data={registrationId:id(70),code:'OLD-۱',materialId:id(5),scaleId:id(4),topNotes:9,bottomNotes:0,warehouseId:1,exportLocation:7,designTypeId:id(8),designUserId:id(1),shapeUserId:id(1)};
+ const result=h.request('POST','legacy-stock',data);assert.equal(result.status,200);assert.equal(h.request('GET','materials').value[0].topBowlQuantity,before);assert.equal(h.request('GET','export-warehouse').value[0].location,7);
+ const reopened=harness(JSON.parse(JSON.stringify(state)));assert.equal(reopened.request('GET','legacy-stock').value[0].code,'OLD-1');const passport=reopened.request('GET','bowls/dimpling/OLD-1').value;assert.equal(passport.instrumentNoteCount,9);assert.ok(passport.history.some(e=>e.action===3));assert.equal(passport.designName,'طرح قدیمی');
+ assert.equal(reopened.request('POST','export-warehouse/ship',{items:[{id:id(70),itemType:'handpan'}],price:100,netProfit:20,priceCurrency:1,profitCurrency:1}).status,200);assert.equal(reopened.request('GET','export-warehouse').value.length,0);assert.equal(reopened.request('GET','production/sales').value[0].price,100);
+});
+test('new offline writes require server capability and hall payment IDs are replay-safe',()=>{
+ const state=fixture(),w=state.snapshot.workspace.sections;w.profitEntries=[];w.profitRules=[];w.hallProfitPayments=[];const h=harness(state),data={id:id(88),amount:15.25,currency:2};assert.equal(h.request('POST','profit-sharing/hall/payments',data).status,409);assert.equal(state.operations.length,0);
+ w.offlineCapabilities=['profitPayments'];h.api.invalidate();assert.equal(h.request('POST','profit-sharing/hall/payments',data).status,200);assert.equal(h.request('POST','profit-sharing/hall/payments',data).status,200);assert.equal(state.operations.length,1);assert.equal(h.request('POST','profit-sharing/hall/payments',{...data,amount:20}).status,409);assert.equal(h.request('GET','profit-sharing/hall/payments').value[0].amount,15.25);
+});
+
+test('offline profit-rule edits retain concurrency tokens and reject stale or invalid totals before enqueue',()=>{
+ const state=fixture(),w=state.snapshot.workspace.sections;w.offlineCapabilities=['profitRules'];w.profitEntries=[];w.profitRules=[2,3,5,6,7,13,100].map((action,i)=>({action,percent:1,version:id(900+i)}));const h=harness(state),rules=h.request('GET','profit-sharing/rules').value;
+ const saved=h.request('PUT','profit-sharing/rules',rules.map(r=>({...r,percent:2})));assert.equal(saved.status,200);assert.equal(state.operations.length,1);assert.ok(saved.value.every(r=>r.version!==rules.find(x=>x.action===r.action).version));
+ assert.equal(h.request('PUT','profit-sharing/rules',rules).status,409);assert.equal(h.request('PUT','profit-sharing/rules',saved.value.map(r=>({...r,percent:50}))).status,409);assert.equal(state.operations.length,1);
+ const reopened=harness(JSON.parse(JSON.stringify(state)));assert.equal(reopened.request('PUT','profit-sharing/rules',saved.value.map(r=>({...r,percent:3}))).status,200);assert.ok(reopened.request('GET','profit-sharing/rules').value.every(r=>r.percent===3));
+});

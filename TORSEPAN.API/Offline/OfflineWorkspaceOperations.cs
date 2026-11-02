@@ -41,6 +41,33 @@ public sealed partial class OfflineProductionService {
   IActionResult? result=null;
   try {
    switch(op.WorkspaceModule,op.WorkspaceAction){
+    case ("legacyStock","save"):{
+     result=await Controller<LegacyStockController>().Create(Read<LegacyStockRequest>(),ct);
+     if(result is OkObjectResult){
+      var id=data.GetProperty("registrationId").GetGuid();var instrument=await db.Handpans.SingleAsync(x=>x.Id==id,ct);
+      var assembly=await db.HandpanAssemblies.SingleAsync(x=>x.Id==instrument.AssemblyId,ct);
+      workspaceAliases[data.GetProperty("localTopId").GetGuid()]=assembly.TopBowlId;
+      workspaceAliases[data.GetProperty("localBottomId").GetGuid()]=assembly.BottomBowlId;
+      workspaceAliases[data.GetProperty("localAssemblyId").GetGuid()]=assembly.Id;
+     }break;}
+    case ("hallProfitPayments","save"):{
+     var request=Read<HallPaymentRequest>();var existed=await db.HallProfitPayments.AnyAsync(x=>x.Id==request.Id,ct);
+     result=await Controller<ProfitSharingController>().PayHall(request);
+     if(!existed&&result is OkObjectResult){var payment=await db.HallProfitPayments.SingleAsync(x=>x.Id==request.Id,ct);db.Entry(payment).Property(x=>x.PaidAt).CurrentValue=op.OccurredUtc;}
+     break;}
+    case ("profitRules","save"):{
+     result=await Controller<ProfitSharingController>().SaveRules(data.GetProperty("changes").Deserialize<List<ProfitRuleUpdate>>(WebJson)!);
+     if(result is OkObjectResult)foreach(var change in data.GetProperty("changes").EnumerateArray()){
+      var action=change.GetProperty("action").GetInt32();var stored=await db.SaleProfitRules.SingleAsync(x=>(int)x.Action==action,ct);
+      workspaceAliases[change.GetProperty("localVersion").GetGuid()]=stored.Version;
+     }break;}
+    case ("workPlans","save"):{
+     result=await Controller<WorkPlansController>().Save(Read<WorkPlansController.SaveRequest>(),ct);
+     if(result is OkObjectResult)foreach(var row in data.GetProperty("users").EnumerateArray()){
+      var userId=row.GetProperty("userId").GetGuid();var day=data.GetProperty("date").GetDateTime().Date;var exception=data.GetProperty("isException").GetBoolean();
+      var stored=await db.WorkPlans.SingleAsync(x=>x.UserId==userId&&x.EffectiveDate==day&&x.IsException==exception,ct);
+      workspaceAliases[row.GetProperty("localRevision").GetGuid()]=stored.Revision;
+     }break;}
     case ("warehouses","save"):{var id=data.GetProperty("id").GetInt32();var warehouse=await db.InstrumentWarehouses.SingleOrDefaultAsync(x=>x.Id==id,ct);if(warehouse is null)throw new OfflineProblem("missing","انبار پیدا نشد.",404);
      var name=data.GetProperty("name").GetString()!;warehouse.Rename(name);if(await db.InstrumentWarehouses.AnyAsync(x=>x.Id!=id&&x.Name.ToUpper()==warehouse.Name.ToUpper(),ct))throw new OfflineProblem("duplicate","نام انبار تکراری است.");break;}
     case ("orders","save"):{var service=new CustomerOrderService(db,TimeProvider.System);var id=NullableId();if(id.HasValue&&await db.CustomerOrders.AnyAsync(x=>x.Id==id,ct)){var order=await db.CustomerOrders.AsNoTracking().SingleAsync(x=>x.Id==id,ct);var r=Read<SaveOrderDraftRequest>();if(order.IsDraft)await service.SaveDraftAsync(id,r,op.PerformerId,ct);else await service.UpdateOrderAsync(id.Value,r,ct);}else {var actual=await service.SaveDraftAsync(null,Read<SaveOrderDraftRequest>(),op.PerformerId,ct);Alias(actual);id=actual;}

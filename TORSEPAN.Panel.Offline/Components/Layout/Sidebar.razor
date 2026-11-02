@@ -62,6 +62,7 @@
 
     <AuthorizeView Roles="Administrator">
     <NavLink href="/backups"><span>💾</span><span class="navigation-copy"><strong>پشتیبان‌گیری</strong><small>تهیه نسخه پشتیبان</small></span></NavLink>
+    <NavLink href="/admin/legacy-stock"><span>🗂️</span><span class="navigation-copy"><strong>ثبت سازهای قدیمی</strong><small>ورود موجودی پیش از سامانه</small></span></NavLink>
     <NavLink href="/admin/production-edit">
         <span>✏️</span>
         <span class="navigation-copy"><strong>ویرایش</strong><small>ابزارهای ویرایش</small></span>
@@ -78,6 +79,7 @@
 
     </AuthorizeView>
     <AuthorizeView Roles="Administrator,ProductionManager">
+    <NavLink href="/work-plans"><span>📅</span><span class="navigation-copy"><strong>مدیریت برنامهٔ کاری</strong><small>برنامهٔ روزانه و گزارش تحقق</small></span></NavLink>
     <NavLink href="/users/list">
         <span>👤</span>
         <span class="navigation-copy"><strong>کاربران</strong><small>مدیریت کاربران</small></span>
@@ -97,7 +99,7 @@
 </nav>
 
 <div class="sidebar-footer">
-    TORSEPAN 2.8
+    Torsepan Offline 2.11.1
 </div>
 
 @code {

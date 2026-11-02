@@ -1,3 +1,5 @@
+> Current prepared update: [Torsepan Offline 2.11.1](../changes/2026-11-03-offline-2.11.1.md). The 2.8 candidate notes below are historical.
+
 # Shared cached workshop candidate 2.8
 
 Status: release candidate prepared and validated. No production server deployment or handset acceptance is claimed.

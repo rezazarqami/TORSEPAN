@@ -7,6 +7,19 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 function project(snapshot,rows){
  const sections=clone(snapshot?.workspace?.sections||{});for(const key of Object.keys(titles))sections[key]||=[];
  for(const row of rows){const op=row.body;if(['sell','ship'].includes(op.action)&&op.price!=null)sections.documents.push({id:row.id,type:1,title:'فروش ساز '+op.code,currency:op.priceCurrency||1,totalAmount:op.price,paidAmount:op.receivedAmount||0,partyId:op.partyId,createdAt:op.occurredUtc,local:true});if(op.action!=='workspace')continue;const module=op.workspaceModule,action=op.workspaceAction,d=clone(op.workspaceData||{}),items=sections[module]||=[];let item=items.find(x=>x.id===d.id);
+  if(module==='legacyStock'&&action==='save'){
+   sections.assemblies.push({id:d.localAssemblyId,topBowlId:d.localTopId,bottomBowlId:d.localBottomId});
+   sections.handpans.push({id:d.registrationId,assemblyId:d.localAssemblyId,serialNumber:d.code,scaleId:d.scaleId,stage:d.exportLocation?22:18,qualityWarehouseId:d.warehouseId,exportWarehouseLocation:d.exportLocation,createdAt:op.occurredUtc});
+   sections.bowls.push({id:d.localTopId,materialId:d.materialId},{id:d.localBottomId,materialId:d.materialId});
+   sections.events.push({id:row.id,handpanId:d.registrationId,userId:op.performerId,action:1,result:1,eventDate:op.occurredUtc,description:'LEGACY_STOCK:IMPORT:local',isPayrollExcluded:true});
+   for(const [key,action] of [['dimpleUserId',2],['shapeUserId',3],['tuneUserId',6],['fineTuneUserId',7],['designUserId',13]])if(d[key])sections.events.push({id:row.id+':'+action,handpanId:d.registrationId,bowlId:action===7?null:d.localTopId,userId:d[key],action,result:1,eventDate:op.occurredUtc,description:action===13&&d.designTypeId?'LEGACY_STOCK:DESIGN:'+d.designTypeId+':'+d.designName+':':'LEGACY_STOCK: سابقه پیش از سامانه',isPayrollExcluded:true});
+   continue;
+  }
+  if(module==='profitRules'&&action==='save'){for(const change of d.changes){const rule=items.find(x=>x.action===change.action);if(rule)Object.assign(rule,{percent:change.percent,version:change.localVersion});}sections.profitRules=items;continue;}
+  if(module==='hallProfitPayments'&&action==='save'){items.push({...d,paidAt:op.occurredUtc,local:true});sections.hallProfitPayments=items;continue;}
+  if(module==='workPlans'&&action==='save'){
+   for(const row of d.users){const day=d.date.slice(0,10);let plan=items.find(x=>x.userId===row.userId&&x.effectiveDate.slice(0,10)===day&&x.isException===d.isException);const value={userId:row.userId,effectiveDate:day+'T00:00:00',isException:d.isException,tasksJson:JSON.stringify(row.tasks),notes:row.notes.trim(),revision:row.localRevision,local:true};if(plan)Object.assign(plan,value);else items.push(value);}sections.workPlans=items;continue;
+  }
   if(module==='production'){
    if(action==='assemble'){sections.assemblies.push({id:d.assemblyId,topBowlId:d.topBowlId,bottomBowlId:d.bottomBowlId});sections.handpans.push({id:d.id,assemblyId:d.assemblyId,serialNumber:d.serialNumber,stage:1,createdAt:op.occurredUtc});}
    if(action==='delete'||d.detach){sections.handpans=sections.handpans.filter(x=>x.id!==d.handpanId);sections.assemblies=sections.assemblies.filter(x=>!d.bowlIds?.includes(x.topBowlId));}

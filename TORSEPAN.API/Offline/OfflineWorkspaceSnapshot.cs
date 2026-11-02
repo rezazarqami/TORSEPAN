@@ -31,6 +31,8 @@ public sealed partial class OfflineProductionService {
   var versionSections=w.ToDictionary(x=>x.Key,x=>x.Value);
   if(versionSections.TryGetValue("handpans",out var oldHandpans)){var n=System.Text.Json.Nodes.JsonNode.Parse(oldHandpans.GetRawText())!;foreach(var row in n.AsArray())row!.AsObject().Remove("createdAt");versionSections["handpans"]=JsonSerializer.SerializeToElement(n,WebJson);}
   var version=Hash(JsonSerializer.Serialize(versionSections,WebJson));
+  Put("offlineCapabilities",new[]{"workPlans","legacyStock","profitPayments","profitRules"});
+  Put("workPlans",await db.WorkPlans.AsNoTracking().OrderBy(x=>x.Id).ToListAsync(ct));
   Put("photos",await db.HandpanPhotos.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.HandpanId,x.CreatedAt,ImageBytes=x.Image.Length,ThumbnailBytes=x.Thumbnail.Length}).ToListAsync(ct));
   Put("handpanDetails",await db.Handpans.AsNoTracking().OrderBy(x=>x.Id).Select(x=>new{x.Id,x.SaleDestination,x.IsExportSale,x.SoldByUserId,x.WarrantyActivatedAt,x.UpdatedAt}).ToListAsync(ct));
   Put("avatars",await db.Users.AsNoTracking().Where(x=>!x.IsDeleted&&x.AvatarPng!=null).OrderBy(x=>x.Id).Select(x=>new{x.Id,x.AvatarVersion,PngBase64=x.AvatarPng}).ToListAsync(ct));

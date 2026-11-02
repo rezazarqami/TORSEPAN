@@ -117,8 +117,19 @@ public sealed partial class OfflineProductionService
                 Require(bowl!.InstrumentCode is null && bowl.Stage==22,"کاسه صادراتی باید در انبار باشد.");
                 if(op.PartyId.HasValue) Require(await db.AccountingParties.AnyAsync(x=>x.Id==op.PartyId && x.IsActive,ct),"طرف حساب معتبر نیست.");
                 Require((op.BuyerName?.Length??0)<=200 && (op.Destination?.Length??0)<=200 && (op.ShippingMethod?.Length??0)<=200,"اطلاعات ارسال طولانی است.");
-                var shipResult=await Controller<TORSEPAN.API.Controllers.ExportWarehouseController>().Ship(new([new(bowl.Id,"bowl")],op.BuyerName,op.PartyId,op.Destination,op.ShippingMethod,op.IsSettled,op.BuyerPhoneNumber,op.Price,op.ReceivedAmount,op.NetProfit,(MoneyCurrency)(op.PriceCurrency==0?1:op.PriceCurrency),(MoneyCurrency)(op.ProfitCurrency==0?1:op.ProfitCurrency),op.IsExportSale,op.LeadSourceId,op.ReferrerId,true),ct);
+                // Older offline forms stored a free-text Persian shipping method. Keep the immutable outbox compatible.
+                var legacyMethod=op.ShippingMethod?.Trim();var shipMethod=legacyMethod?.ToLowerInvariant() switch {"هوایی"=>"air","زمینی"=>"land","دریایی"=>"sea","air"=>"air","land"=>"land","sea"=>"sea",_=>null};
+                var previousShipEvents=db.ChangeTracker.Entries<ProductionEvent>().Select(x=>x.Entity.Id).ToHashSet();
+                var previousShipDocuments=db.ChangeTracker.Entries<AccountingDocument>().Select(x=>x.Entity.Id).ToHashSet();
+                var previousShipProfits=db.ChangeTracker.Entries<SaleProfitEntry>().Select(x=>x.Entity.Id).ToHashSet();
+                var shipResult=await Controller<TORSEPAN.API.Controllers.ExportWarehouseController>().Ship(new([new(bowl.Id,"bowl")],op.BuyerName,op.PartyId,op.Destination,shipMethod,op.IsSettled,op.BuyerPhoneNumber,op.Price,op.ReceivedAmount,op.NetProfit,(MoneyCurrency)(op.PriceCurrency==0?1:op.PriceCurrency),(MoneyCurrency)(op.ProfitCurrency==0?1:op.ProfitCurrency),(op.IsExportSale||op.PriceCurrency==0&&op.ProfitCurrency==0),op.LeadSourceId,op.ReferrerId,true),ct);
                 Require(shipResult is Microsoft.AspNetCore.Mvc.NoContentResult,"ثبت مالی فروش صادراتی انجام نشد؛ مبلغ و اطلاعات خریدار را بررسی کنید.");
+                foreach(var entry in db.ChangeTracker.Entries<ProductionEvent>().Where(x=>!previousShipEvents.Contains(x.Entity.Id)&&x.Entity.BowlId==bowl.Id&&x.Entity.Action==ProductionAction.Sale)){
+                    var metadata=ExportSaleMetadata.Decode(entry.Entity.Description);
+                    if(metadata is not null)entry.Property(x=>x.Description).CurrentValue=ExportSaleMetadata.Prefix+JsonSerializer.Serialize(metadata with{ShippingMethod=legacyMethod});
+                }
+                foreach(var entry in db.ChangeTracker.Entries<AccountingDocument>().Where(x=>!previousShipDocuments.Contains(x.Entity.Id))){entry.Property(x=>x.CreatedAt).CurrentValue=op.OccurredUtc;if(entry.Entity.SettledAt.HasValue)entry.Property(x=>x.SettledAt).CurrentValue=op.OccurredUtc;}
+                foreach(var entry in db.ChangeTracker.Entries<SaleProfitEntry>().Where(x=>!previousShipProfits.Contains(x.Entity.Id))){entry.Property(x=>x.SoldAt).CurrentValue=op.OccurredUtc;entry.Property(x=>x.CreatedAt).CurrentValue=op.OccurredUtc;}
                 break;
             case "note":
                 Require(!string.IsNullOrWhiteSpace(op.Details),"متن یادداشت لازم است.");
