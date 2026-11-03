@@ -3,7 +3,7 @@ namespace TORSEPAN.API.Offline;
 
 public sealed record OfflineEnrollment(Guid DeviceId);
 public sealed record OfflineOperation(Guid OperationId, Guid DeviceId, string Code, string Action,
-    Guid PerformerId, DateTime OccurredUtc, string ExpectedVersion, Guid? PreviousOperationId = null,
+    Guid PerformerId, DateTime OccurredUtc, string? ExpectedVersion, Guid? PreviousOperationId = null,
     int Duration = 0, Guid? ScaleId = null, bool IsCustom = false, string? PairCode = null,
     string? PairVersion = null, Guid? PairPreviousOperationId = null, Guid? StretchUserId = null,
     Guid? NoteAreaUserId = null, Guid? EditUserId = null, bool Approved = true,

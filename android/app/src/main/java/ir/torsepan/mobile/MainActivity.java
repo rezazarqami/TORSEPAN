@@ -352,7 +352,7 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void online() { runOnUiThread(() -> showOnline()); }
         @JavascriptInterface public String read() {
             if (!localUnlocked) return "{}";
-            try { return offlineStore.view().toString(); }
+            try { return offlineStore.viewJson(); }
             catch (Exception error) { return "{\"readError\":true,\"message\":\"خواندن اطلاعات محلی انجام نشد؛ اطلاعات را پاک نکنید.\"}"; }
         }
         @JavascriptInterface public String save(String raw) {

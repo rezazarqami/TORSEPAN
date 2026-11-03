@@ -1,3 +1,4 @@
+@implements IAsyncDisposable
 @page "/warehouse/list"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
@@ -149,7 +150,7 @@ else
         else{<div class="inventory-gallery-grid">@foreach(var photo in _galleryPhotos){var item=_items.First(x=>x.HandpanId==photo.HandpanId);<button @onclick="()=>PreviewGalleryPhotoAsync(photo)"><img loading="lazy" src="@ThumbnailUrl(photo)" alt="ساز @item.SerialNumber" /><strong dir="ltr">@item.SerialNumber</strong></button>}</div>}
     </section></div>
 }
-@if(_galleryPreviewUrl is not null){<div class="gallery-preview-overlay" @onclick="CloseGalleryPreview"><button aria-label="بستن" @onclick="CloseGalleryPreview">×</button><img src="@_galleryPreviewUrl" alt="نمایش بزرگ عکس ساز" /></div>}
+@if(_galleryPreviewUrl is not null){<div class="gallery-preview-overlay" @onclick="CloseGalleryPreview"><button aria-label="بستن" @onclick="CloseGalleryPreview">×</button><figure><img src="@_galleryPreviewUrl" alt="نمایش بزرگ عکس ساز" /><figcaption>@_previewInstrument?.SerialNumber · @_previewInstrument?.MaterialName · @_previewInstrument?.ScaleName</figcaption></figure></div>}
 
 @if(_saleIds.Count > 0)
 {
@@ -206,6 +207,7 @@ else
     private static string TierDescription(int id)=>id switch {1=>"اقتصادی و در دسترس",2=>"کیفیت بالاتر، انتخاب میانی",_=>"ممتاز و منتخب"};
     private bool _loading=true,_saving,_galleryLoading,_showGallery; private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_notesFilter="all",_appliedNotesFilter="all",_buyer="",_buyerPhone="",_destination="";
     private List<WarehouseGalleryPhotoDto> _galleryPhotos=[]; private string? _galleryPreviewUrl;
+    private WarehouseHandpanDto? _previewInstrument;
     private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price,_receivedAmount,_netProfit;private int _priceCurrency=1,_profitCurrency=1; private Guid? _selectedPartyId,_leadSourceId,_referrerId; private bool? _isExportSale;private string _newSource="",_newReferrer="";private SalesAttributionOptionsDto _attribution=new();
     private bool SelectedSourceRequiresReferrer=>_attribution.Sources.FirstOrDefault(x=>x.Id==_leadSourceId)?.RequiresReferrer==true;
     private string RemainingAmountText=>_price.HasValue?Math.Max(0,_price.Value-(_receivedAmount??0)).ToString(_priceCurrency==2?"N2":"N0"):"—";
@@ -268,10 +270,17 @@ else
     private async Task ConfirmTransferAsync(){if(_transferring||!_canTransfer||!_transferWarehouseId.HasValue||(_transferWarehouseId==0&&!_transferExportLocation.HasValue)||_transferItems.Count==0)return;_transferring=true;_transferError=null;try{var result=await ProductionService.TransferWarehouseAsync(_transferWarehouseId.Value,_transferItems.Select(x=>new WarehouseMoveItem(x.HandpanId,x.Version)).ToList(),_transferWarehouseId==0?_transferExportLocation:null);if(result.Count!=_transferItems.Count)throw new InvalidOperationException("پاسخ انتقال کامل نیست؛ موجودی را تازه کنید.");foreach(var row in result){var item=_items.Single(x=>x.HandpanId==row.HandpanId);item.QualityWarehouseId=row.QualityWarehouseId;item.Version=row.Version;if(row.Stage=="ExportWarehouse")_items.Remove(item);}_notice=$"{result.Count} ساز به {TransferTargetName} منتقل شد.";_transferItems=[];_selected.Clear();_expanded.Clear();}catch(Exception ex){_transferError=ex.Message;}finally{_transferring=false;}}
     private void ApplyFilters(){_appliedMaterialFilter=_materialFilter;_appliedScaleFilter=_scaleFilter;_appliedNotesFilter=_notesFilter;_expanded.Clear();_selected.Clear();}
     private async Task OpenGalleryAsync(){if(_galleryLoading)return;_galleryLoading=true;try{_galleryPhotos=await ProductionService.GetWarehouseGalleryAsync(Items.Select(x=>x.HandpanId).ToList());_showGallery=true;}finally{_galleryLoading=false;}}
-    private void CloseGallery(){_showGallery=false;_galleryPreviewUrl=null;}
+    private void CloseGallery(){_showGallery=false;_galleryPreviewUrl=null;_previewInstrument=null;}
     private static string ThumbnailUrl(WarehouseGalleryPhotoDto photo)=>$"data:image/webp;base64,{Convert.ToBase64String(photo.Thumbnail)}";
-    private async Task PreviewGalleryPhotoAsync(WarehouseGalleryPhotoDto photo)=>_galleryPreviewUrl=await PhotoService.DataUrlAsync(photo.HandpanId,photo.Id,false);
-    private void CloseGalleryPreview()=>_galleryPreviewUrl=null;
+    private async Task PreviewGalleryPhotoAsync(WarehouseGalleryPhotoDto photo){
+        var url=await PhotoService.DataUrlAsync(photo.HandpanId,photo.Id,false);
+        if(url is null)return;
+        _previewInstrument=_items.FirstOrDefault(x=>x.HandpanId==photo.HandpanId);
+        _galleryPreviewUrl=url;
+        _previewReference ??= DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("warehousePreviewBack.open", _previewReference);
+    }
+    private async Task CloseGalleryPreview(){_galleryPreviewUrl=null;_previewInstrument=null;await JS.InvokeVoidAsync("warehousePreviewBack.close");}
     private void ToggleSelected(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
     private void ToggleAllVisible(ChangeEventArgs e){var select=(bool?)e.Value==true;foreach(var item in Items.ToList()){if(select)_selected.Add(item.HandpanId);else _selected.Remove(item.HandpanId);}}
     private async Task DeleteAsync(WarehouseHandpanDto item){if(!await JS.InvokeAsync<bool>("confirm",$"ساز {item.SerialNumber} و تمام سوابق آن برای همیشه حذف شود؟"))return;await ProductionService.DeleteAsync(item.HandpanId);_items.Remove(item);_selected.Remove(item.HandpanId);}
@@ -295,4 +304,7 @@ else
     private void SetSaleKind(bool isExport){_isExportSale=isExport;if(!isExport)_destination="";_saleError=null;}
     private void Cancel(){if(_saving)return;_saleIds.Clear();}
     private async Task SellAsync(){if(_saleIds.Count==0)return;_saving=true;_saleError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);var buyer=party?.Name??_buyer.Trim();var phone=party?.Phone??_buyerPhone.Trim();await ProductionService.SellManyAsync(_saleIds,buyer,phone,_price,_receivedAmount,(_isExportSale??false),_destination.Trim(),party?.Id,true,_leadSourceId,_referrerId,_priceCurrency,_netProfit,_profitCurrency,true);_items.RemoveAll(x=>_saleIds.Contains(x.HandpanId));_selected.Clear();_saleIds.Clear();}catch(HttpRequestException ex){_saleError=string.IsNullOrWhiteSpace(ex.Message)?"ثبت فروش انجام نشد.":ex.Message;}finally{_saving=false;}}
+    private DotNetObjectReference<WarehouseList>? _previewReference;
+    [JSInvokable] public Task PreviewWentBack(){_galleryPreviewUrl=null;_previewInstrument=null;return InvokeAsync(StateHasChanged);}
+    public async ValueTask DisposeAsync(){try{await JS.InvokeVoidAsync("warehousePreviewBack.release");}catch(JSDisconnectedException){}finally{_previewReference?.Dispose();}}
 }

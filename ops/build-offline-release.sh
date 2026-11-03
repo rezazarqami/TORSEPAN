@@ -6,7 +6,7 @@ export ANDROID_HOME=${1:?Pass Android SDK directory}
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export TORSEPAN_ANDROID_KEYSTORE=${2:?Pass existing signing keystore}
 previous=${3:?Pass previous independent APK or --fresh-install}
-out=${4:-"$repo/android/app/build/release/torsepan-offline-3.0.0.apk"}
+out=${4:-"$repo/android/app/build/release/torsepan-offline-3.0.1.apk"}
 signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
 aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
 [[ -f "$TORSEPAN_ANDROID_KEYSTORE" ]] || { echo 'Existing signing keystore is required.' >&2; exit 1; }

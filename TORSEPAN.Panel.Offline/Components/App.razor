@@ -20,7 +20,7 @@
  private void Changed(object? sender,LocationChangedEventArgs e)=>_boundary?.Recover();
  private void Recover()=>_boundary?.Recover();
  private async Task UpdateAsync(){try{var s=await JS.InvokeAsync<Status>("OfflinePanel.status");_ready=s.Ready;_message=s.Message;_error=s.Error??"";if(_revision!=""&&_revision!=s.Revision)Refresh.Notify();_revision=s.Revision??"";}catch(Exception){_error="خواندن اطلاعات محلی کامل نشد؛ اطلاعات برنامه را پاک نکنید.";}}
- private async Task PollAsync(){try{using var timer=new PeriodicTimer(TimeSpan.FromSeconds(3));while(await timer.WaitForNextTickAsync(_stop.Token))await InvokeAsync(async()=>{await UpdateAsync();StateHasChanged();});}catch(OperationCanceledException){}}
+ private async Task PollAsync(){try{using var timer=new PeriodicTimer(TimeSpan.FromSeconds(3));while(await timer.WaitForNextTickAsync(_stop.Token))await InvokeAsync(async()=>{var before=(_ready,_message,_error,_revision);await UpdateAsync();if(before!=(_ready,_message,_error,_revision))StateHasChanged();});}catch(OperationCanceledException){}}
  private async Task SyncAsync(){await JS.InvokeVoidAsync("OfflinePanel.sync");await UpdateAsync();}
  private async Task ActivateAsync(){await JS.InvokeVoidAsync("OfflinePanel.activate");await UpdateAsync();}
  private async Task OnlineAsync()=>await JS.InvokeVoidAsync("OfflinePanel.online");

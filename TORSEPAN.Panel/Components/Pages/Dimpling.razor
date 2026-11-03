@@ -94,6 +94,15 @@
         <div class="alert alert-danger">@_error</div>
     }
 
+    @if (_loading)
+    {
+        <p role="status" aria-live="polite">در حال خواندن اطلاعات ساز…</p>
+    }
+    else if (_bowl is null && string.IsNullOrWhiteSpace(_error) && string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <p class="passport-empty-state">برای نمایش شناسنامه و عملیات، کد ساز یا کاسه را در کادر بالا وارد کنید.</p>
+    }
+
     @if (_bowl is not null)
     {
         var isHandpan = !string.IsNullOrWhiteSpace(_bowl.HandpanCode);
@@ -513,7 +522,6 @@
     protected override async Task OnInitializedAsync()
     {
         _scales.AddRange(await ScaleService.GetAsync());
-        await LoadPackagingMaterialsAsync();
         try { _shapers.AddRange(await BowlService.GetShapersAsync()); } catch { }
         if (_scales.Count > 0)
             _scaleId = _scales[0].Id;

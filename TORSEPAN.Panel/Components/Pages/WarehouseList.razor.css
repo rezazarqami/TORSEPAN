@@ -177,3 +177,10 @@
 .warehouse-transfer-dialog .transfer-options button.selected,.warehouse-transfer-dialog .transfer-locations button.selected{color:#08253b!important;background:#e1bd6c!important;border-color:#f5dca0;font-weight:800}
 .warehouse-transfer-dialog footer{position:sticky;bottom:0;z-index:2;padding:10px 16px;margin-top:8px;flex-shrink:0}
 .warehouse-transfer-dialog footer .btn{min-height:38px;padding:6px 14px}
+
+.inventory-gallery-dialog,.inventory-gallery-dialog header{background:#06243b!important;color:#f1f5fa!important;border-color:#36556b!important}
+.inventory-gallery-dialog header small,.inventory-gallery-dialog h3,.inventory-gallery-dialog p,.inventory-gallery-grid strong{color:#f1f5fa!important}
+.inventory-gallery-grid button{background:#092d47!important;color:#fff!important}
+.gallery-preview-overlay figure{margin:0;max-width:100%;text-align:center}
+.gallery-preview-overlay figure img{max-height:calc(100dvh - 110px)}
+.gallery-preview-overlay figcaption{color:#fff!important;font-size:.76rem;line-height:1.8;margin:10px 0 0;direction:rtl;white-space:nowrap;max-width:100%;overflow-x:auto;text-shadow:0 1px 3px #000}

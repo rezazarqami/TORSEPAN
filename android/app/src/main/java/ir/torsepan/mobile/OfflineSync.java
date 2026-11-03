@@ -243,7 +243,7 @@ final class OfflineSync {
                                 }
                                 this.store.acknowledge(jSONObject.getString("id"), "applied", "در سرور ثبت شد");
                             } else {
-                                String strOptString = replyRequest.body.optString("message", "ارسال انجام نشد (" + replyRequest.status + ").");
+                                String strOptString = replyRequest.body.optString("message", replyRequest.body.optString("detail",replyRequest.body.optString("title","ارسال انجام نشد (" + replyRequest.status + ").")));
                                 this.store.put("message", strOptString);
                                 if (replyRequest.status == 401) {
                                     return false;

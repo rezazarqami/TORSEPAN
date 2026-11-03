@@ -35,6 +35,7 @@ final class OfflineStore extends SQLiteOpenHelper {
     private String readText(String sql,String value,boolean missingAllowed){try(SQLiteStatement query=getReadableDatabase().compileStatement(sql)){query.bindString(1,value);return query.simpleQueryForString();}catch(SQLiteDoneException e){if(missingAllowed)return "";throw e;}}
     synchronized boolean has(String name){try(Cursor cursor=getReadableDatabase().rawQuery("SELECT 1 FROM settings WHERE name=?",new String[]{name})){return cursor.moveToFirst();}}
     synchronized void put(String name, String value) throws Exception {
+        cachedView=null;
         ContentValues values = new ContentValues(); values.put("name", name); values.put("value", vault.encrypt(value));
         if (getWritableDatabase().insertWithOnConflict("settings", null, values, SQLiteDatabase.CONFLICT_REPLACE) < 0)
             throw new IllegalStateException("ذخیره اطلاعات محلی انجام نشد.");
@@ -43,6 +44,8 @@ final class OfflineStore extends SQLiteOpenHelper {
         String id = get("device"); if (id.isEmpty()) { id = UUID.randomUUID().toString(); put("device", id); } return id;
     }
     synchronized JSONArray operations() throws Exception {JSONArray rows=new JSONArray();try(Cursor cursor=getReadableDatabase().rawQuery("SELECT id,state FROM outbox ORDER BY seq",null)){while(cursor.moveToNext()){String id=cursor.getString(0);rows.put(new JSONObject().put("id",id).put("state",cursor.getString(1)).put("body",new JSONObject(vault.decrypt(readText("SELECT body FROM outbox WHERE id=?",id,false)))).put("message",vault.decrypt(readText("SELECT message FROM outbox WHERE id=?",id,false))));}}return rows;}
+    private String cachedView;
+    synchronized String viewJson() throws Exception { if(cachedView==null)cachedView=view().toString();return cachedView; }
     synchronized JSONObject view() throws Exception {
         String snapshot = get("snapshot");
         JSONArray visible=operations();
@@ -56,6 +59,7 @@ final class OfflineStore extends SQLiteOpenHelper {
         return count;
     }
     synchronized void acknowledge(String id, String state, String message) throws Exception {
+        cachedView=null;
         ContentValues values = new ContentValues(); values.put("state", state); values.put("message", vault.encrypt(message));
         if (getWritableDatabase().update("outbox", values, "id=?", new String[]{id}) != 1) throw new IllegalStateException("عملیات محلی پیدا نشد.");
     }
@@ -79,6 +83,7 @@ final class OfflineStore extends SQLiteOpenHelper {
         return "";
     }
     synchronized String enqueue(String raw) throws Exception {
+        cachedView=null;
         if (get("owner").isEmpty()) throw new IllegalStateException("فعال‌سازی اولیه لازم است.");
         String saved = get("snapshot"); if (saved.isEmpty()) throw new IllegalStateException("اطلاعات اولیه هنوز دریافت نشده است.");
         JSONObject snapshot = new JSONObject(saved), op = new JSONObject(raw); JSONArray rows = operations();
