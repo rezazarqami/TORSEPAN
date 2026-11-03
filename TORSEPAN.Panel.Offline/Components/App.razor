@@ -8,12 +8,14 @@
 @inject OfflineDataRefresh Refresh
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
+<div class="offline-app-shell">
 <details class="offline-sync-strip"><summary>@_message.Split(" · آخرین دریافت")[0]</summary><p>@_message</p><div><a href="/offline-queue">صف ارسال</a><button @onclick="SyncAsync">ارسال و دریافت اطلاعات</button><button @onclick="OnlineAsync">ورود به نسخهٔ وب</button></div>@if(!string.IsNullOrEmpty(_error)){<p role="alert">@_error</p>}</details>
 @if(_ready){
 <ErrorBoundary @ref="_boundary"><ChildContent>
 <Router AppAssembly="@typeof(App).Assembly"><Found Context="route"><AuthorizeRouteView RouteData="route" DefaultLayout="typeof(MainLayout)"><NotAuthorized><p>دسترسی این حساب به صفحه فعال نیست.</p></NotAuthorized></AuthorizeRouteView><FocusOnNavigate RouteData="route" Selector="h1"/></Found><NotFound><LayoutView Layout="typeof(MainLayout)"><p>صفحه پیدا نشد.</p></LayoutView></NotFound></Router>
 </ChildContent><ErrorContent><div class="alert alert-warning">باز کردن این صفحه کامل نشد. ثبت‌های ذخیره‌شده در صف گوشی باقی می‌مانند.<button @onclick="Recover">تلاش دوباره</button><a href="/">داشبورد</a></div></ErrorContent></ErrorBoundary>
 }else{<div class="card p-4 m-3"><h1>دریافت اولیهٔ کارگاه</h1><p>@_message</p><button @onclick="ActivateAsync">فعال‌سازی و دریافت اطلاعات</button><button @onclick="OnlineAsync">ورود به حساب در وب</button></div>}
+</div>
 @code{
  private bool _ready;private string _message="در حال خواندن اطلاعات گوشی…",_error="",_revision="";private ErrorBoundary? _boundary;private readonly CancellationTokenSource _stop=new();private Task? _poll;
  protected override async Task OnInitializedAsync(){Navigation.LocationChanged+=Changed;await UpdateAsync();_poll=PollAsync();}

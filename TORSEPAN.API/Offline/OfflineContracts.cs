@@ -23,7 +23,7 @@ public sealed record OfflineOperation(Guid OperationId, Guid DeviceId, string Co
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] int PriceCurrency=0,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] decimal? NetProfit=null,
     [property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] int ProfitCurrency=0);
-public sealed record OfflineLocalEventUserUpdate(Guid OperationId,Guid UserId);
+public sealed record OfflineLocalEventUserUpdate(Guid OperationId,Guid UserId,[property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] int? Action=null,[property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] DateTime? EventDate=null,[property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] DateTime? ExpectedEventDate=null);
 public sealed record OfflineUser(Guid Id, string Name, string[] Roles);
 public sealed record OfflineScale(Guid Id, string Name, int Usage);
 public sealed record OfflineBowl(string Code, Guid Id, int Type, bool HasNotes, bool IsCustom, Guid? ScaleId,

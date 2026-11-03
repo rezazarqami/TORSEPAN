@@ -42,9 +42,10 @@
       if(action==='design'){const name=(snapshot.designs||[]).find(x=>x.id===op.designTypeId)?.name||'دیزاین';b.design=b.design?b.design+'، '+name:name;}
       if(action==='edit'&&op.edit){
         for(const [code,scaleId] of Object.entries(op.editScales||{})){const target=bowls.find(x=>x.code===code);if(target)target.scaleId=scaleId;}
-        for(const update of op.edit.bowlScales||[]){const target=bowls.find(x=>x.id===update.bowlId);if(target)target.scaleId=update.scaleId;}
+        for(const update of op.edit.bowlScales||[]){const target=bowls.find(x=>x.id===update.bowlId);if(target){target.scaleId=update.scaleId;if(update.noteCount!=null)target.noteCount=update.noteCount;}}
         if(b.instrumentCode)bowls.filter(x=>x.code===b.code||x.code===b.pairCode).forEach(x=>x.instrumentScaleId=op.edit.handpanScaleId);
       }
+      if(action==='edit'&&b.instrumentCode){const related=bowls.filter(x=>x.code===b.code||x.code===b.pairCode);if(related.every(x=>Number.isInteger(x.noteCount)))related.forEach(x=>x.instrumentNoteCount=related.reduce((n,y)=>n+y.noteCount,0));}
       if(!stage){b.localHistory.push(row);continue;}
 
       if(action==='shape'){b.scaleId=op.scaleId||null;b.legacyScaleId=null;b.noteCount=op.noteCount;b.isCustom=false;}

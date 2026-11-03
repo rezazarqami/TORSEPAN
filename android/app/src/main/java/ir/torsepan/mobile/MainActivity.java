@@ -389,22 +389,17 @@ public final class MainActivity extends Activity {
                 }catch(Exception error){try{offlineStore.put("message",error.getMessage());}catch(Exception ignored){}refreshLocal();}
             });
         }
-        @JavascriptInterface public void sync() {
-            if (!localUnlocked) return;
-            runOnUiThread(() -> captureToken(() -> offlineWorker.execute(() -> { offlineSync.sync(); refreshLocal(); })));
-        }
+        @JavascriptInterface public void sync() { retry(); }
         @JavascriptInterface public void retry() {
             if (!localUnlocked) return;
-            offlineWorker.execute(() -> {
+            runOnUiThread(() -> captureToken(() -> offlineWorker.execute(() -> {
                 try {
-                    org.json.JSONArray rows = offlineStore.operations();
-                    for (int i=0;i<rows.length();i++) {
-                        JSONObject row = rows.getJSONObject(i);
-                        if (row.getString("state").equals("blocked")) offlineStore.acknowledge(row.getString("id"),"pending","در انتظار بررسی دوباره");
-                    }
-                    offlineSync.sync(); refreshLocal();
-                } catch (Exception ignored) { }
-            });
+                    offlineStore.put("message","در حال ارسال و دریافت اطلاعات…"); refreshLocal();
+                    offlineSync.sync(true);
+                } catch(Exception error) {
+                    try { offlineStore.put("message","ارسال کامل نشد؛ صف گوشی محفوظ است."); } catch(Exception ignored) { }
+                } finally { refreshLocal(); }
+            })));
         }
     }
     private boolean trustedMessagesPage(){Uri uri=Uri.parse(browser.getUrl()==null?"":browser.getUrl());return "https".equals(uri.getScheme())&&HOST.equals(uri.getHost())&&(uri.getPort()==-1||uri.getPort()==443);}

@@ -9,5 +9,5 @@ export ANDROID_HOME="$sdk" ANDROID_SDK_ROOT="$sdk" TORSEPAN_ANDROID_KEYSTORE="$k
 [[ -f "$key" ]] || { echo 'Existing signing keystore not found.' >&2; exit 1; }
 mkdir -p "$out"
 (cd "$repo/android" && "${GRADLE:-gradle}" :app:assembleDebug --no-daemon)
-cp "$repo/android/app/build/outputs/apk/debug/app-debug.apk" "$out/torsepan-3.0.2-offline.apk"
-"$sdk/build-tools/35.0.0/apksigner" verify --verbose "$out/torsepan-3.0.2-offline.apk"
+cp "$repo/android/app/build/outputs/apk/debug/app-debug.apk" "$out/torsepan-3.0.3-offline.apk"
+"$sdk/build-tools/35.0.0/apksigner" verify --verbose "$out/torsepan-3.0.3-offline.apk"

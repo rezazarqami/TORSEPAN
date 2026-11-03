@@ -168,8 +168,29 @@ public sealed partial class OfflineProductionService
                     edit=edit with { BowlScales=updates };
                 }
                 if(op.LocalEventUsers is {Count:>0}){
-                    Require(op.LocalEventUsers.Count<=100&&op.LocalEventUsers.Select(x=>x.OperationId).Distinct().Count()==op.LocalEventUsers.Count,"اصلاحات تکراری هستند.");var users=new List<AdminEventUserUpdate>(edit.EventUsers??[]);
-                    foreach(var update in op.LocalEventUsers){var r=await db.OfflineReceipts.AsNoTracking().SingleOrDefaultAsync(x=>x.OperationId==update.OperationId&&x.DeviceId==op.DeviceId,ct);Require(r is not null,"مرحله محلی هنوز تأیید نشده است.");var source=JsonSerializer.Deserialize<OfflineOperation>(r!.PayloadJson)!;Require(source.Code==bowl!.Code||source.Code==bowl.PairCode||source.PairCode==bowl.Code,"مرحله به این ساز تعلق ندارد.");var ids=JsonSerializer.Deserialize<Dictionary<string,string>>(r.VersionsJson)!.Where(x=>x.Key.StartsWith("performerEvent:")).Select(x=>Guid.Parse(x.Value)).ToArray();Require(ids.Length>0,"دریافت اطلاعات تازه لازم است.");Require(await db.Users.AnyAsync(x=>x.Id==update.UserId&&x.IsActive&&!x.IsDeleted,ct),"همکار فعال نیست.");users.AddRange(ids.Select(id=>new AdminEventUserUpdate(id,update.UserId)));}edit=edit with {EventUsers=users};
+                    Require(op.LocalEventUsers.Count<=100&&op.LocalEventUsers.Select(x=>(x.OperationId,x.Action)).Distinct().Count()==op.LocalEventUsers.Count,"اصلاحات تکراری هستند.");
+                    var users=new List<AdminEventUserUpdate>(edit.EventUsers??[]);
+                    foreach(var update in op.LocalEventUsers){
+                        var receipt=await db.OfflineReceipts.AsNoTracking().SingleOrDefaultAsync(x=>x.OperationId==update.OperationId&&x.DeviceId==op.DeviceId,ct);
+                        Require(receipt is not null,"مرحله محلی هنوز تأیید نشده است.");
+                        var source=JsonSerializer.Deserialize<OfflineOperation>(receipt!.PayloadJson)!;
+                        Guid[] ids;
+                        if(update.Action.HasValue){
+                            Require(source.WorkspaceModule=="legacyStock"&&source.WorkspaceAction=="save"&&source.WorkspaceData.HasValue,"سابقه محلی معتبر نیست.");
+                            var data=source.WorkspaceData!.Value;
+                            Require(data.GetProperty("code").GetString()==bowl!.Code||data.GetProperty("code").GetString()==bowl.PairCode,"مرحله به این ساز تعلق ندارد.");
+                            var instrumentId=data.GetProperty("registrationId").GetGuid();
+                            Require(new[]{2,3,6,7,13}.Contains(update.Action.Value),"نوع سابقه قابل ویرایش نیست.");
+                            ids=await db.ProductionEvents.AsNoTracking().Where(x=>x.HandpanId==instrumentId&&(int)x.Action==update.Action.Value&&x.Description.StartsWith(TORSEPAN.Domain.Entities.LegacyStockRecord.Prefix)).Select(x=>x.Id).ToArrayAsync(ct);
+                        }else{
+                            Require(source.Code==bowl!.Code||source.Code==bowl.PairCode||source.PairCode==bowl.Code,"مرحله به این ساز تعلق ندارد.");
+                            ids=JsonSerializer.Deserialize<Dictionary<string,string>>(receipt.VersionsJson)!.Where(x=>x.Key.StartsWith("performerEvent:")).Select(x=>Guid.Parse(x.Value)).ToArray();
+                        }
+                        Require(ids.Length>0,"دریافت اطلاعات تازه لازم است.");
+                        Require(await db.Users.AnyAsync(x=>x.Id==update.UserId&&x.IsActive&&!x.IsDeleted,ct),"همکار فعال نیست.");
+                        foreach(var id in ids){var original=await db.ProductionEvents.AsNoTracking().SingleAsync(x=>x.Id==id,ct);users.Add(new AdminEventUserUpdate(id,update.UserId,update.EventDate,update.EventDate.HasValue?original.EventDate:null));}
+                    }
+                    edit=edit with {EventUsers=users};
                 }
                 var result=await new AdminProductionEditsController(db).Update(op.Code,edit,ct);
                 if(result.Result is ObjectResult error && error.StatusCode>=400) throw new OfflineProblem("edit",error.Value?.ToString()??"اصلاح اطلاعات معتبر نیست.",422);

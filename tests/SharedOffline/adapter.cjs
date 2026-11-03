@@ -104,3 +104,15 @@ test('offline profit-rule edits retain concurrency tokens and reject stale or in
  assert.equal(h.request('PUT','profit-sharing/rules',rules).status,409);assert.equal(h.request('PUT','profit-sharing/rules',saved.value.map(r=>({...r,percent:50}))).status,409);assert.equal(state.operations.length,1);
  const reopened=harness(JSON.parse(JSON.stringify(state)));assert.equal(reopened.request('PUT','profit-sharing/rules',saved.value.map(r=>({...r,percent:3}))).status,200);assert.ok(reopened.request('GET','profit-sharing/rules').value.every(r=>r.percent===3));
 });
+
+test('pending legacy passport 0773 opens edit with GUIDs and replays local historical edits',()=>{
+ const state=fixture();state.snapshot.workspace.sections.offlineCapabilities=['legacyStock'];const h=harness(state);
+ assert.equal(h.request('POST','legacy-stock',{registrationId:id(70),code:'0773',materialId:id(5),scaleId:id(4),topNotes:9,bottomNotes:0,warehouseId:1,shapeUserId:id(1)}).status,200);
+ const source=state.operations[0].id,record=h.request('GET','admin-production-edits/0773');assert.equal(record.status,200);
+ const shape=record.value.events.find(e=>e.action===3);assert.match(shape.id,/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/);assert.equal(shape.sourceOperationId,source);
+ const r=h.request('PUT','admin-production-edits/0773',{handpanScaleId:id(4),bowlScales:record.value.bowls.map(b=>({bowlId:b.id,scaleId:b.scaleId,noteCount:b.bowlType==='کاسه رو'?10:0})),eventUsers:[{eventId:shape.id,userId:id(1),eventDate:'2026-10-17T10:00:00Z',expectedEventDate:shape.eventDate}]});assert.equal(r.status,200);
+ assert.equal(state.operations[1].body.localEventUsers[0].operationId,source);assert.equal(state.operations[1].body.localEventUsers[0].action,3);assert.equal(state.operations[1].body.edit.eventUsers.length,0);
+ const reopened=harness(JSON.parse(JSON.stringify(state)));const edit=reopened.request('GET','admin-production-edits/0773').value;
+ assert.equal(edit.events.find(e=>e.action===3).eventDate,'2026-10-17T10:00:00Z');assert.equal(edit.bowls.find(b=>b.bowlType==='کاسه رو').noteCount,10);
+ assert.equal(state.operations[0].body.workspaceData.topNotes,9); // original upload remains immutable
+});

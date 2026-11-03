@@ -257,11 +257,15 @@ internal static class OfflineProductionSmoke
         Check(await db.WorkPlans.CountAsync(x=>x.UserId==actor.Id)==1,"conflicting work plan remains unchanged");
         workspaceSnapshot=await service.SnapshotAsync(registrar.Id,device,default);
         var legacyId=Guid.NewGuid();var localTop=Guid.NewGuid();var localBottom=Guid.NewGuid();var localAssembly=Guid.NewGuid();var stockBefore=await db.Materials.AsNoTracking().Where(x=>x.Id==raw.Id).Select(x=>x.TopBowlQuantity+x.BottomBowlQuantity).SingleAsync();
-        var legacyOp=Workspace("legacyStock","save",new{registrationId=legacyId,code="LEGACY-OFFLINE-1",materialId=raw.Id,scaleId=scale.Id,topNotes=9,bottomNotes=0,warehouseId=1,exportLocation=(int?)7,localTopId=localTop,localBottomId=localBottom,localAssemblyId=localAssembly});
+        var legacyOp=Workspace("legacyStock","save",new{registrationId=legacyId,code="LEGACY-OFFLINE-1",shapeUserId=actor.Id,materialId=raw.Id,scaleId=scale.Id,topNotes=9,bottomNotes=0,warehouseId=1,exportLocation=(int?)7,localTopId=localTop,localBottomId=localBottom,localAssemblyId=localAssembly});
         var legacyReceipt=await service.ApplyAsync(registrar.Id,legacyOp,default);await service.ApplyAsync(registrar.Id,legacyOp,default);db.ChangeTracker.Clear();
         Check(await db.Handpans.CountAsync(x=>x.Id==legacyId)==1&&await db.Materials.AsNoTracking().Where(x=>x.Id==raw.Id).Select(x=>x.TopBowlQuantity+x.BottomBowlQuantity).SingleAsync()==stockBefore,"offline legacy import is replay-safe and does not consume physical stock");
         Check(JsonSerializer.Deserialize<Dictionary<string,string>>(legacyReceipt.VersionsJson)!.ContainsKey("alias:"+localTop)&&await db.Handpans.AnyAsync(x=>x.Id==legacyId&&x.ExportWarehouseLocation==ExportWarehouseLocation.Lebanon),"legacy import returns real bowl aliases and preserves Lebanon destination");
-        var legacySale=Operation("LEGACY-OFFLINE-1","sell","new",legacyOp.OperationId) with{Price=100,ReceivedAmount=50,IsExportSale=true,PriceCurrency=1,NetProfit=20,ProfitCurrency=1};
+        var legacyEdit=Operation("LEGACY-OFFLINE-1","edit","new",legacyOp.OperationId) with {Edit=new(scale.Id,[],[]),LocalEventUsers=[new(legacyOp.OperationId,registrar.Id,3,new DateTime(2026,10,1,8,0,0,DateTimeKind.Utc))]};
+        await service.ApplyAsync(registrar.Id,legacyEdit,default);await service.ApplyAsync(registrar.Id,legacyEdit,default);db.ChangeTracker.Clear();
+        var importedShape=await db.ProductionEvents.AsNoTracking().SingleAsync(x=>x.HandpanId==legacyId&&x.Action==ProductionAction.Shape);
+        Check(importedShape.UserId==registrar.Id&&importedShape.EventDate==new DateTime(2026,10,1,8,0,0,DateTimeKind.Utc),"pending legacy edit resolves imported historical event and is replay-safe");
+        var legacySale=Operation("LEGACY-OFFLINE-1","sell","new",legacyEdit.OperationId) with{Price=100,ReceivedAmount=50,IsExportSale=true,PriceCurrency=1,NetProfit=20,ProfitCurrency=1};
         await service.ApplyAsync(registrar.Id,legacySale,default);db.ChangeTracker.Clear();
         Check(await db.Handpans.AnyAsync(x=>x.Id==legacyId&&x.Stage==ProductionStage.Sold),"new offline legacy instrument can be sold using import receipt dependency");
         workspaceSnapshot=await service.SnapshotAsync(registrar.Id,device,default);

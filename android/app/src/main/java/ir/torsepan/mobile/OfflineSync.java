@@ -224,7 +224,9 @@ final class OfflineSync {
         sync();
     }
 
-    boolean sync() {
+    boolean sync() { return sync(false); }
+
+    boolean sync(boolean retryBlocked) {
         synchronized (SYNC) {
             try {
                 if (this.store.get("enrolled").equals("yes") && !this.store.get("token").isEmpty()) {
@@ -233,8 +235,8 @@ final class OfflineSync {
                         JSONObject jSONObject = jSONArrayOperations.getJSONObject(i);
                         if (!jSONObject.getString("state").equals("applied")) {
                             if (jSONObject.getString("state").equals("blocked")) {
-                                this.store.put("message", "یک عملیات نیاز به بررسی دارد؛ صف حفظ شده است.");
-                                return false;
+                                if(!retryBlocked){this.store.put("message",jSONObject.optString("message","یک عملیات نیاز به بررسی دارد؛ صف حفظ شده است."));return false;}
+                                this.store.acknowledge(jSONObject.getString("id"),"pending","در انتظار بررسی دوباره");
                             }
                             Reply replyRequest = request(jSONObject.getJSONObject("body").optString("action").equals("photo") ? "photos" : "operations", jSONObject.getJSONObject("body"));
                             if (replyRequest.status == 200) {
@@ -269,6 +271,7 @@ final class OfflineSync {
                     boolean retryPhotos = cachePhotos(replyRequest2.body);
                     return this.store.pending() != 0 || retryPhotos;
                 }
+                this.store.put("message","برای ارسال و دریافت، ابتدا در نسخه وب وارد حساب مدیر شوید؛ اطلاعات گوشی محفوظ است.");
                 return false;
             } catch (Exception e) {
                 try {
