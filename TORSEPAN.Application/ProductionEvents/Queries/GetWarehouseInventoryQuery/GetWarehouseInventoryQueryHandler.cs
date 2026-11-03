@@ -42,7 +42,8 @@ public sealed class GetWarehouseInventoryQueryHandler
                     or ProductionAction.Shape
                     or ProductionAction.Tune
                     or ProductionAction.FineTune
-                    or ProductionAction.QualityCheck)
+                    or ProductionAction.QualityCheck
+                    or ProductionAction.Packaging)
                 .GroupBy(e => e.Action)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
@@ -52,7 +53,8 @@ public sealed class GetWarehouseInventoryQueryHandler
                 (ProductionAction.Shape, "شیپ"),
                 (ProductionAction.Tune, "تیون"),
                 (ProductionAction.FineTune, "فاین تیون"),
-                (ProductionAction.QualityCheck, "QC")
+                (ProductionAction.QualityCheck, "QC"),
+                (ProductionAction.Packaging, "بسته‌بندی")
             }.Select(operation =>
             {
                 events.TryGetValue(operation.Item1, out var actionEvents);
@@ -93,8 +95,11 @@ public sealed class GetWarehouseInventoryQueryHandler
                 Stage = x.Stage.ToString(),
                 TopBowlCode = x.Assembly.TopBowl.ProductionCode,
                 BottomBowlCode = TORSEPAN.Domain.Entities.LegacyStockRecord.DisplayCode(x.Assembly.BottomBowl.ProductionCode),
+                DesignName = request.HandpanId.HasValue ? DesignNames(x.Assembly.TopBowl.ProductionEvents) : null,
+                BottomDesignName = request.HandpanId.HasValue ? DesignNames(x.Assembly.BottomBowl.ProductionEvents) : null,
                 MaterialName = x.Assembly.TopBowl.Material.Name,
                 ScaleName = x.FormatScaleName(x.Scale?.Name),
+                NoteCount = x.NoteCount ?? TORSEPAN.Domain.Entities.ScaleFamilyNames.Parse(x.Scale?.Name??"").NoteCount,
                 CreatedAt = x.CreatedAt,
                 WarehouseEntryDate = x.UpdatedAt,
                 Operations = operations,
@@ -109,4 +114,17 @@ public sealed class GetWarehouseInventoryQueryHandler
         }
         return result;
     }
+    private static string DesignNames(IEnumerable<TORSEPAN.Domain.Entities.ProductionEvent> events)
+    {
+        var names = events.Where(e => e.Action == ProductionAction.Design && e.Result == EventResult.Completed)
+            .OrderBy(e => e.EventDate).Select(e =>
+            {
+                var description = e.Description.StartsWith(TORSEPAN.Domain.Entities.LegacyStockRecord.Prefix)
+                    ? e.Description[TORSEPAN.Domain.Entities.LegacyStockRecord.Prefix.Length..] : e.Description;
+                var parts = description.Split(':');
+                return parts.Length >= 3 ? parts[2] : "دیزاین‌شده";
+            }).Distinct().ToList();
+        return names.Count == 0 ? "ساده" : string.Join("، ", names);
+    }
+
 }

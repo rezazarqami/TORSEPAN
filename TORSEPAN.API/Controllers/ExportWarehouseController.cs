@@ -27,8 +27,14 @@ public sealed class ExportWarehouseController(TORSEPANDbContext db) : Controller
             .Where(x => x.Stage == ProductionStage.ExportWarehouse)
             .Select(x => new ExportWarehouseRow(x.Id, "handpan", x.SerialNumber, "ساز کامل",
                 x.Scale != null ? x.Scale.Name : "بدون Scale",
-                (int)(x.ExportWarehouseLocation ?? ExportWarehouseLocation.Turkey)))
+                (int)(x.ExportWarehouseLocation ?? ExportWarehouseLocation.Turkey)) {
+                Inventory = new TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory.GetWarehouseInventoryResponse {
+                    HandpanId=x.Id, SerialNumber=x.SerialNumber, TopBowlCode=x.Assembly.TopBowl.ProductionCode,
+                    BottomBowlCode=x.Assembly.BottomBowl.ProductionCode,MaterialName=x.Assembly.TopBowl.Material.Name,
+                    ScaleName=x.Scale!=null?x.Scale.Name:"—",NoteCount=x.NoteCount,CreatedAt=x.CreatedAt,WarehouseEntryDate=x.UpdatedAt
+                }})
             .ToListAsync(ct);
+        foreach(var row in handpans){if(row.Inventory is not { } item)continue;item.BottomBowlCode=LegacyStockRecord.DisplayCode(item.BottomBowlCode);var parsed=ScaleFamilyNames.Parse(item.ScaleName);item.NoteCount??=parsed.NoteCount;if(parsed.FamilyName is not null)item.ScaleName=item.NoteCount.HasValue?$"{parsed.FamilyName} {item.NoteCount}":$"{parsed.FamilyName} — تعداد نت نامشخص";}
         return Ok(bowls.Concat(handpans).OrderBy(x => x.Location).ThenBy(x => x.ProductionCode));
     }
 
@@ -116,7 +122,10 @@ public sealed class ExportWarehouseController(TORSEPANDbContext db) : Controller
     }
 }
 
-public sealed record ExportWarehouseRow(Guid Id, string ItemType, string ProductionCode, string ItemKind, string Detail, int Location);
+public sealed record ExportWarehouseRow(Guid Id, string ItemType, string ProductionCode, string ItemKind, string Detail, int Location)
+{
+ public TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory.GetWarehouseInventoryResponse? Inventory {get;init;}
+}
 public sealed record ChangeLocationRequest(ExportWarehouseLocation Location);
 
 public sealed record ExportShipmentItem(Guid Id, string ItemType);

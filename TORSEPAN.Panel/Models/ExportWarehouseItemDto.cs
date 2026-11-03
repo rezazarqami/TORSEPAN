@@ -7,5 +7,6 @@ public sealed class ExportWarehouseItemDto
     public string ItemType { get; set; } = "bowl";
     public string ItemKind { get; set; } = string.Empty;
     public string Detail { get; set; } = string.Empty;
+    public WarehouseHandpanDto? Inventory { get; set; }
     public int Location { get; set; }
 }

@@ -7,6 +7,7 @@
 @inject HandpanPhotoService PhotoService
 @inject SalesAttributionService AttributionService
 @inject IJSRuntime JS
+@if(!IsExport){
 <PageTitle>انبار سازها</PageTitle>
 <section class="warehouse-hero instrument-hero inventory-photo-hero theme-hero theme-page-intro" aria-labelledby="inventory-title">
     <div class="inventory-hero-art" aria-hidden="true"><div></div><div></div><div></div></div>
@@ -18,79 +19,71 @@
     </div>
     @if (_canManage) { <details class="warehouse-menu hero-menu"><summary aria-label="گزینه‌های مدیریت انبار">⋯</summary><div><button @onclick="OpenWarehouseManagement">مدیریت انبارها</button></div></details> }
 </section>
-<div class="navy-workspace-page navy-warehouse navy-instruments">
+}
+<div class="navy-workspace-page navy-warehouse navy-instruments warehouse-redesign">
 @if (!string.IsNullOrWhiteSpace(_notice)) { <div class="warehouse-notice" role="status">✓ @_notice <button aria-label="بستن پیام" @onclick="()=>_notice=null">×</button></div> }
+@if(!IsExport){
 <nav class="warehouse-tabs" role="tablist" aria-label="انبارهای ساز">
     @foreach (var warehouse in _warehouses)
     {
         <button type="button" id="warehouse-tab-@warehouse.Id" role="tab" aria-selected="@(_activeWarehouseId==warehouse.Id?"true":"false")" tabindex="@(_activeWarehouseId==warehouse.Id?0:-1)" @onkeydown="e=>WarehouseTabKeyAsync(warehouse.Id,e)" aria-controls="warehouse-inventory" class="warehouse-tab tier-@warehouse.Id @(_activeWarehouseId==warehouse.Id?"active":null)" @onclick="()=>SelectWarehouse(warehouse.Id)">
-            <span class="warehouse-tier-text"><small>انبار سازها</small><strong dir="auto">@warehouse.Name</strong></span>
+            <span class="warehouse-tier-icon"><InventoryGlyph Kind="@(warehouse.Id==1?"cube":warehouse.Id==2?"pulse":"layers")" /></span><span class="warehouse-tier-text"><small>انبار سازها</small><strong dir="auto">@warehouse.Name</strong></span>
             <b class="warehouse-tier-count" aria-label="@($"{_items.Count(x=>x.QualityWarehouseId==warehouse.Id)} ساز")">@_items.Count(x=>x.QualityWarehouseId==warehouse.Id)</b>
         </button>
     }
 </nav>
-<section class="warehouse-content-panel" id="warehouse-inventory" role="tabpanel" aria-labelledby="warehouse-tab-@_activeWarehouseId"><div class="warehouse-collection">
-    <div class="warehouse-collection-heading"><div><span class="collection-label">موجودی انبار</span><h2 dir="auto">@(string.IsNullOrWhiteSpace(_search)?ActiveWarehouseName:"نتایج همه انبارها")</h2></div><span class="collection-count">@Items.Count() ساز @(HasActiveFilter?"در نتیجهٔ جست‌وجو":"آمادهٔ تحویل")</span></div>
-    <div class="warehouse-tools">
-        <div class="warehouse-search-wrap"><span aria-hidden="true">⌕</span><input class="form-control warehouse-search" aria-label="جست‌وجو در همه انبارهای ساز" placeholder="کد ساز، نام سفارش‌دهنده، متریال یا Scale…" @bind="_search" @bind:event="oninput" /></div>
-        <button class="btn warehouse-filter-toggle" aria-expanded="@(_showFilters?"true":"false")" @onclick="()=>_showFilters=!_showFilters">فیلترها <span>@(_showFilters?"−":"+")</span></button>
-        <button class="btn gallery-open" disabled="@(!Items.Any() || _galleryLoading)" @onclick="OpenGalleryAsync">@if(_galleryLoading){<span class="spinner-border spinner-border-sm"></span>}else{<span aria-hidden="true">▦</span>} گالری</button>
+}
+<section class="warehouse-content-panel" id="warehouse-inventory" role="tabpanel" aria-label="@ActiveWarehouseName"><div class="warehouse-collection">
+    <div class="warehouse-collection-heading"><span class="collection-icon"><InventoryGlyph Kind="cube" /></span><div><span class="collection-label">موجودی انبار</span><h2 dir="auto">@ActiveWarehouseName</h2></div><span class="collection-count"><InventoryGlyph Kind="check" /> @_items.Count(x=>(IsExport||x.QualityWarehouseId==_activeWarehouseId)) ساز آمادهٔ تحویل</span></div>
+    <div class="warehouse-note-tabs" role="group" aria-label="فیلتر تعداد نت ساز">
+    @foreach(var notes in new[]{9,10,11,12}){<button type="button" class="note-tab @(_noteFilter==notes?"active":null)" aria-pressed="@(_noteFilter==notes?"true":"false")" title="انتخاب دوباره برای نمایش همه تعداد نت‌ها" @onclick="()=>SelectNotesAsync(notes)"><InventoryGlyph Kind="music" /><strong>@notes نت</strong></button>}
     </div>
-    @if (_showFilters)
-    { <div class="warehouse-filter-bar">
-        <select class="form-select" aria-label="متریال" @bind="_materialFilter"><option value="">همه متریال‌ها</option>@foreach(var name in _items.Where(x=>x.QualityWarehouseId==_activeWarehouseId).Select(x=>x.MaterialName).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x=>x)){<option value="@name">@name</option>}</select>
-        <select class="form-select" aria-label="اسکیل" @bind="_scaleFilter"><option value="">همه Scale‌ها</option>@foreach(var name in _items.Where(x=>x.QualityWarehouseId==_activeWarehouseId).Select(x=>x.ScaleName).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x=>x)){<option value="@name">@name</option>}</select>
-        <select class="form-select" aria-label="فیلتر توضیحات ساز" @bind="_notesFilter"><option value="all">همه سازها</option><option value="with">دارای توضیحات</option><option value="without">بدون توضیحات</option></select>
-        <button class="btn btn-primary" @onclick="ApplyFilters">اعمال فیلتر</button><button class="btn btn-light" @onclick="ClearFilters">پاک کردن</button>
-    </div> }
-    <div class="warehouse-selection-bar"><span>@(SelectedVisibleCount>0?$"{SelectedVisibleCount} ساز انتخاب‌شده":"برای عملیات گروهی، سازها را انتخاب کنید")</span><div>
-        @if(_canTransfer){<button class="btn transfer-selected" disabled="@(SelectedVisibleCount==0)" @onclick="BeginSelectedTransfer">انتقال به انبار دیگر</button>}
-        @if(_canSell){<button class="btn btn-success bulk-sale-button" disabled="@(SelectedVisibleCount==0)" @onclick="BeginSelectedSale">ثبت فروش <span>@SelectedVisibleCount</span></button>}
-    </div></div>
 </div>
-
-<Card>
-@if(_loading){<div class="text-center p-5"><div class="spinner-border"></div></div>}
-else if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
-else
-{
-    <div class="stock-list">
+<div class="inventory-board">
+    <div class="inventory-view-toolbar"><span>نوع نمایش</span><div class="inventory-view-switch" role="group" aria-label="نوع نمایش موجودی"><button type="button" class="@(!_galleryMode?"active":null)" aria-pressed="@(!_galleryMode?"true":"false")" @onclick="()=>SetViewAsync(false)"><InventoryGlyph Kind="list" />لیست</button><button type="button" class="@(_galleryMode?"active":null)" aria-pressed="@(_galleryMode?"true":"false")" @onclick="()=>SetViewAsync(true)"><InventoryGlyph Kind="grid" />پنجره‌ای</button></div>
     @if(_canSell||_canTransfer){<label class="stock-select-all"><input type="checkbox" aria-label="انتخاب همه سازهای نمایش‌داده‌شده" checked="@AllVisibleSelected" @onchange="ToggleAllVisible" /> انتخاب همه</label>}
-    @if(!Items.Any()){<EmptyState Title="انبار خالی است" Description="در این انبار ساز آماده‌ای پیدا نشد؛ انبار دیگر یا فیلترها را بررسی کنید." />}
-    @foreach(var item in Items)
-    {
-        <article class="stock-item @(_selected.Contains(item.HandpanId)?"selected-row":null)">
+    </div>
+    @if(_loading){<div class="detail-loading" role="status"><span class="spinner-border spinner-border-sm"></span> دریافت موجودی…</div>}
+    else if(!string.IsNullOrWhiteSpace(_error)){<div class="alert alert-danger">@_error</div>}
+    else {
+    @if(!Items.Any()){<EmptyState Title="سازی پیدا نشد" Description="این انبار برای تعداد نت انتخاب‌شده موجودی ندارد؛ با انتخاب دوبارهٔ تعداد نت، همهٔ سازها نمایش داده می‌شوند." />}
+    @if(_galleryMode&&_galleryLoading){<div class="detail-loading" role="status">در حال دریافت عکس‌های موجودی…</div>}
+    @if(_galleryMode&&_galleryError is not null){<div class="alert alert-warning">@_galleryError <button type="button" @onclick="LoadGalleryAsync">تلاش دوباره</button></div>}
+    <div class="stock-list @(_galleryMode?"stock-grid":null)">
+    @foreach(var item in Items){
+        var photo=_galleryPhotos.FirstOrDefault(x=>x.HandpanId==item.HandpanId);
+        <article @key="item.HandpanId" class="stock-item @(_selected.Contains(item.HandpanId)?"selected-row":null) @(_expanded.Contains(item.HandpanId)?"is-expanded":null)">
+            @if(_galleryMode){<div class="stock-tile-image"><button type="button" aria-label="نمایش عکس ساز @item.SerialNumber" @onclick="()=>OpenTilePhotoAsync(item,photo)"><img loading="lazy" src="@(photo is null?"/images/production/handpan-no-photo.png":ThumbnailUrl(photo))" alt="@(photo is null?$"ساز {item.SerialNumber}؛ بدون عکس ثبت‌شده":$"عکس ساز {item.SerialNumber}")" /></button>@if(photo is null){<span>بدون عکس</span>}</div>}
             <div class="stock-summary">
+                <button type="button" class="stock-expand" aria-label="جزئیات ساز @item.SerialNumber" aria-expanded="@(_expanded.Contains(item.HandpanId)?"true":"false")" disabled="@_detailsLoading.Contains(item.HandpanId)" @onclick="()=>ToggleAsync(item)">@if(_detailsLoading.Contains(item.HandpanId)){<span class="spinner-border spinner-border-sm"></span>}else{@(_expanded.Contains(item.HandpanId)?"−":"+")}</button>
+                <div class="stock-code-block"><small>کد ساز</small><strong class="stock-code" dir="ltr">@item.SerialNumber</strong></div>
+                <div class="stock-scale-block"><strong class="stock-scale" dir="auto">@item.ScaleName</strong><time class="stock-entry"><InventoryGlyph Kind="calendar" /><bdi>@EntryTime(item)</bdi></time></div>
+                <span class="stock-material" dir="auto">@item.MaterialName</span>
                 @if(_canSell||_canTransfer){<input class="stock-checkbox" type="checkbox" aria-label="انتخاب ساز @item.SerialNumber" checked="@_selected.Contains(item.HandpanId)" @onchange="e=>ToggleSelected(item.HandpanId,(bool?)e.Value==true)" />}
-                <button class="stock-expand" aria-label="جزئیات ساز @item.SerialNumber" aria-expanded="@(_expanded.Contains(item.HandpanId)?"true":"false")" disabled="@_detailsLoading.Contains(item.HandpanId)" @onclick="()=>ToggleAsync(item)">@if(_detailsLoading.Contains(item.HandpanId)){<span class="spinner-border spinner-border-sm"></span>}else{@(_expanded.Contains(item.HandpanId)?"−":"+")}</button>
-                <strong class="stock-code" dir="ltr">@item.SerialNumber</strong>
-                <span class="stock-material" dir="auto" title="@item.MaterialName">@item.MaterialName</span>
-                <span class="stock-scale" dir="auto" title="@item.ScaleName">@item.ScaleName</span>
             </div>
-            <div class="stock-entry"><span>@(_warehouses.FirstOrDefault(x=>x.Id==item.QualityWarehouseId)?.Name)</span> @if(!string.IsNullOrWhiteSpace(item.OrderCustomerName)){<strong>سفارش @item.OrderCustomerName</strong>} تاریخ ورود: <bdi>@(item.WarehouseEntryDate.HasValue?PersianDateTime.FormatDateTime(item.WarehouseEntryDate.Value):"—")</bdi></div>
-            @if(_expanded.Contains(item.HandpanId))
-            {
-                <section class="stock-details">
-                    <div class="stock-bowls"><span>متریال <bdi>@item.MaterialName</bdi></span><span>Scale <bdi>@item.ScaleName</bdi></span><span>کاسه رو <bdi>@item.TopBowlCode</bdi></span><span>کاسه زیر <bdi>@item.BottomBowlCode</bdi></span></div>
-                    <div class="warehouse-row-actions">@if(_canTransfer){<button class="btn btn-sm row-transfer" @onclick="()=>BeginTransfer(item)">⇄ انتقال</button>}@if(_canSell){<button class="btn btn-sm btn-success" @onclick="()=>BeginSale(item)">ثبت فروش</button>}<AuthorizeView Roles="Administrator"><button class="btn btn-sm btn-outline-warning" disabled="@_rollingBack.Contains(item.HandpanId)" @onclick="()=>RequestRollback(item)">↩ بازگشت</button><button class="btn btn-sm btn-outline-danger" @onclick="()=>DeleteAsync(item)">حذف</button></AuthorizeView></div>
-                    @if(_detailErrors.Contains(item.HandpanId)){<div class="alert alert-warning">دریافت جزئیات انجام نشد. <button class="btn btn-sm btn-outline-warning" @onclick="()=>RetryDetailsAsync(item)">تلاش دوباره</button></div>}
-                    else if(_detailsLoaded.Contains(item.HandpanId))
-                    {
-                        <div class="warehouse-detail">
-                            <div class="warehouse-notes"><h6>توضیحات ثبت‌شده</h6>@if(item.Notes.Count==0){<span class="text-muted">توضیحی ثبت نشده است.</span>}else{<ul>@foreach(var note in item.Notes){<li>@note</li>}</ul>}</div>
-                            <div class="warehouse-packaging"><h6>اقلام بسته‌بندی ساز @item.SerialNumber</h6><div>@if(item.PackagingItems.Count==0){<span class="text-muted">ثبت نشده</span>}else{@foreach(var packaging in item.PackagingItems){<span class="badge bg-success">✓ @packaging</span>}}</div></div>
-                            <div class="warehouse-photo"><HandpanPhotoGallery HandpanId="@item.HandpanId" /></div>
-                            <div class="warehouse-history"><h6>سوابق تولید</h6>@foreach(var op in item.Operations){<div class="stock-operation"><strong>@op.Operation</strong><span>@op.PerformedBy</span><time>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</time></div>}</div>
-                        </div>
-                    }
-                    else {<div class="detail-loading"><span class="spinner-border spinner-border-sm"></span> در حال دریافت جزئیات ساز…</div>}
-                </section>
-            }
+            @if(_expanded.Contains(item.HandpanId)){
+            <section class="stock-details" aria-label="جزئیات ساز @item.SerialNumber">
+                <div class="instrument-detail-top">
+                    <div class="warehouse-photo"><HandpanPhotoGallery HandpanId="@item.HandpanId" UseLineIcons="true" /></div>
+                    <div class="instrument-facts"><div class="instrument-fact"><span class="fact-icon"><InventoryGlyph Kind="ingot" /></span><div><small>متریال</small><strong dir="auto">@item.MaterialName</strong></div></div><div class="instrument-fact"><span class="fact-icon"><InventoryGlyph Kind="sliders" /></span><div><small>اسکیل</small><strong dir="auto">@item.ScaleName</strong></div></div><div class="instrument-fact"><span class="fact-icon"><InventoryGlyph Kind="layers" /></span><div><small>وضعیت</small><strong class="warehouse-status"><i></i>انبار</strong></div></div>
+                    <div class="instrument-location"><span><InventoryGlyph Kind="palette" /><span><small>دیزاین</small><b>@(item.DesignName??"…")</b></span></span><span><InventoryGlyph Kind="tag" /><span><small>کد کاسه زیر</small><b><bdi>@item.BottomBowlCode</bdi> <span class="bottom-design">(@(item.BottomDesignName??"…"))</span></b></span></span></div></div>
+                </div>
+                @if(_detailErrors.Contains(item.HandpanId)){<div class="alert alert-warning">دریافت جزئیات انجام نشد. <button type="button" @onclick="()=>RetryDetailsAsync(item)">تلاش دوباره</button></div>}
+                else if(_detailsLoaded.Contains(item.HandpanId)){
+                <div class="instrument-detail-lower">
+                    <section class="warehouse-packaging"><h3><InventoryGlyph Kind="cube" /> اقلام بسته‌بندی</h3><div>@if(item.PackagingItems.Count==0){<span class="packaging-empty">اقلامی ثبت نشده است</span>}else{foreach(var packaging in item.PackagingItems){<div class="packaging-item"><InventoryGlyph Kind="@PackagingKind(packaging)" /><span>@packaging</span><i>✓</i></div>}}</div></section>
+                    <section class="warehouse-history" aria-label="سوابق تولید"><div class="operation-tiles">@foreach(var op in item.Operations){<div class="operation-tile operation-@StageKey(op.Operation)"><div class="operation-title"><InventoryGlyph Kind="@OperationKind(op.Operation)" /><strong>@op.Operation</strong></div><div class="operation-person"><span><InventoryGlyph Kind="user" />@op.PerformedBy</span><time><InventoryGlyph Kind="calendar" /><bdi>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</bdi></time></div></div>}</div></section>
+                </div>
+                @if(item.Notes.Count>0||!string.IsNullOrWhiteSpace(item.OrderCustomerName)){<div class="warehouse-notes">@if(!string.IsNullOrWhiteSpace(item.OrderCustomerName)){<strong>سفارش @item.OrderCustomerName</strong>}@foreach(var note in item.Notes){<p>@note</p>}</div>}
+                }else{<div class="detail-loading" role="status">در حال دریافت سوابق و اقلام بسته‌بندی…</div>}
+                <footer class="warehouse-row-actions">@if(_canTransfer){<button type="button" class="row-transfer" @onclick="()=>BeginTransfer(item)"><InventoryGlyph Kind="transfer" />انتقال</button>}@if(_canSell){<button type="button" @onclick="()=>BeginSale(item)"><InventoryGlyph Kind="cart" />ثبت فروش</button>}<AuthorizeView Roles="Administrator">@if(!IsExport){<button type="button" disabled="@_rollingBack.Contains(item.HandpanId)" @onclick="()=>RequestRollback(item)"><InventoryGlyph Kind="undo" />بازگشت</button>}<button type="button" class="row-delete" @onclick="()=>DeleteAsync(item)"><InventoryGlyph Kind="trash" />حذف</button></AuthorizeView></footer>
+            </section>}
         </article>
     }
-    </div>
-}
-</Card>
+    </div>}
+</div>
+@BeforeBulkActions
+@if(_canSell||_canTransfer){<footer class="warehouse-selection-bar"><span>@(SelectedVisibleCount>0?$"{SelectedVisibleCount} ساز انتخاب‌شده":"برای عملیات گروهی، سازها را انتخاب کنید")</span><div>@if(_canTransfer){<button type="button" class="transfer-selected" disabled="@(SelectedVisibleCount==0)" @onclick="BeginSelectedTransfer"><InventoryGlyph Kind="transfer" /> انتقال به انبار دیگر</button>}@if(_canSell){<button type="button" class="bulk-sale-button" disabled="@(SelectedVisibleCount==0)" @onclick="BeginSelectedSale"><InventoryGlyph Kind="cart" /> ثبت فروش <span>@SelectedVisibleCount</span></button>}</div></footer>}
 </section>
 
 @if (_manageWarehouses)
@@ -143,13 +136,6 @@ else
                   OnConfirm="ConfirmRollbackAsync"
                   OnCancel="CancelRollback" />
 
-@if(_showGallery)
-{
-    <div class="inventory-gallery-overlay" @onclick="CloseGallery"><section class="inventory-gallery-dialog" role="dialog" aria-modal="true" @onclick:stopPropagation="true"><header><div><small>انتخاب ساز بر اساس ظاهر</small><h3>گالری موجودی فیلترشده</h3><p>@_galleryPhotos.Count عکس از @Items.Count() ساز این فهرست</p></div><button @onclick="CloseGallery">×</button></header>
-        @if(_galleryPhotos.Count==0){<div class="gallery-no-photo">برای سازهای این فهرست هنوز عکسی ثبت نشده است.</div>}
-        else{<div class="inventory-gallery-grid">@foreach(var photo in _galleryPhotos){var item=_items.First(x=>x.HandpanId==photo.HandpanId);<button @onclick="()=>PreviewGalleryPhotoAsync(photo)"><img loading="lazy" src="@ThumbnailUrl(photo)" alt="ساز @item.SerialNumber" /><strong dir="ltr">@item.SerialNumber</strong></button>}</div>}
-    </section></div>
-}
 @if(_galleryPreviewUrl is not null){<div class="gallery-preview-overlay" @onclick="CloseGalleryPreview"><button aria-label="بستن" @onclick="CloseGalleryPreview">×</button><figure><img src="@_galleryPreviewUrl" alt="نمایش بزرگ عکس ساز" /><figcaption>@_previewInstrument?.SerialNumber · @_previewInstrument?.MaterialName · @_previewInstrument?.ScaleName</figcaption></figure></div>}
 
 @if(_saleIds.Count > 0)
@@ -186,11 +172,19 @@ else
 </div>
 
 @code {
+    [Parameter] public IReadOnlyList<WarehouseHandpanDto>? ExportItems { get; set; }
+    [Parameter] public string ExportWarehouseName { get; set; }="انبار صادراتی";
+    [Parameter] public RenderFragment? BeforeBulkActions { get; set; }
+    [Parameter] public EventCallback<IReadOnlyList<Guid>> ExportSale { get; set; }
+    [Parameter] public EventCallback<IReadOnlyList<Guid>> ExportTransfer { get; set; }
+    [Parameter] public EventCallback<Guid> ExportDeleted { get; set; }
+    private bool IsExport=>ExportItems is not null;
     [SupplyParameterFromQuery(Name="sell")] public Guid? SellHandpanId { get; set; }
     private List<WarehouseHandpanDto> _items=[]; private List<TORSEPAN.Panel.Models.AccountingPartyDto> _parties=[];
     private readonly HashSet<Guid> _expanded=[]; private readonly HashSet<Guid> _selected=[]; private readonly HashSet<Guid> _detailsLoaded=[]; private readonly HashSet<Guid> _detailsLoading=[]; private readonly HashSet<Guid> _detailErrors=[]; private readonly HashSet<Guid> _rollingBack=[]; private readonly List<Guid> _saleIds=[];
-    private bool _canSell, _canTransfer, _canManage, _showFilters, _manageWarehouses, _transferring;
+    private bool _canSell, _canTransfer, _canManage, _manageWarehouses, _transferring;
     private int _activeWarehouseId=1;
+    private int? _noteFilter; private bool _galleryMode; private int _galleryGeneration; private string? _galleryError;
     private int? _renameBusyId, _transferWarehouseId, _transferExportLocation;
     private bool _showTransferOptions;
     private string TransferSourceName => string.Join("، ",_transferItems.Select(x=>_warehouses.FirstOrDefault(w=>w.Id==x.QualityWarehouseId)?.Name??"انبار").Distinct());
@@ -202,18 +196,16 @@ else
     private Dictionary<int,string> _warehouseNames=[];
     private List<WarehouseHandpanDto> _transferItems=[];
     private string? _notice, _manageError, _transferError;
-    private string ActiveWarehouseName=>_warehouses.FirstOrDefault(x=>x.Id==_activeWarehouseId)?.Name??"Economy";
+    private string ActiveWarehouseName=>IsExport?ExportWarehouseName:_warehouses.FirstOrDefault(x=>x.Id==_activeWarehouseId)?.Name??"Economy";
     private int SelectedVisibleCount=>Items.Count(x=>_selected.Contains(x.HandpanId));
     private static string TierDescription(int id)=>id switch {1=>"اقتصادی و در دسترس",2=>"کیفیت بالاتر، انتخاب میانی",_=>"ممتاز و منتخب"};
-    private bool _loading=true,_saving,_galleryLoading,_showGallery; private string _search="",_materialFilter="",_scaleFilter="",_appliedMaterialFilter="",_appliedScaleFilter="",_notesFilter="all",_appliedNotesFilter="all",_buyer="",_buyerPhone="",_destination="";
+    private bool _loading=true,_saving,_galleryLoading; private string _buyer="",_buyerPhone="",_destination="";
     private List<WarehouseGalleryPhotoDto> _galleryPhotos=[]; private string? _galleryPreviewUrl;
     private WarehouseHandpanDto? _previewInstrument;
     private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price,_receivedAmount,_netProfit;private int _priceCurrency=1,_profitCurrency=1; private Guid? _selectedPartyId,_leadSourceId,_referrerId; private bool? _isExportSale;private string _newSource="",_newReferrer="";private SalesAttributionOptionsDto _attribution=new();
     private bool SelectedSourceRequiresReferrer=>_attribution.Sources.FirstOrDefault(x=>x.Id==_leadSourceId)?.RequiresReferrer==true;
     private string RemainingAmountText=>_price.HasValue?Math.Max(0,_price.Value-(_receivedAmount??0)).ToString(_priceCurrency==2?"N2":"N0"):"—";
-    private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(x.QualityWarehouseId==_activeWarehouseId||!string.IsNullOrWhiteSpace(_search))&&(string.IsNullOrWhiteSpace(_search)||x.SerialNumber.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.TopBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.BottomBowlCode.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.MaterialName.Contains(_search,StringComparison.OrdinalIgnoreCase)||x.ScaleName.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase)||SearchCode(x.SerialNumber)||SearchCode(x.TopBowlCode)||SearchCode(x.BottomBowlCode)||(x.OrderCustomerName?.Contains(_search.Trim(),StringComparison.OrdinalIgnoreCase)??false))&&(string.IsNullOrWhiteSpace(_appliedMaterialFilter)||x.MaterialName==_appliedMaterialFilter)&&(string.IsNullOrWhiteSpace(_appliedScaleFilter)||x.ScaleName==_appliedScaleFilter)&&(_appliedNotesFilter switch {"with"=>x.Notes.Count>0,"without"=>x.Notes.Count==0,_=>true}));
-    private bool SearchCode(string code)=>TORSEPAN.Application.ProductionCodeNormalizer.Normalize(code).Contains(TORSEPAN.Application.ProductionCodeNormalizer.Normalize(_search),StringComparison.OrdinalIgnoreCase);
-    private bool HasActiveFilter=>!string.IsNullOrWhiteSpace(_search)||!string.IsNullOrWhiteSpace(_appliedMaterialFilter)||!string.IsNullOrWhiteSpace(_appliedScaleFilter)||_appliedNotesFilter!="all";
+    private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(IsExport||x.QualityWarehouseId==_activeWarehouseId)&&(!_noteFilter.HasValue||x.NoteCount==_noteFilter));
     private bool AllVisibleSelected=>Items.Any()&&Items.All(x=>_selected.Contains(x.HandpanId));
     private IEnumerable<string> SaleCodes=>_items.Where(x=>_saleIds.Contains(x.HandpanId)).Select(x=>x.SerialNumber);
     protected override async Task OnInitializedAsync()
@@ -224,6 +216,7 @@ else
             _canManage = user.IsInRole("Administrator");
             _canTransfer = _canManage || user.IsInRole("ProductionManager") || user.IsInRole("QualityControl");
             _canSell = _canManage || user.IsInRole("ProductionManager") || user.IsInRole("SalesAdmin");
+            if(IsExport){_items=ExportItems!.ToList();_canTransfer=_canManage||user.IsInRole("ProductionManager")||user.IsInRole("SalesAdmin");_canSell=_canSell||user.IsInRole("Workshop");return;}
             var warehouses = ProductionService.GetInstrumentWarehousesAsync();
             var items = ProductionService.GetWarehouseAsync();
             await Task.WhenAll(warehouses, items);
@@ -251,22 +244,26 @@ else
     private async Task WarehouseTabKeyAsync(int id, KeyboardEventArgs e)
     {
         var next=e.Key switch {"ArrowLeft"=>id==3?1:id+1,"ArrowRight"=>id==1?3:id-1,"Home"=>1,"End"=>3,_=>0};
-        if(next==0)return;SelectWarehouse(next);await JS.InvokeVoidAsync("torsepanWarehouse.focusTab",next);
+        if(next==0)return;await SelectWarehouse(next);await JS.InvokeVoidAsync("torsepanWarehouse.focusTab",next);
     }
-    private void SelectWarehouse(int id){_activeWarehouseId=id;_selected.Clear();_expanded.Clear();ClearFilters();CloseGallery();}
-    private void ClearFilters(){_search=_materialFilter=_scaleFilter=_appliedMaterialFilter=_appliedScaleFilter="";_notesFilter=_appliedNotesFilter="all";_selected.Clear();}
+    private async Task SelectWarehouse(int id){_activeWarehouseId=id;_selected.Clear();_expanded.Clear();if(_galleryMode)await LoadGalleryAsync();}
+    private async Task SelectNotesAsync(int notes){_noteFilter=_noteFilter==notes?null:notes;_selected.Clear();_expanded.Clear();if(_galleryMode)await LoadGalleryAsync();}
+    private async Task SetViewAsync(bool gallery){if(_galleryMode==gallery)return;_galleryMode=gallery;_expanded.Clear();if(gallery)await LoadGalleryAsync();else{_galleryGeneration++;_galleryLoading=false;}}
+    private async Task LoadGalleryAsync(){var generation=++_galleryGeneration;_galleryLoading=true;_galleryError=null;try{var ids=Items.Select(x=>x.HandpanId).ToList();var photos=ids.Count==0?new List<WarehouseGalleryPhotoDto>():await ProductionService.GetWarehouseGalleryAsync(ids);if(generation==_galleryGeneration)_galleryPhotos=photos;}catch{if(generation==_galleryGeneration)_galleryError="دریافت عکس‌ها کامل نشد؛ موجودی محفوظ است.";}finally{if(generation==_galleryGeneration)_galleryLoading=false;}}
+    private async Task OpenTilePhotoAsync(WarehouseHandpanDto item,WarehouseGalleryPhotoDto? photo){if(photo is null){await ToggleAsync(item);return;}await PreviewGalleryPhotoAsync(photo);}
+    private static string EntryTime(WarehouseHandpanDto item)=>item.WarehouseEntryDate.HasValue?PersianDateTime.FormatDateTime(item.WarehouseEntryDate.Value):"—";
+    private static string StageKey(string name)=>name.Contains("دیمپل")?"dimple":name.Contains("شیپ")?"shape":name.Contains("فاین")?"fine":name.Contains("تیون")?"tuning":name.Contains("QC")||name.Contains("کیفیت")?"qc":"pack";
+    private static string PackagingKind(string name)=>name.Contains("روغن")?"oil":name.Contains("دستمال")?"layers":name.Contains("پنگارد")?"ring":name.Contains("کیس")?"case":"cube";
+    private static string OperationKind(string operation)=>operation.Contains("دیمپل")?"bowl":operation.Contains("شیپ")?"cube":operation.Contains("فاین")?"tune":operation.Contains("تیون")?"cube":operation.Contains("QC")||operation.Contains("کیفیت")?"qc":"cube";
     private void OpenWarehouseManagement(){if(!_canManage)return;_warehouseNames=_warehouses.ToDictionary(x=>x.Id,x=>x.Name);_manageError=null;_manageWarehouses=true;}
     private void CloseWarehouseManagement(){if(!_renameBusyId.HasValue)_manageWarehouses=false;}
     private async Task ReloadWarehousesAsync(){try{_warehouses=await ProductionService.GetInstrumentWarehousesAsync(forceRefresh:true);_manageError=null;}catch(Exception ex){_manageError=ex.Message;}}
     private async Task RenameWarehouseAsync(int id){if(!_canManage||_renameBusyId.HasValue)return;_renameBusyId=id;_manageError=null;try{var item=_warehouses.Single(x=>x.Id==id);var updated=await ProductionService.RenameWarehouseAsync(id,_warehouseNames[id],item.Version);if(updated is null)throw new InvalidOperationException("ذخیره نام انجام نشد.");item.Name=updated.Name;item.Version=updated.Version;_warehouseNames[id]=item.Name;_notice="نام انبار ذخیره شد.";}catch(Exception ex){_manageError=ex.Message;}finally{_renameBusyId=null;}}
-    private void BeginTransfer(WarehouseHandpanDto item){if(!_canTransfer)return;_transferItems=[item];_transferWarehouseId=null;_transferExportLocation=null;_showTransferOptions=true;_transferError=null;}
-    private void BeginSelectedTransfer(){if(!_canTransfer)return;_transferItems=Items.Where(x=>_selected.Contains(x.HandpanId)).ToList();_transferWarehouseId=null;_transferExportLocation=null;_showTransferOptions=true;_transferError=null;}
+    private async Task BeginTransfer(WarehouseHandpanDto item){if(!_canTransfer)return;if(IsExport){await ExportTransfer.InvokeAsync(new List<Guid>{item.HandpanId});return;}_transferItems=[item];_transferWarehouseId=null;_transferExportLocation=null;_showTransferOptions=true;_transferError=null;}
+    private async Task BeginSelectedTransfer(){if(!_canTransfer)return;if(IsExport){await ExportTransfer.InvokeAsync(Items.Where(x=>_selected.Contains(x.HandpanId)).Select(x=>x.HandpanId).ToList());return;}_transferItems=Items.Where(x=>_selected.Contains(x.HandpanId)).ToList();_transferWarehouseId=null;_transferExportLocation=null;_showTransferOptions=true;_transferError=null;}
     private void CancelTransfer(){if(!_transferring)_transferItems=[];}
     private async Task ReloadInventoryAsync(){try{_items=(await ProductionService.GetWarehouseAsync()).ToList();_transferItems=[];_selected.Clear();_transferError=null;_notice="موجودی تازه دریافت شد؛ سازها را دوباره انتخاب کنید.";}catch(Exception ex){_transferError=ex.Message;}}
     private async Task ConfirmTransferAsync(){if(_transferring||!_canTransfer||!_transferWarehouseId.HasValue||(_transferWarehouseId==0&&!_transferExportLocation.HasValue)||_transferItems.Count==0)return;_transferring=true;_transferError=null;try{var result=await ProductionService.TransferWarehouseAsync(_transferWarehouseId.Value,_transferItems.Select(x=>new WarehouseMoveItem(x.HandpanId,x.Version)).ToList(),_transferWarehouseId==0?_transferExportLocation:null);if(result.Count!=_transferItems.Count)throw new InvalidOperationException("پاسخ انتقال کامل نیست؛ موجودی را تازه کنید.");foreach(var row in result){var item=_items.Single(x=>x.HandpanId==row.HandpanId);item.QualityWarehouseId=row.QualityWarehouseId;item.Version=row.Version;if(row.Stage=="ExportWarehouse")_items.Remove(item);}_notice=$"{result.Count} ساز به {TransferTargetName} منتقل شد.";_transferItems=[];_selected.Clear();_expanded.Clear();}catch(Exception ex){_transferError=ex.Message;}finally{_transferring=false;}}
-    private void ApplyFilters(){_appliedMaterialFilter=_materialFilter;_appliedScaleFilter=_scaleFilter;_appliedNotesFilter=_notesFilter;_expanded.Clear();_selected.Clear();}
-    private async Task OpenGalleryAsync(){if(_galleryLoading)return;_galleryLoading=true;try{_galleryPhotos=await ProductionService.GetWarehouseGalleryAsync(Items.Select(x=>x.HandpanId).ToList());_showGallery=true;}finally{_galleryLoading=false;}}
-    private void CloseGallery(){_showGallery=false;_galleryPreviewUrl=null;_previewInstrument=null;}
     private static string ThumbnailUrl(WarehouseGalleryPhotoDto photo)=>$"data:image/webp;base64,{Convert.ToBase64String(photo.Thumbnail)}";
     private async Task PreviewGalleryPhotoAsync(WarehouseGalleryPhotoDto photo){
         var url=await PhotoService.DataUrlAsync(photo.HandpanId,photo.Id,false);
@@ -279,7 +276,7 @@ else
     private async Task CloseGalleryPreview(){_galleryPreviewUrl=null;_previewInstrument=null;await JS.InvokeVoidAsync("warehousePreviewBack.close");}
     private void ToggleSelected(Guid id,bool selected){if(selected)_selected.Add(id);else _selected.Remove(id);}
     private void ToggleAllVisible(ChangeEventArgs e){var select=(bool?)e.Value==true;foreach(var item in Items.ToList()){if(select)_selected.Add(item.HandpanId);else _selected.Remove(item.HandpanId);}}
-    private async Task DeleteAsync(WarehouseHandpanDto item){if(!await JS.InvokeAsync<bool>("confirm",$"ساز {item.SerialNumber} و تمام سوابق آن برای همیشه حذف شود؟"))return;await ProductionService.DeleteAsync(item.HandpanId);_items.Remove(item);_selected.Remove(item.HandpanId);}
+    private async Task DeleteAsync(WarehouseHandpanDto item){if(!await JS.InvokeAsync<bool>("confirm",$"ساز {item.SerialNumber} و تمام سوابق آن برای همیشه حذف شود؟"))return;try{await ProductionService.DeleteAsync(item.HandpanId);_items.Remove(item);_selected.Remove(item.HandpanId);if(IsExport)await ExportDeleted.InvokeAsync(item.HandpanId);}catch{_notice="حذف ساز انجام نشد؛ دوباره تلاش کنید.";}}
     private bool RollbackBusy=>_rollbackCandidate is not null&&_rollingBack.Contains(_rollbackCandidate.HandpanId);
     private string RollbackMessage=>_rollbackCandidate is null?string.Empty:$"ساز {_rollbackCandidate.SerialNumber} به مرحله «در انتظار بسته‌بندی عادی» برگردد؟ اقلام بسته‌بندی مصرف‌شده نیز به موجودی انبار مواد اولیه بازمی‌گردند.";
     private void RequestRollback(WarehouseHandpanDto item){if(_rollingBack.Contains(item.HandpanId))return;_rollbackCandidate=item;_rollbackError=null;}
@@ -287,11 +284,12 @@ else
     private async Task ConfirmRollbackAsync(){var item=_rollbackCandidate;if(item is null||!_rollingBack.Add(item.HandpanId))return;_rollbackError=null;try{await ProductionService.RollbackAsync(item.HandpanId);_items.Remove(item);_selected.Remove(item.HandpanId);_rollbackCandidate=null;}catch{_rollbackError="بازگشت ساز انجام نشد. وضعیت ساز را دوباره بررسی کنید.";}finally{_rollingBack.Remove(item.HandpanId);}}
     private async Task ToggleAsync(WarehouseHandpanDto item){if(!_expanded.Add(item.HandpanId)){_expanded.Remove(item.HandpanId);return;}if(!_detailsLoaded.Contains(item.HandpanId))await LoadDetailsAsync(item);}
     private async Task RetryDetailsAsync(WarehouseHandpanDto item){_detailErrors.Remove(item.HandpanId);await LoadDetailsAsync(item);}
-    private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;item.Notes=details.Notes;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
+    private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.DesignName=details.DesignName;item.BottomDesignName=details.BottomDesignName;item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;item.Notes=details.Notes;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
     private async Task BeginSale(WarehouseHandpanDto item){_selected.Clear();_selected.Add(item.HandpanId);await OpenSale([item.HandpanId]);}
     private Task BeginSelectedSale()=>OpenSale(Items.Where(x=>_selected.Contains(x.HandpanId)).Select(x=>x.HandpanId).ToList());
     private bool _saleOptionsLoaded, _saleOptionsLoading;
     private async Task OpenSale(IEnumerable<Guid> ids){
+        if(IsExport){await ExportSale.InvokeAsync(ids.ToList());return;}
         if(_saleOptionsLoading)return;
         if(!_saleOptionsLoaded){
             _saleOptionsLoading=true;
@@ -315,5 +313,5 @@ _saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_buyerPhone="";_destination=""
     private async Task SellAsync(){if(_saleIds.Count==0)return;_saving=true;_saleError=null;try{var party=_parties.FirstOrDefault(x=>x.Id==_selectedPartyId);var buyer=party?.Name??_buyer.Trim();var phone=party?.Phone??_buyerPhone.Trim();await ProductionService.SellManyAsync(_saleIds,buyer,phone,_price,_receivedAmount,(_isExportSale??false),_destination.Trim(),party?.Id,true,_leadSourceId,_referrerId,_priceCurrency,_netProfit,_profitCurrency,true);_items.RemoveAll(x=>_saleIds.Contains(x.HandpanId));_selected.Clear();_saleIds.Clear();}catch(HttpRequestException ex){_saleError=string.IsNullOrWhiteSpace(ex.Message)?"ثبت فروش انجام نشد.":ex.Message;}finally{_saving=false;}}
     private DotNetObjectReference<WarehouseList>? _previewReference;
     [JSInvokable] public Task PreviewWentBack(){_galleryPreviewUrl=null;_previewInstrument=null;return InvokeAsync(StateHasChanged);}
-    public async ValueTask DisposeAsync(){try{await JS.InvokeVoidAsync("warehousePreviewBack.release");}catch(JSDisconnectedException){}finally{_previewReference?.Dispose();}}
+    public async ValueTask DisposeAsync(){_galleryGeneration++;try{await JS.InvokeVoidAsync("warehousePreviewBack.release");}catch(JSDisconnectedException){}finally{_previewReference?.Dispose();}}
 }

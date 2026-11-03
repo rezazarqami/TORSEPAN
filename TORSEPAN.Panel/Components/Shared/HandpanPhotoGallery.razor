@@ -28,12 +28,12 @@
     }
     <div class="gallery-upload-actions">
         <label class="gallery-action" title="گرفتن عکس با دوربین">
-            <span>📷</span> <span data-camera-label>دوربین</span>
+            <span>@if(UseLineIcons){<InventoryGlyph Kind="camera" />}else{<text>📷</text>}</span> <span data-camera-label>دوربین</span>
             <input id="@CameraInputId" class="gallery-file-input" type="file" accept="image/*" capture="environment"
                    onchange="handpanPhotos.uploadCamera(this, '@HandpanId')" />
         </label>
         <label class="gallery-action" title="انتخاب از گالری">
-            <span>🖼️</span> <span data-gallery-label>گالری</span>
+            <span>@if(UseLineIcons){<InventoryGlyph Kind="photo" />}else{<text>🖼️</text>}</span> <span data-gallery-label>گالری</span>
             <input id="@GalleryInputId" class="gallery-file-input" type="file" multiple accept="image/*"
                    onchange="handpanPhotos.uploadGallery(this, '@HandpanId')" />
         </label>
@@ -53,6 +53,7 @@
 }
 
 @code {
+    [Parameter] public bool UseLineIcons { get; set; }
     [Parameter, EditorRequired] public Guid HandpanId { get; set; }
     private readonly Dictionary<Guid,string> _thumbs=[]; private List<HandpanPhotoDto> _photos=[];
     private Guid _loadedId,_selectedId; private string? _mainUrl,_error; private bool _loading,_showPreview;

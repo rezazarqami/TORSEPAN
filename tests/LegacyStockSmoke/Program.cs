@@ -56,7 +56,7 @@ var uow=new UnitOfWork(db,new UserRepository(db),new RoleRepository(db),new User
 var inventory=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(),default);
 Check(inventory.Count==1&&inventory.Single().SerialNumber=="OLD-001"&&inventory.Single().BottomBowlCode.Contains("نامشخص"),"ordinary domestic stock search includes legacy instrument, excludes export stock and hides technical bottom identity");
 var details=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(saved.Id),default);
-Check(details.Single().Operations.Where(x=>x.Operation!="QC").All(x=>x.PerformedBy==maker.FullName),"ordinary stock detail resolves historical dimple, shape, tune and fine tune makers");
+Check(details.Single().Operations.Where(x=>x.Operation is "دیمپل" or "شیپ" or "تیون" or "فاین تیون").All(x=>x.PerformedBy==maker.FullName),"ordinary stock detail resolves historical dimple, shape, tune and fine tune makers");
 var edit=new AdminProductionEditsController(db);var passport=await edit.Get("old-001",default);
 Check(passport.Result is OkObjectResult{Value:AdminProductionEditDto dto}&&dto.Bowls.Count==2&&dto.Events.Any(x=>x.Action==(int)ProductionAction.Design&&x.UserId==maker.Id)&&!dto.Events.Any(x=>x.Description.Contains("IMPORT:")),"existing editor finds full passport by original code with design attribution and readable history");
 var snapshot=await PassportBackupSnapshot.LoadAsync(db,default);
@@ -86,6 +86,13 @@ Check(corrected.UserId==actor.Id&&corrected.Description.Contains(designB.Id.ToSt
 var read=(AdminProductionEditDto)((OkObjectResult)(await edit.Get("89",default)).Result!).Value!;
 Check(read.Events.Single(x=>x.Action==(int)ProductionAction.Design).DesignTypeId==designB.Id,"editor reload exposes saved design selection");
 Check((await edit.Update("89",changeDesign with{DesignUpdates=[new(Guid.NewGuid(),null,designA.Id,maker.Id)]},default)).Result is BadRequestObjectResult,"design cannot be assigned to another instrument's bowl");
+var exportRows=((IEnumerable<ExportWarehouseRow>)((OkObjectResult)exports).Value!).ToList();
+Check(exportRows.All(x=>x.Inventory is not null&&x.Inventory.HandpanId==x.Id&&!string.IsNullOrWhiteSpace(x.Inventory.MaterialName)),"export summary supplies shared card metadata for every destination");
+var exportId=exportRows[0].Id;
+var exportDetails=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(exportId),default);
+Check(exportDetails.Count==1&&exportDetails.Single().Operations.Count==6,"exported instrument detail includes the same production and design facts");
+Check(await new TORSEPAN.Infrastructure.Services.ProductionDeletionService(db).DeleteHandpanAsync(exportId,default),"exported instrument can be deleted through existing handpan deletion service");
+Check(!await db.Handpans.AnyAsync(x=>x.Id==exportId),"confirmed export deletion removes instrument from stock");
 await UiChecks.Run();
 Console.WriteLine("Legacy stock smoke passed.");
 static void Check(bool ok,string message){if(!ok)throw new Exception(message);Console.WriteLine("PASS "+message);}

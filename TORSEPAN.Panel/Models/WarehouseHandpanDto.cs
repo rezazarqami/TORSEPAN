@@ -12,7 +12,12 @@ public sealed class WarehouseHandpanDto
     public string SerialNumber { get; set; } = string.Empty;
     public string TopBowlCode { get; set; } = string.Empty;
     public string BottomBowlCode { get; set; } = string.Empty;
+    public string? DesignName { get; set; }
+    public string? BottomDesignName { get; set; }
+
     public string MaterialName { get; set; } = string.Empty;
+    public int? NoteCount { get; set; }
+
     public string ScaleName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? WarehouseEntryDate { get; set; }
