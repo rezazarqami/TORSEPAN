@@ -102,6 +102,23 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
             if(update.EventDate.HasValue)productionEvent.ChangeEventDate(update.EventDate.Value);
         }
 
+        var designs=request.DesignUpdates??[];
+        if(designs.GroupBy(x=>(x.BowlId,x.DesignTypeId)).Any(x=>x.Count()>1)||designs.Any(x=>!target.BowlIds.Contains(x.BowlId))||designs.Where(x=>x.EventId.HasValue).GroupBy(x=>x.EventId).Any(x=>x.Count()>1))return BadRequest("سوابق دیزاین معتبر نیستند.");
+        var types=await db.DesignTypes.Where(x=>x.IsActive).ToDictionaryAsync(x=>x.Id,ct);
+        var designers=designs.Select(x=>x.UserId).Distinct().ToArray();
+        if(designs.Any(x=>!types.ContainsKey(x.DesignTypeId))||await db.Users.CountAsync(x=>designers.Contains(x.Id)&&!x.IsDeleted,ct)!=designers.Length)return BadRequest("نوع یا انجام‌دهنده دیزاین معتبر نیست.");
+        var designEvents=await db.ProductionEvents.Where(x=>target.BowlIds.Contains(x.BowlId??Guid.Empty)&&x.Action==ProductionAction.Design).ToListAsync(ct);
+        foreach(var change in designs){
+            var existing=change.EventId.HasValue?designEvents.SingleOrDefault(x=>x.Id==change.EventId&&x.BowlId==change.BowlId):null;
+            if(change.EventId.HasValue&&existing is null)return Conflict("سابقه دیزاین تغییر کرده؛ دوباره جست‌وجو کنید.");
+            if(designEvents.Any(x=>x.BowlId==change.BowlId&&x.Id!=change.EventId&&ParseDesignId(x.Description)==change.DesignTypeId))return Conflict("این دیزاین برای همین کاسه قبلاً ثبت شده است.");
+        }
+        var legacy=await db.ProductionEvents.AnyAsync(x=>x.HandpanId==target.HandpanId&&target.HandpanId.HasValue&&x.Description.StartsWith(LegacyStockRecord.Prefix+"IMPORT:"),ct);
+        foreach(var change in designs){
+            if(change.EventId.HasValue)designEvents.Single(x=>x.Id==change.EventId).ChangeDesign(change.DesignTypeId,types[change.DesignTypeId].Name,change.UserId);
+            else {var item=new ProductionEvent(target.HandpanId,target.AssemblyId,change.BowlId,change.UserId,ProductionAction.Design,EventResult.Completed,null,(legacy?LegacyStockRecord.Prefix:"")+"DESIGN:"+change.DesignTypeId+":"+types[change.DesignTypeId].Name);if(legacy)item.SetPayrollExcluded(true,change.UserId);db.ProductionEvents.Add(item);}
+        }
+
         await db.SaveChangesAsync(ct);
         return Ok(await BuildDtoAsync(normalized,target,ct));
     }
@@ -121,7 +138,7 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
             handpan?.Id,handpan?.ScaleId,handpan?.Scale?.Name,target.AssemblyId,
             bowls.Select(x=>new AdminEditableBowlDto(x.Id,LegacyStockRecord.DisplayCode(x.ProductionCode),BowlTitle(x),x.Material.Name,(int)x.Stage,StageTitle(x.Stage),x.ScaleId,x.Scale?.Name,x.KnownNoteCount)).ToList(),
             events.Select(x=>new AdminEditableEventDto(x.Id,(int)x.Action,ActionTitle(x.Action),x.EventDate,x.UserId,UserName(x.User),
-                x.BowlId.HasValue&&codeByBowl.TryGetValue(x.BowlId.Value,out var bowlCode)?bowlCode:handpan?.SerialNumber??"مونتاژ",DurationTitle(x.Duration),LegacyStockRecord.DisplayDescription(x.Description))).ToList());
+                x.BowlId.HasValue&&codeByBowl.TryGetValue(x.BowlId.Value,out var bowlCode)?bowlCode:handpan?.SerialNumber??"مونتاژ",DurationTitle(x.Duration),LegacyStockRecord.DisplayDescription(x.Description),x.BowlId,ParseDesignId(x.Description))).ToList());
     }
 
     private async Task<EditTarget?> ResolveAsync(string code,CancellationToken ct)
@@ -149,6 +166,7 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
             .Where(x=>target.BowlIds.Contains(x.BowlId??Guid.Empty)||(target.HandpanId.HasValue&&x.HandpanId==target.HandpanId)||(target.AssemblyId.HasValue&&x.AssemblyId==target.AssemblyId))
             .Select(x=>x.Id).ToListAsync(ct)).ToHashSet();
 
+    private static Guid? ParseDesignId(string text){if(text.StartsWith(LegacyStockRecord.Prefix))text=text[LegacyStockRecord.Prefix.Length..];var parts=text.Split(':');return parts.Length>1&&parts[0]=="DESIGN"&&Guid.TryParse(parts[1],out var id)?id:null;}
     private static string UserName(User user)=>string.IsNullOrWhiteSpace(user.FullName)?user.UserName:user.FullName;
     private static string BowlTitle(Bowl bowl)=>bowl.BowlType==BowlType.Top?"کاسه رو":bowl.HasNotes?"کاسه زیر نت‌دار":"کاسه زیر خام";
     private static string StatusTitle(ProductionStatus status)=>status switch{ProductionStatus.Created=>"ثبت‌شده",ProductionStatus.Waiting=>"در انتظار",ProductionStatus.InProgress=>"در حال انجام",ProductionStatus.Completed=>"تکمیل‌شده",ProductionStatus.Rejected=>"ردشده",_=>status.ToString()};
@@ -159,9 +177,11 @@ public sealed class AdminProductionEditsController(TORSEPANDbContext db) : Contr
     private sealed record EditTarget(Guid? HandpanId,Guid? AssemblyId,HashSet<Guid> BowlIds);
 }
 
-public sealed record AdminProductionEditRequest(Guid? HandpanScaleId,List<AdminBowlScaleUpdate>? BowlScales,List<AdminEventUserUpdate>? EventUsers);
+public sealed record AdminProductionEditRequest(Guid? HandpanScaleId,List<AdminBowlScaleUpdate>? BowlScales,List<AdminEventUserUpdate>? EventUsers,[property:System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] List<AdminDesignUpdate>? DesignUpdates=null);
 public sealed record AdminBowlScaleUpdate(Guid BowlId,Guid? ScaleId,int? NoteCount=null);
 public sealed record AdminEventUserUpdate(Guid EventId,Guid UserId,DateTime? EventDate=null,DateTime? ExpectedEventDate=null);
 public sealed record AdminProductionEditDto(string RequestedCode,string Code,string ItemType,int Stage,string StageTitle,string StatusTitle,Guid? HandpanId,Guid? HandpanScaleId,string? HandpanScaleName,Guid? AssemblyId,List<AdminEditableBowlDto> Bowls,List<AdminEditableEventDto> Events);
 public sealed record AdminEditableBowlDto(Guid Id,string Code,string BowlType,string Material,int Stage,string StageTitle,Guid? ScaleId,string? ScaleName,int? NoteCount=null);
-public sealed record AdminEditableEventDto(Guid Id,int Action,string ActionTitle,DateTime EventDate,Guid UserId,string UserName,string RelatedCode,string Duration,string Description);
+public sealed record AdminEditableEventDto(Guid Id,int Action,string ActionTitle,DateTime EventDate,Guid UserId,string UserName,string RelatedCode,string Duration,string Description,Guid? BowlId=null,Guid? DesignTypeId=null);
+
+public sealed record AdminDesignUpdate(Guid BowlId,Guid? EventId,Guid DesignTypeId,Guid UserId);

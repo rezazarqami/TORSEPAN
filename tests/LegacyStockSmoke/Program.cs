@@ -71,6 +71,21 @@ Check(calculation is OkObjectResult { Value: PayrollCalculation wages } && wages
 var exports = await new ExportWarehouseController(db).Get(default);
 Check(exports is OkObjectResult { Value: IEnumerable<ExportWarehouseRow> rows } && rows.Count() == 4 && rows.All(x => x.ItemType == "handpan"),
     "ordinary export stock contains one full instrument per country without duplicate component rows");
+// Regression: a legacy instrument entered as plain can acquire corrected design history.
+var designA=new DesignType("تصحیح طرح اول");var designB=new DesignType("تصحیح طرح دوم");db.AddRange(designA,designB);await db.SaveChangesAsync();
+var plain=Request("89") with{DesignUserId=null};Check(await controller.Create(plain,default) is OkObjectResult,"plain legacy instrument 89 registers without a design worker");db.ChangeTracker.Clear();
+var legacy89=await db.Handpans.Include(x=>x.Assembly).SingleAsync(x=>x.SerialNumber=="89");
+var addDesign=new AdminProductionEditRequest(scale.Id,[],[],[new(legacy89.Assembly.TopBowlId,null,designA.Id,maker.Id)]);
+Check((await edit.Update("89",addDesign,default)).Result is OkObjectResult,"editor adds missing design and performer to legacy instrument 89");db.ChangeTracker.Clear();
+var designEvent=await db.ProductionEvents.SingleAsync(x=>x.HandpanId==legacy89.Id&&x.Action==ProductionAction.Design);
+Check(designEvent.UserId==maker.Id&&designEvent.IsPayrollExcluded&&designEvent.Description.StartsWith(LegacyStockRecord.Prefix),"corrected legacy design remains excluded from historical wages");
+var changeDesign=addDesign with{DesignUpdates=[new(legacy89.Assembly.TopBowlId,designEvent.Id,designB.Id,actor.Id)]};
+Check((await edit.Update("89",changeDesign,default)).Result is OkObjectResult,"editor changes existing design type and performer");db.ChangeTracker.Clear();
+var corrected=await db.ProductionEvents.SingleAsync(x=>x.Id==designEvent.Id);
+Check(corrected.UserId==actor.Id&&corrected.Description.Contains(designB.Id.ToString())&&corrected.IsPayrollExcluded&&await db.ProductionEvents.CountAsync(x=>x.HandpanId==legacy89.Id&&x.Action==ProductionAction.Design)==1,"design correction preserves its event identity and wage exclusion without duplicates");
+var read=(AdminProductionEditDto)((OkObjectResult)(await edit.Get("89",default)).Result!).Value!;
+Check(read.Events.Single(x=>x.Action==(int)ProductionAction.Design).DesignTypeId==designB.Id,"editor reload exposes saved design selection");
+Check((await edit.Update("89",changeDesign with{DesignUpdates=[new(Guid.NewGuid(),null,designA.Id,maker.Id)]},default)).Result is BadRequestObjectResult,"design cannot be assigned to another instrument's bowl");
 await UiChecks.Run();
 Console.WriteLine("Legacy stock smoke passed.");
 static void Check(bool ok,string message){if(!ok)throw new Exception(message);Console.WriteLine("PASS "+message);}

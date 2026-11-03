@@ -32,6 +32,8 @@ public sealed class AdminEditableBowlDto
 public sealed class AdminEditableEventDto
 {
     public Guid Id{get;set;}
+    public Guid? BowlId{get;set;}
+    public Guid? DesignTypeId{get;set;}
     public int Action{get;set;}
     public string ActionTitle{get;set;}="";
     public DateTime EventDate{get;set;}
@@ -42,6 +44,8 @@ public sealed class AdminEditableEventDto
     public string Description{get;set;}="";
 }
 
-public sealed record AdminProductionEditRequest(Guid? HandpanScaleId,List<AdminBowlScaleUpdate> BowlScales,List<AdminEventUserUpdate> EventUsers);
+public sealed record AdminProductionEditRequest(Guid? HandpanScaleId,List<AdminBowlScaleUpdate> BowlScales,List<AdminEventUserUpdate> EventUsers,List<AdminDesignUpdate>? DesignUpdates=null);
 public sealed record AdminBowlScaleUpdate(Guid BowlId,Guid? ScaleId,int? NoteCount=null);
 public sealed record AdminEventUserUpdate(Guid EventId,Guid UserId,DateTime? EventDate=null,DateTime? ExpectedEventDate=null);
+
+public sealed record AdminDesignUpdate(Guid BowlId,Guid? EventId,Guid DesignTypeId,Guid UserId);

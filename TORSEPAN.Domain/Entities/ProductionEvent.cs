@@ -123,6 +123,14 @@ public class ProductionEvent : Entity
         return true;
     }
 
+    public void ChangeDesign(Guid typeId,string name,Guid userId)
+    {
+        if(Action!=ProductionAction.Design)throw new InvalidOperationException("Only design history can change design type.");
+        var legacy=Description.StartsWith(LegacyStockRecord.Prefix,StringComparison.Ordinal);
+        Description=(legacy?LegacyStockRecord.Prefix:"")+"DESIGN:"+typeId+":"+name;
+        ChangeUser(userId);
+    }
+
     public void ChangeUser(Guid userId)
     {
         if(userId==Guid.Empty)throw new ArgumentException("User is required.",nameof(userId));

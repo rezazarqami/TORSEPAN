@@ -5,6 +5,7 @@
 @using TORSEPAN.Application.Auth.Queries.GetUsers
 @inject AdminProductionEditService EditService
 @inject ScaleService ScaleService
+@inject DesignService DesignService
 @inject IUserService UserService
 
 <PageTitle>ویرایش اطلاعات تولید</PageTitle>
@@ -47,6 +48,11 @@
         </div>
     </section>
 
+    <section class="edit-section"><header><h3>نوع دیزاین و انجام‌دهنده</h3></header>
+    <div class="scale-grid">@foreach(var design in _designDrafts){<article class="scale-card"><strong>@design.Label</strong>
+    <label>نوع دیزاین<CompactPicker TValue="Guid?" Title="نوع دیزاین" Options="DesignOptions" @bind-Value="design.TypeId" @bind-Value:after="()=>design.Changed=true" /></label>
+    <label>انجام‌دهنده دیزاین<CompactPicker TValue="Guid?" Title="انجام‌دهنده دیزاین" Options="DesignerOptions" @bind-Value="design.UserId" @bind-Value:after="()=>design.Changed=true" /></label>
+    </article>}</div></section>
     <section class="edit-section operations-section">
         <header><div><small>سابقه تولید</small><h3>تاریخ، ساعت و ثبت‌کننده مراحل</h3></div><span>@_record.Events.Count عملیات</span></header>
         @if(_record.Events.Count==0)
@@ -75,7 +81,7 @@
 
 @if(_confirming&&_record is not null)
 {
-    <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>Scale‌ها، تعداد نوت کاسه‌ها، تاریخ و ساعت و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
+    <div class="confirm-backdrop" @onclick="CloseConfirmation"><section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-confirm-title" @onclick:stopPropagation="true"><div class="confirm-icon">✓</div><h3 id="edit-confirm-title">ذخیره تغییرات شناسنامه؟</h3><p>Scale‌ها، تعداد نوت کاسه‌ها، دیزاین و انجام‌دهندهٔ آن، تاریخ و ساعت و ثبت‌کننده‌های نمایش‌داده‌شده برای کد <strong>@_record.Code</strong> به‌روزرسانی می‌شوند.</p><div><button class="save-button" @onclick="SaveAsync" disabled="@_saving">@if(_saving){<span class="spinner-border spinner-border-sm"></span>}else{<span>تأیید و ذخیره</span>}</button><button class="secondary-button" @onclick="CloseConfirmation" disabled="@_saving">انصراف</button></div></section></div>
 }
 
 
@@ -92,6 +98,12 @@
         }
     }
 
+    private List<DesignTypeDto> _designTypes=[];
+    private sealed class DesignDraft {public Guid BowlId;public Guid? EventId;public Guid? TypeId{get;set;}public Guid? UserId{get;set;}public string Label="";public bool Changed;}
+    private readonly List<DesignDraft> _designDrafts=[];
+    private IReadOnlyList<(Guid? Value,string Text)> DesignOptions=>new (Guid?,string)[]{(null,"بدون انتخاب / ساده")}.Concat(_designTypes.Select(x=>((Guid?)x.Id,x.Name))).ToArray();
+    private IReadOnlyList<(Guid? Value,string Text)> DesignerOptions=>new (Guid?,string)[]{(null,"نامشخص")}.Concat(_users.Select(x=>((Guid?)x.Id,string.IsNullOrWhiteSpace(x.FullName)?x.UserName:x.FullName))).ToArray();
+    private void LoadDesigns(){_designDrafts.Clear();if(_record is null)return;foreach(var bowl in _record.Bowls){var rows=_record.Events.Where(x=>x.Action==13&&x.BowlId==bowl.Id).ToList();foreach(var row in rows)_designDrafts.Add(new(){BowlId=bowl.Id,EventId=row.Id,TypeId=row.DesignTypeId,UserId=row.UserId,Label=bowl.BowlType+" · "+bowl.Code});if(rows.Count==0)_designDrafts.Add(new(){BowlId=bowl.Id,Label=bowl.BowlType+" · "+bowl.Code});}}
     private readonly SearchModel _search=new();
     private AdminProductionEditDto? _record;
     private List<ScaleDto> _scales=[];
@@ -127,7 +139,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var scales=ScaleService.GetAsync();var users=UserService.GetUsersAsync();
+        var scales=ScaleService.GetAsync();var users=UserService.GetUsersAsync();_designTypes=await DesignService.GetTypesAsync();
         await Task.WhenAll(scales,users);_scales=(await scales).ToList();_users=(await users).OrderBy(x=>x.FullName).ToList();
     }
 
@@ -137,7 +149,7 @@
         _loading=true;_message=null;_record=null;
         try{_record=await EditService.GetAsync(_search.Code);if(_record is null){_message="ساز یا کاسه‌ای با این کد پیدا نشد.";_messageError=true;}}
         catch{_message="ساز یا کاسه‌ای با این کد پیدا نشد یا بازیابی اطلاعات آن ممکن نیست.";_messageError=true;}
-        finally{LoadDates();_loading=false;}
+        finally{LoadDates();LoadDesigns();_loading=false;}
     }
 
     private void RequestSave()
@@ -147,7 +159,7 @@
         {_message="تعداد نوت کاسه رو باید مثبت باشد؛ تعداد منفی مجاز نیست.";_messageError=true;return;}
         try{foreach(var item in _record.Events)EditedDate(item);}
         catch(FormatException e){_message=e.Message;_messageError=true;return;}
-        _message=null;_confirming=true;
+        if(_designDrafts.Any(x=>x.Changed&&(!x.TypeId.HasValue||!x.UserId.HasValue))){_message="نوع دیزاین و انجام‌دهنده آن را انتخاب کنید.";_messageError=true;return;}_message=null;_confirming=true;
     }
     private void CloseConfirmation()=>_confirming=false;
     private async Task SaveAsync()
@@ -156,12 +168,12 @@
         _saving=true;_message=null;
         try
         {
-            var request=new AdminProductionEditRequest(_record.HandpanScaleId,_record.Bowls.Select(x=>new AdminBowlScaleUpdate(x.Id,x.ScaleId,x.NoteCount)).ToList(),_record.Events.Select(x=>new AdminEventUserUpdate(x.Id,x.UserId,EditedDate(x),x.EventDate)).ToList());
+            var request=new AdminProductionEditRequest(_record.HandpanScaleId,_record.Bowls.Select(x=>new AdminBowlScaleUpdate(x.Id,x.ScaleId,x.NoteCount)).ToList(),_record.Events.Select(x=>new AdminEventUserUpdate(x.Id,x.UserId,EditedDate(x),x.EventDate)).ToList(),_designDrafts.Where(x=>x.Changed).Select(x=>new AdminDesignUpdate(x.BowlId,x.EventId,x.TypeId!.Value,x.UserId!.Value)).ToList());
             var updated=await EditService.UpdateAsync(_record.RequestedCode,request);
             if(updated is null)throw new InvalidOperationException("Empty save response");
             var order=_record.Events.Select((x,i)=>(x.Id,i)).ToDictionary(x=>x.Id,x=>x.i);
             updated.Events=updated.Events.OrderBy(x=>order.GetValueOrDefault(x.Id,int.MaxValue)).ToList();
-            _record=updated;LoadDates();_confirming=false;_message="تغییرات شناسنامه با موفقیت ذخیره شد.";_messageError=false;
+            _record=updated;LoadDates();LoadDesigns();_confirming=false;_message="تغییرات شناسنامه با موفقیت ذخیره شد.";_messageError=false;
         }
         catch(HttpRequestException e) when(e.StatusCode==System.Net.HttpStatusCode.Conflict)
         {_confirming=false;_message="تاریخ یکی از عملیات‌ها تغییر کرده است؛ دوباره جست‌وجو کنید و تغییرات را ثبت کنید.";_messageError=true;}
