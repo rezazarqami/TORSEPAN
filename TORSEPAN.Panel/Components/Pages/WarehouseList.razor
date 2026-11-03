@@ -226,31 +226,27 @@ else
             _canSell = _canManage || user.IsInRole("ProductionManager") || user.IsInRole("SalesAdmin");
             var warehouses = ProductionService.GetInstrumentWarehousesAsync();
             var items = ProductionService.GetWarehouseAsync();
-            var parties = _canSell ? AccountingService.PartiesAsync() : Task.FromResult(new List<AccountingPartyDto>());
-            var attribution = _canSell ? AttributionService.OptionsAsync() : Task.FromResult(new SalesAttributionOptionsDto());
-            await Task.WhenAll(warehouses, items, parties, attribution);
+            await Task.WhenAll(warehouses, items);
             _warehouses = await warehouses;
             _items = (await items).ToList();
-            _parties = await parties;
-            _attribution = await attribution;
-            OpenRequestedSale();
+            await OpenRequestedSaleAsync();
         }
         catch (Exception e) { _error = e.Message; }
         finally { _loading = false; }
     }
 
     private Guid? _openedSaleId;
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        if(!_loading)OpenRequestedSale();
+        if(!_loading)await OpenRequestedSaleAsync();
     }
-    private void OpenRequestedSale()
+    private async Task OpenRequestedSaleAsync()
     {
         if(!_canSell||!SellHandpanId.HasValue||_openedSaleId==SellHandpanId)return;
         _openedSaleId=SellHandpanId;
         var item=_items.FirstOrDefault(x=>x.HandpanId==SellHandpanId);
         if(item is null){_error="این ساز در موجودی قابل فروش نیست؛ ممکن است قبلاً فروخته شده باشد.";return;}
-        _activeWarehouseId=item.QualityWarehouseId;BeginSale(item);
+        _activeWarehouseId=item.QualityWarehouseId;await BeginSale(item);
     }
     private async Task WarehouseTabKeyAsync(int id, KeyboardEventArgs e)
     {
@@ -292,9 +288,22 @@ else
     private async Task ToggleAsync(WarehouseHandpanDto item){if(!_expanded.Add(item.HandpanId)){_expanded.Remove(item.HandpanId);return;}if(!_detailsLoaded.Contains(item.HandpanId))await LoadDetailsAsync(item);}
     private async Task RetryDetailsAsync(WarehouseHandpanDto item){_detailErrors.Remove(item.HandpanId);await LoadDetailsAsync(item);}
     private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;item.Notes=details.Notes;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
-    private void BeginSale(WarehouseHandpanDto item){_selected.Clear();_selected.Add(item.HandpanId);OpenSale([item.HandpanId]);}
-    private void BeginSelectedSale()=>OpenSale(Items.Where(x=>_selected.Contains(x.HandpanId)).Select(x=>x.HandpanId).ToList());
-    private void OpenSale(IEnumerable<Guid> ids){_saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_buyerPhone="";_destination="";_selectedPartyId=null;_leadSourceId=null;_referrerId=null;_isExportSale=false;_netProfit=null;_priceCurrency=_profitCurrency=1;_price=null;_receivedAmount=null;_saleError=null;
+    private async Task BeginSale(WarehouseHandpanDto item){_selected.Clear();_selected.Add(item.HandpanId);await OpenSale([item.HandpanId]);}
+    private Task BeginSelectedSale()=>OpenSale(Items.Where(x=>_selected.Contains(x.HandpanId)).Select(x=>x.HandpanId).ToList());
+    private bool _saleOptionsLoaded, _saleOptionsLoading;
+    private async Task OpenSale(IEnumerable<Guid> ids){
+        if(_saleOptionsLoading)return;
+        if(!_saleOptionsLoaded){
+            _saleOptionsLoading=true;
+            try{
+                var parties=AccountingService.PartiesAsync();
+                var attribution=AttributionService.OptionsAsync();
+                await Task.WhenAll(parties,attribution);
+                _parties=await parties;_attribution=await attribution;_saleOptionsLoaded=true;
+            }catch(Exception ex){_error="دریافت اطلاعات فروش انجام نشد: "+ex.Message;_openedSaleId=null;return;}
+            finally{_saleOptionsLoading=false;}
+        }
+_saleIds.Clear();_saleIds.AddRange(ids);_buyer="";_buyerPhone="";_destination="";_selectedPartyId=null;_leadSourceId=null;_referrerId=null;_isExportSale=false;_netProfit=null;_priceCurrency=_profitCurrency=1;_price=null;_receivedAmount=null;_saleError=null;
         var names=_items.Where(x=>_saleIds.Contains(x.HandpanId)).Select(x=>x.OrderCustomerName).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().ToList();
         if(names.Count==1)_buyer=names[0]!;
     }

@@ -65,6 +65,17 @@ public sealed class ProductionEventRepository
         return await query.OrderByDescending(x => x.EventDate).ToListAsync();
     }
 
+    public async Task<List<ProductionEvent>> GetInstrumentEventsAsync(IReadOnlyCollection<Guid> bowlIds,
+        Guid? handpanId, CancellationToken cancellationToken = default)
+    {
+        var ids = bowlIds.ToArray();
+        return await _context.ProductionEvents.AsNoTracking()
+            .Where(x => (x.BowlId.HasValue && ids.Contains(x.BowlId.Value)) ||
+                (handpanId.HasValue && x.HandpanId == handpanId))
+            .Include(x => x.User)
+            .OrderByDescending(x => x.EventDate).ToListAsync(cancellationToken);
+    }
+
     public async Task<List<ProductionEvent>> GetDashboardEventsAsync(DateTime from, DateTime? to,
         IReadOnlyCollection<Guid> stageBowlIds, bool warehouseOnly, CancellationToken cancellationToken = default)
     {

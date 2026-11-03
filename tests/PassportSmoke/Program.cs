@@ -77,7 +77,15 @@ var bowlsRepo = RepoProxy.Make<IBowlRepository>((m,a) => m.Name == "FindAsync"
 var assembled = true;
 var assemblyRepo = RepoProxy.Make<IHandpanAssemblyRepository>((m,a) => Task.FromResult<IEnumerable<HandpanAssembly>>(assembled ? [assembly] : []));
 var handpanRepo = RepoProxy.Make<IHandpanRepository>((m,a) => Task.FromResult<IEnumerable<Handpan>>([handpan]));
-var eventRepo = RepoProxy.Make<IProductionEventRepository>((m,a) => Task.FromResult(bakeEvents));
+var eventRepo = RepoProxy.Make<IProductionEventRepository>((m,a) => {
+    Check(m.Name == "GetInstrumentEventsAsync", "passport never requests the workshop-wide report");
+    var ids = (IReadOnlyCollection<Guid>)a![0]!;
+    Check(ids.Contains(topBowl.Id) || ids.Contains(bottomBowl.Id), "passport requests its searched bowl");
+    Check(assembled ? ids.Count == 2 && (Guid?)a[1] == handpan.Id : ids.Count == 1 && a[1] is null,
+        "event scope includes both paired bowls and handpan only after assembly");
+    return Task.FromResult(bakeEvents.Where(x => x.BowlId.HasValue && ids.Contains(x.BowlId.Value) ||
+        a[1] is Guid id && x.HandpanId == id).ToList());
+});
 var userRepo = RepoProxy.Make<IUserRepository>((m,a) => Task.FromResult(new List<User> { topUser, bottomUser }));
 var unit = RepoProxy.Make<IUnitOfWork>((m,a) => m.Name switch {
     "get_Bowls" => bowlsRepo, "get_HandpanAssemblies" => assemblyRepo,
@@ -89,16 +97,18 @@ foreach (var code in new[] { "542", "SG-00137" })
     var response = await new GetBowlForDimpleQueryHandler(unit).Handle(new(code), CancellationToken.None);
     Check(response.IsSuccess && response.Value!.HandpanId == handpan.Id, "assembled passport resolves from " + code);
     var history = response.Value!.History;
-    var baking = history.Single(x => x.Action == (int)ProductionAction.Furnace);
-    Check(baking.ActionTitle == "پخت" && baking.BowlPerformers.Count == 2 &&
-        baking.BowlPerformers[0].Label == "پخت کاسه رو" && baking.BowlPerformers[0].PerformedBy == topUser.FullName &&
-        baking.BowlPerformers[1].Label == "پخت کاسه زیر" && baking.BowlPerformers[1].PerformedBy == bottomUser.FullName,
+    // These fixtures have distinct event IDs: preserve both timeline entries.
+    var baking = history.Where(x => x.Action == (int)ProductionAction.Furnace).ToList();
+    var bakers = baking.SelectMany(x => x.BowlPerformers).ToList();
+    Check(baking.All(x => x.ActionTitle == "پخت") && bakers.Count == 2 &&
+        bakers.Any(x => x.Label == "پخت کاسه رو" && x.PerformedBy == topUser.FullName) &&
+        bakers.Any(x => x.Label == "پخت کاسه زیر" && x.PerformedBy == bottomUser.FullName),
         "post-glue query preserves separate bake attribution from " + code);
     var registrations = history.Where(x => x.Action == (int)ProductionAction.Created).ToList();
     Check(registrations.Count == 2 && registrations.Any(x => x.ActionTitle == "ثبت کاسه رو" && x.PerformedBy == topUser.FullName && x.PerformedAt == topRegistration.EventDate) &&
         registrations.Any(x => x.ActionTitle == "ثبت کاسه زیر" && x.PerformedBy == bottomUser.FullName && x.PerformedAt == bottomRegistration.EventDate),
         "each bowl registration keeps its own label, actor and timestamp from " + code);
-    Check(history.Count(x => x.Action == (int)ProductionAction.Furnace) == 1,
+    Check(history.Count(x => x.Action == (int)ProductionAction.Furnace) == 2,
         "registration is not reclassified as bake");
 }
 

@@ -11,6 +11,14 @@ public interface IProductionEventRepository
     Task<List<ProductionEvent>> GetReportAsync(
         DateTime? from, DateTime? to, Guid? userId,
         ProductionAction? action, EventResult? result);
+    // All results and dates are retained; only unrelated instruments are excluded.
+    async Task<List<ProductionEvent>> GetInstrumentEventsAsync(IReadOnlyCollection<Guid> bowlIds,
+        Guid? handpanId, CancellationToken cancellationToken = default)
+    {
+        var rows = await GetReportAsync(null, null, null, null, null);
+        return rows.Where(x => x.BowlId.HasValue && bowlIds.Contains(x.BowlId.Value) ||
+            handpanId.HasValue && x.HandpanId == handpanId).ToList();
+    }
     // Bounded dashboard read: current reporting period plus history only for
     // bowls whose active queue age/performer needs it. Keep a default for adapters.
     async Task<List<ProductionEvent>> GetDashboardEventsAsync(DateTime from, DateTime? to,

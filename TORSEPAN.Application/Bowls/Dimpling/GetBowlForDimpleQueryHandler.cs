@@ -31,13 +31,6 @@ public sealed class GetBowlForDimpleQueryHandler
             dto.ScaleName = bowl.FormatScaleName((await _unitOfWork.Scales.GetByIdAsync(bowl.ScaleId.Value))?.Name);
         else
             dto.ScaleName = bowl.FormatScaleName(null);
-        var events = await _unitOfWork.ProductionEvents.GetReportAsync(null, null, null, null, null);
-        dto.Notes.AddRange(events.Where(x => x.BowlId == bowl.Id && x.Description.StartsWith("NOTE:") &&
-                                                !x.Description.StartsWith("NOTE:INSTRUMENT:"))
-            .OrderBy(x => x.EventDate)
-            .Select(x => $"{(string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)}: {x.Description[5..]}")
-            .Distinct());
-
         var relatedBowlIds = new HashSet<Guid> { bowl.Id };
         Guid? handpanId = null;
         var assembly = (await _unitOfWork.HandpanAssemblies.FindAsync(
@@ -70,6 +63,15 @@ public sealed class GetBowlForDimpleQueryHandler
                 }
             }
         }
+
+        var events = await _unitOfWork.ProductionEvents.GetInstrumentEventsAsync(
+            relatedBowlIds, handpanId, cancellationToken);
+        dto.Notes.AddRange(events.Where(x => x.BowlId == bowl.Id && x.Description.StartsWith("NOTE:") &&
+                                                !x.Description.StartsWith("NOTE:INSTRUMENT:"))
+            .OrderBy(x => x.EventDate)
+            .Select(x => $"{(string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)}: {x.Description[5..]}")
+            .Distinct());
+
 
         if (_orderCustomers is not null)
             dto.OrderCustomerName = await _orderCustomers.GetCustomerNameAsync(assembly?.TopBowlId ?? bowl.Id, handpanId, cancellationToken);
