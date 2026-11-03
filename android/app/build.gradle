@@ -29,8 +29,8 @@ android {
         applicationId 'ir.torsepan.offline'
         minSdk 29
         targetSdk 34
-        versionCode 20
-        versionName '3.0.1-offline'
+        versionCode 21
+        versionName '3.0.2-offline'
     }
 }
 
