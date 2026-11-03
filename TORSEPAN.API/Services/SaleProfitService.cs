@@ -21,10 +21,14 @@ public sealed class SaleProfitService(TORSEPANDbContext db)
    var events=await db.ProductionEvents.AsNoTracking().Include(x=>x.User).Where(x=>x.Result==EventResult.Completed&&
     (x.HandpanId==handpan.Id||x.AssemblyId==handpan.AssemblyId||x.BowlId==pair.TopBowlId||x.BowlId==pair.BottomBowlId)&&!x.Description.StartsWith("NOTE:")).ToListAsync();
    foreach(var rule in await db.SaleProfitRules.AsNoTracking().Where(x=>x.Percent>0).ToListAsync())
-    roles.Add((rule.Action,rule.Percent,rule.Action==HallProfitAccount.Action ? [(HallProfitAccount.Id,HallProfitAccount.Name)] : events.Where(x=>x.Action==rule.Action).Select(x=>(x.UserId,string.IsNullOrWhiteSpace(x.User.FullName)?x.User.UserName:x.User.FullName)).DistinctBy(x=>x.UserId).ToList()));
+    roles.Add((rule.Action,rule.Percent,rule.Action==HallProfitAccount.Action ? [(HallProfitAccount.Id,HallProfitAccount.Name)] : events.Where(x=>x.Action==rule.Action && (!TopBowlOnly(rule.Action)||x.BowlId==pair.TopBowlId)).Select(x=>(x.UserId,string.IsNullOrWhiteSpace(x.User.FullName)?x.User.UserName:x.User.FullName)).DistinctBy(x=>x.UserId).ToList()));
   }
   Allocate(handpan.Id,handpan.SerialNumber,handpan.SoldAt??DateTime.UtcNow,profit.Value,currency,roles);
  }
+ // Instrument profit shares for these crafts belong exclusively to the top bowl.
+ // Legacy imports also attach these historical crafts to the imported top bowl.
+ private static bool TopBowlOnly(ProductionAction action) => action is
+  ProductionAction.Dimple or ProductionAction.Shape or ProductionAction.Tune or ProductionAction.Design;
  public async Task AllocateBowlAsync(Bowl bowl,decimal? profit,MoneyCurrency currency)
  {
   if(!profit.HasValue||profit==0)return;

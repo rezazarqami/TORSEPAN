@@ -25,7 +25,27 @@ var blankAccount=new User("no-sales","عضو بدون فروش");blankAccount.De
 var initialAccounts=(List<ProfitMemberAccount>)((OkObjectResult)await controller.Members()).Value!;
 Check(initialAccounts.Count==4&&initialAccounts.All(x=>x.Toman==0&&x.Usd==0&&x.Instruments==0),"every existing member, including inactive staff, has a separate zero-balance profit account before the first sale");
 var rules=await db.SaleProfitRules.OrderBy(x=>x.Action).ToListAsync();Check(rules.Count==7&&rules.Sum(x=>x.Percent)==36,"seven editable defaults total 36 percent, design and hall start at zero");
-Handpan Instrument(string code){var top=new Bowl(code,BowlType.Top,true,InstrumentType.Standard,material.Id);var bottom=new Bowl(code+"-B",BowlType.Bottom,false,InstrumentType.Standard,material.Id);var assembly=new HandpanAssembly(top.Id,bottom.Id);var h=new Handpan(assembly.Id,code);h.ChangeStage(ProductionStage.FinishedWarehouse);db.AddRange(top,bottom,assembly,h);foreach(var action in new[]{ProductionAction.Dimple,ProductionAction.Shape,ProductionAction.Tune,ProductionAction.Glue,ProductionAction.FineTune,ProductionAction.Design})db.Add(new ProductionEvent(h.Id,assembly.Id,top.Id,maker.Id,action,EventResult.Completed,null,"operation"));return h;}
+var legacyScale=new Scale("Legacy profit fixture",ScaleUsage.All);db.Add(legacyScale);await db.SaveChangesAsync();
+Handpan Instrument(string code,bool bottomNotes=false,bool legacy=false){var top=new Bowl(code,BowlType.Top,true,InstrumentType.Standard,material.Id);var bottom=new Bowl(code+"-B",BowlType.Bottom,bottomNotes,InstrumentType.Standard,material.Id);var assembly=new HandpanAssembly(top.Id,bottom.Id);var h=legacy?Handpan.CreateLegacyStock(Guid.NewGuid(),assembly.Id,code,legacyScale.Id):new Handpan(assembly.Id,code);h.ChangeStage(ProductionStage.FinishedWarehouse);db.AddRange(top,bottom,assembly,h);foreach(var action in new[]{ProductionAction.Dimple,ProductionAction.Shape,ProductionAction.Tune,ProductionAction.Glue,ProductionAction.FineTune,ProductionAction.Design})db.Add(new ProductionEvent(h.Id,assembly.Id,top.Id,maker.Id,action,EventResult.Completed,null,"operation"));return h;}
+if(args.Contains("--top-shares-only")){await CheckTopShares();return;}
+async Task CheckTopShares(){
+ var testService=new SaleProfitService(db);
+// A noted bottom bowl must never dilute the top bowl's four craft shares.
+var restricted=new[]{ProductionAction.Dimple,ProductionAction.Shape,ProductionAction.Tune,ProductionAction.Design};
+var designRule=await db.SaleProfitRules.SingleAsync(x=>x.Action==ProductionAction.Design);designRule.Set(5);await db.SaveChangesAsync();
+foreach(var legacy in new[]{false,true}){
+ var target=Instrument(legacy?"LEGACY-TOP-SHARES":"NOTED-BOTTOM-SHARES",true,legacy);await db.SaveChangesAsync();
+ var pair=await db.HandpanAssemblies.SingleAsync(x=>x.Id==target.AssemblyId);
+ foreach(var action in restricted){
+  if(!legacy)db.Add(new ProductionEvent(target.Id,pair.Id,pair.BottomBowlId,second.Id,action,EventResult.Completed,null,"bottom craft"));
+  db.Add(new ProductionEvent(target.Id,pair.Id,pair.TopBowlId,maker.Id,action,EventResult.Completed,null,legacy?"LEGACY_STOCK: historical craft":"repeated top craft"));
+ }
+ await db.SaveChangesAsync();target.Sell(null,null,null,null,false,maker.Id);await testService.UpdateAsync(target,10000,MoneyCurrency.Toman);await db.SaveChangesAsync();
+ var shares=await db.SaleProfitEntries.Where(x=>x.HandpanId==target.Id&&x.ReversedAt==null).ToListAsync();
+ foreach(var action in restricted){var share=shares.Single(x=>x.Action==action);var percent=await db.SaleProfitRules.Where(x=>x.Action==action).Select(x=>x.Percent).SingleAsync();Check(share.UserId==maker.Id&&share.Amount==10000*percent/100,"top-only full share without bottom dilution or duplicate top credit: "+action+" / "+legacy);}
+}
+Console.WriteLine("PASS four top-bowl profit shares for noted-bottom and legacy instruments");
+}
 var handpan=Instrument("PROFIT-1");await db.SaveChangesAsync();handpan.Sell(null,null,null,null,false,maker.Id);var service=new SaleProfitService(db);await service.UpdateAsync(handpan,100000000,MoneyCurrency.Toman);handpan.SetSaleFinancials(MoneyCurrency.Toman,100000000,MoneyCurrency.Toman);await db.SaveChangesAsync();
 var entries=await db.SaleProfitEntries.Where(x=>x.HandpanId==handpan.Id&&x.ReversedAt==null).ToListAsync();Check(entries.Single(x=>x.Action==ProductionAction.Shape).Amount==7000000&&entries.Single(x=>x.Action==ProductionAction.Tune).Amount==13000000&&entries.Sum(x=>x.Amount)==36000000,"100 million toman credits exact stage shares once per performer");
 await service.UpdateAsync(handpan,100000000,MoneyCurrency.Toman,true);await db.SaveChangesAsync();Check(await db.SaleProfitEntries.CountAsync()==5,"repeated edit is idempotent and does not double-credit");
@@ -37,7 +57,7 @@ Check(await db.SaleProfitEntries.CountAsync(x=>x.ReversedAt!=null)==5&&(await db
 await service.UpdateAsync(handpan,0,MoneyCurrency.Toman,true);handpan.SetSaleFinancials(MoneyCurrency.Toman,0,MoneyCurrency.Toman);await db.SaveChangesAsync();
 await service.UpdateAsync(handpan,100000000,MoneyCurrency.Toman,true);handpan.SetSaleFinancials(MoneyCurrency.Toman,100000000,MoneyCurrency.Toman);await db.SaveChangesAsync();
 Check((await db.SaleProfitEntries.SingleAsync(x=>x.Action==ProductionAction.Shape&&x.ReversedAt==null)).RolePercent==7,"clearing then restoring profit keeps the sale's original percentage snapshot");
-var usd=Instrument("USD");await db.SaveChangesAsync();db.Add(new ProductionEvent(usd.Id,usd.AssemblyId,null,second.Id,ProductionAction.Shape,EventResult.Completed,null,"second shaper"));await db.SaveChangesAsync();usd.Sell(null,null,2000,null,false,maker.Id);await service.UpdateAsync(usd,100,MoneyCurrency.Usd);usd.SetSaleFinancials(MoneyCurrency.Usd,100,MoneyCurrency.Usd);await db.SaveChangesAsync();
+var usd=Instrument("USD");await db.SaveChangesAsync();db.Add(new ProductionEvent(usd.Id,usd.AssemblyId,(await db.HandpanAssemblies.SingleAsync(x=>x.Id==usd.AssemblyId)).TopBowlId,second.Id,ProductionAction.Shape,EventResult.Completed,null,"second shaper"));await db.SaveChangesAsync();usd.Sell(null,null,2000,null,false,maker.Id);await service.UpdateAsync(usd,100,MoneyCurrency.Usd);usd.SetSaleFinancials(MoneyCurrency.Usd,100,MoneyCurrency.Usd);await db.SaveChangesAsync();
 var dollars=await db.SaleProfitEntries.Where(x=>x.HandpanId==usd.Id&&x.Action==ProductionAction.Shape).ToListAsync();Check(dollars.Count==2&&dollars.All(x=>x.Amount==4),"new sale uses current 8 percent and splits multiple shapers without doubling the role share");
 var noProfit=Instrument("NO-PROFIT");await db.SaveChangesAsync();noProfit.Sell(null,null,null,null,false,maker.Id);await service.UpdateAsync(noProfit,null,MoneyCurrency.Toman);await db.SaveChangesAsync();Check(!await db.SaleProfitEntries.AnyAsync(x=>x.HandpanId==noProfit.Id),"fully optional sale without profit creates no member credits");
 await new ProductionRollbackService(db).RollbackHandpanAsync(usd.Id,default);Check(await db.SaleProfitEntries.Where(x=>x.HandpanId==usd.Id).AllAsync(x=>x.ReversedAt!=null),"returning a sale reverses all its profit credits");
