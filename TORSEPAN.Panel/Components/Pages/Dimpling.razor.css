@@ -622,3 +622,5 @@ body .layout.theme-shell .main .content .export-packaging-confirm{background:lin
 body .layout.theme-shell .main .content .export-packaging-return{background:#153c55;border-color:#42677f;color:#dfebf4}
 body .layout.theme-shell .main .content .export-packaging-confirm:disabled{background:#6b634a;border-color:#93805a;color:#e6e0cc;cursor:not-allowed}
 @media(max-width:600px){.export-packaging-grid{gap:8px}body .layout.theme-shell .main .content .export-packaging-destination{min-height:98px;padding:12px 5px;border-radius:17px;gap:12px}body .layout.theme-shell .main .content .export-packaging-destination strong{font-size:.9rem}.export-packaging-destination img{width:42px;height:28px}.export-packaging-actions{flex-direction:column}.export-packaging-actions button{width:100%;font-size:.95rem}}
+
+.passport-bowl-person + small{display:block}.history-people>div>.passport-bowl-person:not(:first-child){border-top:1px dashed #93aec044;margin-top:4px;padding-top:4px}.passport-bowl-person{font-size:.76rem;line-height:1.6}

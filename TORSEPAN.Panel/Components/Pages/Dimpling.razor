@@ -146,7 +146,7 @@
                 <header><h3 id="history-title"><span class="history-heading-icon"><PassportIcon Kind="clock" /></span> سوابق انجام کار</h3>
                 </header>
                 @if (_bowl.History.Count == 0) { <p class="history-empty">هنوز سابقه‌ای ثبت نشده است.</p> }
-                @foreach (var item in _bowl.History.OrderByDescending(x => x.PerformedAt))
+                @foreach (var item in PassportTimeline.Build(_bowl))
                 {
                     <article class="passport-timeline-row">
                         <div class="history-operation"><span class="history-operation-icon" data-action="@item.Action" aria-hidden="true"><PassportIcon Kind="@HistoryIcon(item.Action)" /></span><strong>@item.ActionTitle</strong></div>
@@ -155,7 +155,7 @@
                             {
                                 @foreach (var part in item.BowlPerformers)
                                 {
-                                    <div class="passport-performers">@foreach (var performer in PerformerNames(part.PerformedBy)) { <span>@part.Label: @performer</span> }</div>
+                                    <div class="passport-performers passport-bowl-person">@foreach (var performer in PerformerNames(part.PerformedBy)) { <span>@part.Label: @performer</span> }</div>
                                     @if (!string.IsNullOrWhiteSpace(part.Details)) { <small>@part.Details</small> }
                                 }
                             }

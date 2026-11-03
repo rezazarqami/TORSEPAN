@@ -105,7 +105,7 @@ public sealed class GetBowlForDimpleQueryHandler
             .GroupBy(x => new { x.Id, x.Action, PackagingKind = x.Action == ProductionAction.Packaging ? (x.BowlId.HasValue ? 2 : 1) : 0, RegistrationBowlId = x.Action == ProductionAction.Created ? x.BowlId : null })
             .Select(group => new BowlStageHistoryDto
             {
-                BowlPerformers = group.Key.Action is ProductionAction.Shape or ProductionAction.Tune or ProductionAction.Furnace
+                BowlPerformers = group.Key.Action is ProductionAction.Created or ProductionAction.Dimple or ProductionAction.Shape or ProductionAction.Tune or ProductionAction.Furnace or ProductionAction.Design
                     ? BowlPerformers(group, group.Key.Action, topBowlId, bottomBowlId, users)
                     : [],
                 Action = (int)group.Key.Action,
