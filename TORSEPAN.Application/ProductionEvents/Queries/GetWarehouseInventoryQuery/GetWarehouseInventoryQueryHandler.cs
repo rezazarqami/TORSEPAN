@@ -95,6 +95,7 @@ public sealed class GetWarehouseInventoryQueryHandler
                 Stage = x.Stage.ToString(),
                 TopBowlCode = x.Assembly.TopBowl.ProductionCode,
                 BottomBowlCode = TORSEPAN.Domain.Entities.LegacyStockRecord.DisplayCode(x.Assembly.BottomBowl.ProductionCode),
+                HasDesign = DesignNames(x.Assembly.TopBowl.ProductionEvents) != "ساده",
                 DesignName = request.HandpanId.HasValue ? DesignNames(x.Assembly.TopBowl.ProductionEvents) : null,
                 BottomDesignName = request.HandpanId.HasValue ? DesignNames(x.Assembly.BottomBowl.ProductionEvents) : null,
                 MaterialName = x.Assembly.TopBowl.Material.Name,

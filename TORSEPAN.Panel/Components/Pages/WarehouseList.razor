@@ -36,7 +36,7 @@
 <section class="warehouse-content-panel" id="warehouse-inventory" role="tabpanel" aria-label="@ActiveWarehouseName"><div class="warehouse-collection">
     <div class="warehouse-collection-heading"><span class="collection-icon"><InventoryGlyph Kind="cube" /></span><div><span class="collection-label">موجودی انبار</span><h2 dir="auto">@ActiveWarehouseName</h2></div><span class="collection-count"><InventoryGlyph Kind="check" /> @_items.Count(x=>(IsExport||x.QualityWarehouseId==_activeWarehouseId)) ساز آمادهٔ تحویل</span></div>
     <div class="warehouse-note-tabs" role="group" aria-label="فیلتر تعداد نت ساز">
-    @foreach(var notes in new[]{9,10,11,12}){<button type="button" class="note-tab @(_noteFilter==notes?"active":null)" aria-pressed="@(_noteFilter==notes?"true":"false")" title="انتخاب دوباره برای نمایش همه تعداد نت‌ها" @onclick="()=>SelectNotesAsync(notes)"><InventoryGlyph Kind="music" /><strong>@notes نت</strong></button>}
+    @foreach(var notes in new[]{9,10,11,12,0}){<button type="button" class="note-tab @(_noteFilter==notes?"active":null)" aria-pressed="@(_noteFilter==notes?"true":"false")" title="انتخاب دوباره برای نمایش همه تعداد نت‌ها" @onclick="()=>SelectNotesAsync(notes)"><InventoryGlyph Kind="music" /><strong>@(notes==0?"سایر":$"{notes} نت")</strong></button>}
     </div>
 </div>
 <div class="inventory-board">
@@ -205,7 +205,10 @@
     private string? _error,_saleError,_rollbackError; private WarehouseHandpanDto? _rollbackCandidate; private decimal? _price,_receivedAmount,_netProfit;private int _priceCurrency=1,_profitCurrency=1; private Guid? _selectedPartyId,_leadSourceId,_referrerId; private bool? _isExportSale;private string _newSource="",_newReferrer="";private SalesAttributionOptionsDto _attribution=new();
     private bool SelectedSourceRequiresReferrer=>_attribution.Sources.FirstOrDefault(x=>x.Id==_leadSourceId)?.RequiresReferrer==true;
     private string RemainingAmountText=>_price.HasValue?Math.Max(0,_price.Value-(_receivedAmount??0)).ToString(_priceCurrency==2?"N2":"N0"):"—";
-    private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(IsExport||x.QualityWarehouseId==_activeWarehouseId)&&(!_noteFilter.HasValue||x.NoteCount==_noteFilter));
+    private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(IsExport||x.QualityWarehouseId==_activeWarehouseId)&&(!_noteFilter.HasValue||(_noteFilter==0?x.NoteCount is not (>=9 and <=12):x.NoteCount==_noteFilter))).OrderBy(x=>MaterialPriority(x.MaterialName)).ThenBy(x=>MaterialKey(x.MaterialName),StringComparer.OrdinalIgnoreCase).ThenBy(DesignPriority).ThenByDescending(x=>x.WarehouseEntryDate??x.CreatedAt).ThenBy(x=>x.SerialNumber,StringComparer.OrdinalIgnoreCase).ThenBy(x=>x.HandpanId);
+    private static string MaterialKey(string name)=>(name??"").Trim().ToLowerInvariant().Replace("ي","ی").Replace("ك","ک");
+    private static int MaterialPriority(string name){var key=MaterialKey(name);if(key.Contains("velvet")||key.Contains("ولوت"))return 0;if(key.Contains("nitrid")||key.Contains("نیتراید")||key.Contains("نیترید"))return 2;if(key.Contains("steel")||key.Contains("استیل"))return 1;return 3;}
+    private static int DesignPriority(WarehouseHandpanDto item){if(item.HasDesign.HasValue)return item.HasDesign.Value?1:0;return string.IsNullOrWhiteSpace(item.DesignName)?2:item.DesignName.Trim()=="ساده"?0:1;}
     private bool AllVisibleSelected=>Items.Any()&&Items.All(x=>_selected.Contains(x.HandpanId));
     private IEnumerable<string> SaleCodes=>_items.Where(x=>_saleIds.Contains(x.HandpanId)).Select(x=>x.SerialNumber);
     protected override async Task OnInitializedAsync()
@@ -284,7 +287,7 @@
     private async Task ConfirmRollbackAsync(){var item=_rollbackCandidate;if(item is null||!_rollingBack.Add(item.HandpanId))return;_rollbackError=null;try{await ProductionService.RollbackAsync(item.HandpanId);_items.Remove(item);_selected.Remove(item.HandpanId);_rollbackCandidate=null;}catch{_rollbackError="بازگشت ساز انجام نشد. وضعیت ساز را دوباره بررسی کنید.";}finally{_rollingBack.Remove(item.HandpanId);}}
     private async Task ToggleAsync(WarehouseHandpanDto item){if(!_expanded.Add(item.HandpanId)){_expanded.Remove(item.HandpanId);return;}if(!_detailsLoaded.Contains(item.HandpanId))await LoadDetailsAsync(item);}
     private async Task RetryDetailsAsync(WarehouseHandpanDto item){_detailErrors.Remove(item.HandpanId);await LoadDetailsAsync(item);}
-    private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.DesignName=details.DesignName;item.BottomDesignName=details.BottomDesignName;item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;item.Notes=details.Notes;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
+    private async Task LoadDetailsAsync(WarehouseHandpanDto item){if(!_detailsLoading.Add(item.HandpanId))return;try{var details=await ProductionService.GetWarehouseDetailsAsync(item.HandpanId);if(details is null)throw new InvalidOperationException();item.HasDesign=details.HasDesign;item.DesignName=details.DesignName;item.BottomDesignName=details.BottomDesignName;item.Operations=details.Operations;item.PackagingItems=details.PackagingItems;item.Notes=details.Notes;_detailsLoaded.Add(item.HandpanId);_detailErrors.Remove(item.HandpanId);}catch{_detailErrors.Add(item.HandpanId);}finally{_detailsLoading.Remove(item.HandpanId);}}
     private async Task BeginSale(WarehouseHandpanDto item){_selected.Clear();_selected.Add(item.HandpanId);await OpenSale([item.HandpanId]);}
     private Task BeginSelectedSale()=>OpenSale(Items.Where(x=>_selected.Contains(x.HandpanId)).Select(x=>x.HandpanId).ToList());
     private bool _saleOptionsLoaded, _saleOptionsLoading;

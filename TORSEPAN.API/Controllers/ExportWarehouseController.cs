@@ -29,6 +29,7 @@ public sealed class ExportWarehouseController(TORSEPANDbContext db) : Controller
                 x.Scale != null ? x.Scale.Name : "بدون Scale",
                 (int)(x.ExportWarehouseLocation ?? ExportWarehouseLocation.Turkey)) {
                 Inventory = new TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory.GetWarehouseInventoryResponse {
+                    HasDesign=db.ProductionEvents.Any(e=>e.BowlId==x.Assembly.TopBowlId&&e.Action==ProductionAction.Design&&e.Result==EventResult.Completed&&!e.Description.EndsWith(":ساده")),
                     HandpanId=x.Id, SerialNumber=x.SerialNumber, TopBowlCode=x.Assembly.TopBowl.ProductionCode,
                     BottomBowlCode=x.Assembly.BottomBowl.ProductionCode,MaterialName=x.Assembly.TopBowl.Material.Name,
                     ScaleName=x.Scale!=null?x.Scale.Name:"—",NoteCount=x.NoteCount,CreatedAt=x.CreatedAt,WarehouseEntryDate=x.UpdatedAt

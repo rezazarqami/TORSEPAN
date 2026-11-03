@@ -12,6 +12,7 @@ public sealed class WarehouseHandpanDto
     public string SerialNumber { get; set; } = string.Empty;
     public string TopBowlCode { get; set; } = string.Empty;
     public string BottomBowlCode { get; set; } = string.Empty;
+    public bool? HasDesign { get; set; }
     public string? DesignName { get; set; }
     public string? BottomDesignName { get; set; }
 

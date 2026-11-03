@@ -58,7 +58,7 @@ Check(await exclusion.SaveBatch(new([new(events[0].Id,false)]),default)is BadReq
 try{events[0].SetPayrollExcluded(false,actor.Id);throw new Exception("legacy wage guard missing");}catch(InvalidOperationException){Check(true,"domain payroll guard survives direct caller attempts");}
 var uow=new UnitOfWork(db,new UserRepository(db),new RoleRepository(db),new UserRoleRepository(db),new RefreshTokenRepository(db),new HandpanRepository(db),new HandpanAssemblyRepository(db),new BowlRepository(db),new MaterialRepository(db),new ScaleRepository(db),new ProductionEventRepository(db));
 var inventory=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(),default);
-Check(inventory.Count==1&&inventory.Single().SerialNumber=="OLD-001"&&inventory.Single().BottomBowlCode.Contains("نامشخص"),"ordinary domestic stock search includes legacy instrument, excludes export stock and hides technical bottom identity");
+Check(inventory.Count==1&&inventory.Single().HasDesign==true&&inventory.Single().SerialNumber=="OLD-001"&&inventory.Single().BottomBowlCode.Contains("نامشخص"),"ordinary domestic stock search includes legacy instrument, excludes export stock and hides technical bottom identity");
 var details=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(saved.Id),default);
 Check(details.Single().Operations.Where(x=>x.Operation is "دیمپل" or "شیپ" or "تیون" or "فاین تیون").All(x=>x.PerformedBy==maker.FullName),"ordinary stock detail resolves historical dimple, shape, tune and fine tune makers");
 var edit=new AdminProductionEditsController(db);var passport=await edit.Get("old-001",default);
@@ -91,12 +91,14 @@ var read=(AdminProductionEditDto)((OkObjectResult)(await edit.Get("89",default))
 Check(read.Events.Single(x=>x.Action==(int)ProductionAction.Design).DesignTypeId==designB.Id,"editor reload exposes saved design selection");
 Check((await edit.Update("89",changeDesign with{DesignUpdates=[new(Guid.NewGuid(),null,designA.Id,maker.Id)]},default)).Result is BadRequestObjectResult,"design cannot be assigned to another instrument's bowl");
 var exportRows=((IEnumerable<ExportWarehouseRow>)((OkObjectResult)exports).Value!).ToList();
-Check(exportRows.All(x=>x.Inventory is not null&&x.Inventory.HandpanId==x.Id&&!string.IsNullOrWhiteSpace(x.Inventory.MaterialName)),"export summary supplies shared card metadata for every destination");
+Check(exportRows.All(x=>x.Inventory is not null&&x.Inventory.HandpanId==x.Id&&x.Inventory.HasDesign==true&&!string.IsNullOrWhiteSpace(x.Inventory.MaterialName)),"export summary supplies shared card metadata for every destination");
 var exportId=exportRows[0].Id;
 var exportDetails=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(exportId),default);
 Check(exportDetails.Count==1&&exportDetails.Single().Operations.Count==6,"exported instrument detail includes the same production and design facts");
 Check(await new TORSEPAN.Infrastructure.Services.ProductionDeletionService(db).DeleteHandpanAsync(exportId,default),"exported instrument can be deleted through existing handpan deletion service");
 Check(!await db.Handpans.AnyAsync(x=>x.Id==exportId),"confirmed export deletion removes instrument from stock");
+var designSortStock=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(),default);
+Check(designSortStock.Single(x=>x.SerialNumber=="89").HasDesign==true,"list design sorting metadata reflects corrected design without per-instrument requests");
 // A cached global workspace token may be stale after unrelated online work.
 (await db.Users.SingleAsync(x=>x.Id==actor.Id)).SetRole("Administrator");await db.SaveChangesAsync();
 var syncDevice=Guid.NewGuid();db.OfflineDevices.Add(new OfflineDevice{DeviceId=syncDevice,OwnerId=actor.Id,EnrolledUtc=DateTime.UtcNow.AddHours(-1)});await db.SaveChangesAsync();
@@ -111,6 +113,12 @@ db.ChangeTracker.Clear();
 try{await syncService.ApplyAsync(actor.Id,Import("SYNC-DEPENDENCY") with{WorkspacePreviousOperationId=Guid.NewGuid()},default);throw new Exception("missing dependency accepted");}catch(OfflineProblem e){Check(e.Code=="dependency","legacy import still requires acknowledgement of prior queued work");}
 try{await syncService.ApplyAsync(actor.Id,Import("SYNC-OTHER") with{WorkspaceModule="warehouses"},default);throw new Exception("stale overwrite accepted");}catch(OfflineProblem e){Check(e.Code=="conflict","other workspace writes still reject stale snapshots");}
 try{await syncService.ApplyAsync(actor.Id,Import("SYNC-MISSING") with{WorkspaceExpectedVersion=null},default);throw new Exception("missing base accepted");}catch(OfflineProblem e){Check(e.Code=="conflict","missing workspace basis remains rejected");}
+Check(await controller.Create(Request("SORT-PLAIN") with{DesignUserId=null},default) is OkObjectResult,"plain sorting fixture registers");
+var plainSortStock=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(),default);
+Check(plainSortStock.Single(x=>x.SerialNumber=="SORT-PLAIN").HasDesign==false,"domestic list marks a plain instrument without loading its passport");
+Check(await controller.Create(Request("SORT-EXPORT",1) with{DesignUserId=null},default) is OkObjectResult,"plain export sorting fixture registers");
+var exportSortStock=(IEnumerable<ExportWarehouseRow>)((OkObjectResult)await new ExportWarehouseController(db).Get(default)).Value!;
+Check(exportSortStock.Single(x=>x.ProductionCode=="SORT-EXPORT").Inventory!.HasDesign==false,"export list distinguishes plain instruments from designed instruments");
 await UiChecks.Run();
 Console.WriteLine("Legacy stock smoke passed.");
 static void Check(bool ok,string message){if(!ok)throw new Exception(message);Console.WriteLine("PASS "+message);}

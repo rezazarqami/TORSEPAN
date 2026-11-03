@@ -75,6 +75,7 @@ public class HandpanRepository
             .Where(x => x.Stage == ProductionStage.FinishedWarehouse)
             .Include(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.Material)
             .Include(x => x.Assembly).ThenInclude(x => x.BottomBowl)
+            .Include(x => x.Assembly).ThenInclude(x => x.TopBowl).ThenInclude(x => x.ProductionEvents.Where(e => e.Action == ProductionAction.Design && e.Result == EventResult.Completed))
             .Include(x => x.Scale)
             .OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt)
             .ToListAsync();

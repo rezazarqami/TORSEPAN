@@ -16,6 +16,7 @@ public sealed class GetWarehouseInventoryResponse
 
     public string BottomBowlCode { get; set; } = string.Empty;
 
+    public bool? HasDesign { get; set; }
     public string? DesignName { get; set; }
     public string? BottomDesignName { get; set; }
 

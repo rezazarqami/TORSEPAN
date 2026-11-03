@@ -52,6 +52,17 @@ await renderer.Dispatcher.InvokeAsync(async()=>{
  for(var country=1;country<=7;country++){await host.Call("SelectWarehouseAsync",country);host.Refresh();var html=WebUtility.HtmlDecode(parent.ToHtmlString());if(!html.Contains("warehouse-redesign"))throw new Exception("missing shared board for destination "+country);if(html.LastIndexOf("compact-inventory-tabs")<html.IndexOf("stock-item")||html.LastIndexOf("compact-inventory-tabs")>html.LastIndexOf("warehouse-selection-bar"))throw new Exception("inventory kind buttons must follow items and precede bulk actions");}
  await File.WriteAllTextAsync(Path.Combine(output,"export.html"),parent.ToHtmlString());Console.WriteLine("PASS all seven export destinations use shared board and bottom type controls");
 });
+await renderer.Dispatcher.InvokeAsync(async()=>{
+ WarehouseHandpanDto Row(string code,string material,bool design,int? notes=9)=>new(){HandpanId=Guid.NewGuid(),SerialNumber=code,MaterialName=material,HasDesign=design,NoteCount=notes,ScaleName="Test"};
+ var rows=new[]{Row("N-D","Nitrided Steel",true),Row("V-D","VELVET",true),Row("S-D","Stainless Steel",true),Row("V-P","VELVET",false),Row("N-P","Nitrided Steel",false),Row("S-P","Stainless Steel",false),Row("N13","VELVET",false,13),Row("UNKNOWN","VELVET",false,null),Row("N8","VELVET",false,8)};
+ var result=await renderer.RenderComponentAsync<InventoryPreview>(ParameterView.FromDictionary(new Dictionary<string,object?>{[nameof(WarehouseList.ExportItems)]=rows}));var page=InventoryPreview.Current!;
+ await page.Call("SelectNotesAsync",9);var expected=new[]{"V-P","V-D","S-P","S-D","N-P","N-D"};
+ if(!page.Visible().Select(x=>x.SerialNumber).SequenceEqual(expected))throw new Exception("material groups and plain-first ordering mismatch");
+ await page.Call("SetViewAsync",true);if(!page.Visible().Select(x=>x.SerialNumber).SequenceEqual(expected))throw new Exception("gallery order differs from list");
+ await page.Call("SelectNotesAsync",0);if(!page.Visible().Select(x=>x.SerialNumber).ToHashSet().SetEquals(new[]{"N13","UNKNOWN","N8"}))throw new Exception("other tab must collect unknown and all non-9/10/11/12 counts");
+ await page.Call("SelectNotesAsync",0);if(page.Visible().Count!=rows.Length)throw new Exception("toggle other tab must restore all stock");
+ Console.WriteLine("PASS other note counts and unknown counts; velvet/steel/nitride groups; plain-before-designed; identical list/gallery order");
+});
 Console.WriteLine("Warehouse redesign smoke passed; preview "+output);
 
 public sealed class InventoryPreview:WarehouseList{
