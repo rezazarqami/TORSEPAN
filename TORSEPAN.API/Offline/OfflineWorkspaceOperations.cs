@@ -29,6 +29,10 @@ public sealed partial class OfflineProductionService {
  private async Task CheckWorkspaceVersionAsync(Guid owner,OfflineOperation op,CancellationToken ct){
   var version=op.WorkspaceExpectedVersion;
   if(op.WorkspacePreviousOperationId is {} previous){var receipt=await db.OfflineReceipts.AsNoTracking().SingleOrDefaultAsync(x=>x.OperationId==previous&&x.DeviceId==op.DeviceId,ct);if(receipt is null)throw new OfflineProblem("dependency","ثبت قبلی هنوز تأیید نشده است.");version=JsonSerializer.Deserialize<Dictionary<string,string>>(receipt.VersionsJson)?.GetValueOrDefault("workspace");}
+  // Opening stock appends a new registration; its controller independently checks
+  // registration identity, duplicate codes and every referenced record. Unrelated
+  // workspace edits must not invalidate it. Dependency receipts are still required.
+  if(!string.IsNullOrEmpty(version)&&op.WorkspaceModule=="legacyStock"&&op.WorkspaceAction=="save")return;
   if(string.IsNullOrEmpty(version)||version!=(await WorkspaceAsync(owner,ct)).Version)throw new OfflineProblem("conflict","اطلاعات مدیریت در سرور تغییر کرده؛ ثبت محلی محفوظ است و نیاز به بررسی دارد.");
  }
  private T Controller<T>() where T:ControllerBase {var c=ActivatorUtilities.CreateInstance<T>(http.HttpContext!.RequestServices);c.ControllerContext=new ControllerContext{HttpContext=http.HttpContext!};return c;}

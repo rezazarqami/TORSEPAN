@@ -1,4 +1,8 @@
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Microsoft.Extensions.DependencyInjection;
+using TORSEPAN.API.Offline;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
@@ -93,6 +97,20 @@ var exportDetails=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(ex
 Check(exportDetails.Count==1&&exportDetails.Single().Operations.Count==6,"exported instrument detail includes the same production and design facts");
 Check(await new TORSEPAN.Infrastructure.Services.ProductionDeletionService(db).DeleteHandpanAsync(exportId,default),"exported instrument can be deleted through existing handpan deletion service");
 Check(!await db.Handpans.AnyAsync(x=>x.Id==exportId),"confirmed export deletion removes instrument from stock");
+// A cached global workspace token may be stale after unrelated online work.
+(await db.Users.SingleAsync(x=>x.Id==actor.Id)).SetRole("Administrator");await db.SaveChangesAsync();
+var syncDevice=Guid.NewGuid();db.OfflineDevices.Add(new OfflineDevice{DeviceId=syncDevice,OwnerId=actor.Id,EnrolledUtc=DateTime.UtcNow.AddHours(-1)});await db.SaveChangesAsync();
+await using var syncServices=new ServiceCollection().AddSingleton(db).BuildServiceProvider();http.RequestServices=syncServices;
+var syncService=new OfflineProductionService(db,null!,new HttpContextAccessor{HttpContext=http});
+OfflineOperation Import(string code){var data=JsonSerializer.SerializeToNode(Request(code),new JsonSerializerOptions(JsonSerializerDefaults.Web))!.AsObject();data["localTopId"]=Guid.NewGuid();data["localBottomId"]=Guid.NewGuid();data["localAssemblyId"]=Guid.NewGuid();return new(Guid.NewGuid(),syncDevice,"@legacyStock","workspace",actor.Id,DateTime.UtcNow,null,WorkspaceModule:"legacyStock",WorkspaceAction:"save",WorkspaceData:JsonSerializer.SerializeToElement(data),WorkspaceExpectedVersion:"older-global-workspace");}
+var syncImport=Import("SYNC-NEW");var syncReceipt=await syncService.ApplyAsync(actor.Id,syncImport,default);
+Check(syncReceipt.OperationId==syncImport.OperationId&&await db.Handpans.CountAsync(x=>x.SerialNumber=="SYNC-NEW")==1,"opening stock accepts unrelated workspace changes without overwriting existing instruments");
+Check((await syncService.ApplyAsync(actor.Id,syncImport,default)).OperationId==syncImport.OperationId&&await db.Handpans.CountAsync(x=>x.SerialNumber=="SYNC-NEW")==1,"opening stock retry after receipt loss remains idempotent");
+try{await syncService.ApplyAsync(actor.Id,Import("SYNC-NEW"),default);throw new Exception("duplicate code accepted");}catch(OfflineProblem e){Check(e.Status==409,"manually entered online code still blocks duplicate offline registration");}
+db.ChangeTracker.Clear();
+try{await syncService.ApplyAsync(actor.Id,Import("SYNC-DEPENDENCY") with{WorkspacePreviousOperationId=Guid.NewGuid()},default);throw new Exception("missing dependency accepted");}catch(OfflineProblem e){Check(e.Code=="dependency","legacy import still requires acknowledgement of prior queued work");}
+try{await syncService.ApplyAsync(actor.Id,Import("SYNC-OTHER") with{WorkspaceModule="warehouses"},default);throw new Exception("stale overwrite accepted");}catch(OfflineProblem e){Check(e.Code=="conflict","other workspace writes still reject stale snapshots");}
+try{await syncService.ApplyAsync(actor.Id,Import("SYNC-MISSING") with{WorkspaceExpectedVersion=null},default);throw new Exception("missing base accepted");}catch(OfflineProblem e){Check(e.Code=="conflict","missing workspace basis remains rejected");}
 await UiChecks.Run();
 Console.WriteLine("Legacy stock smoke passed.");
 static void Check(bool ok,string message){if(!ok)throw new Exception(message);Console.WriteLine("PASS "+message);}
