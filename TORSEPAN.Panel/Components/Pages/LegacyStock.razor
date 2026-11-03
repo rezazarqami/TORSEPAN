@@ -28,7 +28,7 @@
             <section class="legacy-saved" role="status" aria-live="polite">
                 <span class="legacy-check">✓</span><h2>ساز @_saved.Code ثبت شد</h2>
                 <p>موجود در @DestinationTitle(_saved)؛ بدون محاسبهٔ دوبارهٔ دستمزد</p>
-                <div class="legacy-actions"><button class="legacy-primary" @onclick="Next">ثبت ساز بعدی</button><a href="@EditUrl(_saved.Code)">مشاهده و ویرایش شناسنامه</a><a href="@(_saved.ExportLocation.HasValue ? "/warehouse/export" : "/warehouse/list")">رفتن به انبار</a></div>
+                <div class="legacy-actions"><button class="legacy-primary" @onclick="Next">ثبت ساز بعدی</button><a href="@PassportUrl(_saved.Code)">مشاهده شناسنامه</a><a class="legacy-stock-link" href="@(_saved.ExportLocation.HasValue ? "/warehouse/export" : "/warehouse/list")">رفتن به انبار</a></div>
             </section>
         }
         else
@@ -40,39 +40,39 @@
                         <header><span>۰۱</span><div><h2 id="legacy-identity">مشخصات ساز</h2><p>کد کاسه زیر لازم نیست؛ داخل ساز بسته است.</p></div></header>
                         <div class="legacy-grid">
                             <label class="legacy-wide" for="legacy-code">کد کاسه رو<InputText id="legacy-code" @bind-Value="_draft.Code" maxlength="50" autocomplete="off" dir="ltr" placeholder="کد روی شناسنامه قدیمی" /><ValidationMessage For="()=>_draft.Code" /></label>
-                            <label for="legacy-material">متریال<InputSelect id="legacy-material" @bind-Value="_draft.MaterialId"><option value="">انتخاب کنید</option>@foreach (var item in _materials){<option value="@item.Id">@item.Name</option>}</InputSelect><ValidationMessage For="()=>_draft.MaterialId" /></label>
-                            <label for="legacy-scale">اسکیل ساز<InputSelect id="legacy-scale" @bind-Value="_draft.ScaleId"><option value="">انتخاب کنید</option>@foreach (var item in ScalesFor(4)){<option value="@item.Id">@item.Name</option>}</InputSelect><ValidationMessage For="()=>_draft.ScaleId" /></label>
+                            <label for="legacy-material">متریال<CompactPicker TValue="Guid?" Title="متریال" Options="MaterialOptions" id="legacy-material" @bind-Value="_draft.MaterialId" /><ValidationMessage For="()=>_draft.MaterialId" /></label>
+                            <label for="legacy-scale">اسکیل ساز<CompactPicker TValue="Guid?" Title="اسکیل ساز" Options="ScaleOptions(4)" id="legacy-scale" @bind-Value="_draft.ScaleId" /><ValidationMessage For="()=>_draft.ScaleId" /></label>
                             <label for="legacy-top">تعداد نت کاسه رو<InputNumber id="legacy-top" @bind-Value="_draft.TopNotes" min="1" max="100" step="1" /><ValidationMessage For="()=>_draft.TopNotes" /></label>
                             <label for="legacy-bottom">تعداد نت کاسه زیر<InputNumber id="legacy-bottom" @bind-Value="_draft.BottomNotes" min="0" max="100" step="1" /><small>کاسه زیر بدون نت: صفر</small><ValidationMessage For="()=>_draft.BottomNotes" /></label>
                         </div>
                         <details class="legacy-advanced"><summary>اسکیل جداگانهٔ کاسه‌ها (اختیاری)</summary><div class="legacy-grid">
-                            <label for="legacy-top-scale">اسکیل کاسه رو<InputSelect id="legacy-top-scale" @bind-Value="_draft.TopScaleId"><option value="">نامشخص</option>@foreach(var item in ScalesFor(1)){<option value="@item.Id">@item.Name</option>}</InputSelect></label>
-                            <label for="legacy-bottom-scale">اسکیل کاسه زیر<InputSelect id="legacy-bottom-scale" @bind-Value="_draft.BottomScaleId" disabled="@(_draft.BottomNotes == 0)"><option value="">نامشخص</option>@foreach(var item in ScalesFor(2)){<option value="@item.Id">@item.Name</option>}</InputSelect></label>
+                            <label for="legacy-top-scale">اسکیل کاسه رو<CompactPicker TValue="Guid?" Title="اسکیل کاسه رو" Options="ScaleOptions(1)" id="legacy-top-scale" @bind-Value="_draft.TopScaleId" /></label>
+                            <label for="legacy-bottom-scale">اسکیل کاسه زیر<CompactPicker TValue="Guid?" Title="اسکیل کاسه زیر" Options="ScaleOptions(2)" id="legacy-bottom-scale" @bind-Value="_draft.BottomScaleId" disabled="@(_draft.BottomNotes == 0)" /></label>
                         </div></details>
                     </section>
                     <section class="legacy-card" aria-labelledby="legacy-location">
                         <header><span>۰۲</span><div><h2 id="legacy-location">محل نگهداری فعلی</h2><p>ساز مستقیم در موجودی انبار انتخاب‌شده قرار می‌گیرد.</p></div></header>
                         <div class="legacy-grid">
-                            <label for="legacy-destination">نوع انبار<InputSelect id="legacy-destination" @bind-Value="_draft.Destination"><option value="domestic">انبار داخلی</option><option value="export">انبار صادراتی</option></InputSelect></label>
+                            <label for="legacy-destination">نوع انبار<CompactPicker TValue="string" Title="نوع انبار" Options="DestinationOptions" id="legacy-destination" @bind-Value="_draft.Destination" /></label>
                             @if (_draft.Destination == "export")
                             {
-                                <label for="legacy-country">انبار صادراتی<InputSelect id="legacy-country" @bind-Value="_draft.ExportLocation"><option value="">انتخاب کنید</option><option value="3">آلمان</option><option value="2">لندن</option><option value="1">ترکیه</option><option value="4">ایران</option><option value="5">مصر 🇪🇬</option><option value="6">ریاض 🇸🇦</option><option value="7">لبنان 🇱🇧</option></InputSelect></label>
+                                <label for="legacy-country">انبار صادراتی<CompactPicker TValue="int?" Title="انبار صادراتی" Options="CountryOptions" id="legacy-country" @bind-Value="_draft.ExportLocation" /></label>
                             }
                             @if (_draft.Destination == "domestic")
                             {
-                            <label for="legacy-warehouse">انبار سازها<InputSelect id="legacy-warehouse" @bind-Value="_draft.WarehouseId"><option value="">انتخاب کنید</option>@foreach(var item in _warehouses){<option value="@item.Id">@item.Name</option>}</InputSelect><ValidationMessage For="()=>_draft.WarehouseId" /></label>
+                            <label for="legacy-warehouse">انبار سازها<CompactPicker TValue="int?" Title="انبار سازها" Options="WarehouseOptions" id="legacy-warehouse" @bind-Value="_draft.WarehouseId" /><ValidationMessage For="()=>_draft.WarehouseId" /></label>
                             }
                         </div>
                     </section>
                     <section class="legacy-card" aria-labelledby="legacy-makers">
                         <header><span>۰۳</span><div><h2 id="legacy-makers">سازندگان</h2><p>نام‌های روی شناسنامه را انتخاب کنید؛ موارد نامعلوم را خالی بگذارید.</p></div></header>
                         <div class="legacy-grid">
-                            <label for="legacy-dimple">دیمپل<InputSelect id="legacy-dimple" @bind-Value="_draft.DimpleUserId"><option value="">نامشخص</option>@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</InputSelect></label>
-                            <label for="legacy-shape">شیپ<InputSelect id="legacy-shape" @bind-Value="_draft.ShapeUserId"><option value="">نامشخص</option>@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</InputSelect></label>
-                            <label for="legacy-tune">تیون<InputSelect id="legacy-tune" @bind-Value="_draft.TuneUserId"><option value="">نامشخص</option>@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</InputSelect></label>
-                            <label for="legacy-fine">فاین‌تیون<InputSelect id="legacy-fine" @bind-Value="_draft.FineTuneUserId"><option value="">نامشخص</option>@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</InputSelect></label>
-                            <label for="legacy-design">دیزاین<InputSelect id="legacy-design" @bind-Value="_draft.DesignUserId"><option value="">نامشخص</option>@foreach(var user in _users){<option value="@user.Id">@UserLabel(user)</option>}</InputSelect></label>
-                            <label for="legacy-design-type">نوع دیزاین<InputSelect id="legacy-design-type" @bind-Value="_draft.DesignTypeId"><option value="">نامشخص / ساده</option>@foreach(var type in _designTypes){<option value="@type.Id">@type.Name</option>}</InputSelect></label>
+                            <label for="legacy-dimple">دیمپل<CompactPicker TValue="Guid?" Title="دیمپل" Options="UserOptions" id="legacy-dimple" @bind-Value="_draft.DimpleUserId" /></label>
+                            <label for="legacy-shape">شیپ<CompactPicker TValue="Guid?" Title="شیپ" Options="UserOptions" id="legacy-shape" @bind-Value="_draft.ShapeUserId" /></label>
+                            <label for="legacy-tune">تیون<CompactPicker TValue="Guid?" Title="تیون" Options="UserOptions" id="legacy-tune" @bind-Value="_draft.TuneUserId" /></label>
+                            <label for="legacy-fine">فاین‌تیون<CompactPicker TValue="Guid?" Title="فاین‌تیون" Options="UserOptions" id="legacy-fine" @bind-Value="_draft.FineTuneUserId" /></label>
+                            <label for="legacy-design">دیزاین<CompactPicker TValue="Guid?" Title="دیزاین" Options="UserOptions" id="legacy-design" @bind-Value="_draft.DesignUserId" /></label>
+                            <label for="legacy-design-type">نوع دیزاین<CompactPicker TValue="Guid?" Title="نوع دیزاین" Options="DesignOptions" id="legacy-design-type" @bind-Value="_draft.DesignTypeId" /></label>
                         </div>
                     </section>
                 </fieldset>
@@ -81,20 +81,23 @@
                 @if (_pending is not null && !_saving){<button type="button" @onclick="EditDraft">اصلاح اطلاعات</button>}</footer>
             </EditForm>
         }
-        @if (_recent.Count > 0)
-        {
-            <section class="legacy-card legacy-recent"><h2>آخرین سازهای واردشده</h2><ul>@foreach(var item in _recent){<li><a href="@EditUrl(item.Code)"><strong dir="ltr">@item.Code</strong><span>@DestinationTitle(item)</span><span aria-hidden="true">←</span></a></li>}</ul></section>
-        }
+
     }
 </div>
 @code {
+    private IReadOnlyList<(Guid? Value,string Text)> MaterialOptions => new (Guid?,string)[]{(null,"انتخاب کنید")}.Concat(_materials.Select(x=>((Guid?)x.Id,x.Name))).ToArray();
+    private IReadOnlyList<(Guid? Value,string Text)> ScaleOptions(int usage) => new (Guid?,string)[]{(null,"نامشخص")}.Concat(ScalesFor(usage).Select(x=>((Guid?)x.Id,x.Name))).ToArray();
+    private IReadOnlyList<(Guid? Value,string Text)> UserOptions => new (Guid?,string)[]{(null,"نامشخص")}.Concat(_users.Select(x=>((Guid?)x.Id,UserLabel(x)))).ToArray();
+    private IReadOnlyList<(Guid? Value,string Text)> DesignOptions => new (Guid?,string)[]{(null,"نامشخص / ساده")}.Concat(_designTypes.Select(x=>((Guid?)x.Id,x.Name))).ToArray();
+    private IReadOnlyList<(int? Value,string Text)> WarehouseOptions => new (int?,string)[]{(null,"انتخاب کنید")}.Concat(_warehouses.Select(x=>((int?)x.Id,x.Name))).ToArray();
+    private static readonly (string Value,string Text)[] DestinationOptions=[("domestic","انبار داخلی"),("export","انبار صادراتی")];
+    private static readonly (int? Value,string Text)[] CountryOptions=[(null,"انتخاب کنید"),(3,"آلمان 🇩🇪"),(2,"لندن 🇬🇧"),(1,"ترکیه 🇹🇷"),(4,"ایران 🇮🇷"),(5,"مصر 🇪🇬"),(6,"ریاض 🇸🇦"),(7,"لبنان 🇱🇧")];
     private LegacyStockDraft _draft = new();
     private List<DesignTypeDto> _designTypes = [];
     private List<MaterialDto> _materials = [];
     private List<ScaleDto> _scales = [];
     private List<UserDto> _users = [];
     private List<InstrumentWarehouseDto> _warehouses = [];
-    private List<LegacyStockReceipt> _recent = [];
     private bool _loading = true, _loadFailed, _saving;
     private string? _error;
     private LegacyStockRequest? _pending;
@@ -107,10 +110,10 @@
         {
             _designTypes = await DesignService.GetTypesAsync();
             var materials = MaterialService.GetAsync(); var scales = ScaleService.GetAsync(); var users = UserService.GetUsersAsync();
-            var warehouses = ProductionService.GetInstrumentWarehousesAsync(); var recent = LegacyService.RecentAsync();
-            await Task.WhenAll(materials, scales, users, warehouses, recent);
+            var warehouses = ProductionService.GetInstrumentWarehousesAsync();
+            await Task.WhenAll(materials, scales, users, warehouses);
             _materials = (await materials).Where(x => x.Category == 4).ToList(); _scales = (await scales).ToList(); _users = (await users).OrderBy(UserLabel).ToList();
-            _warehouses = (await warehouses).ToList(); _recent = await recent;
+            _warehouses = (await warehouses).ToList();
         }
         catch { _loadFailed = true; }
         finally { _loading = false; }
@@ -129,7 +132,7 @@
         {
             var receipt = await LegacyService.CreateAsync(_pending);
             if (receipt is null) throw new InvalidOperationException();
-            _saved = receipt; _recent.RemoveAll(x => x.HandpanId == receipt.HandpanId); _recent.Insert(0, receipt); _recent = _recent.Take(20).ToList();
+            _saved = receipt;
         }
         catch (OrderActionException error){_error = error.Message;}
         catch {_error = "پاسخ ثبت دریافت نشد؛ اطلاعات حفظ شده است. برای بررسی و تکمیل همین ثبت، دوباره تلاش کنید.";}
@@ -139,6 +142,6 @@
     private void Next(){_draft.Code = ""; _pending = null; _saved = null; _error = null;}
     private IEnumerable<ScaleDto> ScalesFor(int usage) => _scales.Where(x => (x.Usage & usage) == usage);
     private static string UserLabel(UserDto user) => (string.IsNullOrWhiteSpace(user.FullName) ? user.UserName : user.FullName) + (user.IsActive ? "" : " (غیرفعال)");
-    private static string EditUrl(string code) => "/admin/production-edit?code=" + Uri.EscapeDataString(code);
-    private string DestinationTitle(LegacyStockReceipt item) => item.ExportLocation switch { 1 => "انبار صادراتی ترکیه", 2 => "انبار صادراتی لندن", 3 => "انبار صادراتی آلمان", 4 => "انبار صادراتی ایران", 5 => "انبار صادراتی مصر 🇪🇬", 6 => "انبار صادراتی ریاض 🇸🇦", 7 => "انبار صادراتی لبنان 🇱🇧", _ => _warehouses.FirstOrDefault(x => x.Id == item.WarehouseId)?.Name ?? "انبار داخلی" };
+    private static string PassportUrl(string code) => "/production/process?code=" + Uri.EscapeDataString(code);
+    private string DestinationTitle(LegacyStockReceipt item) => item.ExportLocation switch { 1 => "انبار صادراتی ترکیه 🇹🇷", 2 => "انبار صادراتی لندن 🇬🇧", 3 => "انبار صادراتی آلمان 🇩🇪", 4 => "انبار صادراتی ایران 🇮🇷", 5 => "انبار صادراتی مصر 🇪🇬", 6 => "انبار صادراتی ریاض 🇸🇦", 7 => "انبار صادراتی لبنان 🇱🇧", _ => _warehouses.FirstOrDefault(x => x.Id == item.WarehouseId)?.Name ?? "انبار داخلی" };
 }

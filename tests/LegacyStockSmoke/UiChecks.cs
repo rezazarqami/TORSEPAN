@@ -29,13 +29,17 @@ static class UiChecks
             async Task Snapshot(string name){view.Refresh();if(dir is not null)await File.WriteAllTextAsync(Path.Combine(dir,name+".html"),root.ToHtmlString());}
             Check(System.Text.RegularExpressions.Regex.Replace(System.Text.RegularExpressions.Regex.Replace(Html(), "<[^>]+>", " "), @"\s+", " ").Contains("ثبت سازهای قدیمی")&&Html().Contains("legacy-code")&&!Html().Contains("id=\"legacy-bottom-code\""),"compact form asks for only the visible top code");
             Check(Html().Contains("سازنده غیرفعال (غیرفعال)"),"historical inactive staff remain selectable");
+            Check(!Html().Contains("<select")&&Html().Contains("compact-picker-dialog"),"legacy dropdowns use the compact themed picker rather than native menus");
+            Check(!Html().Contains("legacy-recent")&&!Html().Contains("آخرین سازهای واردشده"),"entry form has no unsolicited recent inventory list");
             await Snapshot("empty");var draft=(LegacyStockDraft)view.Get("_draft")!;draft.Code="OLD-0123";draft.MaterialId=api.Material;draft.ScaleId=api.Scale;draft.TopNotes=9;draft.BottomNotes=2;draft.WarehouseId=2;draft.DimpleUserId=api.Maker;
             draft.Destination="export";await view.Call("SaveAsync");view.Refresh();Check(api.Requests.Count==0&&Html().Contains("انبار صادراتی را انتخاب کنید"),"export destination is required before any write");await Snapshot("export");
+            Check(new[]{"🇩🇪","🇬🇧","🇹🇷","🇮🇷","🇪🇬","🇸🇦","🇱🇧"}.All(flag=>Html().Contains(flag)),"all seven export destinations show their flags");
+
             draft.ExportLocation=3;api.LoseReply=true;await view.Call("SaveAsync");view.Refresh();
             Check(api.Requests.Count==1&&Html().Contains("پاسخ ثبت دریافت نشد")&&draft.Code=="OLD-0123","lost response preserves entered data and offers safe retry");await Snapshot("retry");
             api.LoseReply=false;await view.Call("SaveAsync");view.Refresh();
             Check(api.Requests.Count==2&&api.Requests[0]==api.Requests[1]&&Html().Contains("ساز OLD-0123 ثبت شد"),"retry reuses exact immutable payload and identity then shows acknowledged success");
-            Check(Html().Contains("آلمان")&&Html().Contains("/admin/production-edit?code=OLD-0123"),"success links directly to the ordinary passport and selected export stock");await Snapshot("saved");
+            Check(Html().Contains("آلمان")&&Html().Contains("مشاهده شناسنامه")&&!Html().Contains("مشاهده و ویرایش")&&Html().Contains("/production/process?code=OLD-0123"),"success opens the newly registered passport instead of the editing form");await Snapshot("saved");
             await view.Call("Next");view.Refresh();Check(draft.Code==""&&draft.ScaleId==api.Scale&&draft.WarehouseId==2&&Html().Contains("legacy-code"),"next stock entry clears code while retaining repeated workshop choices");
         });
     }

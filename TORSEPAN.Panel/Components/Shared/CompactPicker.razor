@@ -3,7 +3,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<button type="button" class="compact-picker-trigger" aria-label="@Title" aria-haspopup="dialog" aria-expanded="@(_open ? "true" : "false")" @onclick="Open">
+<button @attributes="AdditionalAttributes" type="button" class="compact-picker-trigger" aria-label="@Title" aria-haspopup="dialog" aria-expanded="@(_open ? "true" : "false")" @onclick="Open">
     <span>@Options.FirstOrDefault(x => EqualityComparer<TValue>.Default.Equals(x.Value, Value)).Text</span><span aria-hidden="true">⌄</span>
 </button>
 <dialog @ref="_dialog" class="compact-picker-dialog" aria-label="@Title" dir="rtl">
