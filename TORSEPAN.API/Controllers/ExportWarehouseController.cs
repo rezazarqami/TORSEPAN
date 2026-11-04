@@ -30,12 +30,13 @@ public sealed class ExportWarehouseController(TORSEPANDbContext db) : Controller
                 (int)(x.ExportWarehouseLocation ?? ExportWarehouseLocation.Turkey)) {
                 Inventory = new TORSEPAN.Application.ProductionEvents.Queries.GetWarehouseInventory.GetWarehouseInventoryResponse {
                     HasDesign=db.ProductionEvents.Any(e=>e.BowlId==x.Assembly.TopBowlId&&e.Action==ProductionAction.Design&&e.Result==EventResult.Completed&&!e.Description.EndsWith(":ساده")),
+                    TopNoteCount=x.Assembly.TopBowl.NoteCount,BottomNoteCount=x.Assembly.BottomBowl.HasNotes?x.Assembly.BottomBowl.NoteCount:0,
                     HandpanId=x.Id, SerialNumber=x.SerialNumber, TopBowlCode=x.Assembly.TopBowl.ProductionCode,
                     BottomBowlCode=x.Assembly.BottomBowl.ProductionCode,MaterialName=x.Assembly.TopBowl.Material.Name,
                     ScaleName=x.Scale!=null?x.Scale.Name:"—",NoteCount=x.NoteCount,CreatedAt=x.CreatedAt,WarehouseEntryDate=x.UpdatedAt
                 }})
             .ToListAsync(ct);
-        foreach(var row in handpans){if(row.Inventory is not { } item)continue;item.BottomBowlCode=LegacyStockRecord.DisplayCode(item.BottomBowlCode);var parsed=ScaleFamilyNames.Parse(item.ScaleName);item.NoteCount??=parsed.NoteCount;if(parsed.FamilyName is not null)item.ScaleName=item.NoteCount.HasValue?$"{parsed.FamilyName} {item.NoteCount}":$"{parsed.FamilyName} — تعداد نت نامشخص";}
+        foreach(var row in handpans){if(row.Inventory is not { } item)continue;item.BottomBowlCode=LegacyStockRecord.DisplayCode(item.BottomBowlCode);var parsed=ScaleFamilyNames.Parse(item.ScaleName);item.NoteCount??=parsed.NoteCount;if(parsed.FamilyName is not null)item.ScaleName=item.NoteCount.HasValue?$"{parsed.FamilyName} {item.NoteCount}":$"{parsed.FamilyName} — تعداد نت نامشخص";if(item.TopNoteCount.HasValue&&item.BottomNoteCount.HasValue)item.ScaleName+=$" ({item.TopNoteCount}+{item.BottomNoteCount})";}
         return Ok(bowls.Concat(handpans).OrderBy(x => x.Location).ThenBy(x => x.ProductionCode));
     }
 

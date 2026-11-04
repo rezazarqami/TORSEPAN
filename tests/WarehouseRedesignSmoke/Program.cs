@@ -24,16 +24,17 @@ await renderer.Dispatcher.InvokeAsync(async()=>{
  void Check(bool condition,string message){if(!condition)throw new Exception(message);Console.WriteLine("PASS "+message);}
  Check(!Html().Contains("warehouse-search")&&!Html().Contains("warehouse-filter-toggle")&&!Html().Contains("gallery-open"),"obsolete search, filters and separate gallery controls removed");
  Check(fixture.SaleReads==0,"inventory entry does not preload sales-only options");
+ Check(page.Visible().Count==2&&page.Visible().All(x=>x.NoteCount==9),"default warehouse filter is nine notes");Check(page.CountFor(9)==2&&page.CountFor(11)==2&&page.CountFor(0)==0,"tab counts cover the active warehouse before filtering");
  await Snapshot("list");
  foreach(var count in new[]{9,10,11,12}){await page.Call("SelectNotesAsync",count);page.Refresh();Check(page.Visible().All(x=>x.NoteCount==count)&&page.Visible().Count>0,"typed "+count+" note filter");await page.Call("SelectNotesAsync",count);}
- Check(page.Visible().Count==6,"note tabs never hide unknown counts until explicitly filtered");
- await page.Call("SetViewAsync",true);page.Refresh();Check(Html().Contains("stock-grid")&&!Html().Contains("inventory-gallery-overlay"),"gallery stays in the inventory board");Check(Html().Contains("بدون عکس"),"instruments without photos remain in gallery");await Snapshot("gallery");
+ await page.Call("SelectNotesAsync",11);Check(page.CountFor(9)==2,"tab count ignores active note filter");
+ await page.Call("SetViewAsync",true);page.Refresh();Check(Html().Contains("inventory-photo-grid")&&!Html().Contains("inventory-gallery-overlay"),"gallery stays in the inventory board");Check(Html().Contains("بدون عکس"),"instruments without photos remain in gallery");await Snapshot("gallery");
  await page.Call("SelectNotesAsync",9);page.Refresh();Check(fixture.LastPhotoIds.SetEquals(page.Visible().Select(x=>x.HandpanId)),"gallery requests only matching instruments");await page.Call("SelectNotesAsync",9);await page.Call("SetViewAsync",false);
  var first=page.Visible()[0];await page.Call("ToggleSelected",first.HandpanId,true);page.Refresh();Check(Html().LastIndexOf("warehouse-selection-bar")>Html().IndexOf("stock-item"),"group actions follow inventory rows");
- await page.Call("ToggleAsync",first);page.Refresh();await Snapshot("expanded");Check(Html().Contains("فؤاد احمدفیض")&&Html().Contains("روغن"),"expanded detail uses actual operation and packaging data");Check(Html().Contains("فول پولیش")&&Html().Contains("(ساده)")&&Html().Contains("وضعیت")&&!Html().Contains("<small>کاسه رو</small>"),"status and both designs replace bowl and warehouse facts");await Snapshot("expanded");
+ await page.Call("ToggleAsync",first);page.Refresh();await Snapshot("expanded");await page.Call("SetViewAsync",true);await page.Call("ToggleAsync",first);await Snapshot("gallery-expanded");await page.Call("SetViewAsync",false);await page.Call("ToggleAsync",first);Check(Html().Contains("فؤاد احمدفیض")&&Html().Contains("روغن"),"expanded detail uses actual operation and packaging data");Check(!Html().Contains("مثلثی")&&!Html().Contains("مثلی")&&!Html().Contains("کارتن")&&!Html().Contains("EXPORT_WAREHOUSE:")&&Html().Contains("پایه")&&first.PackagingItems.Contains("کارتن"),"packaging display hides shipping supplies and metadata while retaining original consumption data");Check(Html().Contains("فول پولیش")&&Html().Contains("(ساده)")&&Html().Contains("وضعیت")&&!Html().Contains("<small>کاسه رو</small>"),"status and both designs replace bowl and warehouse facts");await Snapshot("expanded");
  await page.Call("BeginSelectedTransfer");page.Refresh();Check(Html().Contains("انتقال ساز"),"bulk transfer workflow remains reachable");await page.Call("CancelTransfer");
  await page.Call("BeginSale",first);page.Refresh();Check(fixture.SaleReads==2&&Html().Contains("sale-title"),"sales options load on demand and sale dialog remains reachable");await page.Call("Cancel");
- await page.Call("SelectWarehouse",2);Check(page.Visible().All(x=>x.QualityWarehouseId==2),"warehouse switching scopes inventory");
+ await page.Call("SelectWarehouse",2);Check(page.Visible().Count==0&&page.CountFor(0)==1,"warehouse switch resets nine notes while counts reflect new warehouse");
 });
 await renderer.Dispatcher.InvokeAsync(async()=>{
  var selectedSale=new List<Guid>();var selectedMove=new List<Guid>();Guid? deleted=null;
@@ -43,7 +44,7 @@ await renderer.Dispatcher.InvokeAsync(async()=>{
  [nameof(WarehouseList.ExportTransfer)]=EventCallback.Factory.Create<IReadOnlyList<Guid>>(fixture,ids=>selectedMove=ids.ToList()),
  [nameof(WarehouseList.ExportDeleted)]=EventCallback.Factory.Create<Guid>(fixture,id=>deleted=id)}));
  var page=InventoryPreview.Current!;var first=page.Visible()[0];
- if(page.Visible().Count!=2||!result.ToHtmlString().Contains("warehouse-note-tabs"))throw new Exception("export board must retain all supplied instruments and shared note tabs");
+ if(page.Visible().Count!=1||!result.ToHtmlString().Contains("warehouse-note-tabs"))throw new Exception("export board must retain all supplied instruments and shared note tabs");
  await page.Call("ToggleSelected",first.HandpanId,true);await page.Call("BeginSelectedTransfer");await page.Call("BeginSelectedSale");
  if(!selectedSale.SequenceEqual(new[]{first.HandpanId})||!selectedMove.SequenceEqual(new[]{first.HandpanId}))throw new Exception("export bulk actions lost selected IDs");
  await page.Call("DeleteAsync",first);if(deleted!=first.HandpanId||!fixture.DeletedIds.Contains(first.HandpanId))throw new Exception("export delete must use handpan endpoint and notify host");
@@ -60,7 +61,7 @@ await renderer.Dispatcher.InvokeAsync(async()=>{
  if(!page.Visible().Select(x=>x.SerialNumber).SequenceEqual(expected))throw new Exception("material groups and plain-first ordering mismatch");
  await page.Call("SetViewAsync",true);if(!page.Visible().Select(x=>x.SerialNumber).SequenceEqual(expected))throw new Exception("gallery order differs from list");
  await page.Call("SelectNotesAsync",0);if(!page.Visible().Select(x=>x.SerialNumber).ToHashSet().SetEquals(new[]{"N13","UNKNOWN","N8"}))throw new Exception("other tab must collect unknown and all non-9/10/11/12 counts");
- await page.Call("SelectNotesAsync",0);if(page.Visible().Count!=rows.Length)throw new Exception("toggle other tab must restore all stock");
+ await page.Call("SelectNotesAsync",0);if(page.Visible().Count!=3)throw new Exception("clicking selected tab must keep its filter active");
  Console.WriteLine("PASS other note counts and unknown counts; velvet/steel/nitride groups; plain-before-designed; identical list/gallery order");
 });
 Console.WriteLine("Warehouse redesign smoke passed; preview "+output);
@@ -69,12 +70,13 @@ public sealed class InventoryPreview:WarehouseList{
  public static InventoryPreview? Current;protected override async Task OnInitializedAsync(){await base.OnInitializedAsync();Current=this;}
  public async Task Call(string name,params object?[] args){var value=typeof(WarehouseList).GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(this,args);if(value is Task task)await task;}
  public List<WarehouseHandpanDto> Visible()=>((IEnumerable<WarehouseHandpanDto>)typeof(WarehouseList).GetProperty("Items",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(this)!).ToList();
+ public int CountFor(int notes)=>(int)typeof(WarehouseList).GetMethod("NoteTabCount",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(this,new object[]{notes})!;
  public void Refresh()=>StateHasChanged();
 }
 public sealed class InventoryFixture:HttpMessageHandler{
  public HashSet<Guid> DeletedIds=[];public int SaleReads;public HashSet<Guid> LastPhotoIds=[];
  public List<WarehouseHandpanDto> Stock=[new(){HandpanId=Guid.NewGuid(),SerialNumber="00018",TopBowlCode="18",MaterialName="Stainless Steel",ScaleName="D Kurd 9",NoteCount=9},new(){HandpanId=Guid.NewGuid(),SerialNumber="07127",TopBowlCode="7127",MaterialName="VELVET",ScaleName="Dkurd- Cyclops 12",NoteCount=12},new(){HandpanId=Guid.NewGuid(),SerialNumber="VS-00009",TopBowlCode="VS-00009",MaterialName="VELVET",ScaleName="D Kurd 11",NoteCount=11},new(){HandpanId=Guid.NewGuid(),SerialNumber="SS-00073",TopBowlCode="SS-00073",MaterialName="Stainless Steel",ScaleName="D Kurd 11",NoteCount=11},new(){HandpanId=Guid.NewGuid(),SerialNumber="SS-00071",TopBowlCode="SS-00071",MaterialName="Stainless Steel",ScaleName="D Kurd 9",NoteCount=9},new(){HandpanId=Guid.NewGuid(),SerialNumber="SS-00080",TopBowlCode="SS-00080",MaterialName="VELVET",ScaleName="C Aegean 10",NoteCount=10},new(){HandpanId=Guid.NewGuid(),SerialNumber="ST-00004",TopBowlCode="ST-00004",MaterialName="Stainless Steel",ScaleName="D Kurd 13",NoteCount=13,QualityWarehouseId=2}];
- public InventoryFixture(){for(int i=0;i<Stock.Count;i++){Stock[i].Version=Guid.NewGuid();Stock[i].BottomBowlCode="SB-"+(30+i);Stock[i].WarehouseEntryDate=new DateTime(2026,11,3,20,13,0).AddDays(-i);}}
+ public InventoryFixture(){for(int i=0;i<Stock.Count;i++){Stock[i].TopNoteCount=9;Stock[i].BottomNoteCount=Stock[i].NoteCount-9;Stock[i].ScaleName+=$" (9+{Stock[i].BottomNoteCount})";Stock[i].Version=Guid.NewGuid();Stock[i].BottomBowlCode="SB-"+(30+i);Stock[i].WarehouseEntryDate=new DateTime(2026,11,3,20,13,0).AddDays(-i);}}
  private static readonly Guid PhotoId=Guid.Parse("aaaaaaaa-1111-4111-8111-111111111111");
  private static byte[] Image()=>File.ReadAllBytes("TORSEPAN.Panel/wwwroot/images/brand/handpan-light.webp");
  protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct){var p=request.RequestUri!.AbsolutePath;object data=Array.Empty<object>();
@@ -82,7 +84,7 @@ public sealed class InventoryFixture:HttpMessageHandler{
  else if(p.EndsWith("/export-warehouse"))data=Stock.Select((x,i)=>new ExportWarehouseItemDto{Id=x.HandpanId,ItemType="handpan",ItemKind="ساز",ProductionCode=x.SerialNumber,Detail=x.ScaleName,Location=i+1,Inventory=x}).ToArray();
  else if(p.EndsWith("/production/warehouse"))data=Stock;
  else if(p.EndsWith("/instrument-warehouses"))data=new[]{new InstrumentWarehouseDto{Id=1,Name="Economy",Version=Guid.NewGuid()},new InstrumentWarehouseDto{Id=2,Name="Studio",Version=Guid.NewGuid()},new InstrumentWarehouseDto{Id=3,Name="Signature",Version=Guid.NewGuid()}};
- else if(p.EndsWith("/details")){var item=Stock.Single(x=>p.Contains(x.HandpanId.ToString()));item.DesignName="فول پولیش";item.BottomDesignName="ساده";item.PackagingItems=["روغن","دستمال","پنگارد","سافت کیس"];item.Operations=new[]{("دیمپل","فؤاد احمدفیض"),("شیپ","شاهین نجفی"),("تیون","علیرضا ضرغامی"),("فاین تیون","علیرضا ضرغامی"),("QC","آبتین ترسه"),("بسته‌بندی","جاوید احمدفیض")}.Select((x,i)=>new WarehouseOperationDto{Operation=x.Item1,PerformedBy=x.Item2,PerformedAt=new DateTime(2026,8,12,20,2,0).AddMinutes(7*i)}).ToList();data=item;}
+ else if(p.EndsWith("/details")){var item=Stock.Single(x=>p.Contains(x.HandpanId.ToString()));item.DesignName="فول پولیش";item.BottomDesignName="ساده";item.PackagingItems=["روغن","دستمال","پایه","پنگارد","سافت کیس","مثلی","مثلثی","کارتن","EXPORT_WAREHOUSE:4"];item.Operations=new[]{("دیمپل","فؤاد احمدفیض، شاهین نجفی"),("شیپ","شاهین نجفی"),("تیون","علیرضا ضرغامی، محمدرضا ضرغامی"),("فاین تیون","علیرضا ضرغامی"),("QC","آبتین ترسه"),("بسته‌بندی","جاوید احمدفیض")}.Select((x,i)=>new WarehouseOperationDto{Operation=x.Item1,PerformedBy=x.Item2,PerformedAt=new DateTime(2026,8,12,20,2,0).AddMinutes(7*i)}).ToList();data=item;}
  else if(p.EndsWith("/warehouse/gallery")){var input=await request.Content!.ReadFromJsonAsync<JsonElement>(ct);LastPhotoIds=input.GetProperty("handpanIds").EnumerateArray().Select(x=>x.GetGuid()).ToHashSet();data=Stock.Where((x,i)=>i!=2&&LastPhotoIds.Contains(x.HandpanId)).Select(x=>new WarehouseGalleryPhotoDto{HandpanId=x.HandpanId,Id=PhotoId,Thumbnail=Image()}).ToArray();}
  else if(p.EndsWith("/photos"))data=new[]{new HandpanPhotoDto{Id=PhotoId,CreatedAt=DateTime.UtcNow}};
  else if(p.Contains("/photos/"))return new HttpResponseMessage(HttpStatusCode.OK){Content=new ByteArrayContent(Image())};

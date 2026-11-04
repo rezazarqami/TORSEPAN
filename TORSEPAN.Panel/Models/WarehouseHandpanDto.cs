@@ -17,6 +17,8 @@ public sealed class WarehouseHandpanDto
     public string? BottomDesignName { get; set; }
 
     public string MaterialName { get; set; } = string.Empty;
+    public int? TopNoteCount { get; set; }
+    public int? BottomNoteCount { get; set; }
     public int? NoteCount { get; set; }
 
     public string ScaleName { get; set; } = string.Empty;

@@ -36,7 +36,7 @@
 <section class="warehouse-content-panel" id="warehouse-inventory" role="tabpanel" aria-label="@ActiveWarehouseName"><div class="warehouse-collection">
     <div class="warehouse-collection-heading"><span class="collection-icon"><InventoryGlyph Kind="cube" /></span><div><span class="collection-label">موجودی انبار</span><h2 dir="auto">@ActiveWarehouseName</h2></div><span class="collection-count"><InventoryGlyph Kind="check" /> @_items.Count(x=>(IsExport||x.QualityWarehouseId==_activeWarehouseId)) ساز آمادهٔ تحویل</span></div>
     <div class="warehouse-note-tabs" role="group" aria-label="فیلتر تعداد نت ساز">
-    @foreach(var notes in new[]{9,10,11,12,0}){<button type="button" class="note-tab @(_noteFilter==notes?"active":null)" aria-pressed="@(_noteFilter==notes?"true":"false")" title="انتخاب دوباره برای نمایش همه تعداد نت‌ها" @onclick="()=>SelectNotesAsync(notes)"><InventoryGlyph Kind="music" /><strong>@(notes==0?"سایر":$"{notes} نت")</strong></button>}
+    @foreach(var notes in new[]{9,10,11,12,0}){<button type="button" class="note-tab @(_noteFilter==notes?"active":null)" aria-pressed="@(_noteFilter==notes?"true":"false")" title="نمایش سازهای این گروه" @onclick="()=>SelectNotesAsync(notes)"><InventoryGlyph Kind="music" /><strong>@(notes==0?"سایر":$"{notes} نت")</strong><small class="note-count">(@NoteTabCount(notes))</small></button>}
     </div>
 </div>
 <div class="inventory-board">
@@ -49,7 +49,7 @@
     @if(!Items.Any()){<EmptyState Title="سازی پیدا نشد" Description="این انبار برای تعداد نت انتخاب‌شده موجودی ندارد؛ با انتخاب دوبارهٔ تعداد نت، همهٔ سازها نمایش داده می‌شوند." />}
     @if(_galleryMode&&_galleryLoading){<div class="detail-loading" role="status">در حال دریافت عکس‌های موجودی…</div>}
     @if(_galleryMode&&_galleryError is not null){<div class="alert alert-warning">@_galleryError <button type="button" @onclick="LoadGalleryAsync">تلاش دوباره</button></div>}
-    <div class="stock-list @(_galleryMode?"stock-grid":null)">
+    <div class="stock-list @(_galleryMode?"inventory-photo-grid":null)">
     @foreach(var item in Items){
         var photo=_galleryPhotos.FirstOrDefault(x=>x.HandpanId==item.HandpanId);
         <article @key="item.HandpanId" class="stock-item @(_selected.Contains(item.HandpanId)?"selected-row":null) @(_expanded.Contains(item.HandpanId)?"is-expanded":null)">
@@ -57,7 +57,7 @@
             <div class="stock-summary">
                 <button type="button" class="stock-expand" aria-label="جزئیات ساز @item.SerialNumber" aria-expanded="@(_expanded.Contains(item.HandpanId)?"true":"false")" disabled="@_detailsLoading.Contains(item.HandpanId)" @onclick="()=>ToggleAsync(item)">@if(_detailsLoading.Contains(item.HandpanId)){<span class="spinner-border spinner-border-sm"></span>}else{@(_expanded.Contains(item.HandpanId)?"−":"+")}</button>
                 <div class="stock-code-block"><small>کد ساز</small><strong class="stock-code" dir="ltr">@item.SerialNumber</strong></div>
-                <div class="stock-scale-block"><strong class="stock-scale" dir="auto">@item.ScaleName</strong><time class="stock-entry"><InventoryGlyph Kind="calendar" /><bdi>@EntryTime(item)</bdi></time></div>
+                <div class="stock-scale-block"><strong class="stock-scale" dir="ltr">@item.ScaleName</strong><time class="stock-entry"><InventoryGlyph Kind="calendar" /><bdi>@EntryTime(item)</bdi></time></div>
                 <span class="stock-material" dir="auto">@item.MaterialName</span>
                 @if(_canSell||_canTransfer){<input class="stock-checkbox" type="checkbox" aria-label="انتخاب ساز @item.SerialNumber" checked="@_selected.Contains(item.HandpanId)" @onchange="e=>ToggleSelected(item.HandpanId,(bool?)e.Value==true)" />}
             </div>
@@ -65,14 +65,15 @@
             <section class="stock-details" aria-label="جزئیات ساز @item.SerialNumber">
                 <div class="instrument-detail-top">
                     <div class="warehouse-photo"><HandpanPhotoGallery HandpanId="@item.HandpanId" UseLineIcons="true" /></div>
-                    <div class="instrument-facts"><div class="instrument-fact"><span class="fact-icon"><InventoryGlyph Kind="ingot" /></span><div><small>متریال</small><strong dir="auto">@item.MaterialName</strong></div></div><div class="instrument-fact"><span class="fact-icon"><InventoryGlyph Kind="sliders" /></span><div><small>اسکیل</small><strong dir="auto">@item.ScaleName</strong></div></div><div class="instrument-fact"><span class="fact-icon"><InventoryGlyph Kind="layers" /></span><div><small>وضعیت</small><strong class="warehouse-status"><i></i>انبار</strong></div></div>
+                    <div class="instrument-facts"><div class="instrument-fact"><span class="fact-icon"><InventoryGlyph Kind="ingot" /></span><div><small>متریال</small><strong dir="auto">@item.MaterialName</strong></div></div><div class="instrument-fact"><span class="fact-icon"><InventoryGlyph Kind="sliders" /></span><div><small>اسکیل</small><strong dir="ltr">@item.ScaleName</strong></div></div><div class="instrument-fact"><span class="fact-icon"><InventoryGlyph Kind="layers" /></span><div><small>وضعیت</small><strong class="warehouse-status"><i></i>انبار</strong></div></div>
                     <div class="instrument-location"><span><InventoryGlyph Kind="palette" /><span><small>دیزاین</small><b>@(item.DesignName??"…")</b></span></span><span><InventoryGlyph Kind="tag" /><span><small>کد کاسه زیر</small><b><bdi>@item.BottomBowlCode</bdi> <span class="bottom-design">(@(item.BottomDesignName??"…"))</span></b></span></span></div></div>
                 </div>
                 @if(_detailErrors.Contains(item.HandpanId)){<div class="alert alert-warning">دریافت جزئیات انجام نشد. <button type="button" @onclick="()=>RetryDetailsAsync(item)">تلاش دوباره</button></div>}
                 else if(_detailsLoaded.Contains(item.HandpanId)){
+                var visiblePackaging=DisplayPackaging(item);
                 <div class="instrument-detail-lower">
-                    <section class="warehouse-packaging"><h3><InventoryGlyph Kind="cube" /> اقلام بسته‌بندی</h3><div>@if(item.PackagingItems.Count==0){<span class="packaging-empty">اقلامی ثبت نشده است</span>}else{foreach(var packaging in item.PackagingItems){<div class="packaging-item"><InventoryGlyph Kind="@PackagingKind(packaging)" /><span>@packaging</span><i>✓</i></div>}}</div></section>
-                    <section class="warehouse-history" aria-label="سوابق تولید"><div class="operation-tiles">@foreach(var op in item.Operations){<div class="operation-tile operation-@StageKey(op.Operation)"><div class="operation-title"><InventoryGlyph Kind="@OperationKind(op.Operation)" /><strong>@op.Operation</strong></div><div class="operation-person"><span><InventoryGlyph Kind="user" />@op.PerformedBy</span><time><InventoryGlyph Kind="calendar" /><bdi>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</bdi></time></div></div>}</div></section>
+                    <section class="warehouse-packaging"><h3><InventoryGlyph Kind="cube" /> اقلام بسته‌بندی</h3><div>@if(visiblePackaging.Count==0){<span class="packaging-empty">اقلامی ثبت نشده است</span>}else{foreach(var packaging in visiblePackaging){<div class="packaging-item"><InventoryGlyph Kind="@PackagingKind(packaging)" /><span>@packaging</span><i>✓</i></div>}}</div></section>
+                    <section class="warehouse-history" aria-label="سوابق تولید"><div class="operation-tiles">@foreach(var op in item.Operations){<div class="operation-tile operation-@StageKey(op.Operation)"><div class="operation-title"><InventoryGlyph Kind="@OperationKind(op.Operation)" /><strong>@op.Operation</strong></div><div class="operation-person"><span class="operation-performers"><InventoryGlyph Kind="user" /><span class="operation-name-list">@foreach(var person in op.PerformedBy.Split('،',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries)){<span class="operation-name">@person</span>}</span></span><time><InventoryGlyph Kind="calendar" /><bdi>@(op.PerformedAt==default?"—":PersianDateTime.FormatDateTime(op.PerformedAt))</bdi></time></div></div>}</div></section>
                 </div>
                 @if(item.Notes.Count>0||!string.IsNullOrWhiteSpace(item.OrderCustomerName)){<div class="warehouse-notes">@if(!string.IsNullOrWhiteSpace(item.OrderCustomerName)){<strong>سفارش @item.OrderCustomerName</strong>}@foreach(var note in item.Notes){<p>@note</p>}</div>}
                 }else{<div class="detail-loading" role="status">در حال دریافت سوابق و اقلام بسته‌بندی…</div>}
@@ -184,7 +185,7 @@
     private readonly HashSet<Guid> _expanded=[]; private readonly HashSet<Guid> _selected=[]; private readonly HashSet<Guid> _detailsLoaded=[]; private readonly HashSet<Guid> _detailsLoading=[]; private readonly HashSet<Guid> _detailErrors=[]; private readonly HashSet<Guid> _rollingBack=[]; private readonly List<Guid> _saleIds=[];
     private bool _canSell, _canTransfer, _canManage, _manageWarehouses, _transferring;
     private int _activeWarehouseId=1;
-    private int? _noteFilter; private bool _galleryMode; private int _galleryGeneration; private string? _galleryError;
+    private int? _noteFilter=9; private bool _galleryMode; private int _galleryGeneration; private string? _galleryError;
     private int? _renameBusyId, _transferWarehouseId, _transferExportLocation;
     private bool _showTransferOptions;
     private string TransferSourceName => string.Join("، ",_transferItems.Select(x=>_warehouses.FirstOrDefault(w=>w.Id==x.QualityWarehouseId)?.Name??"انبار").Distinct());
@@ -206,6 +207,8 @@
     private bool SelectedSourceRequiresReferrer=>_attribution.Sources.FirstOrDefault(x=>x.Id==_leadSourceId)?.RequiresReferrer==true;
     private string RemainingAmountText=>_price.HasValue?Math.Max(0,_price.Value-(_receivedAmount??0)).ToString(_priceCurrency==2?"N2":"N0"):"—";
     private IEnumerable<WarehouseHandpanDto> Items=>_items.Where(x=>(IsExport||x.QualityWarehouseId==_activeWarehouseId)&&(!_noteFilter.HasValue||(_noteFilter==0?x.NoteCount is not (>=9 and <=12):x.NoteCount==_noteFilter))).OrderBy(x=>MaterialPriority(x.MaterialName)).ThenBy(x=>MaterialKey(x.MaterialName),StringComparer.OrdinalIgnoreCase).ThenBy(DesignPriority).ThenByDescending(x=>x.WarehouseEntryDate??x.CreatedAt).ThenBy(x=>x.SerialNumber,StringComparer.OrdinalIgnoreCase).ThenBy(x=>x.HandpanId);
+    private static bool MatchesNotes(WarehouseHandpanDto item,int notes)=>notes==0?item.NoteCount is not (>=9 and <=12):item.NoteCount==notes;
+    private int NoteTabCount(int notes)=>_items.Count(x=>(IsExport||x.QualityWarehouseId==_activeWarehouseId)&&MatchesNotes(x,notes));
     private static string MaterialKey(string name)=>(name??"").Trim().ToLowerInvariant().Replace("ي","ی").Replace("ك","ک");
     private static int MaterialPriority(string name){var key=MaterialKey(name);if(key.Contains("velvet")||key.Contains("ولوت"))return 0;if(key.Contains("nitrid")||key.Contains("نیتراید")||key.Contains("نیترید"))return 2;if(key.Contains("steel")||key.Contains("استیل"))return 1;return 3;}
     private static int DesignPriority(WarehouseHandpanDto item){if(item.HasDesign.HasValue)return item.HasDesign.Value?1:0;return string.IsNullOrWhiteSpace(item.DesignName)?2:item.DesignName.Trim()=="ساده"?0:1;}
@@ -249,13 +252,14 @@
         var next=e.Key switch {"ArrowLeft"=>id==3?1:id+1,"ArrowRight"=>id==1?3:id-1,"Home"=>1,"End"=>3,_=>0};
         if(next==0)return;await SelectWarehouse(next);await JS.InvokeVoidAsync("torsepanWarehouse.focusTab",next);
     }
-    private async Task SelectWarehouse(int id){_activeWarehouseId=id;_selected.Clear();_expanded.Clear();if(_galleryMode)await LoadGalleryAsync();}
-    private async Task SelectNotesAsync(int notes){_noteFilter=_noteFilter==notes?null:notes;_selected.Clear();_expanded.Clear();if(_galleryMode)await LoadGalleryAsync();}
+    private async Task SelectWarehouse(int id){_activeWarehouseId=id;_noteFilter=9;_selected.Clear();_expanded.Clear();if(_galleryMode)await LoadGalleryAsync();}
+    private async Task SelectNotesAsync(int notes){_noteFilter=notes;_selected.Clear();_expanded.Clear();if(_galleryMode)await LoadGalleryAsync();}
     private async Task SetViewAsync(bool gallery){if(_galleryMode==gallery)return;_galleryMode=gallery;_expanded.Clear();if(gallery)await LoadGalleryAsync();else{_galleryGeneration++;_galleryLoading=false;}}
     private async Task LoadGalleryAsync(){var generation=++_galleryGeneration;_galleryLoading=true;_galleryError=null;try{var ids=Items.Select(x=>x.HandpanId).ToList();var photos=ids.Count==0?new List<WarehouseGalleryPhotoDto>():await ProductionService.GetWarehouseGalleryAsync(ids);if(generation==_galleryGeneration)_galleryPhotos=photos;}catch{if(generation==_galleryGeneration)_galleryError="دریافت عکس‌ها کامل نشد؛ موجودی محفوظ است.";}finally{if(generation==_galleryGeneration)_galleryLoading=false;}}
     private async Task OpenTilePhotoAsync(WarehouseHandpanDto item,WarehouseGalleryPhotoDto? photo){if(photo is null){await ToggleAsync(item);return;}await PreviewGalleryPhotoAsync(photo);}
     private static string EntryTime(WarehouseHandpanDto item)=>item.WarehouseEntryDate.HasValue?PersianDateTime.FormatDateTime(item.WarehouseEntryDate.Value):"—";
     private static string StageKey(string name)=>name.Contains("دیمپل")?"dimple":name.Contains("شیپ")?"shape":name.Contains("فاین")?"fine":name.Contains("تیون")?"tuning":name.Contains("QC")||name.Contains("کیفیت")?"qc":"pack";
+    private static List<string> DisplayPackaging(WarehouseHandpanDto item)=>item.PackagingItems.Where(name=>{var key=name.Trim().Replace("ي","ی").Replace("ك","ک");return !string.IsNullOrWhiteSpace(key)&&!key.Contains("مثلث")&&!key.Contains("مثلی")&&!key.Contains("کارتن")&&!key.StartsWith("EXPORT_WAREHOUSE:",StringComparison.OrdinalIgnoreCase);}).ToList();
     private static string PackagingKind(string name)=>name.Contains("روغن")?"oil":name.Contains("دستمال")?"layers":name.Contains("پنگارد")?"ring":name.Contains("کیس")?"case":"cube";
     private static string OperationKind(string operation)=>operation.Contains("دیمپل")?"bowl":operation.Contains("شیپ")?"cube":operation.Contains("فاین")?"tune":operation.Contains("تیون")?"cube":operation.Contains("QC")||operation.Contains("کیفیت")?"qc":"cube";
     private void OpenWarehouseManagement(){if(!_canManage)return;_warehouseNames=_warehouses.ToDictionary(x=>x.Id,x=>x.Name);_manageError=null;_manageWarehouses=true;}

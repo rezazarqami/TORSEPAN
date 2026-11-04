@@ -58,7 +58,7 @@ Check(await exclusion.SaveBatch(new([new(events[0].Id,false)]),default)is BadReq
 try{events[0].SetPayrollExcluded(false,actor.Id);throw new Exception("legacy wage guard missing");}catch(InvalidOperationException){Check(true,"domain payroll guard survives direct caller attempts");}
 var uow=new UnitOfWork(db,new UserRepository(db),new RoleRepository(db),new UserRoleRepository(db),new RefreshTokenRepository(db),new HandpanRepository(db),new HandpanAssemblyRepository(db),new BowlRepository(db),new MaterialRepository(db),new ScaleRepository(db),new ProductionEventRepository(db));
 var inventory=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(),default);
-Check(inventory.Count==1&&inventory.Single().HasDesign==true&&inventory.Single().SerialNumber=="OLD-001"&&inventory.Single().BottomBowlCode.Contains("نامشخص"),"ordinary domestic stock search includes legacy instrument, excludes export stock and hides technical bottom identity");
+Check(inventory.Count==1&&inventory.Single().ScaleName.EndsWith("(9+2)")&&inventory.Single().HasDesign==true&&inventory.Single().SerialNumber=="OLD-001"&&inventory.Single().BottomBowlCode.Contains("نامشخص"),"ordinary domestic stock search includes legacy instrument, excludes export stock and hides technical bottom identity");
 var details=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(saved.Id),default);
 Check(details.Single().Operations.Where(x=>x.Operation is "دیمپل" or "شیپ" or "تیون" or "فاین تیون").All(x=>x.PerformedBy==maker.FullName),"ordinary stock detail resolves historical dimple, shape, tune and fine tune makers");
 var edit=new AdminProductionEditsController(db);var passport=await edit.Get("old-001",default);
@@ -91,7 +91,7 @@ var read=(AdminProductionEditDto)((OkObjectResult)(await edit.Get("89",default))
 Check(read.Events.Single(x=>x.Action==(int)ProductionAction.Design).DesignTypeId==designB.Id,"editor reload exposes saved design selection");
 Check((await edit.Update("89",changeDesign with{DesignUpdates=[new(Guid.NewGuid(),null,designA.Id,maker.Id)]},default)).Result is BadRequestObjectResult,"design cannot be assigned to another instrument's bowl");
 var exportRows=((IEnumerable<ExportWarehouseRow>)((OkObjectResult)exports).Value!).ToList();
-Check(exportRows.All(x=>x.Inventory is not null&&x.Inventory.HandpanId==x.Id&&x.Inventory.HasDesign==true&&!string.IsNullOrWhiteSpace(x.Inventory.MaterialName)),"export summary supplies shared card metadata for every destination");
+Check(exportRows.All(x=>x.Inventory is not null&&x.Inventory.HandpanId==x.Id&&x.Inventory.HasDesign==true&&x.Inventory.ScaleName.EndsWith("(9+2)")&&!string.IsNullOrWhiteSpace(x.Inventory.MaterialName)),"export summary supplies shared card metadata for every destination");
 var exportId=exportRows[0].Id;
 var exportDetails=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(exportId),default);
 Check(exportDetails.Count==1&&exportDetails.Single().Operations.Count==6,"exported instrument detail includes the same production and design facts");
@@ -119,6 +119,9 @@ Check(plainSortStock.Single(x=>x.SerialNumber=="SORT-PLAIN").HasDesign==false,"d
 Check(await controller.Create(Request("SORT-EXPORT",1) with{DesignUserId=null},default) is OkObjectResult,"plain export sorting fixture registers");
 var exportSortStock=(IEnumerable<ExportWarehouseRow>)((OkObjectResult)await new ExportWarehouseController(db).Get(default)).Value!;
 Check(exportSortStock.Single(x=>x.ProductionCode=="SORT-EXPORT").Inventory!.HasDesign==false,"export list distinguishes plain instruments from designed instruments");
+Check(await controller.Create(Request("SPLIT-10-2") with{TopNotes=10,BottomNotes=2},default) is OkObjectResult&&await controller.Create(Request("SPLIT-9-3") with{TopNotes=9,BottomNotes=3},default) is OkObjectResult,"two different twelve-note layouts register");
+var splitStock=await new GetWarehouseInventoryQueryHandler(uow).Handle(new(),default);
+Check(splitStock.Single(x=>x.SerialNumber=="SPLIT-10-2").ScaleName.EndsWith("12 (10+2)")&&splitStock.Single(x=>x.SerialNumber=="SPLIT-9-3").ScaleName.EndsWith("12 (9+3)"),"same total retains distinct top/bottom note breakdown in warehouse passports");
 await UiChecks.Run();
 Console.WriteLine("Legacy stock smoke passed.");
 static void Check(bool ok,string message){if(!ok)throw new Exception(message);Console.WriteLine("PASS "+message);}
