@@ -10,6 +10,9 @@
         { midi: 61, modes: [[1, .008, .28, .81], [.26, .117, .16, 1.04], [.04, .138, .10, .42]] },
         { midi: 69, modes: [[1, .009, .14, .52], [.50, .064, .18, .46], [.39, .126, .13, .22]] }
     ];
+    const sampleDirectory = new URL("./handpan-samples/", document.currentScript.src);
+    const sampleBytes = new Map();
+    const sampleBuffers = new Map();
     const accents = new WeakMap();
     const voices = new Set();
     let context;
@@ -34,26 +37,85 @@
             mode.map((value, parameter) => value + mix * (upper.modes[index][parameter] - value)));
     }
 
-    function playSynth(pitch) {
-        const midi = midiFor(pitch);
-        if (midi === null) return;
-        const fundamental = 440 * 2 ** ((midi - 69) / 12);
+    function prepareAudio() {
         const AudioEngine = window.AudioContext || window.webkitAudioContext;
-        if (!AudioEngine) return;
-
+        if (!AudioEngine) return false;
         if (!context) {
             context = new AudioEngine();
             output = context.createDynamicsCompressor();
             output.connect(context.destination);
         }
         if (context.state === "suspended") context.resume().catch(() => {});
+        return true;
+    }
 
-        const now = context.currentTime;
+    function makeRoom(now) {
         if (voices.size >= 12) {
             const oldest = voices.values().next().value;
-            oldest.stop(now + 0.025);
+            oldest.stop(now + .025);
             voices.delete(oldest);
         }
+    }
+
+    function fetchSample(midi) {
+        if (!sampleBytes.has(midi)) {
+            const bytes = fetch(new URL(`${midi}.mp3`, sampleDirectory))
+                .then(response => {
+                    if (!response.ok) throw new Error("Handpan sample unavailable");
+                    return response.arrayBuffer();
+                });
+            sampleBytes.set(midi, bytes);
+            bytes.catch(() => sampleBytes.delete(midi));
+        }
+        return sampleBytes.get(midi);
+    }
+
+    async function playBankNote(pitch) {
+        const midi = midiFor(pitch);
+        if (midi === null || !prepareAudio()) return;
+
+        const anchor = profiles.reduce((nearest, item) =>
+            Math.abs(item.midi - midi) < Math.abs(nearest.midi - midi) ? item : nearest).midi;
+        try {
+            if (!sampleBuffers.has(anchor)) {
+                const buffer = fetchSample(anchor).then(bytes => context.decodeAudioData(bytes.slice(0)));
+                sampleBuffers.set(anchor, buffer);
+                buffer.catch(() => sampleBuffers.delete(anchor));
+            }
+            const buffer = await sampleBuffers.get(anchor);
+            const now = context.currentTime;
+            makeRoom(now);
+
+            const source = context.createBufferSource();
+            const bus = context.createGain();
+            source.buffer = buffer;
+            source.playbackRate.value = 2 ** ((midi - anchor) / 12);
+            bus.gain.value = .72;
+            source.connect(bus).connect(output);
+            const voice = {
+                stop(at) {
+                    bus.gain.setValueAtTime(.72, context.currentTime);
+                    bus.gain.linearRampToValueAtTime(0, at);
+                    source.stop(at);
+                }
+            };
+            voices.add(voice);
+            source.onended = () => {
+                bus.disconnect();
+                voices.delete(voice);
+            };
+            source.start(now);
+        } catch {
+            playSynth(pitch);
+        }
+    }
+
+    function playSynth(pitch) {
+        const midi = midiFor(pitch);
+        if (midi === null || !prepareAudio()) return;
+        const fundamental = 440 * 2 ** ((midi - 69) / 12);
+        const now = context.currentTime;
+        makeRoom(now);
 
         const bus = context.createGain();
         bus.connect(output);
@@ -113,9 +175,9 @@
         if (recording) {
             const player = recording.paused ? recording : new Audio(recording.src);
             player.currentTime = 0;
-            player.play().catch(() => playSynth(pitch));
+            player.play().catch(() => playBankNote(pitch));
         } else {
-            playSynth(pitch);
+            playBankNote(pitch);
         }
 
         button.classList.add("playing");
@@ -124,6 +186,9 @@
     });
 
     window.scalePlayground = {
+        preload() {
+            for (const { midi } of profiles) fetchSample(midi).catch(() => {});
+        },
         position(element, x, y) {
             const rect = element.getBoundingClientRect();
             const percent = (coordinate, start, length) => Math.max(0, Math.min(100, (coordinate - start) / length * 100));

@@ -3,6 +3,7 @@
 @using TORSEPAN.Application.Scales
 @attribute [Authorize(Roles = "Administrator")]
 @inject ScaleService ScaleService
+@inject IJSRuntime JS
 
 <PageTitle>کارگاه اسکیل مجازی | تورسپن</PageTitle>
 <section class="virtual-workshop" dir="rtl" aria-labelledby="virtual-workshop-title">
@@ -89,6 +90,12 @@
     private ScalePhotoSources? _photos;
     private IReadOnlyList<TORSEPAN.Panel.Models.ScaleDto> _catalog = [];
     private List<VirtualScaleSummary> _designs = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !OperatingSystem.IsBrowser())
+            await JS.InvokeVoidAsync("scalePlayground.preload");
+    }
 
     protected override async Task OnInitializedAsync()
     {
