@@ -60,18 +60,24 @@
         const oscillators = [];
         // Keep the three tuned modes at exactly 1:2:3 while reproducing their separate attacks and tails.
         const modes = modesFor(midi);
+        // Reinforce the upper modes below G3 so small phone speakers can reproduce the strike.
+        const bassSupport = Math.max(0, Math.min(1, (55 - midi) / 12));
+        const minimumBassPeaks = [1, .76, .42];
         for (const [index, [relativePeak, attack, earlyDecay, tailDecay]] of modes.entries()) {
             const oscillator = context.createOscillator();
             const envelope = context.createGain();
-            const peak = relativePeak * .30;
+            const supportedPeak = relativePeak + bassSupport * Math.max(0, minimumBassPeaks[index] - relativePeak);
+            const peak = supportedPeak * (.30 + .05 * bassSupport);
+            const attackTime = attack * (1 - .6 * bassSupport);
             const floor = .00008;
-            const earlyEnd = now + attack + .17;
-            const tailStart = Math.max(floor, peak * Math.exp(-.17 / earlyDecay));
-            const end = earlyEnd + Math.min(4, tailDecay * Math.log(tailStart / floor));
+            const earlyEnd = now + attackTime + .17;
+            const tailStart = Math.max(floor, peak * Math.exp(-.17 / (earlyDecay * 1.35)));
+            const sustain = tailDecay * 1.65 + .28 * bassSupport;
+            const end = earlyEnd + Math.min(7, sustain * Math.log(tailStart / floor));
 
             oscillator.frequency.value = fundamental * (index + 1);
             envelope.gain.setValueAtTime(floor, now);
-            envelope.gain.exponentialRampToValueAtTime(peak, now + attack);
+            envelope.gain.exponentialRampToValueAtTime(peak, now + attackTime);
             envelope.gain.exponentialRampToValueAtTime(tailStart, earlyEnd);
             envelope.gain.exponentialRampToValueAtTime(floor, end);
             oscillator.connect(envelope).connect(bus);
