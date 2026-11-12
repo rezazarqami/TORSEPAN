@@ -121,3 +121,24 @@ test('warehouse exposes total note counts from cached instrument metadata',()=>{
 test('warehouse preserves top and bottom designs for the inventory detail card',()=>{const s=fixture(),b=s.snapshot.bowls[0];b.stage=18;b.instrumentCode="DESIGN-1";s.snapshot.passports.records=[{code:"DESIGN-1",design:"فول پولیش",bottomDesign:"ساده"}];const row=harness(s).request("GET","production/warehouse").value[0];assert.equal(row.designName,"فول پولیش");assert.equal(row.bottomDesignName,"ساده");assert.equal(row.hasDesign,true);});
 
 test('export inventory shares metadata and confirmed instrument deletion offline',()=>{const s=fixture(),b=s.snapshot.bowls[0];b.stage=22;b.instrumentCode="EXPORT-12";b.packagingExportLocation=3;s.snapshot.workspace.sections.assemblies=[{id:id(70),topBowlId:b.id,bottomBowlId:id(71)}];s.snapshot.workspace.sections.handpans=[{id:id(50),assemblyId:id(70),serialNumber:b.instrumentCode,stage:22,exportWarehouseLocation:3,noteCount:12}];const h=harness(s),rows=h.request('GET','export-warehouse').value;assert.equal(rows.length,1);assert.equal(rows[0].location,3);assert.equal(rows[0].inventory.noteCount,12);assert.equal(h.request('DELETE','production/'+id(50)).status,200);assert.equal(h.request('GET','export-warehouse').value.length,0);});
+
+test('production tabs count and sort work before warehouse entry',()=>{
+ const state=fixture();
+ const add=(code,stage,instrumentCode)=>state.snapshot.bowls.push({
+  ...state.snapshot.bowls[0],id:id(state.snapshot.bowls.length+20),code,stage,instrumentCode
+ });
+ add('ZZ-FINISHED',18);
+ add('ZZ-EXPORT',22);
+ add('ZZ-SOLD',20);
+ add('ZZ-REJECTED',19);
+ add('TS-003',21);
+ add('AA-TOP',12,'AA-002');
+ add('BB-TOP',16,'BB-001');
+ add('ZZ-TOP',22,'ZZ-004');
+ const h=harness(state);
+ const page=h.request('GET','bowls?productionOnly=true&pageSize=1').value;
+ assert.equal(page.totalItems,2);
+ assert.deepEqual(page.items.map(x=>x.productionCode),['VS-001']);
+ assert.deepEqual(h.request('GET','bowls?productionOnly=true&pageSize=1&page=2').value.items.map(x=>x.productionCode),['TS-003']);
+ assert.deepEqual(h.request('GET','handpans').value.map(x=>x.serialNumber),['BB-001','AA-002']);
+});

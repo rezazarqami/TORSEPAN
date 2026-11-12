@@ -21,6 +21,6 @@ public sealed class GetAllBowlsQueryHandler
         return await _queryService.GetAllAsync(
             request.PageRequest, request.BowlType, request.HasNotes,
             request.MaterialId, request.ScaleId, request.Stage,
-            cancellationToken);
+            cancellationToken, request.ProductionOnly);
     }
 }

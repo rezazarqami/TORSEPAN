@@ -20,7 +20,8 @@ public sealed class BowlService
     }
 
     public Task<PagedResult<BowlDto>?> GetPageAsync(int page, int pageSize = 20,
-        int? bowlType = null, bool? hasNotes = null, Guid? materialId = null, Guid? scaleId = null, int? stage = null)
+        int? bowlType = null, bool? hasNotes = null, Guid? materialId = null, Guid? scaleId = null, int? stage = null,
+        bool productionOnly = false)
     {
         var values = new List<string> { $"page={page}", $"pageSize={pageSize}" };
         if (bowlType.HasValue) values.Add($"bowlType={bowlType}");
@@ -28,6 +29,7 @@ public sealed class BowlService
         if (materialId.HasValue) values.Add($"materialId={materialId}");
         if (scaleId.HasValue) values.Add($"scaleId={scaleId}");
         if (stage.HasValue) values.Add($"stage={stage}");
+        if (productionOnly) values.Add("productionOnly=true");
         return _api.GetAsync<PagedResult<BowlDto>>("bowls?" + string.Join("&", values));
     }
 

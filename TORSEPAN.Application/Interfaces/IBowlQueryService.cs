@@ -9,7 +9,7 @@ public interface IBowlQueryService
     Task<PagedResult<BowlDto>> GetAllAsync(
         PageRequest pageRequest, int? bowlType, bool? hasNotes,
         Guid? materialId, Guid? scaleId, int? stage,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken, bool productionOnly = false);
 
     Task<BowlDetailDto?> GetByIdAsync(
         Guid id,

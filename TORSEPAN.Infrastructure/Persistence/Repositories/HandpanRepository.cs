@@ -100,7 +100,9 @@ public class HandpanRepository
         return await _dbSet
             .AsNoTracking()
             .AsSplitQuery()
-            .Where(x => x.Stage != ProductionStage.FinishedWarehouse && x.Stage != ProductionStage.Sold)
+            .Where(x => x.Status != ProductionStatus.Rejected &&
+                ((x.Stage >= ProductionStage.WaitingForDimple && x.Stage <= ProductionStage.Packaging) ||
+                 x.Stage == ProductionStage.WaitingForExportPackaging))
             .Include(x => x.Assembly)
                 .ThenInclude(x => x.TopBowl)
                     .ThenInclude(x => x.Material)
@@ -117,7 +119,7 @@ public class HandpanRepository
                 .ThenInclude(x => x.BottomBowl)
                     .ThenInclude(x => x.ProductionEvents)
                         .ThenInclude(x => x.User)
-            .OrderByDescending(x => x.CreatedAt)
+            .OrderByDescending(x => x.SerialNumber)
             .ToListAsync();
     }
 

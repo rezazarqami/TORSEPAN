@@ -43,8 +43,35 @@ static class BackendChecks
             }
         }
         await db.SaveChangesAsync(); db.ChangeTracker.Clear();
+        Add("ZZ-EXPORT", ProductionStage.ExportWarehouse);
+        var packaging = Add("AA-PACK", ProductionStage.WaitingForPackaging);
+        Bowl AddBowl(string code, ProductionStage stage)
+        {
+            var bowl = new Bowl(code, BowlType.Top, true, InstrumentType.Standard, material.Id);
+            bowl.ChangeStage(stage);
+            db.Add(bowl);
+            return bowl;
+        }
+        AddBowl("AA-DIMPLE", ProductionStage.WaitingForDimple);
+        var exportPackaging = AddBowl("BB-PACK", ProductionStage.WaitingForExportPackaging);
+        AddBowl("ZZ-BOWL-STOCK", ProductionStage.ExportWarehouse);
+        AddBowl("ZZ-BOWL-FINISHED", ProductionStage.FinishedWarehouse);
+        AddBowl("ZZ-BOWL-SOLD", ProductionStage.Sold);
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+
+        var bowlQuery = new TORSEPAN.Infrastructure.Services.BowlQueryService(db);
+        var firstPage = await bowlQuery.GetAllAsync(new(1, 1), null, null, null, null, null, default, productionOnly: true);
+        var secondPage = await bowlQuery.GetAllAsync(new(2, 1), null, null, null, null, null, default, productionOnly: true);
+        Check(firstPage.TotalItems == 2 && firstPage.Items.Single().Id == exportPackaging.Id &&
+            secondPage.Items.Single().ProductionCode == "AA-DIMPLE",
+            "production bowl pages count and sort only unassembled work before warehouse entry");
+
         var repository = new HandpanRepository(db);
-        var activeRead = (await repository.GetAllWithAssemblyAsync()).Single(x => x.Id == pending.Id);
+        var production = (await repository.GetAllWithAssemblyAsync()).ToList();
+        Check(production.Select(x => x.Id).SequenceEqual(new[] { pending.Id, packaging.Id }),
+            "production instruments exclude warehouse and sold records and sort by code");
+        var activeRead = production[0];
         var stockRead = (await repository.GetWarehouseInventoryAsync()).Single(x => x.Id == stock1.Id);
         foreach (var instrument in new[] { activeRead, stockRead })
             Check(instrument.ProductionEvents.Count == 3 && instrument.Assembly.TopBowl.ProductionEvents.Count == 3 &&
@@ -61,6 +88,8 @@ static class BackendChecks
         var invalid=await qc.Handle(new("ST-QC",true,null,null,4),default);Check(invalid.IsFailure,"QC refuses unknown warehouse IDs");
         var approved=await qc.Handle(new("ST-QC",true,null,null,3),default);db.ChangeTracker.Clear();var approvedStock=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==pending.Id);Check(approved.IsSuccess&&approvedStock.QualityWarehouseId==3&&approvedStock.Stage==ProductionStage.WaitingForPackaging,"QC assigns Signature before packaging");
         approvedStock.ChangeStage(ProductionStage.FinishedWarehouse);db.Update(approvedStock);await db.SaveChangesAsync();db.ChangeTracker.Clear();Check((await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==pending.Id)).QualityWarehouseId==3,"packaging/warehouse entry preserves QC classification");
+        Check(!(await repository.GetAllWithAssemblyAsync()).Any(x => x.Id == pending.Id),
+            "a packaged domestic instrument leaves production");
         var exportPending=Add("ST-QC-EXPORT",ProductionStage.WaitingForQualityControl);await db.SaveChangesAsync();db.ChangeTracker.Clear();
         var badExport=await qc.Handle(new("ST-QC-EXPORT",true,null,null,1,(ExportWarehouseLocation)99),default);Check(badExport.IsFailure,"QC rejects invalid export destination");
         var exportQc=await qc.Handle(new("ST-QC-EXPORT",true,null,null,1,ExportWarehouseLocation.London),default);db.ChangeTracker.Clear();
@@ -69,6 +98,8 @@ static class BackendChecks
         var exportPack=await pack.Handle(new("ST-QC-EXPORT",Array.Empty<Guid>(),null),default);db.ChangeTracker.Clear();
         Check(exportPack.IsSuccess&&await db.Handpans.AnyAsync(x=>x.Id==exportPending.Id&&x.Stage==ProductionStage.ExportWarehouse&&x.ExportWarehouseLocation==ExportWarehouseLocation.London),"packaging uses persisted QC destination without receiving it from the browser");
         Check(await db.Bowls.Where(x=>x.ProductionCode.StartsWith("ST-QC-EXPORT")).AllAsync(x=>x.Stage==ProductionStage.FinishedWarehouse),"export instrument components do not become duplicate export stock");
+        Check(!(await repository.GetAllWithAssemblyAsync()).Any(x => x.Id == exportPending.Id),
+            "a packaged export instrument leaves production");
         var controller=new InstrumentWarehousesController(db){ControllerContext=new ControllerContext{HttpContext=http.HttpContext}};
         var before=await db.Handpans.AsNoTracking().SingleAsync(x=>x.Id==stock1.Id);var warehouse=await db.InstrumentWarehouses.AsNoTracking().SingleAsync(x=>x.Id==1);var renamed=await controller.Rename(1,new("Entry",warehouse.Version),default);db.ChangeTracker.Clear();Check(renamed is OkObjectResult&&await db.Handpans.AllAsync(x=>x.Id!=stock1.Id||x.QualityWarehouseId==1),"renaming changes labels without moving stock");
         var duplicate=await controller.Rename(2,new(" entry ",(await db.InstrumentWarehouses.AsNoTracking().SingleAsync(x=>x.Id==2)).Version),default);db.ChangeTracker.Clear();Check(duplicate is ConflictObjectResult,"duplicate warehouse names are rejected case-insensitively");

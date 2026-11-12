@@ -225,7 +225,8 @@ else
             bool.TryParse(_notesFilter,out var notes)?notes:null,
             Guid.TryParse(_materialFilter,out var material)?material:null,
             Guid.TryParse(_scaleFilter,out var scale)?scale:null,
-            int.TryParse(_stageFilter,out var stage)?stage:null);
+            int.TryParse(_stageFilter,out var stage)?stage:null,
+            productionOnly: true);
         _bowlPage = result?.Page ?? page;
         _bowlTotalPages = result?.TotalPages ?? 0;
         _bowlTotalItems = result?.TotalItems ?? 0;
@@ -363,7 +364,7 @@ else
     private static int? RollbackStage(int stage, bool handpan) => handpan
         ? stage switch { 11 => 10, 12 => 11, 14 => 12, 16 => 14, 18 => 16, 20 => 18, _ => null }
         : stage switch { 4 => 2, 6 => 4, 8 => 6, 10 => 8, 21 => 8, 22 => 21, 20 => 22, _ => null };
-    private static readonly (int Value,string Text)[] StageOptions=[(2,"در انتظار دیمپل"),(4,"در انتظار شیپ"),(6,"در انتظار پخت"),(8,"در انتظار تیون"),(10,"در انتظار چسب"),(11,"اتاق چسب"),(12,"در انتظار فاین تیون"),(14,"در انتظار QC"),(16,"در انتظار بسته‌بندی"),(21,"در انتظار بسته‌بندی صادراتی"),(22,"انبار صادراتی")];
+    private static readonly (int Value,string Text)[] StageOptions=[(2,"در انتظار دیمپل"),(4,"در انتظار شیپ"),(6,"در انتظار پخت"),(8,"در انتظار تیون"),(10,"در انتظار چسب"),(11,"اتاق چسب"),(12,"در انتظار فاین تیون"),(14,"در انتظار QC"),(16,"در انتظار بسته‌بندی"),(21,"در انتظار بسته‌بندی صادراتی")];
     private static readonly (int Value,string Text)[] HandpanStageOptions=[(11,"اتاق چسب"),(12,"در انتظار فاین تیون"),(14,"در انتظار QC"),(16,"در انتظار بسته‌بندی")];
 
     private static string StageText(int stage) => stage switch

@@ -51,10 +51,11 @@ public sealed class BowlsController : ControllerBase
         [FromQuery] int? bowlType = null, [FromQuery] bool? hasNotes = null,
         [FromQuery] Guid? materialId = null, [FromQuery] Guid? scaleId = null,
         [FromQuery] int? stage = null,
+        [FromQuery] bool productionOnly = false,
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(
-            new GetAllBowlsQuery(new PageRequest(page, pageSize), bowlType, hasNotes, materialId, scaleId, stage),
+            new GetAllBowlsQuery(new PageRequest(page, pageSize), bowlType, hasNotes, materialId, scaleId, stage, productionOnly),
             cancellationToken);
 
         return Ok(result);

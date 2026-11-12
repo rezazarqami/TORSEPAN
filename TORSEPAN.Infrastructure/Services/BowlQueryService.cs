@@ -20,11 +20,17 @@ public sealed class BowlQueryService : IBowlQueryService
     public async Task<PagedResult<BowlDto>> GetAllAsync(
         PageRequest pageRequest, int? bowlType, bool? hasNotes,
         Guid? materialId, Guid? scaleId, int? stage,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool productionOnly = false)
     {
         var bowls = _context.Bowls
             .AsNoTracking()
             .Where(x => !x.TopAssemblies.Any() && !x.BottomAssemblies.Any());
+        if (productionOnly)
+        {
+            bowls = bowls.Where(x => x.Status != ProductionStatus.Rejected &&
+                ((x.Stage >= ProductionStage.WaitingForDimple && x.Stage <= ProductionStage.Packaging) ||
+                 x.Stage == ProductionStage.WaitingForExportPackaging));
+        }
         if (bowlType.HasValue) bowls = bowls.Where(x => (int)x.BowlType == bowlType.Value);
         if (hasNotes.HasValue) bowls = bowls.Where(x => x.HasNotes == hasNotes.Value);
         if (materialId.HasValue) bowls = bowls.Where(x => x.MaterialId == materialId.Value);
