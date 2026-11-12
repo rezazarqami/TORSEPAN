@@ -8,10 +8,11 @@
     let output;
 
     function frequency(pitch) {
-        const note = /^([A-G])([#b]?)([1-7])$/i.exec(pitch);
+        const note = /^([A-G])([#b]?)([2-6])$/i.exec(pitch);
         if (!note) return null;
         const accidental = note[2] === "#" ? 1 : note[2] === "b" ? -1 : 0;
         const midi = (Number(note[3]) + 1) * 12 + semitones[note[1].toUpperCase()] + accidental;
+        if (midi < 41 || midi > 85) return null;
         return 440 * 2 ** ((midi - 69) / 12);
     }
 
@@ -37,8 +38,8 @@
         const bus = context.createGain();
         bus.connect(output);
         const oscillators = [];
-        // A tuned fundamental, octave and twelfth with short, inharmonic shell resonances.
-        const modes = [[1, .32, 2.15], [2, .12, 1.05], [3, .065, .67], [4.18, .031, .24], [6.72, .016, .12]];
+        // Fundamental, octave and octave plus a pure fifth (ratios 1:2:3).
+        const modes = [[1, .32, 2.15], [2, .12, 1.05], [3, .065, .67]];
         for (const [ratio, volume, duration] of modes) {
             if (fundamental * ratio >= context.sampleRate / 2) continue;
             const oscillator = context.createOscillator();

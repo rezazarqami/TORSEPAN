@@ -31,6 +31,7 @@ public class TORSEPANDbContext : DbContext
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<Scale> Scales => Set<Scale>();
     public DbSet<ScalePhotos> ScalePhotos => Set<ScalePhotos>();
+    public DbSet<VirtualScaleDesign> VirtualScaleDesigns => Set<VirtualScaleDesign>();
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
     public DbSet<CustomerOrderLine> CustomerOrderLines => Set<CustomerOrderLine>();
     public DbSet<OrderInstrument> OrderInstruments => Set<OrderInstrument>();

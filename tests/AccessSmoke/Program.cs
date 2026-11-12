@@ -38,6 +38,10 @@ async Task Verify(Type type, string? method, Func<string,bool> expected)
 // Every signed-in workshop role can view and maintain the shared scale catalogue.
 foreach (var method in new[] { "GetAll", "Create", "Rename", "Delete" })
     await Verify(typeof(ScalesController), method, _ => true);
+await Verify(typeof(ScalesController), "GetPhotos", _ => true);
+foreach (var method in new[] { "GetPlayground", "ListVirtualDesigns", "GetVirtualDesign", "SaveVirtualDesign" })
+    await Verify(typeof(ScalesController), method, role => role == "Administrator");
+await Verify(typeof(TORSEPAN.Panel.Components.Pages.VirtualScales), null, role => role == "Administrator");
 // Exercise Create as ordinary users as well: a policy-only check cannot catch
 // an extra in-method role restriction on the shared (all usages) catalogue.
 foreach (var role in roles.Append(""))

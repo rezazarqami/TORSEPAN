@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TORSEPAN.Application.Scales;
 using TORSEPAN.Infrastructure.Persistence;
+using TORSEPAN.Domain.Entities;
 
 namespace TORSEPAN.API.Controllers;
 
@@ -28,42 +29,73 @@ public sealed class ScalesController : ControllerBase
     [HttpGet("{id:guid}/photos")]
     public async Task<IActionResult> GetPhotos(Guid id, [FromServices] TORSEPANDbContext db, CancellationToken cancellationToken)
     {
-        var photos = await db.ScalePhotos.AsNoTracking().SingleOrDefaultAsync(x => x.ScaleId == id, cancellationToken);
-        return Ok(new
-        {
-            Top = ImageSource(photos?.Top),
-            Bottom = ImageSource(photos?.Bottom),
-            Playground = photos?.PlaygroundJson is { } json ? JsonSerializer.Deserialize<ScalePlayground>(json) : null
-        });
+        var photos = await db.ScalePhotos.AsNoTracking().Where(x => x.ScaleId == id)
+            .Select(x => new { x.Top, x.Bottom }).SingleOrDefaultAsync(cancellationToken);
+        return Ok(new { Top = ImageSource(photos?.Top), Bottom = ImageSource(photos?.Bottom) });
     }
 
-    [HttpPut("{id:guid}/playground"), RequestSizeLimit(23_000_000)]
-    public async Task<IActionResult> SavePlayground(Guid id, SaveScalePlayground request,
-        [FromServices] TORSEPANDbContext db, CancellationToken cancellationToken)
+    [HttpGet("{id:guid}/playground"), Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> GetPlayground(Guid id, [FromServices] TORSEPANDbContext db, CancellationToken ct)
     {
-        if (!ValidPhoto(request.TopPhoto) || !ValidPhoto(request.BottomPhoto))
+        var photos = await db.ScalePhotos.AsNoTracking().SingleOrDefaultAsync(x => x.ScaleId == id, ct);
+        return Ok(DesignPayload(photos?.Top, photos?.Bottom, photos?.PlaygroundJson));
+    }
+
+    [HttpGet("virtual-designs"), Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> ListVirtualDesigns([FromServices] TORSEPANDbContext db, CancellationToken ct) =>
+        Ok(await db.VirtualScaleDesigns.AsNoTracking().OrderBy(x => x.Name)
+            .Select(x => new VirtualScaleSummary(x.Id, x.Name)).ToListAsync(ct));
+
+    [HttpGet("virtual-designs/{id:guid}"), Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> GetVirtualDesign(Guid id, [FromServices] TORSEPANDbContext db, CancellationToken ct)
+    {
+        var design = await db.VirtualScaleDesigns.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
+        return design is null ? NotFound() : Ok(DesignPayload(design.Top, design.Bottom, design.NotesJson));
+    }
+
+    [HttpPut("virtual-designs/{id:guid}"), Authorize(Roles = "Administrator"), RequestSizeLimit(23_000_000)]
+    public async Task<IActionResult> SaveVirtualDesign(Guid id, SaveVirtualScale request,
+        [FromServices] TORSEPANDbContext db, CancellationToken ct)
+    {
+        var name = request.Name?.Trim();
+        var design = request.Design;
+        if (id == Guid.Empty || string.IsNullOrWhiteSpace(name) || name.Length > 100 || design is null)
+            return BadRequest("نام ساز مجازی معتبر نیست.");
+        if (!ValidPhoto(design.TopPhoto) || !ValidPhoto(design.BottomPhoto))
             return BadRequest(PhotoError);
-        var playground = request.Playground;
+        var playground = design.Playground;
         if (playground?.Notes is null || playground.Notes.Count > ScalePlayground.MaxNotes ||
             playground.Notes.Any(note => note is null || !ScalePlayground.IsPitch(note.Pitch) ||
                 !double.IsFinite(note.X) || !double.IsFinite(note.Y) ||
                 note.X is < 0 or > 100 || note.Y is < 0 or > 100 || !ValidRecording(note)))
             return BadRequest("نت، محل نت یا فایل صوتی معتبر نیست.");
 
-        if (!await db.Scales.AnyAsync(scale => scale.Id == id && scale.IsActive, cancellationToken))
-            return NotFound();
-
-        var photos = await db.ScalePhotos.FindAsync([id], cancellationToken);
-        if (photos is null)
+        var item = await db.VirtualScaleDesigns.FindAsync([id], ct);
+        byte[]? top = design.TopPhoto, bottom = design.BottomPhoto;
+        if (item is null)
         {
-            photos = new(id);
-            db.ScalePhotos.Add(photos);
+            if (request.SourceScaleId is { } sourceId && (top is null || bottom is null))
+            {
+                var source = await db.ScalePhotos.AsNoTracking().Where(x => x.ScaleId == sourceId)
+                    .Select(x => new { x.Top, x.Bottom }).SingleOrDefaultAsync(ct);
+                top ??= source?.Top;
+                bottom ??= source?.Bottom;
+            }
+            item = new(id);
+            db.VirtualScaleDesigns.Add(item);
         }
-        photos.Apply(request.TopPhoto, request.BottomPhoto);
-        photos.SetPlayground(JsonSerializer.Serialize(playground));
-        await db.SaveChangesAsync(cancellationToken);
+
+        item.Update(name, JsonSerializer.Serialize(playground), top, bottom);
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
+
+    private static object DesignPayload(byte[]? top, byte[]? bottom, string? json) => new
+    {
+        Top = ImageSource(top),
+        Bottom = ImageSource(bottom),
+        Playground = json is null ? null : JsonSerializer.Deserialize<ScalePlayground>(json)
+    };
 
     private static bool ValidRecording(ScalePlaygroundNote note)
     {

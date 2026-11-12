@@ -1,0 +1,178 @@
+@page "/virtual-scales"
+@using Microsoft.AspNetCore.Authorization
+@using TORSEPAN.Application.Scales
+@attribute [Authorize(Roles = "Administrator")]
+@inject ScaleService ScaleService
+
+<PageTitle>کارگاه اسکیل مجازی | تورسپن</PageTitle>
+<section class="virtual-workshop" dir="rtl" aria-labelledby="virtual-workshop-title">
+    <h1 id="virtual-workshop-title">کارگاه اسکیل مجازی</h1>
+    @if (OperatingSystem.IsBrowser())
+    {
+        <p>برای ورود به کارگاه، به حالت آنلاین بروید.</p>
+    }
+    else
+    {
+        <nav class="workshop-tabs" aria-label="بخش‌های کارگاه">
+            <button type="button" aria-pressed="@_bank" disabled="@_editing" @onclick="() => _bank = true">بانک صدا</button>
+            <button type="button" aria-pressed="@(!_bank)" @onclick="() => _bank = false">طراحی اسکیل</button>
+        </nav>
+        @if (_bank)
+        {
+            <section class="workshop-card" aria-label="بانک صدای نت‌ها">
+                <h2>بانک صدا</h2>
+                <p>فا ۲ تا دو دیز ۶ · برای شنیدن صدا روی نت بزنید.</p>
+                <div class="sound-bank" dir="ltr">
+                    @foreach (var note in ScalePlayground.SoundBank)
+                    {
+                        <button type="button" class="sound-note" data-scale-pitch="@note">@note</button>
+                    }
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="workshop-card">
+                <h2>طراحی اسکیل</h2>
+                @if (_error is not null)
+                {
+                    <p role="alert">@_error</p>
+                }
+                <label>شروع از
+                    <select class="form-select" value="@_selection" @onchange="SelectAsync" disabled="@(_loading || _editing)">
+                        <option value="">اسکیل جدید</option>
+                        <optgroup label="نمونه‌های آماده">
+                            @foreach (var preset in Presets)
+                            {
+                                <option value="@($"preset:{preset.Key}")">@preset.Value.Name</option>
+                            }
+                        </optgroup>
+                        @if (_catalog.Count > 0)
+                        {
+                            <optgroup label="اسکیل‌های سامانه">
+                                @foreach (var scale in _catalog)
+                                {
+                                    <option value="@($"catalog:{scale.Id}")">@scale.Name</option>
+                                }
+                            </optgroup>
+                        }
+                        @if (_designs.Count > 0)
+                        {
+                            <optgroup label="طرح‌های کارگاه">
+                                @foreach (var design in _designs)
+                                {
+                                    <option value="@($"saved:{design.Id}")">@design.Name</option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                </label>
+                @if (!_loading)
+                {
+                    <label>نام طرح
+                        <input class="form-control" maxlength="100" @bind="_name" @bind:event="oninput" />
+                    </label>
+                    <ScalePlaygroundEditor @key="_designId" Photos="_photos" PhotosChanged="value => _photos = value"
+                                           EditingChanged="value => _editing = value" SaveDesign="SaveAsync" />
+                }
+            </section>
+        }
+    }
+</section>
+
+@code {
+    private bool _bank = true, _loading = true, _editing;
+    private string _selection = "", _name = "";
+    private string? _error;
+    private Guid _designId = Guid.NewGuid();
+    private Guid? _sourceId;
+    private ScalePhotoSources? _photos;
+    private IReadOnlyList<TORSEPAN.Panel.Models.ScaleDto> _catalog = [];
+    private List<VirtualScaleSummary> _designs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (OperatingSystem.IsBrowser()) return;
+        try
+        {
+            _catalog = await ScaleService.GetAsync();
+            _designs = [.. await ScaleService.GetVirtualDesignsAsync()];
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task SelectAsync(ChangeEventArgs args)
+    {
+        var selected = args.Value?.ToString() ?? "";
+        _loading = true;
+        _error = null;
+        try
+        {
+            var parts = selected.Split(':', 2);
+            var id = parts.Length == 2 && Guid.TryParse(parts[1], out var parsed) ? parsed : Guid.Empty;
+            ScalePhotoSources? photos = null;
+            var name = "";
+            if (parts[0] == "catalog")
+            {
+                name = _catalog.First(x => x.Id == id).Name;
+                photos = await ScaleService.GetPlaygroundAsync(id);
+                if (photos?.Playground is null)
+                {
+                    var preset = Presets.FirstOrDefault(item =>
+                        item.Value.Name.Equals(name, StringComparison.OrdinalIgnoreCase) ||
+                        item.Value.Name[..^2].Equals(name, StringComparison.OrdinalIgnoreCase));
+                    if (preset.Key is not null)
+                        photos = new(photos?.Top, photos?.Bottom, Preset(preset.Key).Photos.Playground);
+                }
+            }
+            else if (parts[0] == "saved")
+            {
+                name = _designs.First(x => x.Id == id).Name;
+                photos = await ScaleService.GetVirtualDesignAsync(id);
+            }
+            else if (parts[0] == "preset")
+            {
+                (name, photos) = Preset(parts[1]);
+            }
+            _designId = parts[0] == "saved" ? id : Guid.NewGuid();
+            _sourceId = parts[0] == "catalog" ? id : null;
+            _photos = photos;
+            _name = name;
+            _selection = selected;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private async Task SaveAsync(SaveScalePlayground design)
+    {
+        var name = _name.Trim();
+        if (name.Length is 0 or > 100)
+            throw new InvalidOperationException("نام طرح را وارد کنید.");
+
+        await ScaleService.SaveVirtualDesignAsync(_designId, new(name, design, _sourceId));
+        _designs.RemoveAll(item => item.Id == _designId);
+        _designs.Add(new(_designId, name));
+        _selection = $"saved:{_designId}";
+        _sourceId = null;
+    }
+
+    private static readonly Dictionary<string, (string Name, string Pitches)> Presets = new()
+    {
+        ["kurd"] = ("D Kurd 9", "D3 A3 Bb3 C4 D4 E4 F4 G4 A4"),
+        ["amara"] = ("D Celtic Minor (Amara) 9", "D3 A3 C4 D4 E4 F4 G4 A4 C5"),
+        ["integral"] = ("D Integral 9", "D3 A3 Bb3 C4 D4 E4 F4 A4 C5"),
+        ["pygmy"] = ("A Pygmy 9", "A2 E3 A3 B3 C4 E4 G4 A4 B4"),
+        ["hijaz"] = ("A Hijaz 9", "A2 E3 G3 A3 Bb3 C#4 D4 E4 G4"),
+        ["minor"] = ("A2 Minor 9", "A2 A3 B3 C4 D4 E4 F4 G4 A4")
+    };
+
+    private static (string Name, ScalePhotoSources Photos) Preset(string preset)
+    {
+        var (name, pitches) = Presets[preset];
+        (double X, double Y)[] positions = [(50,49), (70,82), (30,82), (86,56), (14,56), (81,27), (19,27), (62,14), (38,14)];
+        var notes = pitches.Split(' ').Select((pitch, index) => new ScalePlaygroundNote(pitch, positions[index].X, positions[index].Y)).ToArray();
+        return (name, new(null, null, new(notes)));
+    }
+}

@@ -1534,6 +1534,31 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("UserRoles", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.VirtualScaleDesign", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Bottom")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NotesJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("Top")
+                        .HasColumnType("bytea");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VirtualScaleDesigns");
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.WorkPlan", b =>
                 {
                     b.Property<Guid>("Id")

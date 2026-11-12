@@ -1,13 +1,8 @@
 @using TORSEPAN.Application.Scales
-@inject ScaleService ScaleService
 @inject IJSRuntime JS
 
 <div class="scale-playground">
-    @if (!_editing && _saved.Count == 0)
-    {
-        @ChildContent
-    }
-    else
+    @if (_editing || _saved.Count > 0)
     {
         @if (_editing || Photos?.Bottom is not null || _saved.Any(note => note.Bottom))
         {
@@ -18,13 +13,16 @@
         }
         @if (_editing)
         {
-            <p>روی جای نت در تصویر بزنید، سپس نام آن را وارد کنید. برای ویرایش، خود نت را بزنید.</p>
+            <p>روی جای نت در تصویر بزنید، سپس نت را از فهرست انتخاب کنید. برای ویرایش، خود نت را بزنید.</p>
             <div class="playground-controls">
                 <label class="playground-audio">
-                    @(_bottom ? "انتخاب عکس کاسه زیر" : "انتخاب عکس کاسه رو")
+                    <span>@(_bottom ? "انتخاب عکس کاسه زیر" : "انتخاب عکس کاسه رو")</span>
+                    @if ((_bottom ? _bottomPhoto : _topPhoto) is not null)
+                    {
+                        <span aria-hidden="true">✓</span>
+                    }
                     <InputFile @key="_bottom" OnChange="ReadPhotoAsync" disabled="@_busy" accept="image/jpeg,image/png,image/webp" />
                 </label>
-                <button type="button" disabled="@_busy" @onclick="LoadExample">نمونه لا مینور ۹ نت</button>
             </div>
         }
         var notes = (_editing ? _draft : _saved).Where(note => note.Bottom == _bottom).ToList();
@@ -71,10 +69,20 @@
         {
             <div class="playground-fields">
                 <label>نام نت
-                    <input class="form-control" dir="ltr" placeholder="A2" maxlength="4" @bind="_pitch" @bind:event="oninput" disabled="@_busy" />
+                    <select class="form-select" dir="ltr" @bind="_pitch" disabled="@_busy">
+                        <option value="">انتخاب نت</option>
+                        @if (ScalePlayground.IsPitch(_pitch) && !ScalePlayground.SoundBank.Contains(_pitch))
+                        {
+                            <option value="@_pitch">@_pitch</option>
+                        }
+                        @foreach (var pitch in ScalePlayground.SoundBank)
+                        {
+                            <option value="@pitch">@pitch</option>
+                        }
+                    </select>
                 </label>
                 <label class="playground-audio">
-                    @(_pending.Audio is null ? "افزودن ضبط نت" : "تعویض ضبط نت")
+                    <span>@(_pending.Audio is null ? "افزودن ضبط نت" : "تعویض ضبط نت")</span>
                     <InputFile @key="_pending" OnChange="ReadAudioAsync" disabled="@_busy"
                                accept=".mp3,.wav,.ogg,.m4a,audio/mpeg,audio/wav,audio/ogg,audio/mp4" />
                 </label>
@@ -110,10 +118,8 @@
 </div>
 
 @code {
-    [Parameter, EditorRequired] public Guid ScaleId { get; set; }
-    [Parameter, EditorRequired] public string ScaleName { get; set; } = "";
+    [Parameter, EditorRequired] public EventCallback<SaveScalePlayground> SaveDesign { get; set; }
     [Parameter] public ScalePhotoSources? Photos { get; set; }
-    [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public EventCallback<bool> EditingChanged { get; set; }
     [Parameter] public EventCallback<ScalePhotoSources> PhotosChanged { get; set; }
     private sealed record PhotoSelection(byte[] Bytes, string Source);
@@ -126,17 +132,9 @@
     private bool _bottom, _editing, _busy;
     private ElementReference _diagram;
 
-    private static ScalePlaygroundNote[] Example() =>
-    [
-        new("A2", 50, 49), new("A3", 70, 82), new("B3", 30, 82),
-        new("C4", 86, 56), new("D4", 14, 56), new("E4", 81, 27),
-        new("F4", 19, 27), new("G4", 62, 14), new("A4", 38, 14)
-    ];
-
     protected override void OnInitialized()
     {
-        _saved = Photos?.Playground?.Notes.ToList() ??
-            (ScaleName.Trim().Equals("A2 Minor 9", StringComparison.OrdinalIgnoreCase) ? Example().ToList() : []);
+        _saved = Photos?.Playground?.Notes.Where(note => ScalePlayground.IsPitch(note.Pitch)).ToList() ?? [];
         _bottom = _saved.Count > 0 && _saved.All(note => note.Bottom);
     }
 
@@ -153,23 +151,6 @@
     {
         _bottom = bottom;
         ClearNote();
-    }
-
-    private void LoadExample()
-    {
-        if (_draft.Any(note => !note.Bottom))
-        {
-            _error = "برای افزودن نمونه، ابتدا نت‌های کاسه رو را حذف کنید.";
-            return;
-        }
-        if (_draft.Count + 9 > ScalePlayground.MaxNotes)
-        {
-            _error = $"حداکثر {ScalePlayground.MaxNotes} نت برای هر اسکیل قابل ثبت است.";
-            return;
-        }
-
-        SetSide(false);
-        _draft.AddRange(Example());
     }
 
     private async Task PlaceAsync(MouseEventArgs args)
@@ -289,7 +270,7 @@
         try
         {
             var playground = new ScalePlayground(_draft);
-            await ScaleService.SavePlaygroundAsync(ScaleId, new(playground, _topPhoto?.Bytes, _bottomPhoto?.Bytes));
+            await SaveDesign.InvokeAsync(new(playground, _topPhoto?.Bytes, _bottomPhoto?.Bytes));
             _saved = [.. _draft];
             await PhotosChanged.InvokeAsync(new(_topPhoto?.Source ?? Photos?.Top, _bottomPhoto?.Source ?? Photos?.Bottom, playground));
             await Cancel();

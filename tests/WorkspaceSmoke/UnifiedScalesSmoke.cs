@@ -107,10 +107,11 @@ internal static class UnifiedScalesSmoke
             "scale photo upload rejects invalid content before saving");
 
         var playable = new ScalePlayground([new("A2", 50, 49), new("C4", 85, 56, Bottom: true)]);
-        var savedPlayground = await controller.SavePlayground(photoScale, new(playable, BottomPhoto: topPhoto), db, default);
+        var designId = Guid.NewGuid();
+        var savedPlayground = await controller.SaveVirtualDesign(designId, new("Custom D", new(playable, BottomPhoto: topPhoto), photoScale), db, default);
         Check(savedPlayground is Microsoft.AspNetCore.Mvc.NoContentResult, "saving a playground accepts both bowl sides and a replacement photo");
         db.ChangeTracker.Clear();
-        var playableResponse = (Microsoft.AspNetCore.Mvc.OkObjectResult)await controller.GetPhotos(photoScale, db, default);
+        var playableResponse = (Microsoft.AspNetCore.Mvc.OkObjectResult)await controller.GetVirtualDesign(designId, db, default);
         var playableJson = System.Text.Json.JsonSerializer.SerializeToElement(playableResponse.Value);
         var savedNotes = playableJson.GetProperty("Playground").GetProperty("Notes");
         Check(playableJson.GetProperty("Top").GetString() == $"data:image/png;base64,{png}" &&
@@ -118,7 +119,15 @@ internal static class UnifiedScalesSmoke
             savedNotes[0].GetProperty("Pitch").GetString() == "A2" &&
             savedNotes[1].GetProperty("Bottom").GetBoolean(),
             "reopening a playground restores positions, sides and both photos");
-        var badPlayground = await controller.SavePlayground(photoScale, new(new([new("A2", 101, 49)])), db, default);
+        var publicPhotos = (Microsoft.AspNetCore.Mvc.OkObjectResult)await controller.GetPhotos(photoScale, db, default);
+        var publicJson = System.Text.Json.JsonSerializer.SerializeToElement(publicPhotos.Value);
+        Check(!publicJson.TryGetProperty("Playground", out _) && publicJson.GetProperty("Bottom").ValueKind == System.Text.Json.JsonValueKind.Null,
+            "the shared scale page returns photos only and workshop edits leave them intact");
+        Check(ScalePlayground.SoundBank.Count == 45 && ScalePlayground.SoundBank.First() == "F2" &&
+            ScalePlayground.SoundBank.Last() == "C#6" && ScalePlayground.SoundBank.All(ScalePlayground.IsPitch) &&
+            !ScalePlayground.IsPitch("E2") && !ScalePlayground.IsPitch("D6"),
+            "sound bank covers all 45 semitones from F2 to C-sharp 6");
+        var badPlayground = await controller.SaveVirtualDesign(designId, new("Custom D", new(new([new("A2", 101, 49)]))), db, default);
         Check(badPlayground is Microsoft.AspNetCore.Mvc.BadRequestObjectResult,
             "playground rejects notes outside the image");
     }

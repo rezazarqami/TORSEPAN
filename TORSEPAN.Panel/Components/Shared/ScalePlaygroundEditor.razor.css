@@ -23,7 +23,14 @@
 .playground-note:active, .playground-note.playing { background:#e3bd72; color:#09192a; }
 .playground-fields { display:grid; gap:.5rem; }
 .playground-fields label { font-size:.8rem; }
-.playground-audio input { display:block; width:100%; margin-top:.3rem; font-size:.75rem; }
+.playground-audio {
+    position:relative; display:inline-flex; gap:.4rem; align-items:center;
+    min-width:0; max-width:100%; min-height:2.75rem; overflow:hidden;
+}
+.playground-audio ::deep input[type=file] {
+    position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer;
+}
+.playground-audio:focus-within { outline:2px solid #e2c17c; outline-offset:2px; }
 .playground-pending {
     position:absolute; transform:translate(-50%,-50%); pointer-events:none;
     z-index:1; color:#ffe4a5; font:700 1.35rem/1 system-ui; text-shadow:0 1px 4px #000;

@@ -1,4 +1,5 @@
-using SaveScalePlayground = TORSEPAN.Application.Scales.SaveScalePlayground;
+using SaveVirtualScale = TORSEPAN.Application.Scales.SaveVirtualScale;
+using VirtualScaleSummary = TORSEPAN.Application.Scales.VirtualScaleSummary;
 using TORSEPAN.Panel.Models;
 
 namespace TORSEPAN.Panel.Services.Api;
@@ -17,8 +18,17 @@ public sealed class ScaleService
     public Task<ScalePhotoSources?> GetPhotosAsync(Guid id) =>
         _api.GetAsync<ScalePhotoSources>($"scales/{id}/photos");
 
-    public Task SavePlaygroundAsync(Guid id, SaveScalePlayground request) =>
-        _api.PutAsync<SaveScalePlayground, object?>($"scales/{id}/playground", request);
+    public Task<ScalePhotoSources?> GetPlaygroundAsync(Guid id) =>
+        _api.GetAsync<ScalePhotoSources>($"scales/{id}/playground");
+
+    public async Task<IReadOnlyList<VirtualScaleSummary>> GetVirtualDesignsAsync() =>
+        await _api.GetAsync<List<VirtualScaleSummary>>("scales/virtual-designs") ?? [];
+
+    public Task<ScalePhotoSources?> GetVirtualDesignAsync(Guid id) =>
+        _api.GetAsync<ScalePhotoSources>($"scales/virtual-designs/{id}");
+
+    public Task SaveVirtualDesignAsync(Guid id, SaveVirtualScale request) =>
+        _api.PutAsync<SaveVirtualScale, object?>($"scales/virtual-designs/{id}", request);
 
     public Task<Guid> CreateAsync(string name, int usage, byte[]? topPhoto = null, byte[]? bottomPhoto = null) =>
         _api.PostAsync<object, Guid>("scales", topPhoto is null && bottomPhoto is null
