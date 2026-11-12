@@ -2,24 +2,44 @@
     "use strict";
 
     const semitones = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+    // Measurements from the isolated portions of Torsepan's D3, F#3, C#4 and A4 recordings.
+    // Each mode has a relative peak, time to peak, early decay constant, and tail decay constant.
+    const profiles = [
+        { midi: 50, modes: [[1, .010, .34, .53], [.14, .115, .22, 1.18], [.038, .137, .14, .74]] },
+        { midi: 54, modes: [[1, .009, .17, .75], [.51, .118, .25, .80], [.096, .142, .15, .39]] },
+        { midi: 61, modes: [[1, .008, .28, .81], [.26, .117, .16, 1.04], [.04, .138, .10, .42]] },
+        { midi: 69, modes: [[1, .009, .14, .52], [.50, .064, .18, .46], [.39, .126, .13, .22]] }
+    ];
     const accents = new WeakMap();
     const voices = new Set();
     let context;
     let output;
 
-    function frequency(pitch) {
+    function midiFor(pitch) {
         const note = /^([A-G])([#b]?)([2-6])$/i.exec(pitch);
         if (!note) return null;
         const accidental = note[2] === "#" ? 1 : note[2] === "b" ? -1 : 0;
         const midi = (Number(note[3]) + 1) * 12 + semitones[note[1].toUpperCase()] + accidental;
         if (midi < 41 || midi > 85) return null;
-        return 440 * 2 ** ((midi - 69) / 12);
+        return midi;
+    }
+
+    function modesFor(midi) {
+        const upperIndex = profiles.findIndex(profile => profile.midi >= midi);
+        if (upperIndex <= 0) return profiles[upperIndex === 0 ? 0 : profiles.length - 1].modes;
+        const upper = profiles[upperIndex];
+        const lower = profiles[upperIndex - 1];
+        const mix = (midi - lower.midi) / (upper.midi - lower.midi);
+        return lower.modes.map((mode, index) =>
+            mode.map((value, parameter) => value + mix * (upper.modes[index][parameter] - value)));
     }
 
     function playSynth(pitch) {
-        const fundamental = frequency(pitch);
+        const midi = midiFor(pitch);
+        if (midi === null) return;
+        const fundamental = 440 * 2 ** ((midi - 69) / 12);
         const AudioEngine = window.AudioContext || window.webkitAudioContext;
-        if (!fundamental || !AudioEngine) return;
+        if (!AudioEngine) return;
 
         if (!context) {
             context = new AudioEngine();
@@ -38,19 +58,25 @@
         const bus = context.createGain();
         bus.connect(output);
         const oscillators = [];
-        // Fundamental, octave and octave plus a pure fifth (ratios 1:2:3).
-        const modes = [[1, .32, 2.15], [2, .12, 1.05], [3, .065, .67]];
-        for (const [ratio, volume, duration] of modes) {
-            if (fundamental * ratio >= context.sampleRate / 2) continue;
+        // Keep the three tuned modes at exactly 1:2:3 while reproducing their separate attacks and tails.
+        const modes = modesFor(midi);
+        for (const [index, [relativePeak, attack, earlyDecay, tailDecay]] of modes.entries()) {
             const oscillator = context.createOscillator();
             const envelope = context.createGain();
-            oscillator.frequency.value = fundamental * ratio;
-            envelope.gain.setValueAtTime(.0001, now);
-            envelope.gain.exponentialRampToValueAtTime(volume, now + .007);
-            envelope.gain.exponentialRampToValueAtTime(.0001, now + duration);
+            const peak = relativePeak * .30;
+            const floor = .00008;
+            const earlyEnd = now + attack + .17;
+            const tailStart = Math.max(floor, peak * Math.exp(-.17 / earlyDecay));
+            const end = earlyEnd + Math.min(4, tailDecay * Math.log(tailStart / floor));
+
+            oscillator.frequency.value = fundamental * (index + 1);
+            envelope.gain.setValueAtTime(floor, now);
+            envelope.gain.exponentialRampToValueAtTime(peak, now + attack);
+            envelope.gain.exponentialRampToValueAtTime(tailStart, earlyEnd);
+            envelope.gain.exponentialRampToValueAtTime(floor, end);
             oscillator.connect(envelope).connect(bus);
             oscillator.start(now);
-            oscillator.stop(now + duration + .02);
+            oscillator.stop(end + .02);
             oscillators.push(oscillator);
         }
 
