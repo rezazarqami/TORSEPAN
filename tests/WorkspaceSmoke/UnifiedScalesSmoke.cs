@@ -80,6 +80,31 @@ internal static class UnifiedScalesSmoke
         var saved = await db.Bowls.Include(x => x.Scale).SingleAsync(x => x.Id == top.Id);
         Check(saved.ScaleId == scale.Id && saved.Scale!.Name == "ره مینور" && saved.NoteCount == 9,
             "deleting a scale preserves old bowl references and note counts");
+
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a4f8AAAAASUVORK5CYII=";
+        var topPhoto = Convert.FromBase64String(png);
+        byte[] bottomPhoto = [4, 5, 6], replacement = [7, 8, 9];
+        var photoScale = await new CreateScaleCommandHandler(unit).Handle(new("D Kurd", 63, topPhoto, bottomPhoto), default);
+        db.ChangeTracker.Clear();
+        await new RenameScaleCommandHandler(unit).Handle(new(photoScale, "D Kurd", BottomPhoto: replacement), default);
+        db.ChangeTracker.Clear();
+        var photos = await db.ScalePhotos.SingleAsync(x => x.ScaleId == photoScale);
+        Check(photos.Top!.SequenceEqual(topPhoto) && photos.Bottom!.SequenceEqual(replacement),
+            "scale registration stores both photos and replacing one preserves the other");
+        await new RenameScaleCommandHandler(unit).Handle(new(scale.Id, "ره مینور", TopPhoto: topPhoto), default);
+        db.ChangeTracker.Clear();
+        var oldScalePhotos = await db.ScalePhotos.SingleAsync(x => x.ScaleId == scale.Id);
+        Check(oldScalePhotos.Top!.SequenceEqual(topPhoto) && oldScalePhotos.Bottom is null,
+            "a scale created without photos can receive one side later");
+        var controller = new TORSEPAN.API.Controllers.ScalesController(null!);
+        var response = (Microsoft.AspNetCore.Mvc.OkObjectResult)await controller.GetPhotos(scale.Id, db, default);
+        var sources = System.Text.Json.JsonSerializer.SerializeToElement(response.Value);
+        Check(sources.GetProperty("Top").GetString() == $"data:image/png;base64,{png}" &&
+            sources.GetProperty("Bottom").ValueKind == System.Text.Json.JsonValueKind.Null,
+            "scale photos endpoint returns the saved image and an empty side independently");
+        var invalid = await controller.Create(new("Invalid photo", 63, [1, 2, 3]), default);
+        Check(invalid.Result is Microsoft.AspNetCore.Mvc.BadRequestObjectResult,
+            "scale photo upload rejects invalid content before saving");
     }
     sealed class TestUser(Guid id) : IUserContext
     {

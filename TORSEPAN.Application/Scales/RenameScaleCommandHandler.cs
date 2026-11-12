@@ -17,6 +17,7 @@ public sealed class RenameScaleCommandHandler(IUnitOfWork unitOfWork) : IRequest
             throw new InvalidOperationException("Scaleی با این نام از قبل وجود دارد.");
         scale.Rename(name);
         unitOfWork.Scales.Update(scale);
+        await unitOfWork.Scales.ApplyPhotosAsync(scale.Id, request.TopPhoto, request.BottomPhoto, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

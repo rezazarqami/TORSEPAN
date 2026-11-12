@@ -6,3 +6,5 @@ public sealed class ScaleDto
     public string Name { get; set; } = string.Empty;
     public int Usage { get; set; }
 }
+
+public sealed record ScalePhotoSources(string? Top, string? Bottom);

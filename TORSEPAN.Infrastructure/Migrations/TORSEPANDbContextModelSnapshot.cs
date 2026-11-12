@@ -1424,6 +1424,22 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.ToTable("Scales", (string)null);
                 });
 
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.ScalePhotos", b =>
+                {
+                    b.Property<Guid>("ScaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Bottom")
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("Top")
+                        .HasColumnType("bytea");
+
+                    b.HasKey("ScaleId");
+
+                    b.ToTable("ScalePhotos", (string)null);
+                });
+
             modelBuilder.Entity("TORSEPAN.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1902,6 +1918,15 @@ namespace TORSEPAN.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TORSEPAN.Domain.Entities.ScalePhotos", b =>
+                {
+                    b.HasOne("TORSEPAN.Domain.Entities.Scale", null)
+                        .WithOne()
+                        .HasForeignKey("TORSEPAN.Domain.Entities.ScalePhotos", "ScaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TORSEPAN.Domain.Entities.UserRole", b =>

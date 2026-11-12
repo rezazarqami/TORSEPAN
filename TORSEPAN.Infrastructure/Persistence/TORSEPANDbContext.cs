@@ -30,6 +30,7 @@ public class TORSEPANDbContext : DbContext
     public DbSet<Handpan> Handpans => Set<Handpan>();
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<Scale> Scales => Set<Scale>();
+    public DbSet<ScalePhotos> ScalePhotos => Set<ScalePhotos>();
     public DbSet<CustomerOrder> CustomerOrders => Set<CustomerOrder>();
     public DbSet<CustomerOrderLine> CustomerOrderLines => Set<CustomerOrderLine>();
     public DbSet<OrderInstrument> OrderInstruments => Set<OrderInstrument>();

@@ -29,12 +29,14 @@ public sealed class CreateScaleCommandHandler : IRequestHandler<CreateScaleComma
             existing.Activate();
             existing.AddUsage(usage);
             _unitOfWork.Scales.Update(existing);
+            await _unitOfWork.Scales.ApplyPhotosAsync(existing.Id, request.TopPhoto, request.BottomPhoto, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             return existing.Id;
         }
 
         var scale = new Scale(name, usage);
         await _unitOfWork.Scales.AddAsync(scale);
+        await _unitOfWork.Scales.ApplyPhotosAsync(scale.Id, request.TopPhoto, request.BottomPhoto, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return scale.Id;
     }
