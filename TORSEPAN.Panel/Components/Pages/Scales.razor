@@ -142,7 +142,7 @@ else
         }
     </div>;
 
-    private RenderFragment PhotoPicker(PhotoDraft draft, string label, bool top) => @<label class="scale-photo-picker">
+    private RenderFragment PhotoPicker(PhotoDraft draft, string label, bool top) => @<label class="scale-photo-picker @(_busy ? "is-disabled" : null)">
         <InputFile OnChange="args => ReadPhotoAsync(args, draft, top)" accept="image/jpeg,image/png,image/webp" disabled="@_busy" aria-label="@label" />
         <span aria-hidden="true">@((top ? draft.Top : draft.Bottom) is null ? "+" : "✓")</span>
         @label
