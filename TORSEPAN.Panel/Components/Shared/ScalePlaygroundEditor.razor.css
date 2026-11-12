@@ -1,0 +1,31 @@
+.scale-playground { display:grid; gap:.6rem; margin-top:.6rem; }
+.playground-controls { display:flex; flex-wrap:wrap; gap:.4rem; }
+.playground-controls button, .playground-audio {
+    border:1px solid #416480; border-radius:.55rem; padding:.38rem .65rem;
+    background:#103552; color:#edf4fc; font-size:.8rem;
+}
+.playground-controls button[aria-pressed=true] { border-color:#e2c17c; color:#ffe4a5; }
+.playground-controls button:disabled { opacity:.55; }
+.playground-diagram { width:min(100%, 30rem); margin-inline:auto; position:relative; }
+.playground-diagram img { display:block; width:100%; border-radius:.7rem; }
+.playground-bowl {
+    aspect-ratio:1; border-radius:50%; border:2px solid #756247;
+    background:radial-gradient(circle at 50% 49%, #bf9b66 0%, #675039 9%, #95764e 11%, transparent 17%),
+        radial-gradient(ellipse at 35% 24%, #bc9e6b, #866645 55%, #35261c 84%, #16120f);
+    box-shadow:inset 0 0 1.3rem #1e150f;
+}
+.playground-placement { position:absolute; inset:0; width:100%; background:none; border:0; cursor:crosshair; }
+.playground-note {
+    position:absolute; transform:translate(-50%,-50%); min-width:2.3rem; min-height:2.3rem;
+    border:1px solid #f9d995b3; border-radius:50%; background:#101725bb; color:#ffdf9a;
+    font:700 clamp(.76rem, 3.6vw, 1rem)/1.2 system-ui; padding:.23rem; touch-action:manipulation;
+}
+.playground-note:active, .playground-note.playing { background:#e3bd72; color:#09192a; }
+.playground-fields { display:grid; gap:.5rem; }
+.playground-fields label { font-size:.8rem; }
+.playground-audio input { display:block; width:100%; margin-top:.3rem; font-size:.75rem; }
+.playground-pending {
+    position:absolute; transform:translate(-50%,-50%); pointer-events:none;
+    z-index:1; color:#ffe4a5; font:700 1.35rem/1 system-ui; text-shadow:0 1px 4px #000;
+}
+.playground-pitches { color:#f0d398; text-align:center; font-size:.85rem; overflow-wrap:anywhere; }

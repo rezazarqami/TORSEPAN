@@ -7,4 +7,4 @@ public sealed class ScaleDto
     public int Usage { get; set; }
 }
 
-public sealed record ScalePhotoSources(string? Top, string? Bottom);
+public sealed record ScalePhotoSources(string? Top, string? Bottom, TORSEPAN.Application.Scales.ScalePlayground? Playground = null);

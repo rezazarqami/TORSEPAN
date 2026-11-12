@@ -105,6 +105,22 @@ internal static class UnifiedScalesSmoke
         var invalid = await controller.Create(new("Invalid photo", 63, [1, 2, 3]), default);
         Check(invalid.Result is Microsoft.AspNetCore.Mvc.BadRequestObjectResult,
             "scale photo upload rejects invalid content before saving");
+
+        var playable = new ScalePlayground([new("A2", 50, 49), new("C4", 85, 56, Bottom: true)]);
+        var savedPlayground = await controller.SavePlayground(photoScale, new(playable, BottomPhoto: topPhoto), db, default);
+        Check(savedPlayground is Microsoft.AspNetCore.Mvc.NoContentResult, "saving a playground accepts both bowl sides and a replacement photo");
+        db.ChangeTracker.Clear();
+        var playableResponse = (Microsoft.AspNetCore.Mvc.OkObjectResult)await controller.GetPhotos(photoScale, db, default);
+        var playableJson = System.Text.Json.JsonSerializer.SerializeToElement(playableResponse.Value);
+        var savedNotes = playableJson.GetProperty("Playground").GetProperty("Notes");
+        Check(playableJson.GetProperty("Top").GetString() == $"data:image/png;base64,{png}" &&
+            playableJson.GetProperty("Bottom").GetString() == $"data:image/png;base64,{png}" &&
+            savedNotes[0].GetProperty("Pitch").GetString() == "A2" &&
+            savedNotes[1].GetProperty("Bottom").GetBoolean(),
+            "reopening a playground restores positions, sides and both photos");
+        var badPlayground = await controller.SavePlayground(photoScale, new(new([new("A2", 101, 49)])), db, default);
+        Check(badPlayground is Microsoft.AspNetCore.Mvc.BadRequestObjectResult,
+            "playground rejects notes outside the image");
     }
     sealed class TestUser(Guid id) : IUserContext
     {

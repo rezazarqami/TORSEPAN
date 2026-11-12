@@ -1,3 +1,4 @@
+using SaveScalePlayground = TORSEPAN.Application.Scales.SaveScalePlayground;
 using TORSEPAN.Panel.Models;
 
 namespace TORSEPAN.Panel.Services.Api;
@@ -15,6 +16,9 @@ public sealed class ScaleService
 
     public Task<ScalePhotoSources?> GetPhotosAsync(Guid id) =>
         _api.GetAsync<ScalePhotoSources>($"scales/{id}/photos");
+
+    public Task SavePlaygroundAsync(Guid id, SaveScalePlayground request) =>
+        _api.PutAsync<SaveScalePlayground, object?>($"scales/{id}/playground", request);
 
     public Task<Guid> CreateAsync(string name, int usage, byte[]? topPhoto = null, byte[]? bottomPhoto = null) =>
         _api.PostAsync<object, Guid>("scales", topPhoto is null && bottomPhoto is null

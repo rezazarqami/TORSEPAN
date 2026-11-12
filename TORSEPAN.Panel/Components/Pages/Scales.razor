@@ -13,8 +13,8 @@
 </section>
 <div class="navy-workspace-page navy-scales">
 <nav class="scale-tabs" aria-label="بخش‌های مدیریت اسکیل">
-    <button type="button" class="@(!_createTab ? "active" : null)" aria-pressed="@(!_createTab)" disabled="@_busy" @onclick="() => SelectTab(false)"><strong>اسکیل‌ها</strong></button>
-    <button type="button" class="@(_createTab ? "active" : null)" aria-pressed="@_createTab" disabled="@_busy" @onclick="() => SelectTab(true)"><strong>ثبت اسکیل جدید</strong></button>
+    <button type="button" class="@(!_createTab ? "active" : null)" aria-pressed="@(!_createTab)" disabled="@(_busy || _playgroundEditing)" @onclick="() => SelectTab(false)"><strong>اسکیل‌ها</strong></button>
+    <button type="button" class="@(_createTab ? "active" : null)" aria-pressed="@_createTab" disabled="@(_busy || _playgroundEditing)" @onclick="() => SelectTab(true)"><strong>ثبت اسکیل جدید</strong></button>
 </nav>
 @if (_message is not null && (!_isError || _editingId is null))
 {
@@ -64,11 +64,11 @@ else
                         else
                         {
                             <div class="scale-summary">
-                                <div class="scale-actions"><button type="button" class="btn btn-outline-primary" disabled="@_busy" @onclick="() => BeginEdit(scale)">ویرایش</button><button type="button" class="btn btn-outline-danger" disabled="@_busy" @onclick="() => _deleting = scale">حذف</button></div>
+                                <div class="scale-actions"><button type="button" class="btn btn-outline-primary" disabled="@(_busy || _playgroundEditing)" @onclick="() => BeginEdit(scale)">ویرایش</button><button type="button" class="btn btn-outline-danger" disabled="@(_busy || _playgroundEditing)" @onclick="() => _deleting = scale">حذف</button></div>
                                 <div class="scale-title">
                                     @if (PhotosAvailable)
                                     {
-                                        <button type="button" class="scale-photo-toggle" aria-label="@($"عکس کاسه‌های {scale.Name}")" aria-expanded="@(_expandedId == scale.Id)" @onclick="() => TogglePhotosAsync(scale.Id)">
+                                        <button type="button" class="scale-photo-toggle" aria-label="@($"عکس کاسه‌های {scale.Name}")" aria-expanded="@(_expandedId == scale.Id)" disabled="@_playgroundEditing" @onclick="() => TogglePhotosAsync(scale.Id)">
                                             <span aria-hidden="true">⌄</span>
                                         </button>
                                     }
@@ -87,10 +87,13 @@ else
                                 }
                                 else
                                 {
-                                    <div class="scale-photo-pair">
-                                        @PhotoTile("کاسه رو", _visiblePhotos?.Top)
-                                        @PhotoTile("کاسه زیر", _visiblePhotos?.Bottom)
-                                    </div>
+                                    <ScalePlaygroundEditor @key="scale.Id" ScaleId="scale.Id" ScaleName="@scale.Name"
+                                                           Photos="_visiblePhotos" PhotosChanged="value => _visiblePhotos = value" EditingChanged="value => _playgroundEditing = value">
+                                        <div class="scale-photo-pair">
+                                            @PhotoTile("کاسه رو", _visiblePhotos?.Top)
+                                            @PhotoTile("کاسه زیر", _visiblePhotos?.Bottom)
+                                        </div>
+                                    </ScalePlaygroundEditor>
                                 }
                             }
                         }
@@ -114,7 +117,7 @@ else
     private PhotoDraft _editPhotos = new();
     private Guid? _expandedId;
     private int _photoRequest;
-    private bool _photoLoading;
+    private bool _photoLoading, _playgroundEditing;
     private string? _photoError;
     private ScalePhotoSources? _visiblePhotos;
 

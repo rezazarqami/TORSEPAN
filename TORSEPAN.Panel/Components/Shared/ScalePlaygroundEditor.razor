@@ -1,0 +1,312 @@
+@using TORSEPAN.Application.Scales
+@inject ScaleService ScaleService
+@inject IJSRuntime JS
+
+<div class="scale-playground">
+    @if (!_editing && _saved.Count == 0)
+    {
+        @ChildContent
+    }
+    else
+    {
+        @if (_editing || Photos?.Bottom is not null || _saved.Any(note => note.Bottom))
+        {
+            <div class="playground-controls" aria-label="انتخاب کاسه">
+                <button type="button" aria-pressed="@(!_bottom)" disabled="@_busy" @onclick="() => SetSide(false)">کاسه رو</button>
+                <button type="button" aria-pressed="@_bottom" disabled="@_busy" @onclick="() => SetSide(true)">کاسه زیر</button>
+            </div>
+        }
+        @if (_editing)
+        {
+            <p>روی جای نت در تصویر بزنید، سپس نام آن را وارد کنید. برای ویرایش، خود نت را بزنید.</p>
+            <div class="playground-controls">
+                <label class="playground-audio">
+                    @(_bottom ? "انتخاب عکس کاسه زیر" : "انتخاب عکس کاسه رو")
+                    <InputFile @key="_bottom" OnChange="ReadPhotoAsync" disabled="@_busy" accept="image/jpeg,image/png,image/webp" />
+                </label>
+                <button type="button" disabled="@_busy" @onclick="LoadExample">نمونه لا مینور ۹ نت</button>
+            </div>
+        }
+        var notes = (_editing ? _draft : _saved).Where(note => note.Bottom == _bottom).ToList();
+        @if (notes.Count > 0)
+        {
+            <div class="playground-pitches" dir="ltr">@string.Join(" · ", notes.Select(note => note.Pitch))</div>
+        }
+        var source = _bottom ? _bottomPhoto?.Source ?? Photos?.Bottom : _topPhoto?.Source ?? Photos?.Top;
+        <div class="playground-diagram" @ref="_diagram">
+            @if (source is not null)
+            {
+                <img src="@source" alt="@(_bottom ? "کاسه زیر" : "کاسه رو")" />
+            }
+            else
+            {
+                <div class="playground-bowl" role="img" aria-label="طرح شماتیک هنگ‌درام"></div>
+            }
+            @if (_editing)
+            {
+                <button type="button" class="playground-placement" tabindex="-1" aria-label="جای نت روی تصویر" disabled="@_busy" @onclick="PlaceAsync"></button>
+            }
+            @if (_editing && _pending is not null)
+            {
+                <span class="playground-pending" style="@Position(_pending.X, _pending.Y)" aria-hidden="true">+</span>
+            }
+            @foreach (var note in notes)
+            {
+                <button type="button" class="playground-note" dir="ltr"
+                        style="@Position(note.X, note.Y)" data-scale-pitch="@note.Pitch"
+                        aria-label="@($"نت {note.Pitch}")" @onclick="() => SelectNote(note)">
+                    @note.Pitch
+                    @if (note.Audio is not null)
+                    {
+                        <audio preload="auto" src="@($"data:{note.AudioType};base64,{Convert.ToBase64String(note.Audio)}")"></audio>
+                    }
+                </button>
+            }
+        </div>
+    }
+
+    @if (_editing)
+    {
+        @if (_pending is not null)
+        {
+            <div class="playground-fields">
+                <label>نام نت
+                    <input class="form-control" dir="ltr" placeholder="A2" maxlength="4" @bind="_pitch" @bind:event="oninput" disabled="@_busy" />
+                </label>
+                <label class="playground-audio">
+                    @(_pending.Audio is null ? "افزودن ضبط نت" : "تعویض ضبط نت")
+                    <InputFile @key="_pending" OnChange="ReadAudioAsync" disabled="@_busy"
+                               accept=".mp3,.wav,.ogg,.m4a,audio/mpeg,audio/wav,audio/ogg,audio/mp4" />
+                </label>
+                <div class="playground-controls">
+                    <button type="button" disabled="@(_busy || !ScalePlayground.IsPitch(_pitch.Trim()))" @onclick="ApplyNote">ثبت نت</button>
+                    @if (_original is not null)
+                    {
+                        <button type="button" disabled="@_busy" @onclick="RemoveNote">حذف نت</button>
+                    }
+                    @if (_pending.Audio is not null)
+                    {
+                        <button type="button" disabled="@_busy" @onclick="UseSynth">صدای شبیه‌سازی‌شده</button>
+                    }
+                    <button type="button" disabled="@_busy" @onclick="ClearNote">انصراف نت</button>
+                </div>
+            </div>
+        }
+        @if (_error is not null)
+        {
+            <p role="alert">@_error</p>
+        }
+        <div class="playground-controls">
+            <button type="button" class="btn btn-primary" disabled="@(_busy || _pending is not null)" @onclick="SaveAsync">ذخیره ساز مجازی</button>
+            <button type="button" disabled="@_busy" @onclick="Cancel">انصراف</button>
+        </div>
+    }
+    else
+    {
+        <div class="playground-controls">
+            <button type="button" @onclick="BeginEdit">@(_saved.Count == 0 ? "ساخت ساز مجازی" : "ویرایش ساز مجازی")</button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Guid ScaleId { get; set; }
+    [Parameter, EditorRequired] public string ScaleName { get; set; } = "";
+    [Parameter] public ScalePhotoSources? Photos { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback<bool> EditingChanged { get; set; }
+    [Parameter] public EventCallback<ScalePhotoSources> PhotosChanged { get; set; }
+    private sealed record PhotoSelection(byte[] Bytes, string Source);
+    private PhotoSelection? _topPhoto, _bottomPhoto;
+    private const int MaxPhotoBytes = 5_000_000;
+    private List<ScalePlaygroundNote> _saved = [], _draft = [];
+    private ScalePlaygroundNote? _original, _pending;
+    private string _pitch = "";
+    private string? _error;
+    private bool _bottom, _editing, _busy;
+    private ElementReference _diagram;
+
+    private static ScalePlaygroundNote[] Example() =>
+    [
+        new("A2", 50, 49), new("A3", 70, 82), new("B3", 30, 82),
+        new("C4", 86, 56), new("D4", 14, 56), new("E4", 81, 27),
+        new("F4", 19, 27), new("G4", 62, 14), new("A4", 38, 14)
+    ];
+
+    protected override void OnInitialized()
+    {
+        _saved = Photos?.Playground?.Notes.ToList() ??
+            (ScaleName.Trim().Equals("A2 Minor 9", StringComparison.OrdinalIgnoreCase) ? Example().ToList() : []);
+        _bottom = _saved.Count > 0 && _saved.All(note => note.Bottom);
+    }
+
+    private static string Position(double x, double y) => FormattableString.Invariant($"left:{x:F2}%;top:{y:F2}%");
+
+    private async Task BeginEdit()
+    {
+        _draft = [.. _saved];
+        _editing = true;
+        await EditingChanged.InvokeAsync(true);
+    }
+
+    private void SetSide(bool bottom)
+    {
+        _bottom = bottom;
+        ClearNote();
+    }
+
+    private void LoadExample()
+    {
+        if (_draft.Any(note => !note.Bottom))
+        {
+            _error = "برای افزودن نمونه، ابتدا نت‌های کاسه رو را حذف کنید.";
+            return;
+        }
+        if (_draft.Count + 9 > ScalePlayground.MaxNotes)
+        {
+            _error = $"حداکثر {ScalePlayground.MaxNotes} نت برای هر اسکیل قابل ثبت است.";
+            return;
+        }
+
+        SetSide(false);
+        _draft.AddRange(Example());
+    }
+
+    private async Task PlaceAsync(MouseEventArgs args)
+    {
+        if (_busy) return;
+        if (_original is null && _draft.Count >= ScalePlayground.MaxNotes)
+        {
+            _error = $"حداکثر {ScalePlayground.MaxNotes} نت برای هر اسکیل قابل ثبت است.";
+            return;
+        }
+        var position = await JS.InvokeAsync<double[]>("scalePlayground.position", _diagram, args.ClientX, args.ClientY);
+        _pending = (_pending ?? new("", 0, 0, _bottom)) with { X = position[0], Y = position[1] };
+        _error = null;
+    }
+
+    private void SelectNote(ScalePlaygroundNote note)
+    {
+        if (!_editing || _busy) return;
+        _original = _pending = note;
+        _pitch = note.Pitch;
+        _error = null;
+    }
+
+    private void ApplyNote()
+    {
+        var pitch = _pitch.Trim();
+        if (_pending is null || !ScalePlayground.IsPitch(pitch)) return;
+        var note = _pending with { Pitch = char.ToUpperInvariant(pitch[0]) + pitch[1..] };
+        if (_original is null) _draft.Add(note);
+        else _draft[_draft.FindIndex(item => ReferenceEquals(item, _original))] = note;
+        ClearNote();
+    }
+
+    private void RemoveNote()
+    {
+        if (_original is not null) _draft.RemoveAt(_draft.FindIndex(item => ReferenceEquals(item, _original)));
+        ClearNote();
+    }
+
+    private void UseSynth()
+    {
+        if (_pending is not null) _pending = _pending with { Audio = null, AudioType = null };
+    }
+
+    private void ClearNote()
+    {
+        _original = _pending = null;
+        _pitch = "";
+        _error = null;
+    }
+
+    private async Task ReadPhotoAsync(InputFileChangeEventArgs args)
+    {
+        if (_busy) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            var file = args.File;
+            if (file.Size is <= 0 or > MaxPhotoBytes || file.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))
+            {
+                _error = "عکس JPEG، PNG یا WebP تا ۵ مگابایت انتخاب کنید.";
+                return;
+            }
+
+            await using var stream = file.OpenReadStream(MaxPhotoBytes);
+            using var buffer = new MemoryStream((int)file.Size);
+            await stream.CopyToAsync(buffer);
+            var bytes = buffer.ToArray();
+            var photo = new PhotoSelection(bytes, $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}");
+            if (_bottom) _bottomPhoto = photo;
+            else _topPhoto = photo;
+        }
+        catch (Exception)
+        {
+            _error = "خواندن عکس انجام نشد. دوباره تلاش کنید.";
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task ReadAudioAsync(InputFileChangeEventArgs args)
+    {
+        if (_pending is null || _busy) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            var file = args.File;
+            var mime = Path.GetExtension(file.Name).ToLowerInvariant() switch
+            {
+                ".mp3" => "audio/mpeg", ".wav" => "audio/wav",
+                ".ogg" => "audio/ogg", ".m4a" => "audio/mp4", _ => null
+            };
+            if (mime is null || file.Size is < 12 or > ScalePlayground.MaxAudioBytes)
+            {
+                _error = "فایل MP3، WAV، OGG یا M4A تا ۲۰۰ کیلوبایت انتخاب کنید.";
+                return;
+            }
+
+            await using var stream = file.OpenReadStream(ScalePlayground.MaxAudioBytes);
+            using var buffer = new MemoryStream((int)file.Size);
+            await stream.CopyToAsync(buffer);
+            _pending = _pending with { Audio = buffer.ToArray(), AudioType = mime };
+        }
+        catch (Exception)
+        {
+            _error = "خواندن فایل صوتی انجام نشد. دوباره تلاش کنید.";
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy || _pending is not null) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            var playground = new ScalePlayground(_draft);
+            await ScaleService.SavePlaygroundAsync(ScaleId, new(playground, _topPhoto?.Bytes, _bottomPhoto?.Bytes));
+            _saved = [.. _draft];
+            await PhotosChanged.InvokeAsync(new(_topPhoto?.Source ?? Photos?.Top, _bottomPhoto?.Source ?? Photos?.Bottom, playground));
+            await Cancel();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task Cancel()
+    {
+        ClearNote();
+        _draft = [];
+        _topPhoto = _bottomPhoto = null;
+        _editing = false;
+        await EditingChanged.InvokeAsync(false);
+    }
+}

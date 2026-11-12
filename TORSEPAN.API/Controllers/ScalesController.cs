@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +29,55 @@ public sealed class ScalesController : ControllerBase
     public async Task<IActionResult> GetPhotos(Guid id, [FromServices] TORSEPANDbContext db, CancellationToken cancellationToken)
     {
         var photos = await db.ScalePhotos.AsNoTracking().SingleOrDefaultAsync(x => x.ScaleId == id, cancellationToken);
-        return Ok(new { Top = ImageSource(photos?.Top), Bottom = ImageSource(photos?.Bottom) });
+        return Ok(new
+        {
+            Top = ImageSource(photos?.Top),
+            Bottom = ImageSource(photos?.Bottom),
+            Playground = photos?.PlaygroundJson is { } json ? JsonSerializer.Deserialize<ScalePlayground>(json) : null
+        });
+    }
+
+    [HttpPut("{id:guid}/playground"), RequestSizeLimit(23_000_000)]
+    public async Task<IActionResult> SavePlayground(Guid id, SaveScalePlayground request,
+        [FromServices] TORSEPANDbContext db, CancellationToken cancellationToken)
+    {
+        if (!ValidPhoto(request.TopPhoto) || !ValidPhoto(request.BottomPhoto))
+            return BadRequest(PhotoError);
+        var playground = request.Playground;
+        if (playground?.Notes is null || playground.Notes.Count > ScalePlayground.MaxNotes ||
+            playground.Notes.Any(note => note is null || !ScalePlayground.IsPitch(note.Pitch) ||
+                !double.IsFinite(note.X) || !double.IsFinite(note.Y) ||
+                note.X is < 0 or > 100 || note.Y is < 0 or > 100 || !ValidRecording(note)))
+            return BadRequest("نت، محل نت یا فایل صوتی معتبر نیست.");
+
+        if (!await db.Scales.AnyAsync(scale => scale.Id == id && scale.IsActive, cancellationToken))
+            return NotFound();
+
+        var photos = await db.ScalePhotos.FindAsync([id], cancellationToken);
+        if (photos is null)
+        {
+            photos = new(id);
+            db.ScalePhotos.Add(photos);
+        }
+        photos.Apply(request.TopPhoto, request.BottomPhoto);
+        photos.SetPlayground(JsonSerializer.Serialize(playground));
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    private static bool ValidRecording(ScalePlaygroundNote note)
+    {
+        if (note.Audio is null) return note.AudioType is null;
+        if (note.Audio.Length is < 12 or > ScalePlayground.MaxAudioBytes) return false;
+        var audio = note.Audio.AsSpan();
+        return note.AudioType switch
+        {
+            "audio/mpeg" => audio.StartsWith("ID3"u8) || (audio[0] == 255 && (audio[1] & 224) == 224),
+            "audio/wav" => audio.StartsWith("RIFF"u8) && audio[8..].StartsWith("WAVE"u8),
+            "audio/ogg" => audio.StartsWith("OggS"u8),
+            "audio/mp4" => audio[4..].StartsWith("ftyp"u8),
+            _ => false
+        };
     }
 
     [HttpPost, RequestSizeLimit(14_000_000)]

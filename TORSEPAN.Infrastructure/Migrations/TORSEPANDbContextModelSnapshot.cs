@@ -1432,6 +1432,9 @@ namespace TORSEPAN.Infrastructure.Migrations
                     b.Property<byte[]>("Bottom")
                         .HasColumnType("bytea");
 
+                    b.Property<string>("PlaygroundJson")
+                        .HasColumnType("text");
+
                     b.Property<byte[]>("Top")
                         .HasColumnType("bytea");
 
