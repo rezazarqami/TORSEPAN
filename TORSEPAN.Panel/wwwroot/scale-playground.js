@@ -14,6 +14,8 @@
     const highNoteStart = 76; // E5
     const highNoteSample = "69-octave";
     const highNoteGain = .89;
+    const lowNoteEnd = 65; // F4
+    const lowNoteGain = 1.18;
     const sampleBytes = new Map();
     const sampleBuffers = new Map();
     const accents = new WeakMap();
@@ -28,6 +30,11 @@
         const midi = (Number(note[3]) + 1) * 12 + semitones[note[1].toUpperCase()] + accidental;
         if (midi < 41 || midi > 85) return null;
         return midi;
+    }
+
+    function noteGain(midi) {
+        if (midi <= lowNoteEnd) return lowNoteGain;
+        return midi >= highNoteStart ? highNoteGain : 1;
     }
 
     function modesFor(midi) {
@@ -79,7 +86,7 @@
 
         const anchor = profiles.reduce((nearest, item) =>
             Math.abs(item.midi - midi) < Math.abs(nearest.midi - midi) ? item : nearest).midi;
-        const extended = midi <= 65; // F4
+        const extended = midi <= lowNoteEnd;
         const highNote = midi >= highNoteStart;
         // The octave-only sample uses the same A4 recording and preserves its strike.
         const sample = highNote ? highNoteSample : extended ? `${anchor}-sustain` : anchor;
@@ -98,7 +105,7 @@
             source.buffer = buffer;
             source.playbackRate.value = 2 ** ((midi - anchor) / 12);
             const deepBass = midi <= 50; // D3
-            const volume = (deepBass ? .94 : .72) * (highNote ? highNoteGain : 1);
+            const volume = (deepBass ? .94 : .72) * noteGain(midi);
             bus.gain.value = volume;
             if (deepBass) {
                 const clarity = context.createBiquadFilter();
@@ -155,7 +162,7 @@
             const oscillator = context.createOscillator();
             const envelope = context.createGain();
             const supportedPeak = relativePeak + bassSupport * Math.max(0, minimumBassPeaks[index] - relativePeak);
-            const peak = supportedPeak * (.30 + .05 * bassSupport) * (highNote ? highNoteGain : 1);
+            const peak = supportedPeak * (.30 + .05 * bassSupport) * noteGain(midi);
             const attackTime = attack * (1 - .6 * bassSupport);
             const floor = .00008;
             const earlyEnd = now + attackTime + .17;
