@@ -1,28 +1,32 @@
 @page "/virtual-scales"
 @using Microsoft.AspNetCore.Authorization
 @using TORSEPAN.Application.Scales
-@attribute [Authorize(Roles = "Administrator")]
+@attribute [Authorize]
+@inject AuthenticationStateProvider Authentication
 @inject ScaleService ScaleService
 @inject IJSRuntime JS
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Host
 
-<PageTitle>کارگاه اسکیل مجازی | تورسپن</PageTitle>
+<PageTitle>هنگ‌درام مجازی | تورسپن</PageTitle>
 <header class="virtual-workshop-header theme-hero theme-page-intro" dir="rtl">
-    <h1 id="virtual-workshop-title">کارگاه اسکیل مجازی</h1>
+    <h1 id="virtual-workshop-title">هنگ‌درام مجازی</h1>
 </header>
 <section class="virtual-workshop navy-workspace-page" dir="rtl" aria-labelledby="virtual-workshop-title">
     @if (OperatingSystem.IsBrowser())
     {
-        <p>برای ورود به کارگاه، به حالت آنلاین بروید.</p>
+        <p>برای نواختن هنگ‌درام مجازی، به حالت آنلاین بروید.</p>
     }
     else
     {
-        <nav class="workshop-tabs" aria-label="بخش‌های کارگاه">
-            <button type="button" aria-pressed="@(_tab == WorkshopTab.Bank)" disabled="@_editing" @onclick="() => _tab = WorkshopTab.Bank">بانک صدا</button>
-            <button type="button" aria-pressed="@(_tab == WorkshopTab.Design)" @onclick="() => _tab = WorkshopTab.Design">طراحی اسکیل</button>
-            <button type="button" aria-pressed="@(_tab == WorkshopTab.Presets)" disabled="@_editing" @onclick="() => _tab = WorkshopTab.Presets">اسکیل‌های آماده</button>
-        </nav>
-        @if (_tab == WorkshopTab.Bank)
+        @if (_isAdministrator)
+        {
+            <nav class="workshop-tabs" aria-label="بخش‌های کارگاه">
+                <button type="button" aria-pressed="@(_tab == WorkshopTab.Bank)" disabled="@_editing" @onclick="() => _tab = WorkshopTab.Bank">بانک صدا</button>
+                <button type="button" aria-pressed="@(_tab == WorkshopTab.Design)" @onclick="() => _tab = WorkshopTab.Design">طراحی اسکیل</button>
+                <button type="button" aria-pressed="@(_tab == WorkshopTab.Presets)" disabled="@_editing" @onclick="() => _tab = WorkshopTab.Presets">اسکیل‌های آماده</button>
+            </nav>
+        }
+        @if (_isAdministrator && _tab == WorkshopTab.Bank)
         {
             <section class="workshop-card" aria-label="بانک صدای نت‌ها">
                 <h2>بانک صدا</h2>
@@ -35,7 +39,7 @@
                 </div>
             </section>
         }
-        else if (_tab == WorkshopTab.Presets)
+        else if (!_isAdministrator || _tab == WorkshopTab.Presets)
         {
             <section class="workshop-card" aria-label="اسکیل‌های آماده">
                 <CompactPicker TValue="int" Title="انتخاب اسکیل آماده" Options="PresetOptions" Searchable="true" @bind-Value="_presetIndex" />
@@ -43,7 +47,10 @@
                 {
                     var preset = VirtualScalePresets.All[_presetIndex];
                     <ScalePlaygroundEditor @key="_presetIndex" Photos="preset.CreateDiagram()" ReadOnly="true" />
-                    <button type="button" class="workshop-action" @onclick="() => StartFromPresetAsync(_presetIndex)">طراحی از روی این اسکیل</button>
+                    @if (_isAdministrator)
+                    {
+                        <button type="button" class="workshop-action" @onclick="() => StartFromPresetAsync(_presetIndex)">طراحی از روی این اسکیل</button>
+                    }
                 }
             </section>
         }
@@ -73,7 +80,8 @@
 
 @code {
     private enum WorkshopTab { Bank, Design, Presets }
-    private WorkshopTab _tab;
+    private WorkshopTab _tab = WorkshopTab.Presets;
+    private bool _isAdministrator;
     private bool _loading = true, _editing;
     private int _presetIndex = -1;
 
@@ -116,6 +124,9 @@
     protected override async Task OnInitializedAsync()
     {
         if (OperatingSystem.IsBrowser()) return;
+        _isAdministrator = (await Authentication.GetAuthenticationStateAsync()).User.IsInRole("Administrator");
+        if (!_isAdministrator) return;
+
         try
         {
             _catalog = await ScaleService.GetAsync();

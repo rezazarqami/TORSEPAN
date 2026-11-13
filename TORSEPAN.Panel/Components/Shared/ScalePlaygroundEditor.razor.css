@@ -17,10 +17,14 @@
 .playground-placement { position:absolute; inset:0; width:100%; background:none; border:0; cursor:crosshair; }
 .playground-note {
     position:absolute; transform:translate(-50%,-50%); min-width:2.3rem; min-height:2.3rem;
-    border:1px solid #f9d995b3; border-radius:50%; background:#101725bb; color:#ffdf9a;
-    font:700 clamp(.76rem, 3.6vw, 1rem)/1.2 system-ui; padding:.23rem; touch-action:manipulation;
+    border:0; background:transparent; color:#fff2d3;
+    text-shadow:0 1px 2px #140d08, 0 0 3px #140d08;
+    -webkit-text-stroke:2px #24180f; paint-order:stroke fill;
+    font:750 clamp(.76rem, 3.6vw, 1rem)/1.2 system-ui; padding:.23rem; touch-action:manipulation;
 }
-.playground-note:active, .playground-note.playing { background:#e3bd72; color:#09192a; }
+.playground-note:active, .playground-note.playing {
+    color:#ffd46e; text-shadow:0 1px 2px #140d08, 0 0 6px #ffc65f;
+}
 .playground-fields { display:grid; gap:.5rem; }
 .playground-fields label { font-size:.8rem; }
 .playground-audio {
