@@ -4,6 +4,7 @@
 @attribute [Authorize(Roles = "Administrator")]
 @inject ScaleService ScaleService
 @inject IJSRuntime JS
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Host
 
 <PageTitle>کارگاه اسکیل مجازی | تورسپن</PageTitle>
 <header class="virtual-workshop-header theme-hero theme-page-intro" dir="rtl">
@@ -37,7 +38,7 @@
         else if (_tab == WorkshopTab.Presets)
         {
             <section class="workshop-card" aria-label="اسکیل‌های آماده">
-                <CompactPicker TValue="int" Title="انتخاب اسکیل آماده" Options="PresetOptions" @bind-Value="_presetIndex" />
+                <CompactPicker TValue="int" Title="انتخاب اسکیل آماده" Options="PresetOptions" Searchable="true" @bind-Value="_presetIndex" />
                 @if (_presetIndex >= 0)
                 {
                     var preset = VirtualScalePresets.All[_presetIndex];
@@ -77,7 +78,7 @@
     private int _presetIndex = -1;
 
     private static IReadOnlyList<(int Value, string Text)> PresetOptions { get; } =
-        [(-1, "انتخاب اسکیل آماده"), .. VirtualScalePresets.All.Select((preset, index) => (index, preset.Name))];
+        VirtualScalePresets.All.Select((preset, index) => (index, preset.Name)).ToArray();
 
     private IReadOnlyList<(string Value, string Text)> DesignOptions =>
         [("", "اسکیل جدید"), .. _designs.Select(design => ($"saved:{design.Id}", $"طرح کارگاه · {design.Name}")),
@@ -174,10 +175,31 @@
         if (name.Length is 0 or > 100)
             throw new InvalidOperationException("نام طرح را وارد کنید.");
 
+        if (_selection.StartsWith("preset:", StringComparison.Ordinal))
+        {
+            design = design with
+            {
+                TopPhoto = design.TopPhoto ?? await ReadPresetPhotoAsync(_photos?.Top),
+                BottomPhoto = design.BottomPhoto ?? await ReadPresetPhotoAsync(_photos?.Bottom)
+            };
+        }
+
         await ScaleService.SaveVirtualDesignAsync(_designId, new(name, design, _sourceId));
         _designs.RemoveAll(item => item.Id == _designId);
         _designs.Add(new(_designId, name));
         _selection = $"saved:{_designId}";
         _sourceId = null;
+    }
+
+    private async Task<byte[]?> ReadPresetPhotoAsync(string? source)
+    {
+        if (source is null || !source.StartsWith(VirtualScalePreset.ImageDirectory, StringComparison.Ordinal))
+            return null;
+
+        var file = Host.WebRootFileProvider.GetFileInfo(source.TrimStart('/'));
+        await using var stream = file.CreateReadStream();
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        return buffer.ToArray();
     }
 }

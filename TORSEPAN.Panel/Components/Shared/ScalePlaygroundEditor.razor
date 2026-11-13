@@ -31,10 +31,11 @@
             <div class="playground-pitches" dir="ltr">@string.Join(" · ", notes.Select(note => note.Pitch))</div>
         }
         var source = _bottom ? _bottomPhoto?.Source ?? Photos?.Bottom : _topPhoto?.Source ?? Photos?.Top;
-        <div class="playground-diagram @(notes.Count > 12 ? "dense" : null)" @ref="_diagram">
+        var presetPhoto = source?.StartsWith(VirtualScalePreset.ImageDirectory, StringComparison.Ordinal) == true;
+        <div class="playground-diagram @(notes.Count > 12 || presetPhoto ? "dense" : null)" @ref="_diagram">
             @if (source is not null)
             {
-                <img src="@source" alt="@(_bottom ? "کاسه زیر" : "کاسه رو")" />
+                <img class="@(presetPhoto ? "preset-photo" : null)" src="@source" alt="@(_bottom ? "کاسه زیر" : "کاسه رو")" />
             }
             else
             {

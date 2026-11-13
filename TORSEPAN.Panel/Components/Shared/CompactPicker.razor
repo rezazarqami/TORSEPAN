@@ -4,15 +4,29 @@
 @implements IAsyncDisposable
 
 <button @attributes="AdditionalAttributes" type="button" class="compact-picker-trigger" aria-label="@Title" aria-haspopup="dialog" aria-expanded="@(_open ? "true" : "false")" @onclick="Open">
-    <span>@Options.FirstOrDefault(x => EqualityComparer<TValue>.Default.Equals(x.Value, Value)).Text</span><span aria-hidden="true">⌄</span>
+    <span>@(Options.FirstOrDefault(x => EqualityComparer<TValue>.Default.Equals(x.Value, Value)).Text ?? Title)</span><span aria-hidden="true">⌄</span>
 </button>
+@{
+    var terms = _query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+    var visibleOptions = terms.Length == 0 ? Options : Options.Where(option =>
+        terms.All(term => option.Text.Contains(term, StringComparison.OrdinalIgnoreCase))).ToArray();
+}
 <dialog @ref="_dialog" class="compact-picker-dialog" aria-label="@Title" dir="rtl">
-    <header><strong>@Title</strong><button type="button" data-navigation-close aria-label="بستن" @onclick="Close">×</button></header>
-    <div class="compact-picker-options">
-        @foreach (var option in Options)
+    <header><strong>@Title</strong><button type="button" data-navigation-close autofocus="@Searchable" aria-label="بستن" @onclick="Close">×</button></header>
+    @if (Searchable)
+    {
+        <input class="compact-picker-search" type="search" placeholder="جستجو" aria-label="جستجو"
+               dir="auto" autocomplete="off" spellcheck="false" @bind="_query" @bind:event="oninput" />
+    }
+    <div class="compact-picker-options" @key="_query">
+        @foreach (var option in visibleOptions)
         {
             var selected = EqualityComparer<TValue>.Default.Equals(option.Value, Value);
             <button type="button" class="@(selected ? "selected" : null)" aria-pressed="@(selected ? "true" : "false")" @onclick="() => Choose(option.Value)"><span dir="auto">@option.Text</span><span aria-hidden="true">@(selected ? "●" : "○")</span></button>
+        }
+        @if (Searchable && visibleOptions.Count == 0)
+        {
+            <p class="compact-picker-empty" role="status">نتیجه‌ای پیدا نشد.</p>
         }
     </div>
 </dialog>
@@ -20,10 +34,16 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<(TValue Value, string Text)> Options { get; set; } = [];
     [Parameter] public string Title { get; set; } = "انتخاب کنید";
+    [Parameter] public bool Searchable { get; set; }
+    private string _query = "";
     private ElementReference _dialog;
     private IJSObjectReference? _module;
     private bool _open;
-    private void Open() => _open = true;
+    private void Open()
+    {
+        _query = "";
+        _open = true;
+    }
     private void Close() => _open = false;
     private void Choose(TValue value) { CurrentValue = value; _open = false; }
     protected override async Task OnAfterRenderAsync(bool firstRender)
