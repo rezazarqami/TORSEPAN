@@ -6,15 +6,15 @@
 .workshop-card h2 { font-size:1rem; }
 .workshop-card { display:grid; gap:.65rem; min-width:0; }
 .workshop-card p { margin:0; color:#bdd1e4; font-size:.85rem; }
-.workshop-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; }
 .sound-bank { display:grid; grid-template-columns:repeat(auto-fit,minmax(3.1rem,1fr)); gap:.4rem; }
-.workshop-tabs button, .sound-note, .workshop-action {
+.sound-note, .workshop-action {
     min-height:2.65rem; background:#103552; color:#edf4fc; border:1px solid #456987; border-radius:.55rem;
 }
-.workshop-tabs button[aria-pressed=true], .sound-note:active, .sound-note.playing {
+.sound-note:active, .sound-note.playing {
     background:#edcb86; color:#102236;
 }
 .workshop-card .form-control {
     background:#0c2a46; border-color:#456987; color:#edf4fc; color-scheme:dark;
 }
-.workshop-tabs button { padding:.3rem .2rem; font-size:clamp(.72rem, 3vw, .95rem); }
+.workshop-secondary { justify-self:start; width:fit-content; min-height:2.4rem; padding:.3rem .75rem;
+    border:1px solid #456987; border-radius:.55rem; background:#103552; color:#edf4fc; font-size:.8rem; }

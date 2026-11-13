@@ -13,9 +13,7 @@
     const sampleDirectory = new URL("./handpan-samples/", document.currentScript.src);
     const highNoteStart = 76; // E5
     const highNoteSample = "69-octave";
-    const highNoteGain = .89;
     const lowNoteEnd = 65; // F4
-    const lowNoteGain = 1.18;
     const sampleBytes = new Map();
     const sampleBuffers = new Map();
     const accents = new WeakMap();
@@ -33,8 +31,11 @@
     }
 
     function noteGain(midi) {
-        if (midi <= lowNoteEnd) return lowNoteGain;
-        return midi >= highNoteStart ? highNoteGain : 1;
+        // Boost low and middle notes progressively, then taper into the highest register.
+        const gainDb = midi <= 69 ? 9 - (midi - 41) * .21 : 3.12 - Math.min(7, midi - 69) * (7.12 / 7);
+        // F2 through D#4 are the lower half of the bank. Ease into the upper half.
+        const bassBoostDb = 7 * Math.max(0, Math.min(1, (64 - midi) / 5));
+        return 10 ** ((gainDb + bassBoostDb) / 20);
     }
 
     function modesFor(midi) {
@@ -107,11 +108,13 @@
             const deepBass = midi <= 50; // D3
             const volume = (deepBass ? .94 : .72) * noteGain(midi);
             bus.gain.value = volume;
-            if (deepBass) {
+            const clarityGain = 10 * Math.max(0, (69 - midi) / 28)
+                + 5 * Math.max(0, (64 - midi) / 23);
+            if (clarityGain > 0) {
                 const clarity = context.createBiquadFilter();
                 clarity.type = "highshelf";
                 clarity.frequency.value = 440 * 2 ** ((midi - 69) / 12) * 1.8;
-                clarity.gain.value = 2.5;
+                clarity.gain.value = clarityGain;
                 source.connect(clarity).connect(bus);
             } else {
                 source.connect(bus);
@@ -156,7 +159,7 @@
         const profile = modesFor(midi);
         const modes = highNote ? profile.slice(0, 2) : profile;
         // Reinforce the upper modes below G3 so small phone speakers can reproduce the strike.
-        const bassSupport = Math.max(0, Math.min(1, (55 - midi) / 12));
+        const bassSupport = Math.max(0, Math.min(1, (65 - midi) / 24));
         const minimumBassPeaks = [1, .76, .42];
         for (const [index, [relativePeak, attack, earlyDecay, tailDecay]] of modes.entries()) {
             const oscillator = context.createOscillator();

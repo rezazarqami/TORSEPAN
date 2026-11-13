@@ -18,16 +18,9 @@
     }
     else
     {
-        @if (_isAdministrator)
+        @if (_canUseSoundBank && _view == WorkshopView.Bank)
         {
-            <nav class="workshop-tabs" aria-label="بخش‌های کارگاه">
-                <button type="button" aria-pressed="@(_tab == WorkshopTab.Bank)" disabled="@_editing" @onclick="() => _tab = WorkshopTab.Bank">بانک صدا</button>
-                <button type="button" aria-pressed="@(_tab == WorkshopTab.Design)" @onclick="() => _tab = WorkshopTab.Design">طراحی اسکیل</button>
-                <button type="button" aria-pressed="@(_tab == WorkshopTab.Presets)" disabled="@_editing" @onclick="() => _tab = WorkshopTab.Presets">اسکیل‌های آماده</button>
-            </nav>
-        }
-        @if (_isAdministrator && _tab == WorkshopTab.Bank)
-        {
+            <button type="button" class="workshop-secondary" @onclick="ShowScales">بازگشت به اسکیل‌ها</button>
             <section class="workshop-card" aria-label="بانک صدای نت‌ها">
                 <h2>بانک صدا</h2>
                 <p>فا ۲ تا دو دیز ۶ · برای شنیدن صدا روی نت بزنید.</p>
@@ -39,10 +32,10 @@
                 </div>
             </section>
         }
-        else if (!_isAdministrator || _tab == WorkshopTab.Presets)
+        else if (_view != WorkshopView.Design || !_isAdministrator)
         {
-            <section class="workshop-card" aria-label="اسکیل‌های آماده">
-                <CompactPicker TValue="int" Title="انتخاب اسکیل آماده" Options="PresetOptions" Searchable="true" @bind-Value="_presetIndex" />
+            <section class="workshop-card" aria-label="اسکیل‌ها">
+                <CompactPicker TValue="int" Title="انتخاب اسکیل" Options="PresetOptions" Searchable="true" @bind-Value="_presetIndex" />
                 @if (_presetIndex >= 0)
                 {
                     var preset = VirtualScalePresets.All[_presetIndex];
@@ -52,11 +45,16 @@
                         <button type="button" class="workshop-action" @onclick="() => StartFromPresetAsync(_presetIndex)">طراحی از روی این اسکیل</button>
                     }
                 }
+                @if (_canUseSoundBank)
+                {
+                    <button type="button" class="workshop-secondary" @onclick="() => _view = WorkshopView.Bank">بانک صدا</button>
+                }
             </section>
         }
         else
         {
             <section class="workshop-card">
+                <button type="button" class="workshop-secondary" disabled="@(_editing || _loading)" @onclick="ShowScales">بازگشت به اسکیل‌ها</button>
                 <h2>طراحی اسکیل</h2>
                 @if (_error is not null)
                 {
@@ -79,9 +77,12 @@
 </section>
 
 @code {
-    private enum WorkshopTab { Bank, Design, Presets }
-    private WorkshopTab _tab = WorkshopTab.Presets;
+    private enum WorkshopView { Scales, Design, Bank }
+    private WorkshopView _view;
     private bool _isAdministrator;
+    private bool _canUseSoundBank;
+
+    private void ShowScales() => _view = WorkshopView.Scales;
     private bool _loading = true, _editing;
     private int _presetIndex = -1;
 
@@ -104,7 +105,7 @@
     private async Task StartFromPresetAsync(int index)
     {
         await SelectAsync($"preset:{index}");
-        _tab = WorkshopTab.Design;
+        _view = WorkshopView.Design;
     }
 
     private string _selection = "", _name = "";
@@ -124,7 +125,9 @@
     protected override async Task OnInitializedAsync()
     {
         if (OperatingSystem.IsBrowser()) return;
-        _isAdministrator = (await Authentication.GetAuthenticationStateAsync()).User.IsInRole("Administrator");
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        _isAdministrator = user.IsInRole("Administrator");
+        _canUseSoundBank = _isAdministrator || user.IsInRole("ProductionManager");
         if (!_isAdministrator) return;
 
         try
