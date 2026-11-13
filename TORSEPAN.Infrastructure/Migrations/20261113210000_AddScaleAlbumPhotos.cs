@@ -40,7 +40,7 @@ public sealed class AddScaleAlbumPhotos : Migration
                    TIMESTAMPTZ '2026-01-01 00:00:00+00' + shell.sort * INTERVAL '1 second'
             FROM "ScalePhotos" p
             CROSS JOIN LATERAL (VALUES ('top', p."Top", false, 0), ('bottom', p."Bottom", true, 1))
-                AS shell(name, image, is_bottom)
+                AS shell(name, image, is_bottom, sort)
             WHERE shell.image IS NOT NULL;
             """);
     }
