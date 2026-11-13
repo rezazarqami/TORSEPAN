@@ -11,6 +11,9 @@
         { midi: 69, modes: [[1, .009, .14, .52], [.50, .064, .18, .46], [.39, .126, .13, .22]] }
     ];
     const sampleDirectory = new URL("./handpan-samples/", document.currentScript.src);
+    const highNoteStart = 76; // E5
+    const highNoteSample = "69-octave";
+    const highNoteGain = .89;
     const sampleBytes = new Map();
     const sampleBuffers = new Map();
     const accents = new WeakMap();
@@ -77,7 +80,9 @@
         const anchor = profiles.reduce((nearest, item) =>
             Math.abs(item.midi - midi) < Math.abs(nearest.midi - midi) ? item : nearest).midi;
         const extended = midi <= 65; // F4
-        const sample = extended ? `${anchor}-sustain` : anchor;
+        const highNote = midi >= highNoteStart;
+        // The octave-only sample uses the same A4 recording and preserves its strike.
+        const sample = highNote ? highNoteSample : extended ? `${anchor}-sustain` : anchor;
         try {
             if (!sampleBuffers.has(sample)) {
                 const buffer = fetchSample(sample).then(bytes => context.decodeAudioData(bytes.slice(0)));
@@ -93,7 +98,7 @@
             source.buffer = buffer;
             source.playbackRate.value = 2 ** ((midi - anchor) / 12);
             const deepBass = midi <= 50; // D3
-            const volume = deepBass ? .94 : .72;
+            const volume = (deepBass ? .94 : .72) * (highNote ? highNoteGain : 1);
             bus.gain.value = volume;
             if (deepBass) {
                 const clarity = context.createBiquadFilter();
@@ -140,8 +145,9 @@
         const bus = context.createGain();
         bus.connect(output);
         const oscillators = [];
-        // Keep the three tuned modes at exactly 1:2:3 while reproducing their separate attacks and tails.
-        const modes = modesFor(midi);
+        const highNote = midi >= highNoteStart;
+        const profile = modesFor(midi);
+        const modes = highNote ? profile.slice(0, 2) : profile;
         // Reinforce the upper modes below G3 so small phone speakers can reproduce the strike.
         const bassSupport = Math.max(0, Math.min(1, (55 - midi) / 12));
         const minimumBassPeaks = [1, .76, .42];
@@ -149,7 +155,7 @@
             const oscillator = context.createOscillator();
             const envelope = context.createGain();
             const supportedPeak = relativePeak + bassSupport * Math.max(0, minimumBassPeaks[index] - relativePeak);
-            const peak = supportedPeak * (.30 + .05 * bassSupport);
+            const peak = supportedPeak * (.30 + .05 * bassSupport) * (highNote ? highNoteGain : 1);
             const attackTime = attack * (1 - .6 * bassSupport);
             const floor = .00008;
             const earlyEnd = now + attackTime + .17;
@@ -209,6 +215,7 @@
         preload() {
             for (const { midi } of profiles) fetchSample(`${midi}-sustain`).catch(() => {});
             fetchSample(69).catch(() => {});
+            fetchSample(highNoteSample).catch(() => {});
         },
         position(element, x, y) {
             const rect = element.getBoundingClientRect();

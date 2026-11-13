@@ -6,8 +6,10 @@
 @inject IJSRuntime JS
 
 <PageTitle>کارگاه اسکیل مجازی | تورسپن</PageTitle>
-<section class="virtual-workshop" dir="rtl" aria-labelledby="virtual-workshop-title">
+<header class="virtual-workshop-header theme-hero theme-page-intro" dir="rtl">
     <h1 id="virtual-workshop-title">کارگاه اسکیل مجازی</h1>
+</header>
+<section class="virtual-workshop navy-workspace-page" dir="rtl" aria-labelledby="virtual-workshop-title">
     @if (OperatingSystem.IsBrowser())
     {
         <p>برای ورود به کارگاه، به حالت آنلاین بروید.</p>
@@ -15,10 +17,11 @@
     else
     {
         <nav class="workshop-tabs" aria-label="بخش‌های کارگاه">
-            <button type="button" aria-pressed="@_bank" disabled="@_editing" @onclick="() => _bank = true">بانک صدا</button>
-            <button type="button" aria-pressed="@(!_bank)" @onclick="() => _bank = false">طراحی اسکیل</button>
+            <button type="button" aria-pressed="@(_tab == WorkshopTab.Bank)" disabled="@_editing" @onclick="() => _tab = WorkshopTab.Bank">بانک صدا</button>
+            <button type="button" aria-pressed="@(_tab == WorkshopTab.Design)" @onclick="() => _tab = WorkshopTab.Design">طراحی اسکیل</button>
+            <button type="button" aria-pressed="@(_tab == WorkshopTab.Presets)" disabled="@_editing" @onclick="() => _tab = WorkshopTab.Presets">اسکیل‌های آماده</button>
         </nav>
-        @if (_bank)
+        @if (_tab == WorkshopTab.Bank)
         {
             <section class="workshop-card" aria-label="بانک صدای نت‌ها">
                 <h2>بانک صدا</h2>
@@ -31,6 +34,18 @@
                 </div>
             </section>
         }
+        else if (_tab == WorkshopTab.Presets)
+        {
+            <section class="workshop-card" aria-label="اسکیل‌های آماده">
+                <CompactPicker TValue="int" Title="انتخاب اسکیل آماده" Options="PresetOptions" @bind-Value="_presetIndex" />
+                @if (_presetIndex >= 0)
+                {
+                    var preset = VirtualScalePresets.All[_presetIndex];
+                    <ScalePlaygroundEditor @key="_presetIndex" Photos="preset.CreateDiagram()" ReadOnly="true" />
+                    <button type="button" class="workshop-action" @onclick="() => StartFromPresetAsync(_presetIndex)">طراحی از روی این اسکیل</button>
+                }
+            </section>
+        }
         else
         {
             <section class="workshop-card">
@@ -39,35 +54,9 @@
                 {
                     <p role="alert">@_error</p>
                 }
-                <label>شروع از
-                    <select class="form-select" value="@_selection" @onchange="SelectAsync" disabled="@(_loading || _editing)">
-                        <option value="">اسکیل جدید</option>
-                        <optgroup label="نمونه‌های آماده">
-                            @foreach (var preset in Presets)
-                            {
-                                <option value="@($"preset:{preset.Key}")">@preset.Value.Name</option>
-                            }
-                        </optgroup>
-                        @if (_catalog.Count > 0)
-                        {
-                            <optgroup label="اسکیل‌های سامانه">
-                                @foreach (var scale in _catalog)
-                                {
-                                    <option value="@($"catalog:{scale.Id}")">@scale.Name</option>
-                                }
-                            </optgroup>
-                        }
-                        @if (_designs.Count > 0)
-                        {
-                            <optgroup label="طرح‌های کارگاه">
-                                @foreach (var design in _designs)
-                                {
-                                    <option value="@($"saved:{design.Id}")">@design.Name</option>
-                                }
-                            </optgroup>
-                        }
-                    </select>
-                </label>
+                <CompactPicker TValue="string" Title="انتخاب مبنای طرح" Options="DesignOptions"
+                               Value="@_selection" ValueChanged="SelectAsync" ValueExpression="() => _selection"
+                               disabled="@(_loading || _editing)" />
                 @if (!_loading)
                 {
                     <label>نام طرح
@@ -82,7 +71,33 @@
 </section>
 
 @code {
-    private bool _bank = true, _loading = true, _editing;
+    private enum WorkshopTab { Bank, Design, Presets }
+    private WorkshopTab _tab;
+    private bool _loading = true, _editing;
+    private int _presetIndex = -1;
+
+    private static IReadOnlyList<(int Value, string Text)> PresetOptions { get; } =
+        [(-1, "انتخاب اسکیل آماده"), .. VirtualScalePresets.All.Select((preset, index) => (index, preset.Name))];
+
+    private IReadOnlyList<(string Value, string Text)> DesignOptions =>
+        [("", "اسکیل جدید"), .. _designs.Select(design => ($"saved:{design.Id}", $"طرح کارگاه · {design.Name}")),
+            .. _catalog.Select(scale => ($"catalog:{scale.Id}", $"اسکیل سامانه · {scale.Name}")),
+            .. PresetDesignOption()];
+
+    private IEnumerable<(string Value, string Text)> PresetDesignOption()
+    {
+        if (_selection.StartsWith("preset:", StringComparison.Ordinal))
+            yield return (_selection, _presetName);
+    }
+
+    private string _presetName = "";
+
+    private async Task StartFromPresetAsync(int index)
+    {
+        await SelectAsync($"preset:{index}");
+        _tab = WorkshopTab.Design;
+    }
+
     private string _selection = "", _name = "";
     private string? _error;
     private Guid _designId = Guid.NewGuid();
@@ -109,9 +124,8 @@
         finally { _loading = false; }
     }
 
-    private async Task SelectAsync(ChangeEventArgs args)
+    private async Task SelectAsync(string selected)
     {
-        var selected = args.Value?.ToString() ?? "";
         _loading = true;
         _error = null;
         try
@@ -126,11 +140,11 @@
                 photos = await ScaleService.GetPlaygroundAsync(id);
                 if (photos?.Playground is null)
                 {
-                    var preset = Presets.FirstOrDefault(item =>
-                        item.Value.Name.Equals(name, StringComparison.OrdinalIgnoreCase) ||
-                        item.Value.Name[..^2].Equals(name, StringComparison.OrdinalIgnoreCase));
-                    if (preset.Key is not null)
-                        photos = new(photos?.Top, photos?.Bottom, Preset(preset.Key).Photos.Playground);
+                    var preset = VirtualScalePresets.All.FirstOrDefault(item =>
+                        item.Name.Equals(name, StringComparison.OrdinalIgnoreCase) ||
+                        item.Name.Equals($"{name} 9", StringComparison.OrdinalIgnoreCase));
+                    if (preset is not null)
+                        photos = new(photos?.Top, photos?.Bottom, preset.CreateDiagram().Playground);
                 }
             }
             else if (parts[0] == "saved")
@@ -140,7 +154,9 @@
             }
             else if (parts[0] == "preset")
             {
-                (name, photos) = Preset(parts[1]);
+                var preset = VirtualScalePresets.All[int.Parse(parts[1])];
+                name = _presetName = preset.Name;
+                photos = preset.CreateDiagram();
             }
             _designId = parts[0] == "saved" ? id : Guid.NewGuid();
             _sourceId = parts[0] == "catalog" ? id : null;
@@ -163,23 +179,5 @@
         _designs.Add(new(_designId, name));
         _selection = $"saved:{_designId}";
         _sourceId = null;
-    }
-
-    private static readonly Dictionary<string, (string Name, string Pitches)> Presets = new()
-    {
-        ["kurd"] = ("D Kurd 9", "D3 A3 Bb3 C4 D4 E4 F4 G4 A4"),
-        ["amara"] = ("D Celtic Minor (Amara) 9", "D3 A3 C4 D4 E4 F4 G4 A4 C5"),
-        ["integral"] = ("D Integral 9", "D3 A3 Bb3 C4 D4 E4 F4 A4 C5"),
-        ["pygmy"] = ("A Pygmy 9", "A2 E3 A3 B3 C4 E4 G4 A4 B4"),
-        ["hijaz"] = ("A Hijaz 9", "A2 E3 G3 A3 Bb3 C#4 D4 E4 G4"),
-        ["minor"] = ("A2 Minor 9", "A2 A3 B3 C4 D4 E4 F4 G4 A4")
-    };
-
-    private static (string Name, ScalePhotoSources Photos) Preset(string preset)
-    {
-        var (name, pitches) = Presets[preset];
-        (double X, double Y)[] positions = [(50,49), (70,82), (30,82), (86,56), (14,56), (81,27), (19,27), (62,14), (38,14)];
-        var notes = pitches.Split(' ').Select((pitch, index) => new ScalePlaygroundNote(pitch, positions[index].X, positions[index].Y)).ToArray();
-        return (name, new(null, null, new(notes)));
     }
 }

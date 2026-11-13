@@ -1,19 +1,20 @@
+.virtual-workshop-header { max-width:48rem; margin-inline:auto; }
 .virtual-workshop {
     max-width:48rem; margin:auto; display:grid; gap:.75rem; color:#edf4fc;
     background:#061b30; border:1px solid #385b78; border-radius:1rem; padding:clamp(.6rem, 3vw, 1.25rem);
 }
-.virtual-workshop h1 { font-size:1.15rem; }
 .workshop-card h2 { font-size:1rem; }
 .workshop-card { display:grid; gap:.65rem; min-width:0; }
 .workshop-card p { margin:0; color:#bdd1e4; font-size:.85rem; }
-.workshop-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; }
+.workshop-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; }
 .sound-bank { display:grid; grid-template-columns:repeat(auto-fit,minmax(3.1rem,1fr)); gap:.4rem; }
-.workshop-tabs button, .sound-note {
+.workshop-tabs button, .sound-note, .workshop-action {
     min-height:2.65rem; background:#103552; color:#edf4fc; border:1px solid #456987; border-radius:.55rem;
 }
 .workshop-tabs button[aria-pressed=true], .sound-note:active, .sound-note.playing {
     background:#edcb86; color:#102236;
 }
-.workshop-card .form-control, .workshop-card .form-select, .workshop-card ::deep .form-select {
+.workshop-card .form-control {
     background:#0c2a46; border-color:#456987; color:#edf4fc; color-scheme:dark;
 }
+.workshop-tabs button { padding:.3rem .2rem; font-size:clamp(.72rem, 3vw, .95rem); }

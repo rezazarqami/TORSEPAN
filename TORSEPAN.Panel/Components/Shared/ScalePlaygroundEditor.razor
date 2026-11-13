@@ -31,7 +31,7 @@
             <div class="playground-pitches" dir="ltr">@string.Join(" · ", notes.Select(note => note.Pitch))</div>
         }
         var source = _bottom ? _bottomPhoto?.Source ?? Photos?.Bottom : _topPhoto?.Source ?? Photos?.Top;
-        <div class="playground-diagram" @ref="_diagram">
+        <div class="playground-diagram @(notes.Count > 12 ? "dense" : null)" @ref="_diagram">
             @if (source is not null)
             {
                 <img src="@source" alt="@(_bottom ? "کاسه زیر" : "کاسه رو")" />
@@ -69,17 +69,8 @@
         {
             <div class="playground-fields">
                 <label>نام نت
-                    <select class="form-select" dir="ltr" @bind="_pitch" disabled="@_busy">
-                        <option value="">انتخاب نت</option>
-                        @if (ScalePlayground.IsPitch(_pitch) && !ScalePlayground.SoundBank.Contains(_pitch))
-                        {
-                            <option value="@_pitch">@_pitch</option>
-                        }
-                        @foreach (var pitch in ScalePlayground.SoundBank)
-                        {
-                            <option value="@pitch">@pitch</option>
-                        }
-                    </select>
+                    <CompactPicker TValue="string" Title="انتخاب نت" Options="PitchOptions"
+                                   @bind-Value="_pitch" disabled="@_busy" />
                 </label>
                 <label class="playground-audio">
                     <span>@(_pending.Audio is null ? "افزودن ضبط نت" : "تعویض ضبط نت")</span>
@@ -109,7 +100,7 @@
             <button type="button" disabled="@_busy" @onclick="Cancel">انصراف</button>
         </div>
     }
-    else
+    else if (!ReadOnly)
     {
         <div class="playground-controls">
             <button type="button" @onclick="BeginEdit">@(_saved.Count == 0 ? "ساخت ساز مجازی" : "ویرایش ساز مجازی")</button>
@@ -118,7 +109,8 @@
 </div>
 
 @code {
-    [Parameter, EditorRequired] public EventCallback<SaveScalePlayground> SaveDesign { get; set; }
+    [Parameter] public EventCallback<SaveScalePlayground> SaveDesign { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
     [Parameter] public ScalePhotoSources? Photos { get; set; }
     [Parameter] public EventCallback<bool> EditingChanged { get; set; }
     [Parameter] public EventCallback<ScalePhotoSources> PhotosChanged { get; set; }
@@ -128,6 +120,11 @@
     private List<ScalePlaygroundNote> _saved = [], _draft = [];
     private ScalePlaygroundNote? _original, _pending;
     private string _pitch = "";
+
+    private IReadOnlyList<(string Value, string Text)> PitchOptions =>
+        [("", "انتخاب نت"), .. ScalePlayground.SoundBank.Select(pitch => (pitch, pitch)),
+            .. (ScalePlayground.IsPitch(_pitch) && !ScalePlayground.SoundBank.Contains(_pitch)
+                ? new[] { (_pitch, _pitch) } : Array.Empty<(string, string)>())];
     private string? _error;
     private bool _bottom, _editing, _busy;
     private ElementReference _diagram;
