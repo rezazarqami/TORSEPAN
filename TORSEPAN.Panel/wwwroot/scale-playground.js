@@ -57,17 +57,17 @@
         }
     }
 
-    function fetchSample(midi) {
-        if (!sampleBytes.has(midi)) {
-            const bytes = fetch(new URL(`${midi}.mp3`, sampleDirectory))
+    function fetchSample(sample) {
+        if (!sampleBytes.has(sample)) {
+            const bytes = fetch(new URL(`${sample}.mp3`, sampleDirectory))
                 .then(response => {
                     if (!response.ok) throw new Error("Handpan sample unavailable");
                     return response.arrayBuffer();
                 });
-            sampleBytes.set(midi, bytes);
-            bytes.catch(() => sampleBytes.delete(midi));
+            sampleBytes.set(sample, bytes);
+            bytes.catch(() => sampleBytes.delete(sample));
         }
-        return sampleBytes.get(midi);
+        return sampleBytes.get(sample);
     }
 
     async function playBankNote(pitch) {
@@ -76,13 +76,15 @@
 
         const anchor = profiles.reduce((nearest, item) =>
             Math.abs(item.midi - midi) < Math.abs(nearest.midi - midi) ? item : nearest).midi;
+        const extended = midi <= 65; // F4
+        const sample = extended ? `${anchor}-sustain` : anchor;
         try {
-            if (!sampleBuffers.has(anchor)) {
-                const buffer = fetchSample(anchor).then(bytes => context.decodeAudioData(bytes.slice(0)));
-                sampleBuffers.set(anchor, buffer);
-                buffer.catch(() => sampleBuffers.delete(anchor));
+            if (!sampleBuffers.has(sample)) {
+                const buffer = fetchSample(sample).then(bytes => context.decodeAudioData(bytes.slice(0)));
+                sampleBuffers.set(sample, buffer);
+                buffer.catch(() => sampleBuffers.delete(sample));
             }
-            const buffer = await sampleBuffers.get(anchor);
+            const buffer = await sampleBuffers.get(sample);
             const now = context.currentTime;
             makeRoom(now);
 
@@ -90,11 +92,23 @@
             const bus = context.createGain();
             source.buffer = buffer;
             source.playbackRate.value = 2 ** ((midi - anchor) / 12);
-            bus.gain.value = .72;
-            source.connect(bus).connect(output);
+            const deepBass = midi <= 50; // D3
+            const volume = deepBass ? .94 : .72;
+            bus.gain.value = volume;
+            if (deepBass) {
+                const clarity = context.createBiquadFilter();
+                clarity.type = "highshelf";
+                clarity.frequency.value = 440 * 2 ** ((midi - 69) / 12) * 1.8;
+                clarity.gain.value = 2.5;
+                source.connect(clarity).connect(bus);
+            } else {
+                source.connect(bus);
+            }
+            bus.connect(output);
             const voice = {
                 stop(at) {
-                    bus.gain.setValueAtTime(.72, context.currentTime);
+                    if (extended) bus.gain.cancelScheduledValues(context.currentTime);
+                    bus.gain.setValueAtTime(bus.gain.value, context.currentTime);
                     bus.gain.linearRampToValueAtTime(0, at);
                     source.stop(at);
                 }
@@ -105,6 +119,12 @@
                 voices.delete(voice);
             };
             source.start(now);
+            if (extended) {
+                const end = now + (deepBass ? 10 : 8);
+                bus.gain.setValueAtTime(volume, end - 2);
+                bus.gain.exponentialRampToValueAtTime(.0001, end);
+                source.stop(end);
+            }
         } catch {
             playSynth(pitch);
         }
@@ -187,7 +207,8 @@
 
     window.scalePlayground = {
         preload() {
-            for (const { midi } of profiles) fetchSample(midi).catch(() => {});
+            for (const { midi } of profiles) fetchSample(`${midi}-sustain`).catch(() => {});
+            fetchSample(69).catch(() => {});
         },
         position(element, x, y) {
             const rect = element.getBoundingClientRect();
