@@ -12,7 +12,7 @@
     ];
     const sampleDirectory = new URL("./handpan-samples/", document.currentScript.src);
     const highNoteStart = 76; // E5
-    const highNoteSample = "69-octave";
+    const highNoteSample = "69-octave-sustain";
     const lowNoteEnd = 65; // F4
     const sampleBytes = new Map();
     const sampleBuffers = new Map();
@@ -36,6 +36,11 @@
         // F2 through D#4 are the lower half of the bank. Ease into the upper half.
         const bassBoostDb = 7 * Math.max(0, Math.min(1, (64 - midi) / 5));
         return 10 ** ((gainDb + bassBoostDb) / 20);
+    }
+
+    function noteDuration(midi) {
+        if (midi <= 50) return 7; // Through D3
+        return midi <= lowNoteEnd ? 5 : 4;
     }
 
     function modesFor(midi) {
@@ -87,10 +92,9 @@
 
         const anchor = profiles.reduce((nearest, item) =>
             Math.abs(item.midi - midi) < Math.abs(nearest.midi - midi) ? item : nearest).midi;
-        const extended = midi <= lowNoteEnd;
         const highNote = midi >= highNoteStart;
         // The octave-only sample uses the same A4 recording and preserves its strike.
-        const sample = highNote ? highNoteSample : extended ? `${anchor}-sustain` : anchor;
+        const sample = highNote ? highNoteSample : `${anchor}-sustain`;
         try {
             if (!sampleBuffers.has(sample)) {
                 const buffer = fetchSample(sample).then(bytes => context.decodeAudioData(bytes.slice(0)));
@@ -122,8 +126,7 @@
             bus.connect(output);
             const voice = {
                 stop(at) {
-                    if (extended) bus.gain.cancelScheduledValues(context.currentTime);
-                    bus.gain.setValueAtTime(bus.gain.value, context.currentTime);
+                    bus.gain.cancelAndHoldAtTime(context.currentTime);
                     bus.gain.linearRampToValueAtTime(0, at);
                     source.stop(at);
                 }
@@ -134,12 +137,10 @@
                 voices.delete(voice);
             };
             source.start(now);
-            if (extended) {
-                const end = now + (deepBass ? 10 : 8);
-                bus.gain.setValueAtTime(volume, end - 2);
-                bus.gain.exponentialRampToValueAtTime(.0001, end);
-                source.stop(end);
-            }
+            const duration = noteDuration(midi);
+            bus.gain.setValueAtTime(volume, now + duration - 1);
+            bus.gain.linearRampToValueAtTime(0, now + duration);
+            source.stop(now + duration);
         } catch {
             playSynth(pitch);
         }
@@ -154,6 +155,9 @@
 
         const bus = context.createGain();
         bus.connect(output);
+        const duration = noteDuration(midi);
+        bus.gain.setValueAtTime(1, now + duration - .65);
+        bus.gain.linearRampToValueAtTime(0, now + duration);
         const oscillators = [];
         const highNote = midi >= highNoteStart;
         const profile = modesFor(midi);
@@ -171,22 +175,23 @@
             const earlyEnd = now + attackTime + .17;
             const tailStart = Math.max(floor, peak * Math.exp(-.17 / (earlyDecay * 1.35)));
             const sustain = tailDecay * 1.65 + .28 * bassSupport;
-            const end = earlyEnd + Math.min(7, sustain * Math.log(tailStart / floor));
+            const end = now + duration;
+            const tailLevel = Math.max(floor, tailStart * Math.exp(-(duration - (earlyEnd - now)) / sustain));
 
             oscillator.frequency.value = fundamental * (index + 1);
             envelope.gain.setValueAtTime(floor, now);
             envelope.gain.exponentialRampToValueAtTime(peak, now + attackTime);
             envelope.gain.exponentialRampToValueAtTime(tailStart, earlyEnd);
-            envelope.gain.exponentialRampToValueAtTime(floor, end);
+            envelope.gain.exponentialRampToValueAtTime(tailLevel, end);
             oscillator.connect(envelope).connect(bus);
             oscillator.start(now);
-            oscillator.stop(end + .02);
+            oscillator.stop(end);
             oscillators.push(oscillator);
         }
 
         const voice = {
             stop(at) {
-                bus.gain.setValueAtTime(1, context.currentTime);
+                bus.gain.cancelAndHoldAtTime(context.currentTime);
                 bus.gain.linearRampToValueAtTime(0, at);
                 for (const oscillator of oscillators) oscillator.stop(at);
             }
@@ -224,7 +229,6 @@
     window.scalePlayground = {
         preload() {
             for (const { midi } of profiles) fetchSample(`${midi}-sustain`).catch(() => {});
-            fetchSample(69).catch(() => {});
             fetchSample(highNoteSample).catch(() => {});
         },
         position(element, x, y) {
