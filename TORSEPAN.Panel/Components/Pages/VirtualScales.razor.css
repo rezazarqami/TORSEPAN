@@ -44,13 +44,6 @@
 .workshop-presets ::deep .preset-photo {
     outline:2px solid #ffca78; outline-offset:0; box-shadow:0 0 .85rem #ff9e35aa;
 }
-.workshop-presets ::deep .playground-note {
-    border:1px solid #ffd087; border-radius:50%; background:#24120882;
-    box-shadow:0 0 .48rem #ff9f35c9, inset 0 0 .3rem #ffad4277;
-}
-.workshop-presets ::deep .playground-note:is(:active,.playing) {
-    background:#8f4a10; box-shadow:0 0 .95rem #ffd16f;
-}
 .workshop-presets .workshop-action {
     border-color:#ffc064; border-radius:999px; color:#fff4df; font-weight:700;
     background:#091b2a; box-shadow:inset 0 0 .55rem #f0a93966, 0 0 .5rem #faa83283;
