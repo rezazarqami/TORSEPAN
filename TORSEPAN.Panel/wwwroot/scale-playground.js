@@ -43,6 +43,14 @@
         return midi <= lowNoteEnd ? 5 : 4;
     }
 
+    function applyNoteDecay(gain, peak, start, duration) {
+        // Keep the initial strike, then fade throughout the note's sustain.
+        const fadeEnd = start + duration;
+        gain.setValueAtTime(peak, start + .025);
+        gain.exponentialRampToValueAtTime(peak * .01, fadeEnd - .12);
+        gain.linearRampToValueAtTime(0, fadeEnd);
+    }
+
     function modesFor(midi) {
         const upperIndex = profiles.findIndex(profile => profile.midi >= midi);
         if (upperIndex <= 0) return profiles[upperIndex === 0 ? 0 : profiles.length - 1].modes;
@@ -111,7 +119,7 @@
             source.playbackRate.value = 2 ** ((midi - anchor) / 12);
             const deepBass = midi <= 50; // D3
             const volume = (deepBass ? .94 : .72) * noteGain(midi);
-            bus.gain.value = volume;
+            bus.gain.setValueAtTime(volume, now);
             const clarityGain = 10 * Math.max(0, (69 - midi) / 28)
                 + 5 * Math.max(0, (64 - midi) / 23);
             if (clarityGain > 0) {
@@ -136,10 +144,9 @@
                 bus.disconnect();
                 voices.delete(voice);
             };
-            source.start(now);
             const duration = noteDuration(midi);
-            bus.gain.setValueAtTime(volume, now + duration - 1);
-            bus.gain.linearRampToValueAtTime(0, now + duration);
+            applyNoteDecay(bus.gain, volume, now, duration);
+            source.start(now);
             source.stop(now + duration);
         } catch {
             playSynth(pitch);
@@ -156,8 +163,8 @@
         const bus = context.createGain();
         bus.connect(output);
         const duration = noteDuration(midi);
-        bus.gain.setValueAtTime(1, now + duration - .65);
-        bus.gain.linearRampToValueAtTime(0, now + duration);
+        bus.gain.setValueAtTime(1, now);
+        applyNoteDecay(bus.gain, 1, now, duration);
         const oscillators = [];
         const highNote = midi >= highNoteStart;
         const profile = modesFor(midi);
