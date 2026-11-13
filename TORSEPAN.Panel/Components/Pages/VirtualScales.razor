@@ -8,8 +8,11 @@
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Host
 
 <PageTitle>هنگ‌درام مجازی | تورسپن</PageTitle>
-<header class="virtual-workshop-header theme-hero theme-page-intro" dir="rtl">
-    <h1 id="virtual-workshop-title">هنگ‌درام مجازی</h1>
+<header class="virtual-workshop-header" dir="rtl">
+    <div class="workshop-hero-title">
+        <span lang="en" dir="ltr">HANDPAN</span>
+        <h1 id="virtual-workshop-title">هنگ‌درام مجازی</h1>
+    </div>
 </header>
 <section class="virtual-workshop navy-workspace-page" dir="rtl" aria-labelledby="virtual-workshop-title">
     @if (OperatingSystem.IsBrowser())
@@ -34,7 +37,7 @@
         }
         else if (_view != WorkshopView.Design || !_isAdministrator)
         {
-            <section class="workshop-card" aria-label="اسکیل‌ها">
+            <section class="workshop-card workshop-presets" aria-label="اسکیل‌ها">
                 <CompactPicker TValue="int" Title="انتخاب اسکیل" Options="PresetOptions" Searchable="true" disabled="@_addingPhoto" @bind-Value="_presetIndex" @bind-Value:after="ResetAlbumTarget" />
                 @if (_presetIndex >= 0)
                 {
@@ -47,7 +50,7 @@
                 }
                 @if (_isAdministrator && _presetIndex >= 0 && _catalog.Count > 0)
                 {
-                    <details class="workshop-card">
+                    <details class="workshop-card workshop-album">
                         <summary>افزودن عکس به آلبوم اسکیل</summary>
                         <CompactPicker TValue="Guid" Title="انتخاب اسکیل مقصد" Options="AlbumOptions" Searchable="true"
                                        @bind-Value="_albumTarget" disabled="@_addingPhoto" />
@@ -68,7 +71,10 @@
                 }
                 @if (_canUseSoundBank)
                 {
-                    <button type="button" class="workshop-secondary" @onclick="() => _view = WorkshopView.Bank">بانک صدا</button>
+                    <div class="workshop-bank-row">
+                        <button type="button" class="workshop-bank-button" @onclick="() => _view = WorkshopView.Bank">بانک صدا</button>
+                        <span class="workshop-wave" aria-hidden="true">▂▄▆▃▅█▅▃▆▄▂</span>
+                    </div>
                 }
             </section>
         }
