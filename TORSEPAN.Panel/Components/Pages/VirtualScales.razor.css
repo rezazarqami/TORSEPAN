@@ -18,3 +18,5 @@
 }
 .workshop-secondary { justify-self:start; width:fit-content; min-height:2.4rem; padding:.3rem .75rem;
     border:1px solid #456987; border-radius:.55rem; background:#103552; color:#edf4fc; font-size:.8rem; }
+
+.workshop-photo-actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.5rem; }

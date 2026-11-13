@@ -4,7 +4,7 @@ using TORSEPAN.Domain.Entities;
 
 namespace TORSEPAN.Infrastructure.Persistence.Configurations;
 
-public sealed class ScaleConfiguration : IEntityTypeConfiguration<Scale>, IEntityTypeConfiguration<ScalePhotos>
+public sealed class ScaleConfiguration : IEntityTypeConfiguration<Scale>, IEntityTypeConfiguration<ScalePhotos>, IEntityTypeConfiguration<ScaleAlbumPhoto>
 {
     public void Configure(EntityTypeBuilder<Scale> builder)
     {
@@ -21,5 +21,10 @@ public sealed class ScaleConfiguration : IEntityTypeConfiguration<Scale>, IEntit
         builder.ToTable("ScalePhotos");
         builder.HasKey(x => x.ScaleId);
         builder.HasOne<Scale>().WithOne().HasForeignKey<ScalePhotos>(x => x.ScaleId);
+    }
+    public void Configure(EntityTypeBuilder<ScaleAlbumPhoto> builder)
+    {
+        builder.HasOne<Scale>().WithMany().HasForeignKey(x => x.ScaleId);
+        builder.HasIndex(x => new { x.ScaleId, x.CreatedAt });
     }
 }

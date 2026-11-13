@@ -34,6 +34,47 @@ public sealed class ScalesController : ControllerBase
         return Ok(new { Top = ImageSource(photos?.Top), Bottom = ImageSource(photos?.Bottom) });
     }
 
+    [HttpGet("{id:guid}/album")]
+    public async Task<IActionResult> GetAlbum(Guid id, [FromServices] TORSEPANDbContext db, CancellationToken ct)
+    {
+        var photos = await db.ScaleAlbumPhotos.AsNoTracking().Where(photo => photo.ScaleId == id)
+            .OrderBy(photo => photo.CreatedAt).ThenBy(photo => photo.Id).ToListAsync(ct);
+        return Ok(photos.Select(photo => new ScaleAlbumImage(photo.Id, ImageSource(photo.Image)!,
+            photo.NotesJson is { } json ? JsonSerializer.Deserialize<ScaleAlbumNote[]>(json) ?? [] : [])));
+    }
+
+    [HttpPost("{id:guid}/album"), RequestSizeLimit(7_000_000)]
+    public async Task<ActionResult<Guid>> AddAlbumImage(Guid id, AddScaleAlbumImage request,
+        [FromServices] TORSEPANDbContext db, CancellationToken ct)
+    {
+        if (request.Image is not { Length: > 0 } || !ValidPhoto(request.Image))
+            return BadRequest(PhotoError);
+        if (!await db.Scales.AnyAsync(scale => scale.Id == id && scale.IsActive, ct))
+            return NotFound();
+
+        var photo = new ScaleAlbumPhoto(id, request.Image);
+        db.ScaleAlbumPhotos.Add(photo);
+        await db.SaveChangesAsync(ct);
+        return Ok(photo.Id);
+    }
+
+    [HttpPut("{id:guid}/album/{photoId:guid}/notes")]
+    public async Task<IActionResult> SaveAlbumNotes(Guid id, Guid photoId, UpdateScaleAlbumNotes request,
+        [FromServices] TORSEPANDbContext db, CancellationToken ct)
+    {
+        if (request.Notes is null || request.Notes.Count > ScalePlayground.MaxNotes ||
+            request.Notes.Any(note => note is null || !ScalePlayground.IsPitch(note.Pitch) ||
+                !double.IsFinite(note.X) || !double.IsFinite(note.Y) ||
+                note.X is < 0 or > 100 || note.Y is < 0 or > 100))
+            return BadRequest("نت یا محل نت معتبر نیست.");
+
+        var photo = await db.ScaleAlbumPhotos.SingleOrDefaultAsync(item => item.ScaleId == id && item.Id == photoId, ct);
+        if (photo is null) return NotFound();
+        photo.SetNotes(JsonSerializer.Serialize(request.Notes));
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
     [HttpGet("{id:guid}/playground"), Authorize(Roles = "Administrator")]
     public async Task<IActionResult> GetPlayground(Guid id, [FromServices] TORSEPANDbContext db, CancellationToken ct)
     {

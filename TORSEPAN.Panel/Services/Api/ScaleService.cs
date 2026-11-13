@@ -1,5 +1,8 @@
+using TORSEPAN.Application.Scales;
+using LegacyTopBowlScaleDto = TORSEPAN.Panel.Models.LegacyTopBowlScaleDto;
 using SaveVirtualScale = TORSEPAN.Application.Scales.SaveVirtualScale;
 using VirtualScaleSummary = TORSEPAN.Application.Scales.VirtualScaleSummary;
+using ScaleDto = TORSEPAN.Panel.Models.ScaleDto;
 using TORSEPAN.Panel.Models;
 
 namespace TORSEPAN.Panel.Services.Api;
@@ -17,6 +20,15 @@ public sealed class ScaleService
 
     public Task<ScalePhotoSources?> GetPhotosAsync(Guid id) =>
         _api.GetAsync<ScalePhotoSources>($"scales/{id}/photos");
+
+    public async Task<IReadOnlyList<ScaleAlbumImage>> GetAlbumAsync(Guid id) =>
+        await _api.GetAsync<List<ScaleAlbumImage>>($"scales/{id}/album") ?? [];
+
+    public Task<Guid> AddAlbumImageAsync(Guid id, byte[] image) =>
+        _api.PostAsync<AddScaleAlbumImage, Guid>($"scales/{id}/album", new(image));
+
+    public Task SaveAlbumNotesAsync(Guid id, Guid photoId, IReadOnlyList<ScaleAlbumNote> notes) =>
+        _api.PutAsync<UpdateScaleAlbumNotes, object?>($"scales/{id}/album/{photoId}/notes", new(notes));
 
     public Task<ScalePhotoSources?> GetPlaygroundAsync(Guid id) =>
         _api.GetAsync<ScalePhotoSources>($"scales/{id}/playground");

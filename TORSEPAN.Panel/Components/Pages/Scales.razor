@@ -2,6 +2,8 @@
 @page "/custom-scales"
 @attribute [Authorize]
 @using Microsoft.AspNetCore.Authorization
+@using TORSEPAN.Application.Scales
+@using ScaleDto = TORSEPAN.Panel.Models.ScaleDto
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
 @inject ScaleService ScaleService
@@ -29,8 +31,8 @@ else if (_createTab)
     <section class="scale-card">
         <header><h2>اسکیل جدید</h2></header>
         <div class="scale-create" @key="_newPhotos">
-            <label for="new-scale-name">نام اسکیل<input id="new-scale-name" class="form-control" maxlength="100" @bind="_name" @bind:event="oninput" disabled="@_busy" /></label>
-            @PhotoPickers(_newPhotos)
+            <label for="new-scale-name">نام اسکیل<input id="new-scale-name" class="form-control" maxlength="100" @bind="_name" @bind:event="oninput" disabled="@(_busy || _createdId.HasValue)" /></label>
+            @PhotoPicker(_newPhotos, ReadNewPhotoAsync)
             <button type="button" class="btn btn-primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_name))" @onclick="CreateAsync">ثبت اسکیل</button>
         </div>
     </section>
@@ -53,7 +55,23 @@ else
                         {
                             <div class="scale-edit">
                                 <label for="edit-scale-name">نام جدید اسکیل<input id="edit-scale-name" class="form-control" maxlength="100" @bind="_editingName" @bind:event="oninput" disabled="@_busy" /></label>
-                                @PhotoPickers(_editPhotos)
+                                @if (PhotosAvailable)
+                                {
+                                    @if (_photoLoading)
+                                    {
+                                        <p role="status">در حال دریافت عکس‌ها…</p>
+                                    }
+                                    else if (_photoError is not null)
+                                    {
+                                        <p role="alert">@_photoError</p>
+                                        <button type="button" class="btn btn-light" @onclick="() => LoadAlbumAsync(scale.Id)">تلاش دوباره</button>
+                                    }
+                                    else
+                                    {
+                                        <ScaleAlbum @key="scale.Id" Images="_album" Editing="true" Disabled="_busy" NotesChanged="SaveNotesAsync" />
+                                        @PhotoPicker(_editPhotos, AppendPhotoAsync)
+                                    }
+                                }
                                 @if (_isError && _message is not null)
                                 {
                                     <div class="scale-notice error" role="alert">@_message</div>
@@ -64,11 +82,11 @@ else
                         else
                         {
                             <div class="scale-summary">
-                                <div class="scale-actions"><button type="button" class="btn btn-outline-primary" disabled="@(_busy)" @onclick="() => BeginEdit(scale)">ویرایش</button><button type="button" class="btn btn-outline-danger" disabled="@(_busy)" @onclick="() => _deleting = scale">حذف</button></div>
+                                <div class="scale-actions"><button type="button" class="btn btn-outline-primary" disabled="@(_busy)" @onclick="() => BeginEditAsync(scale)">ویرایش</button><button type="button" class="btn btn-outline-danger" disabled="@(_busy)" @onclick="() => _deleting = scale">حذف</button></div>
                                 <div class="scale-title">
                                     @if (PhotosAvailable)
                                     {
-                                        <button type="button" class="scale-photo-toggle" aria-label="@($"عکس کاسه‌های {scale.Name}")" aria-expanded="@(_expandedId == scale.Id)" @onclick="() => TogglePhotosAsync(scale.Id)">
+                                        <button type="button" class="scale-photo-toggle" aria-label="@($"آلبوم عکس {scale.Name}")" aria-expanded="@(_expandedId == scale.Id)" disabled="@(_editingId is not null || _busy)" @onclick="() => TogglePhotosAsync(scale.Id)">
                                             <span aria-hidden="true">⌄</span>
                                         </button>
                                     }
@@ -87,10 +105,7 @@ else
                                 }
                                 else
                                 {
-                                    <div class="scale-photo-pair">
-                                        @PhotoTile("کاسه رو", _visiblePhotos?.Top)
-                                        @PhotoTile("کاسه زیر", _visiblePhotos?.Bottom)
-                                    </div>
+                                    <ScaleAlbum @key="scale.Id" Images="_album" />
                                 }
                             }
                         }
@@ -116,22 +131,23 @@ else
     private int _photoRequest;
     private bool _photoLoading;
     private string? _photoError;
-    private ScalePhotoSources? _visiblePhotos;
+    private IReadOnlyList<ScaleAlbumImage> _album = [];
+    private Guid? _createdId;
 
     private sealed class PhotoDraft
     {
-        public byte[]? Top { get; set; }
-        public byte[]? Bottom { get; set; }
+        public byte[]? Image { get; set; }
         public string? Error { get; set; }
     }
 
-    private RenderFragment PhotoPickers(PhotoDraft draft) => @<div class="scale-photo-fields">
+    private RenderFragment PhotoPicker(PhotoDraft draft, Func<InputFileChangeEventArgs, Task> onChange) => @<div class="scale-photo-fields">
         @if (PhotosAvailable)
         {
-            <div class="scale-photo-pair">
-                @PhotoPicker(draft, "کاسه رو", true)
-                @PhotoPicker(draft, "کاسه زیر", false)
-            </div>
+            <label class="scale-photo-picker @(_busy ? "is-disabled" : null)">
+                <InputFile OnChange="onChange" accept="image/jpeg,image/png,image/webp" disabled="@_busy" aria-label="افزودن عکس" />
+                <span aria-hidden="true">@(draft.Image is null ? "+" : "✓")</span>
+                افزودن عکس
+            </label>
             @if (draft.Error is not null)
             {
                 <p role="alert">@draft.Error</p>
@@ -139,63 +155,78 @@ else
         }
     </div>;
 
-    private RenderFragment PhotoPicker(PhotoDraft draft, string label, bool top) => @<label class="scale-photo-picker @(_busy ? "is-disabled" : null)">
-        <InputFile OnChange="args => ReadPhotoAsync(args, draft, top)" accept="image/jpeg,image/png,image/webp" disabled="@_busy" aria-label="@label" />
-        <span aria-hidden="true">@((top ? draft.Top : draft.Bottom) is null ? "+" : "✓")</span>
-        @label
-    </label>;
-
-    private static RenderFragment PhotoTile(string label, string? source) => @<figure class="scale-photo-tile">
-        @if (source is not null)
+    private async Task<byte[]?> ReadPhotoAsync(InputFileChangeEventArgs args, PhotoDraft draft)
+    {
+        draft.Error = null;
+        var file = args.File;
+        if (file.Size is <= 0 or > MaxPhotoBytes || file.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))
         {
-            <img src="@source" alt="@label" />
+            draft.Error = "عکس باید JPEG، PNG یا WebP و حداکثر ۵ مگابایت باشد.";
+            return null;
         }
-        else
-        {
-            <div class="scale-photo-missing">ثبت نشده</div>
-        }
-        <figcaption>@label</figcaption>
-    </figure>;
 
-    private async Task ReadPhotoAsync(InputFileChangeEventArgs args, PhotoDraft draft, bool top)
+        await using var stream = file.OpenReadStream(MaxPhotoBytes);
+        using var buffer = new MemoryStream((int)file.Size);
+        await stream.CopyToAsync(buffer);
+        return buffer.ToArray();
+    }
+
+    private async Task ReadNewPhotoAsync(InputFileChangeEventArgs args)
     {
         _busy = true;
-        draft.Error = null;
-        try
-        {
-            var file = args.File;
-            if (file.Size is <= 0 or > MaxPhotoBytes || file.ContentType is not ("image/jpeg" or "image/png" or "image/webp"))
-            {
-                draft.Error = "عکس باید JPEG، PNG یا WebP و حداکثر ۵ مگابایت باشد.";
-                return;
-            }
-
-            await using var stream = file.OpenReadStream(MaxPhotoBytes);
-            using var buffer = new MemoryStream((int)file.Size);
-            await stream.CopyToAsync(buffer);
-            if (top) draft.Top = buffer.ToArray();
-            else draft.Bottom = buffer.ToArray();
-        }
-        catch (Exception)
-        {
-            draft.Error = "خواندن عکس انجام نشد. دوباره عکس را انتخاب کنید.";
-        }
+        try { _newPhotos.Image = await ReadPhotoAsync(args, _newPhotos); }
+        catch (Exception ex) { _newPhotos.Error = ex.Message; }
         finally { _busy = false; }
     }
 
-    private async Task TogglePhotosAsync(Guid id)
+    private async Task AppendPhotoAsync(InputFileChangeEventArgs args)
     {
-        var request = ++_photoRequest;
-        _expandedId = _expandedId == id ? null : id;
-        _visiblePhotos = null;
-        _photoError = null;
-        _photoLoading = _expandedId is not null;
-        if (!_photoLoading) return;
-
+        if (_editingId is not { } id || _busy) return;
+        _busy = true;
         try
         {
-            var photos = await ScaleService.GetPhotosAsync(id);
-            if (request == _photoRequest) _visiblePhotos = photos;
+            var image = await ReadPhotoAsync(args, _editPhotos);
+            if (image is null) return;
+            var photoId = await ScaleService.AddAlbumImageAsync(id, image);
+            _album = [.. _album, new(photoId, $"data:{args.File.ContentType};base64,{Convert.ToBase64String(image)}", [])];
+        }
+        catch (Exception ex) { _editPhotos.Error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task SaveNotesAsync(ScaleAlbumImage image)
+    {
+        if (_editingId is not { } id || _busy) return;
+        _busy = true;
+        _message = null;
+        try
+        {
+            await ScaleService.SaveAlbumNotesAsync(id, image.Id, image.Notes);
+            _album = _album.Select(item => item.Id == image.Id ? image : item).ToArray();
+        }
+        catch (Exception ex) { ShowError(ex); }
+        finally { _busy = false; }
+    }
+
+    private Task TogglePhotosAsync(Guid id)
+    {
+        _expandedId = _expandedId == id ? null : id;
+        if (_expandedId.HasValue) return LoadAlbumAsync(id);
+        _photoRequest++;
+        _album = [];
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadAlbumAsync(Guid id)
+    {
+        var request = ++_photoRequest;
+        _album = [];
+        _photoError = null;
+        _photoLoading = true;
+        try
+        {
+            var photos = await ScaleService.GetAlbumAsync(id);
+            if (request == _photoRequest) _album = photos;
         }
         catch (Exception)
         {
@@ -219,17 +250,25 @@ else
     {
         try { await ReloadAsync(); } catch (Exception ex) { ShowError(ex); } finally { _loading = false; }
     }
-    private void BeginEdit(ScaleDto scale)
+    private async Task BeginEditAsync(ScaleDto scale)
     {
         _photoRequest++;
         _expandedId = null;
-        _visiblePhotos = null;
+        _album = [];
         _editingId = scale.Id;
         _editingName = scale.Name;
         _editPhotos = new();
         _message = null;
+        if (PhotosAvailable) await LoadAlbumAsync(scale.Id);
     }
-    private void CancelEdit() { _editingId = null; _editingName = ""; _editPhotos = new(); }
+    private void CancelEdit()
+    {
+        _photoRequest++;
+        _photoLoading = false;
+        _editingId = null;
+        _editingName = "";
+        _editPhotos = new();
+    }
     private void ShowError(Exception ex) { _isError = true; _message = ex.Message; }
     private async Task ReloadAsync()
     {
@@ -239,14 +278,25 @@ else
     {
         if (_busy || string.IsNullOrWhiteSpace(_name)) return;
         _busy = true; _message = null;
-        try { await ScaleService.CreateAsync(_name, _usage, _newPhotos.Top, _newPhotos.Bottom); _name = ""; _newPhotos = new(); await ReloadAsync(); _isError = false; _message = "اسکیل ثبت شد."; }
+        try
+        {
+            _createdId ??= await ScaleService.CreateAsync(_name, _usage);
+            if (_newPhotos.Image is { } image)
+                await ScaleService.AddAlbumImageAsync(_createdId.Value, image);
+            _createdId = null;
+            _name = "";
+            _newPhotos = new();
+            await ReloadAsync();
+            _isError = false;
+            _message = "اسکیل ثبت شد.";
+        }
         catch (Exception ex) { ShowError(ex); } finally { _busy = false; }
     }
     private async Task SaveEditAsync()
     {
         if (_busy || !_editingId.HasValue || string.IsNullOrWhiteSpace(_editingName)) return;
         _busy = true; _message = null;
-        try { await ScaleService.RenameAsync(_editingId.Value, _editingName, _editPhotos.Top, _editPhotos.Bottom); await ReloadAsync(); CancelEdit(); _isError = false; _message = "تغییرات اسکیل ذخیره شد."; }
+        try { await ScaleService.RenameAsync(_editingId.Value, _editingName); await ReloadAsync(); CancelEdit(); _isError = false; _message = "تغییرات اسکیل ذخیره شد."; }
         catch (Exception ex) { ShowError(ex); } finally { _busy = false; }
     }
     private async Task DeleteAsync()

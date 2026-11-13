@@ -35,7 +35,7 @@
         else if (_view != WorkshopView.Design || !_isAdministrator)
         {
             <section class="workshop-card" aria-label="اسکیل‌ها">
-                <CompactPicker TValue="int" Title="انتخاب اسکیل" Options="PresetOptions" Searchable="true" @bind-Value="_presetIndex" />
+                <CompactPicker TValue="int" Title="انتخاب اسکیل" Options="PresetOptions" Searchable="true" disabled="@_addingPhoto" @bind-Value="_presetIndex" @bind-Value:after="ResetAlbumTarget" />
                 @if (_presetIndex >= 0)
                 {
                     var preset = VirtualScalePresets.All[_presetIndex];
@@ -44,6 +44,27 @@
                     {
                         <button type="button" class="workshop-action" @onclick="() => StartFromPresetAsync(_presetIndex)">طراحی از روی این اسکیل</button>
                     }
+                }
+                @if (_isAdministrator && _presetIndex >= 0 && _catalog.Count > 0)
+                {
+                    <details class="workshop-card">
+                        <summary>افزودن عکس به آلبوم اسکیل</summary>
+                        <CompactPicker TValue="Guid" Title="انتخاب اسکیل مقصد" Options="AlbumOptions" Searchable="true"
+                                       @bind-Value="_albumTarget" disabled="@_addingPhoto" />
+                        <div class="workshop-photo-actions">
+                            <button type="button" class="workshop-secondary" disabled="@(_albumTarget == Guid.Empty || _addingPhoto)"
+                                    @onclick="() => AddPhotoToAlbumAsync(false)">افزودن عکس رو</button>
+                            @if (VirtualScalePresets.All[_presetIndex].BottomImage.Length > 0)
+                            {
+                                <button type="button" class="workshop-secondary" disabled="@(_albumTarget == Guid.Empty || _addingPhoto)"
+                                        @onclick="() => AddPhotoToAlbumAsync(true)">افزودن عکس زیر</button>
+                            }
+                        </div>
+                    </details>
+                }
+                @if (_albumMessage is not null)
+                {
+                    <p role="status">@_albumMessage</p>
                 }
                 @if (_canUseSoundBank)
                 {
@@ -84,7 +105,36 @@
 
     private void ShowScales() => _view = WorkshopView.Scales;
     private bool _loading = true, _editing;
-    private int _presetIndex = -1;
+    private int _presetIndex = VirtualScalePresets.All.ToList().FindIndex(preset => preset.Name == "D Minor / Kurd 10");
+    private Guid _albumTarget;
+    private bool _addingPhoto;
+    private string? _albumMessage;
+
+    private IReadOnlyList<(Guid Value, string Text)> AlbumOptions =>
+        _catalog.OrderBy(scale => scale.Name).Select(scale => (scale.Id, scale.Name)).ToArray();
+
+    private void ResetAlbumTarget() => _albumMessage = null;
+
+    private async Task AddPhotoToAlbumAsync(bool bottom)
+    {
+        if (!_isAdministrator || _addingPhoto || _albumTarget == Guid.Empty || _presetIndex < 0) return;
+        _addingPhoto = true;
+        _albumMessage = null;
+        try
+        {
+            var photos = VirtualScalePresets.All[_presetIndex].CreateDiagram();
+            var image = await ReadPresetPhotoAsync(bottom ? photos.Bottom : photos.Top);
+            if (image is null)
+            {
+                _albumMessage = "برای این سمت عکسی وجود ندارد.";
+                return;
+            }
+            await ScaleService.AddAlbumImageAsync(_albumTarget, image);
+            _albumMessage = "عکس به آلبوم اسکیل اضافه شد.";
+        }
+        catch (Exception ex) { _albumMessage = ex.Message; }
+        finally { _addingPhoto = false; }
+    }
 
     private static IReadOnlyList<(int Value, string Text)> PresetOptions { get; } =
         VirtualScalePresets.All.Select((preset, index) => (index, preset.Name)).ToArray();

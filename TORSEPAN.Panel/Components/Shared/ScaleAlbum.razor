@@ -1,0 +1,116 @@
+@using TORSEPAN.Application.Scales
+@inject IJSRuntime JS
+
+@if (Images.Count == 0)
+{
+    <p class="album-empty">هنوز عکسی ثبت نشده است.</p>
+}
+else
+{
+    var image = Images[Math.Clamp(_selected, 0, Images.Count - 1)];
+    <div class="album-photo" @ref="_photo">
+        <img src="@image.Source" alt="عکس اسکیل" />
+        @if (Editing)
+        {
+            <button type="button" class="album-placement" aria-label="تعیین جای نت روی عکس"
+                    disabled="@Disabled" @onclick="PlaceAsync"></button>
+        }
+        @for (var i = 0; i < image.Notes.Count; i++)
+        {
+            var index = i;
+            var note = image.Notes[i];
+            var style = Position(note.X, note.Y);
+            if (Editing)
+            {
+                <button type="button" class="album-note" dir="ltr" style="@style" disabled="@Disabled"
+                        @onclick="() => SelectNote(note, index)">@note.Pitch</button>
+            }
+            else
+            {
+                <span class="album-note" dir="ltr" style="@style">@note.Pitch</span>
+            }
+        }
+        @if (Editing && _pending)
+        {
+            <span class="album-note album-marker" style="@Position(_x, _y)" aria-hidden="true">+</span>
+        }
+    </div>
+    @if (Images.Count > 1)
+    {
+        <div class="album-thumbs" aria-label="عکس‌های آلبوم">
+            @for (var i = 0; i < Images.Count; i++)
+            {
+                var index = i;
+                <button type="button" aria-pressed="@(index == _selected)" disabled="@Disabled" @onclick="() => ChooseImage(index)">
+                    <img src="@Images[index].Source" alt="@($"عکس {index + 1}")" />
+                </button>
+            }
+        </div>
+    }
+    @if (Editing)
+    {
+        <p class="album-empty">برای افزودن نت روی عکس بزنید. برای جابه‌جایی، ابتدا نت و سپس جای جدیدش را بزنید.</p>
+        @if (_pending)
+        {
+            <CompactPicker TValue="string" Title="انتخاب نت" Options="PitchOptions" Searchable="true" @bind-Value="_pitch" disabled="@Disabled" />
+            <div class="scale-actions">
+                <button type="button" class="btn btn-primary" disabled="@(Disabled || !ScalePlayground.IsPitch(_pitch) || (_noteIndex < 0 && image.Notes.Count >= ScalePlayground.MaxNotes))"
+                        @onclick="() => ApplyAsync(image, false)">ذخیره نت</button>
+                @if (_noteIndex >= 0)
+                {
+                    <button type="button" class="btn btn-outline-danger" disabled="@Disabled" @onclick="() => ApplyAsync(image, true)">حذف نت</button>
+                }
+                <button type="button" class="btn btn-light" disabled="@Disabled" @onclick="Clear">انصراف نت</button>
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ScaleAlbumImage> Images { get; set; } = [];
+    [Parameter] public bool Editing { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback<ScaleAlbumImage> NotesChanged { get; set; }
+
+    private ElementReference _photo;
+    private int _selected, _noteIndex = -1;
+    private bool _pending;
+    private string _pitch = "";
+    private double _x, _y;
+
+    private IReadOnlyList<(string Value, string Text)> PitchOptions =>
+        [.. ScalePlayground.SoundBank.Select(pitch => (pitch, pitch)),
+            .. (ScalePlayground.IsPitch(_pitch) && !ScalePlayground.SoundBank.Contains(_pitch)
+                ? new[] { (_pitch, _pitch) } : Array.Empty<(string, string)>())];
+
+    private static string Position(double x, double y) => FormattableString.Invariant($"left:{x:F2}%;top:{y:F2}%");
+
+    private void ChooseImage(int index) { _selected = index; Clear(); }
+    private void Clear() { _pending = false; _noteIndex = -1; _pitch = ""; }
+
+    private async Task PlaceAsync(MouseEventArgs args)
+    {
+        var position = await JS.InvokeAsync<double[]>("scalePlayground.position", _photo, args.ClientX, args.ClientY);
+        (_x, _y) = (position[0], position[1]);
+        _pending = true;
+    }
+
+    private void SelectNote(ScaleAlbumNote note, int index)
+    {
+        (_pitch, _x, _y) = (note.Pitch, note.X, note.Y);
+        _noteIndex = index;
+        _pending = true;
+    }
+
+    private async Task ApplyAsync(ScaleAlbumImage image, bool remove)
+    {
+        var notes = image.Notes.ToList();
+        if (remove) notes.RemoveAt(_noteIndex);
+        else if (_noteIndex >= 0) notes[_noteIndex] = new(_pitch, _x, _y);
+        else if (notes.Count < ScalePlayground.MaxNotes) notes.Add(new(_pitch, _x, _y));
+        else return;
+
+        await NotesChanged.InvokeAsync(image with { Notes = notes });
+        Clear();
+    }
+}
