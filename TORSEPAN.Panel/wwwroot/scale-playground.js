@@ -12,10 +12,7 @@
     ];
     const sampleDirectory = new URL("./handpan-samples/", document.currentScript.src);
     const highNoteStart = 76; // E5
-    const highNoteSample = "69-octave-sustain";
     const lowNoteEnd = 65; // F4
-    const sampleBytes = new Map();
-    const sampleBuffers = new Map();
     const accents = new WeakMap();
     const voices = new Set();
     let context;
@@ -81,76 +78,12 @@
         }
     }
 
-    function fetchSample(sample) {
-        if (!sampleBytes.has(sample)) {
-            const bytes = fetch(new URL(`${sample}.mp3`, sampleDirectory))
-                .then(response => {
-                    if (!response.ok) throw new Error("Handpan sample unavailable");
-                    return response.arrayBuffer();
-                });
-            sampleBytes.set(sample, bytes);
-            bytes.catch(() => sampleBytes.delete(sample));
-        }
-        return sampleBytes.get(sample);
-    }
-
-    async function playBankNote(pitch) {
+    function playBankNote(pitch) {
         const midi = midiFor(pitch);
-        if (midi === null || !prepareAudio()) return;
+        if (midi === null) return;
 
-        const anchor = profiles.reduce((nearest, item) =>
-            Math.abs(item.midi - midi) < Math.abs(nearest.midi - midi) ? item : nearest).midi;
-        const highNote = midi >= highNoteStart;
-        // The octave-only sample uses the same A4 recording and preserves its strike.
-        const sample = highNote ? highNoteSample : `${anchor}-sustain`;
-        try {
-            if (!sampleBuffers.has(sample)) {
-                const buffer = fetchSample(sample).then(bytes => context.decodeAudioData(bytes.slice(0)));
-                sampleBuffers.set(sample, buffer);
-                buffer.catch(() => sampleBuffers.delete(sample));
-            }
-            const buffer = await sampleBuffers.get(sample);
-            const now = context.currentTime;
-            makeRoom(now);
-
-            const source = context.createBufferSource();
-            const bus = context.createGain();
-            source.buffer = buffer;
-            source.playbackRate.value = 2 ** ((midi - anchor) / 12);
-            const deepBass = midi <= 50; // D3
-            const volume = (deepBass ? .94 : .72) * noteGain(midi);
-            bus.gain.setValueAtTime(volume, now);
-            const clarityGain = 10 * Math.max(0, (69 - midi) / 28)
-                + 5 * Math.max(0, (64 - midi) / 23);
-            if (clarityGain > 0) {
-                const clarity = context.createBiquadFilter();
-                clarity.type = "highshelf";
-                clarity.frequency.value = 440 * 2 ** ((midi - 69) / 12) * 1.8;
-                clarity.gain.value = clarityGain;
-                source.connect(clarity).connect(bus);
-            } else {
-                source.connect(bus);
-            }
-            bus.connect(output);
-            const voice = {
-                stop(at) {
-                    bus.gain.cancelAndHoldAtTime(context.currentTime);
-                    bus.gain.linearRampToValueAtTime(0, at);
-                    source.stop(at);
-                }
-            };
-            voices.add(voice);
-            source.onended = () => {
-                bus.disconnect();
-                voices.delete(voice);
-            };
-            const duration = noteDuration(midi);
-            applyNoteDecay(bus.gain, volume, now, duration);
-            source.start(now);
-            source.stop(now + duration);
-        } catch {
-            playSynth(pitch);
-        }
+        const player = new Audio(new URL(`abtin/${midi}.flac`, sampleDirectory));
+        player.play().catch(() => playSynth(pitch));
     }
 
     function playSynth(pitch) {
@@ -234,10 +167,6 @@
     });
 
     window.scalePlayground = {
-        preload() {
-            for (const { midi } of profiles) fetchSample(`${midi}-sustain`).catch(() => {});
-            fetchSample(highNoteSample).catch(() => {});
-        },
         position(element, x, y) {
             const rect = element.getBoundingClientRect();
             const percent = (coordinate, start, length) => Math.max(0, Math.min(100, (coordinate - start) / length * 100));
