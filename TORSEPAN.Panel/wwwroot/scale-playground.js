@@ -12,7 +12,6 @@
     ];
     const sampleDirectory = new URL("./handpan-samples/", document.currentScript.src);
     const highNoteStart = 76; // E5
-    const highNoteSample = "69-octave-sustain";
     const lowNoteEnd = 65; // F4
     const sampleBytes = new Map();
     const sampleBuffers = new Map();
@@ -98,11 +97,7 @@
         const midi = midiFor(pitch);
         if (midi === null || !prepareAudio()) return;
 
-        const anchor = profiles.reduce((nearest, item) =>
-            Math.abs(item.midi - midi) < Math.abs(nearest.midi - midi) ? item : nearest).midi;
-        const highNote = midi >= highNoteStart;
-        // The octave-only sample uses the same A4 recording and preserves its strike.
-        const sample = highNote ? highNoteSample : `${anchor}-sustain`;
+        const sample = `abtin/${midi}`;
         try {
             if (!sampleBuffers.has(sample)) {
                 const buffer = fetchSample(sample).then(bytes => context.decodeAudioData(bytes.slice(0)));
@@ -116,22 +111,9 @@
             const source = context.createBufferSource();
             const bus = context.createGain();
             source.buffer = buffer;
-            source.playbackRate.value = 2 ** ((midi - anchor) / 12);
-            const deepBass = midi <= 50; // D3
-            const volume = (deepBass ? .94 : .72) * noteGain(midi);
+            const volume = .85;
             bus.gain.setValueAtTime(volume, now);
-            const clarityGain = 10 * Math.max(0, (69 - midi) / 28)
-                + 5 * Math.max(0, (64 - midi) / 23);
-            if (clarityGain > 0) {
-                const clarity = context.createBiquadFilter();
-                clarity.type = "highshelf";
-                clarity.frequency.value = 440 * 2 ** ((midi - 69) / 12) * 1.8;
-                clarity.gain.value = clarityGain;
-                source.connect(clarity).connect(bus);
-            } else {
-                source.connect(bus);
-            }
-            bus.connect(output);
+            source.connect(bus).connect(output);
             const voice = {
                 stop(at) {
                     bus.gain.cancelAndHoldAtTime(context.currentTime);
@@ -235,8 +217,9 @@
 
     window.scalePlayground = {
         preload() {
-            for (const { midi } of profiles) fetchSample(`${midi}-sustain`).catch(() => {});
-            fetchSample(highNoteSample).catch(() => {});
+            for (const midi of [50, 57, 58, 60, 62, 64, 65, 67, 69, 72]) {
+                fetchSample(`abtin/${midi}`).catch(() => {});
+            }
         },
         position(element, x, y) {
             const rect = element.getBoundingClientRect();
