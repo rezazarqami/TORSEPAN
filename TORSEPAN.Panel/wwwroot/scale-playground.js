@@ -12,7 +12,12 @@
     ];
     const sampleDirectory = new URL("./handpan-samples/", document.currentScript.src);
     const highNoteStart = 76; // E5
+    const highNoteSample = "69-octave-sustain";
     const lowNoteEnd = 65; // F4
+    const sampleBytes = new Map();
+    const sampleBuffers = new Map();
+    const bassBuffers = new Map();
+    const bassLoads = new Map();
     const accents = new WeakMap();
     const voices = new Set();
     let context;
@@ -58,7 +63,7 @@
             mode.map((value, parameter) => value + mix * (upper.modes[index][parameter] - value)));
     }
 
-    function prepareAudio() {
+    function prepareAudio(resume = true) {
         const AudioEngine = window.AudioContext || window.webkitAudioContext;
         if (!AudioEngine) return false;
         if (!context) {
@@ -66,7 +71,7 @@
             output = context.createDynamicsCompressor();
             output.connect(context.destination);
         }
-        if (context.state === "suspended") context.resume().catch(() => {});
+        if (resume && context.state === "suspended") context.resume().catch(() => {});
         return true;
     }
 
@@ -78,12 +83,125 @@
         }
     }
 
-    function playBankNote(pitch) {
-        const midi = midiFor(pitch);
-        if (midi === null) return;
+    function fetchSample(sample) {
+        if (!sampleBytes.has(sample)) {
+            const bytes = fetch(new URL(`${sample}.mp3`, sampleDirectory))
+                .then(response => {
+                    if (!response.ok) throw new Error("Handpan sample unavailable");
+                    return response.arrayBuffer();
+                });
+            sampleBytes.set(sample, bytes);
+            bytes.catch(() => sampleBytes.delete(sample));
+        }
+        return sampleBytes.get(sample);
+    }
 
-        const player = new Audio(new URL(`abtin/${midi}.flac`, sampleDirectory));
-        player.play().catch(() => playSynth(pitch));
+    function loadBassSample(midi) {
+        if (bassBuffers.has(midi) || bassLoads.has(midi)) return;
+
+        const load = fetch(new URL(`abtin/${midi}.flac`, sampleDirectory))
+            .then(response => {
+                if (!response.ok) throw new Error("Handpan sample unavailable");
+                return response.arrayBuffer();
+            })
+            .then(bytes => context.decodeAudioData(bytes))
+            .then(buffer => bassBuffers.set(midi, buffer))
+            .catch(() => {})
+            .finally(() => bassLoads.delete(midi));
+        bassLoads.set(midi, load);
+    }
+
+    function playBassNote(pitch, midi) {
+        const buffer = bassBuffers.get(midi);
+        if (!buffer) {
+            loadBassSample(midi);
+            playSynth(pitch);
+            return;
+        }
+
+        const now = context.currentTime;
+        makeRoom(now);
+        const source = context.createBufferSource();
+        const bus = context.createGain();
+        source.buffer = buffer;
+        source.connect(bus).connect(context.destination);
+        const voice = {
+            stop(at) {
+                bus.gain.setValueAtTime(1, context.currentTime);
+                bus.gain.linearRampToValueAtTime(0, at);
+                source.stop(at);
+            }
+        };
+        voices.add(voice);
+        source.onended = () => {
+            bus.disconnect();
+            voices.delete(voice);
+        };
+        source.start(now);
+    }
+
+    async function playBankNote(pitch) {
+        const midi = midiFor(pitch);
+        if (midi === null || !prepareAudio()) return;
+
+        if (midi <= 56) { // F2 through G#3
+            playBassNote(pitch, midi);
+            return;
+        }
+
+        const anchor = profiles.reduce((nearest, item) =>
+            Math.abs(item.midi - midi) < Math.abs(nearest.midi - midi) ? item : nearest).midi;
+        const highNote = midi >= highNoteStart;
+        // The octave-only sample uses the same A4 recording and preserves its strike.
+        const sample = highNote ? highNoteSample : `${anchor}-sustain`;
+        try {
+            if (!sampleBuffers.has(sample)) {
+                const buffer = fetchSample(sample).then(bytes => context.decodeAudioData(bytes.slice(0)));
+                sampleBuffers.set(sample, buffer);
+                buffer.catch(() => sampleBuffers.delete(sample));
+            }
+            const buffer = await sampleBuffers.get(sample);
+            const now = context.currentTime;
+            makeRoom(now);
+
+            const source = context.createBufferSource();
+            const bus = context.createGain();
+            source.buffer = buffer;
+            source.playbackRate.value = 2 ** ((midi - anchor) / 12);
+            const deepBass = midi <= 50; // D3
+            const volume = (deepBass ? .94 : .72) * noteGain(midi);
+            bus.gain.setValueAtTime(volume, now);
+            const clarityGain = 10 * Math.max(0, (69 - midi) / 28)
+                + 5 * Math.max(0, (64 - midi) / 23);
+            if (clarityGain > 0) {
+                const clarity = context.createBiquadFilter();
+                clarity.type = "highshelf";
+                clarity.frequency.value = 440 * 2 ** ((midi - 69) / 12) * 1.8;
+                clarity.gain.value = clarityGain;
+                source.connect(clarity).connect(bus);
+            } else {
+                source.connect(bus);
+            }
+            bus.connect(output);
+            const voice = {
+                stop(at) {
+                    bus.gain.cancelAndHoldAtTime(context.currentTime);
+                    bus.gain.linearRampToValueAtTime(0, at);
+                    source.stop(at);
+                }
+            };
+            voices.add(voice);
+            source.onended = () => {
+                bus.disconnect();
+                voices.delete(voice);
+            };
+            const duration = noteDuration(midi);
+            applyNoteDecay(bus.gain, volume, now, duration);
+            source.start(now);
+            source.stop(now + duration);
+        } catch {
+            playSynth(pitch);
+        }
     }
 
     function playSynth(pitch) {
@@ -167,6 +285,13 @@
     });
 
     window.scalePlayground = {
+        preload() {
+            for (const { midi } of profiles) fetchSample(`${midi}-sustain`).catch(() => {});
+            fetchSample(highNoteSample).catch(() => {});
+            if (prepareAudio(false)) {
+                for (let midi = 41; midi <= 56; midi++) loadBassSample(midi);
+            }
+        },
         position(element, x, y) {
             const rect = element.getBoundingClientRect();
             const percent = (coordinate, start, length) => Math.max(0, Math.min(100, (coordinate - start) / length * 100));

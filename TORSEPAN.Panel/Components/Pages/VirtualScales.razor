@@ -4,6 +4,7 @@
 @attribute [Authorize]
 @inject AuthenticationStateProvider Authentication
 @inject ScaleService ScaleService
+@inject IJSRuntime JS
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Host
 
 <PageTitle>هنگ‌درام مجازی | تورسپن</PageTitle>
@@ -170,6 +171,12 @@
     private ScalePhotoSources? _photos;
     private IReadOnlyList<TORSEPAN.Panel.Models.ScaleDto> _catalog = [];
     private List<VirtualScaleSummary> _designs = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !OperatingSystem.IsBrowser())
+            await JS.InvokeVoidAsync("scalePlayground.preload");
+    }
 
     protected override async Task OnInitializedAsync()
     {
