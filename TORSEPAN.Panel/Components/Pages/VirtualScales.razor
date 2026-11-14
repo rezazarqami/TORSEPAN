@@ -38,17 +38,24 @@
         else if (_view != WorkshopView.Design || !_isAdministrator)
         {
             <section class="workshop-card workshop-presets" aria-label="اسکیل‌ها">
-                <CompactPicker TValue="int" Title="انتخاب اسکیل" Options="PresetOptions" Searchable="true" disabled="@_addingPhoto" @bind-Value="_presetIndex" @bind-Value:after="ResetAlbumTarget" />
+                <CompactPicker TValue="bool" Title="دستهٔ اسکیل" Options="PresetCategories"
+                               disabled="@_addingPhoto" @bind-Value="_showAdditionalPresets" @bind-Value:after="SelectPresetCategory" />
+                <CompactPicker @key="_showAdditionalPresets" TValue="int" Title="انتخاب اسکیل" Options="PresetOptions"
+                               Searchable="true" disabled="@_addingPhoto" @bind-Value="_presetIndex" @bind-Value:after="ResetAlbumTarget" />
                 @if (_presetIndex >= 0)
                 {
                     var preset = VirtualScalePresets.All[_presetIndex];
                     <ScalePlaygroundEditor @key="_presetIndex" Photos="preset.CreateDiagram()" ReadOnly="true" />
+                    @if (_showAdditionalPresets)
+                    {
+                        <small>نمای شماتیک کاسه‌ها</small>
+                    }
                     @if (_isAdministrator)
                     {
                         <button type="button" class="workshop-action" @onclick="() => StartFromPresetAsync(_presetIndex)">طراحی از روی این اسکیل</button>
                     }
                 }
-                @if (_isAdministrator && _presetIndex >= 0 && _catalog.Count > 0)
+                @if (_isAdministrator && _presetIndex >= 0 && _catalog.Count > 0 && VirtualScalePresets.All[_presetIndex].TopImage.Length > 0)
                 {
                     <details class="workshop-card workshop-album">
                         <summary>افزودن عکس به آلبوم اسکیل</summary>
@@ -142,8 +149,29 @@
         finally { _addingPhoto = false; }
     }
 
-    private static IReadOnlyList<(int Value, string Text)> PresetOptions { get; } =
+    private bool _showAdditionalPresets;
+
+    private static IReadOnlyList<(bool Value, string Text)> PresetCategories { get; } =
+        [(false, "ایشاما و تورسپن"), (true, "اسکیل‌های جدید")];
+
+    private static (int Value, string Text)[] AllPresetOptions { get; } =
         VirtualScalePresets.All.Select((preset, index) => (index, preset.Name)).ToArray();
+
+    private static IReadOnlyList<(int Value, string Text)> OriginalPresetOptions { get; } =
+        AllPresetOptions[..VirtualScalePresets.OriginalCount];
+
+    private static IReadOnlyList<(int Value, string Text)> AdditionalPresetOptions { get; } =
+        AllPresetOptions[VirtualScalePresets.OriginalCount..];
+
+    private IReadOnlyList<(int Value, string Text)> PresetOptions =>
+        _showAdditionalPresets ? AdditionalPresetOptions : OriginalPresetOptions;
+
+    private void SelectPresetCategory()
+    {
+        _presetIndex = PresetOptions[0].Value;
+        _albumTarget = Guid.Empty;
+        ResetAlbumTarget();
+    }
 
     private IReadOnlyList<(string Value, string Text)> DesignOptions =>
         [("", "اسکیل جدید"), .. _designs.Select(design => ($"saved:{design.Id}", $"طرح کارگاه · {design.Name}")),

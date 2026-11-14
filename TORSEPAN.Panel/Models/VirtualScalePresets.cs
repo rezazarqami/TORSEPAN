@@ -60,7 +60,7 @@ internal static class VirtualScalePresets
 {
     // Name and pitch data from https://www.yishama.com/virtual-pantam-playground/
     // Parenthesized notes in the source are on the bottom shell.
-    public static IReadOnlyList<VirtualScalePreset> All { get; } =
+    private static IReadOnlyList<VirtualScalePreset> Original { get; } =
     [
         new("Yuki’s scale - A Minor + bottom notes", "E3 A3 B3 C4 D4 E4 F4 G4 A4 B4 C5 D5 E5", "F3 G3 F5 G5",
             TopImage: "pantam-13.jpg", TopPositions: "48.36,58.00 64.93,85.79 29.50,84.14 87.79,62.79 11.29,60.50 89.79,35.21 10.29,32.57 74.50,14.50 26.43,12.93 50.21,5.57 48.43,19.93 70.43,31.71 28.21,31.86",
@@ -237,4 +237,69 @@ internal static class VirtualScalePresets
         new("A Pygmy 9", "A2 E3 A3 B3 C4 E4 G4 A4 B4",
             TopImage: "pantam-9.jpg", TopPositions: "48.14,42.71 69.00,80.93 30.71,82.00 89.29,54.21 10.36,55.36 81.29,25.07 15.79,26.86 60.00,10.14 34.43,10.43"),
     ];
+
+    // Exact pitches and shell assignments verified against the source catalogues.
+    private static IReadOnlyList<VirtualScalePreset> Additional { get; } =
+    [
+        // Ayasa
+        new("D Kurd 13", "D3 A3 Bb3 D4 C4 F4 E4 G4 A4 D5 C5", "F3 G3"),
+        new("D Aegean 18", "D3 F#3 A3 C#4 D4 F#4 G#4 A4 C#5 D5 F#5", "B2 E3 G#3 B3 E4 B4 E5"),
+        new("F# Low Pygmy 21", "F#3 G#3 A3 C#4 E4 F#4 G#4 A4 C#5 F#5 E5 G#5", "D3 E3 B3 D4 B4 D5 A5 B5 C#6"),
+        new("E Amara 20", "E3 B3 D4 E4 F#4 G4 A4 B4 D5 E5 F#5 G5 A5", "C3 D3 F#3 G3 A3 C4 C5"),
+        new("D Kurd 19", "D3 A3 Bb3 D4 E4 F4 C4 G4 A4 C5 D5 F5 E5", "Bb2 C3 F3 G3 G5 A5"),
+        new("D Ashakiran 19", "D3 G3 A3 C#4 B3 F#4 D4 E4 A4 B4 F#5", "E3 F#3 G4 C#5 D5 E5 G5 A5"),
+        new("B2 Aavartan 17", "B2 D#3 F#3 G#3 Bb3 B3 C#4 D#4 F#4", "C#3 E3 E4 G#4 B4 C#5 D#5 E5"),
+        new("C Ashakiran 17", "C3 F3 G3 A3 B3 C4 D4 E4 G4", "D3 E3 F4 A4 B4 C5 D5 E5"),
+        new("D Aegean 20", "D3 F#3 A3 D4 C#4 G#4 A4 F#4 C#5 D5 F#5 G#5 A5", "B2 E3 G#3 B3 E4 B4 E5"),
+        new("F#2 Nordlys 16", "F#2 F#3 G#3 A#3 C4 C#4 F4 G#4 C5", "A#2 C#3 F3 F#4 C#5 F5 G#5"),
+        new("F# Kurd 22", "F#3 C#4 D4 F#4 E4 G#4 A4 B4 C#5 D5 F#5 E5 G#5 A5 B5 C#6", "B2 D3 E3 G#3 A3 B3"),
+        // NISH
+        new("A Aeolian", "A3 D4 E4 F4 G4 A4 Bb4 C5 D5"),
+        new("A Amara 11", "A2 E3 G3 A3 B3 C4 D4 E4 G4", "C3 D3"),
+        new("A Amara 14", "A2 E3 G3 A3 B3 C4 D4 E4 G4", "C3 D3 F3 F4 A4"),
+        new("A Amara 17", "A2 E3 G3 A3 B3 C4 D4 E4 G4", "C3 D3 F3 F4 A4 B4 C5 D5"),
+        new("A Avalon", "A3 C4 D4 E4 F4 G4 A4 C5 D5 E5"),
+        new("A Dorian", "D3 A3 B3 C4 D4 E4 F#4 G4 A4"),
+        new("A Hijaz", "A3 D4 Eb4 F#4 G4 A4 Bb4 C5 D5"),
+        new("A Hijaz 13", "A2 E3 G3 A3 Bb3 C#4 D4 E4 G4", "D3 F3 F4 A4"),
+        new("A Hijaz 15", "A2 E3 G3 A3 Bb3 C#4 D4 E4 G4", "D3 F3 F4 A4 D5 E5"),
+        new("A Hijaz 8", "A2 D3 E3 F3 G#3 A3 B3 C4 E4"),
+        // Satya
+        new("Surya Pantam 18", "A3 E4 F4 G4 A4 B4 C5 D5 E5 F5 G5 A5", "A2 C3 D3 F3 G3 D4"),
+        new("F#2 Pygmy 21 (Signatures)", "F#2 F#3 G#3 A3 C#4 E4 F#4 G#4 A4 C#5 E5 F#5 G#5", "C#3 D3 E3 B3 D4 B4 D5 A5"),
+        new("F2 Minor 17", "F2 F3 G3 Ab3 Bb3 C4 Db4 Eb4 F4", "Bb2 C3 Db3 Eb3 Ab4 C5 Eb5 F5"),
+        new("F2 Pygmy 17", "F2 F3 G3 Ab3 C4 Eb4 F4 G4 Ab4 C5", "Bb2 C3 Db3 Eb3 Db5 Eb5 F5"),
+        new("F2 Pygmy 21", "F2 F3 G3 Ab3 C4 Eb4 F4 G4 Ab4 C5 Eb5 F5 G5", "Bb2 C3 Db3 Eb3 Db5 Ab5 Bb5 C6"),
+        new("F Low Pygmy 21", "F3 G3 Ab3 C4 Eb4 F4 G4 Ab4 C5 Eb5 F5 G5 Ab5 Bb5 C6", "Bb2 Db3 Eb3 Bb3 Db4 Db5"),
+        new("F Low Pygmy 20", "F3 G3 Ab3 C4 Eb4 F4 G4 Ab4 C5 Eb5 F5 G5", "Db3 Eb3 Bb3 Db4 Db5 Ab5 Bb5 C6"),
+        new("E La Sirena 20", "E3 G3 B3 C#4 D4 E4 F#4 G4 B4 C#5 D5 E5 F#5", "B2 C#3 D3 F#3 G5 B5 C#6"),
+        new("E Kurd 10", "E3 B3 C4 D4 E4 F#4 G4 A4 B4 D5"),
+        new("E Kurd 22", "E3 B3 C4 D4 E4 F#4 G4 A4 B4 C5 D5 E5 F#5 G5 A5 B5", "B2 C3 D3 F#3 G3 A3"),
+        new("E Equinox 11", "E3 G3 B3 C4 D4 E4 F#4 G4 B4 C5 D5"),
+        new("E Equinox 19", "E3 G3 B3 C4 D4 E4 F#4 G4 B4 C5 D5 E5 F#5 G5", "B2 D3 F#3 A4 A5"),
+        new("Eb La Sirena 18", "Eb3 Gb3 Bb3 C4 Db4 Eb4 F4 Gb4 Bb4 C5 Db5", "Bb2 Db3 F3 Ab3 Ab4 Eb5 F5"),
+        new("D Kurd 20", "D3 A3 Bb3 C4 D4 E4 F4 G4 A4 C5 D5 E5 G5 A5", "Bb2 C3 E3 F3 G3 F5"),
+        new("D Amara 12", "D3 A3 C4 D4 E4 F4 G4 A4 C5 D5", "F3 G3"),
+        new("D Amara 14", "D3 A3 C4 D4 E4 F4 G4 A4 C5 D5 E5 F5", "F3 G3"),
+        new("C# Annaziska 9", "C#3 G#3 A3 B3 C#4 D#4 E4 F#4 G#4"),
+        new("C# Annaziska 12", "C#3 G#3 A3 B3 C#4 D#4 E4 F#4 G#4 B4 C#5 D#5"),
+        new("C Ashakiran 18", "C3 F3 G3 A3 B3 C4 D4 E4 G4 A4", "D3 E3 F4 B4 C5 D5 E5 F5"),
+        new("C Ashakiran 20", "C3 F3 G3 A3 B3 C4 D4 E4 G4 A4", "A2 D3 E3 F4 B4 C5 D5 E5 F5 G5"),
+        new("C Golden Gate 11", "C3 E3 G3 B3 C4 D4 F#4 G4 B4 C5 D5"),
+        new("C Golden Gate 16", "C3 E3 G3 B3 C4 D4 F#4 G4 B4 C5 D5", "G2 A2 F#3 A3 E4"),
+        new("D Aegean 13", "D3 F#3 A3 C#4 D4 F#4 G#4 A4 C#5 D5 F#5 G#5 A5"),
+        new("D Aegean 15", "D3 F#3 A3 C#4 D4 F#4 G#4 A4 C#5 D5 F#5 G#5 A5 B5 C#6"),
+        new("D Aegean 22", "D3 F#3 A3 C#4 D4 F#4 G#4 A4 C#5 D5 F#5 G#5 A5 B5 C#6", "B2 E3 G#3 B3 E4 B4 E5"),
+        new("E Sabye 20", "E3 A3 B3 C#4 D#4 E4 F#4 G#4 B4 C#5 D#5 E5 F#5 G#5", "B2 C#3 D#3 F#3 G#3 A4"),
+        new("F2 Aegean 19 (Deep Govinda)", "F2 F3 A3 C4 E4 F4 A4 B4 C5 E5 F5 G5 A5", "A2 C3 D3 G3 B3 D4 D5"),
+        new("D Hijaz 20", "D3 A3 Bb3 C#4 D4 E4 F4 G4 A4 C5 D5 E5 G5 A5", "Bb2 C#3 E3 F3 G3 F5"),
+        new("D Hijazkiar 20", "D3 A3 Bb3 C#4 D4 E4 F4 G#4 A4 C#5 D5 E5 G#5 A5", "Bb2 C#3 E3 F3 G#3 F5"),
+        new("G2 Hijaz 19", "G2 G3 G#3 B3 C4 D4 D#4 F4 G4", "B2 D3 F3 G#4 B4 C5 D5 D#5 F5 G5"),
+        new("F2 Arrakis 22", "F2 C4 C#4 E4 F4 G4 Ab4 B4 C5 C#5 E5 F5 G5", "C3 C#3 E3 F3 G3 Ab3 Ab5 B5 C6"),
+    ];
+
+    public static int OriginalCount => Original.Count;
+
+    public static IReadOnlyList<VirtualScalePreset> All { get; } =
+        [.. Original, .. Additional];
 }
