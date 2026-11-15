@@ -19,6 +19,8 @@
     const bassBuffers = new Map();
     const bassLoads = new Map();
     const accents = new WeakMap();
+    const notesPlayedOnTouch = new WeakSet();
+    const touchesWaitingForAudio = new Map();
     const voices = new Set();
     let context;
     let output;
@@ -266,9 +268,7 @@
         }
     }
 
-    document.addEventListener("click", event => {
-        const button = event.target.closest("button[data-scale-pitch]");
-        if (!button) return;
+    function strikeNote(button) {
         const recording = button.querySelector("audio");
         const pitch = button.dataset.scalePitch;
         if (recording) {
@@ -282,6 +282,45 @@
         button.classList.add("playing");
         clearTimeout(accents.get(button));
         accents.set(button, setTimeout(() => button.classList.remove("playing"), 155));
+    }
+
+    document.addEventListener("pointerdown", event => {
+        const button = event.target.closest('button[data-scale-multitouch="true"]');
+        if (!button || button.disabled) return;
+
+        if (event.pointerType !== "touch") {
+            notesPlayedOnTouch.delete(button);
+            return;
+        }
+
+        // Each finger has its own pointer. Play on contact, including non-primary touches.
+        notesPlayedOnTouch.add(button);
+        if (navigator.userActivation?.hasBeenActive === false || touchesWaitingForAudio.size > 0) {
+            touchesWaitingForAudio.set(event.pointerId, button);
+            return;
+        }
+        strikeNote(button);
+    });
+
+    // On a fresh page some browsers only unlock audio when the first touch ends.
+    document.addEventListener("pointerup", event => {
+        if (!touchesWaitingForAudio.has(event.pointerId)) return;
+        const startingNotes = [...touchesWaitingForAudio.values()];
+        touchesWaitingForAudio.clear();
+        for (const button of startingNotes) strikeNote(button);
+    });
+
+    document.addEventListener("pointercancel", event => {
+        touchesWaitingForAudio.delete(event.pointerId);
+    });
+
+    document.addEventListener("click", event => {
+        const button = event.target.closest("button[data-scale-pitch]");
+        if (!button || button.disabled) return;
+
+        // A touch can also produce a native click on release. Keyboard clicks have zero detail.
+        if (event.detail > 0 && notesPlayedOnTouch.delete(button)) return;
+        strikeNote(button);
     });
 
     window.scalePlayground = {

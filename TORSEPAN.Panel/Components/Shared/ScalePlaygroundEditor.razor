@@ -54,6 +54,7 @@
             {
                 <button type="button" class="playground-note @(sampleBottom ? "sample-tone-field" : null)" dir="ltr"
                         style="@Position(note.X, note.Y)" data-scale-pitch="@note.Pitch"
+                        data-scale-multitouch="@(ReadOnly ? "true" : null)"
                         aria-label="@($"نت {note.Pitch}")" @onclick="() => SelectNote(note)">
                     @note.Pitch
                     @if (note.Audio is not null)
