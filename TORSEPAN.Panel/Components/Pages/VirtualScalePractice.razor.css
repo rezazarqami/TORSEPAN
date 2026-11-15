@@ -151,3 +151,13 @@
 .practice-options ::deep button[aria-pressed="true"] {
     color:#ffda91; border-color:#a57f48; background:#2e302c;
 }
+
+.practice-low-pygmy ::deep .playground-diagram { aspect-ratio:1; }
+.practice-low-pygmy ::deep .playground-bowl {
+    position:absolute; width:66%; left:17%; top:59%; transform:translateY(-50%);
+}
+.practice-low-pygmy ::deep .playground-note {
+    min-width:0; min-height:0; padding:0; width:10%;
+    font-size:clamp(.57rem,2.6vw,.98rem); -webkit-text-stroke:0;
+}
+.practice-low-pygmy ::deep .playground-note.peripheral-note { border-color:#7199b3; }

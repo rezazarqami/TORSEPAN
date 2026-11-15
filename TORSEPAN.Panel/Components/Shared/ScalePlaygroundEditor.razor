@@ -25,7 +25,7 @@
                 </label>
             </div>
         }
-        var notes = (_editing ? _draft : _saved).Where(note => note.Bottom == _bottom).ToList();
+        var notes = (_editing ? _draft : _saved).Where(note => ShowBothShells || note.Bottom == _bottom).ToList();
         @if (FixedBottom is null && notes.Count > 0)
         {
             <div class="playground-pitches" dir="ltr">@string.Join(" · ", notes.Select(note => note.Pitch))</div>
@@ -52,10 +52,10 @@
             }
             @foreach (var note in notes)
             {
-                <button type="button" class="playground-note @(sampleBottom ? "sample-tone-field" : null)" dir="ltr"
+                <button type="button" class="playground-note @(sampleBottom ? "sample-tone-field" : null) @(ShowBothShells && note.Bottom ? "peripheral-note" : null)" dir="ltr"
                         style="@Position(note.X, note.Y)" data-scale-pitch="@note.Pitch"
                         data-scale-multitouch="@(ReadOnly ? "true" : null)"
-                        aria-label="@($"نت {note.Pitch}")" @onclick="() => SelectNote(note)">
+                        aria-label="@($"نت {note.Pitch}{(ShowBothShells && note.Bottom ? "، کاسهٔ زیر" : "")}")" @onclick="() => SelectNote(note)">
                     @note.Pitch
                     @if (note.Audio is not null)
                     {
@@ -115,6 +115,7 @@
     [Parameter] public EventCallback<SaveScalePlayground> SaveDesign { get; set; }
     [Parameter] public bool ReadOnly { get; set; }
     [Parameter] public bool? FixedBottom { get; set; }
+    [Parameter] public bool ShowBothShells { get; set; }
     [Parameter] public bool SampleShells { get; set; }
     [Parameter] public ScalePhotoSources? Photos { get; set; }
     [Parameter] public EventCallback<bool> EditingChanged { get; set; }

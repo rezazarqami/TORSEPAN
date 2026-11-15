@@ -158,7 +158,7 @@
         if (mutedTail) source.stop(now + mutedTail + .01);
     }
 
-    async function playBankNote(pitch) {
+    async function playBankNote(pitch, muted = false) {
         const midi = midiFor(pitch);
         if (midi === null || !prepareAudio()) return;
 
@@ -213,7 +213,7 @@
                 bus.disconnect();
                 voices.delete(voice);
             };
-            const duration = noteDuration(midi);
+            const duration = muted ? .18 : noteDuration(midi);
             applyNoteDecay(bus.gain, volume, now, duration);
             source.start(now);
             source.stop(now + duration);
@@ -418,7 +418,7 @@
             }
 
             const { start, end, steps } = practiceSelection(root, score);
-            const byTick = new Map(steps.map(step => [step.tick, practiceHits(step)]));
+            const byTick = new Map(steps.map(step => [step.tick, step]));
             const track = root.querySelector("[data-practice-timeline]");
             const grid = document.createElement("div");
             grid.className = "practice-grid";
@@ -444,11 +444,12 @@
                     if (offset % score.subdivisions === 0) cell.classList.add("is-beat");
                     if (tick >= start && tick < end) {
                         cell.dataset.practiceTick = tick;
-                        for (const pitch of byTick.get(tick) ?? []) {
+                        const step = byTick.get(tick);
+                        for (const pitch of practiceHits(step)) {
                             const note = document.createElement("span");
                             const percussion = Object.hasOwn(practicePercussion, pitch);
                             note.className = percussion ? "practice-pitch practice-body-hit" : "practice-pitch";
-                            note.textContent = percussion ? practicePercussion[pitch].label ?? pitch : pitch;
+                            note.textContent = percussion ? practicePercussion[pitch].label ?? pitch : step.muted ? `${pitch}ᴹ` : pitch;
                             cell.append(note);
                         }
                     }
@@ -557,7 +558,7 @@
             }
 
             practiceStatus(root, mode === "listen" ? "در حال پخش تمرین…" : "با روشن شدن نت‌ها همراهی کن.");
-            const byTick = new Map(steps.map(step => [step.tick, practiceHits(step)]));
+            const byTick = new Map(steps.map(step => [step.tick, step]));
             const interval = 60000 / (score.bpm * score.subdivisions * speed);
             const started = performance.now() + (mode === "guide" ? 750 : 0);
             let tick = start;
@@ -569,11 +570,17 @@
                     practiceStatus(root, "تمرین به پایان رسید.");
                     return;
                 }
-                const notes = byTick.get(tick) ?? [];
+                const step = byTick.get(tick);
+                const notes = practiceHits(step);
                 movePracticeCursor(root, tick, interval);
                 updatePracticeTime(root, tick * run.tickSeconds, run.totalSeconds);
                 showPracticeCue(root, notes);
-                if (mode === "listen") for (const hit of notes) playPracticeHit(hit);
+                if (mode === "listen") {
+                    for (const hit of notes) {
+                        if (step?.muted && step.notes.includes(hit)) playBankNote(hit, true);
+                        else playPracticeHit(hit);
+                    }
+                }
                 tick += 1;
                 scheduleNext();
             }
@@ -616,6 +623,7 @@
                 button.type = "button";
                 button.dataset.practiceOption = option.value;
                 button.textContent = option.textContent;
+                button.dir = option.dir || "auto";
                 button.setAttribute("aria-pressed", String(option.selected));
                 return button;
             });
@@ -648,7 +656,8 @@
             const option = control.selectedOptions[0];
             root.dataset.practiceScore = control.value;
             preparedExercise.delete(root);
-            root.querySelector("[data-practice-scale]").textContent = `D Kurd · ${option.dataset.notes} notes`;
+            root.querySelector("[data-practice-scale]").textContent = option.dataset.scaleName;
+            root.querySelector("[data-practice-photo]").hidden = option.dataset.notes === "21";
             for (const layout of root.querySelectorAll("[data-practice-layout]")) {
                 layout.hidden = layout.dataset.practiceLayout !== option.dataset.notes;
             }

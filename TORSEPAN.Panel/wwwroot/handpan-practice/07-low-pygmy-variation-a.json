@@ -1,0 +1,740 @@
+{
+  "bpm": 70,
+  "beatsPerBar": 4,
+  "subdivisions": 4,
+  "totalTicks": 128,
+  "phraseStarts": [
+    0,
+    64
+  ],
+  "phraseNames": [
+    "جملهٔ اول",
+    "تکرار"
+  ],
+  "phrases": [
+    [
+      {
+        "tick": 0,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 1,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 2,
+        "notes": [
+          "F#5"
+        ]
+      },
+      {
+        "tick": 3,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 4,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 5,
+        "notes": [
+          "E5"
+        ]
+      },
+      {
+        "tick": 6,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 7,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 8,
+        "notes": [
+          "C#5"
+        ]
+      },
+      {
+        "tick": 9,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 10,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 11,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 12,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 13,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 14,
+        "notes": [
+          "G#4"
+        ]
+      },
+      {
+        "tick": 16,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 17,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 18,
+        "notes": [
+          "F#4"
+        ]
+      },
+      {
+        "tick": 19,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 20,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 21,
+        "notes": [
+          "G#4"
+        ]
+      },
+      {
+        "tick": 22,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 23,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 24,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 25,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 26,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 27,
+        "notes": [
+          "C#5"
+        ]
+      },
+      {
+        "tick": 28,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 29,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 30,
+        "notes": [
+          "E5"
+        ]
+      },
+      {
+        "tick": 32,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 33,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 34,
+        "notes": [
+          "F#5"
+        ]
+      },
+      {
+        "tick": 35,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 36,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 37,
+        "notes": [
+          "E5"
+        ]
+      },
+      {
+        "tick": 38,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 39,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 40,
+        "notes": [
+          "C#5"
+        ]
+      },
+      {
+        "tick": 41,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 42,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 43,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 44,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 45,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 46,
+        "notes": [
+          "G#4"
+        ]
+      },
+      {
+        "tick": 48,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 49,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 50,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 51,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 52,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 53,
+        "notes": [
+          "F#4"
+        ]
+      },
+      {
+        "tick": 54,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 55,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 56,
+        "notes": [
+          "G#4"
+        ]
+      },
+      {
+        "tick": 57,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 58,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 59,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 60,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 61,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 62,
+        "notes": [
+          "G#4"
+        ]
+      }
+    ],
+    [
+      {
+        "tick": 64,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 65,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 66,
+        "notes": [
+          "F#5"
+        ]
+      },
+      {
+        "tick": 67,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 68,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 69,
+        "notes": [
+          "E5"
+        ]
+      },
+      {
+        "tick": 70,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 71,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 72,
+        "notes": [
+          "C#5"
+        ]
+      },
+      {
+        "tick": 73,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 74,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 75,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 76,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 77,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 78,
+        "notes": [
+          "G#4"
+        ]
+      },
+      {
+        "tick": 80,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 81,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 82,
+        "notes": [
+          "F#4"
+        ]
+      },
+      {
+        "tick": 83,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 84,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 85,
+        "notes": [
+          "G#4"
+        ]
+      },
+      {
+        "tick": 86,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 87,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 88,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 89,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 90,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 91,
+        "notes": [
+          "C#5"
+        ]
+      },
+      {
+        "tick": 92,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 93,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 94,
+        "notes": [
+          "E5"
+        ]
+      },
+      {
+        "tick": 96,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 97,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 98,
+        "notes": [
+          "F#5"
+        ]
+      },
+      {
+        "tick": 99,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 100,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 101,
+        "notes": [
+          "E5"
+        ]
+      },
+      {
+        "tick": 102,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 103,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 104,
+        "notes": [
+          "C#5"
+        ]
+      },
+      {
+        "tick": 105,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 106,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 107,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 108,
+        "notes": [
+          "F#3"
+        ]
+      },
+      {
+        "tick": 109,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 110,
+        "notes": [
+          "G#4"
+        ]
+      },
+      {
+        "tick": 112,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 113,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 114,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 115,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 116,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 117,
+        "notes": [
+          "F#4"
+        ]
+      },
+      {
+        "tick": 118,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 119,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 120,
+        "notes": [
+          "G#4"
+        ]
+      },
+      {
+        "tick": 121,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 122,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 123,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 124,
+        "notes": [
+          "E3"
+        ]
+      },
+      {
+        "tick": 125,
+        "notes": [
+          "G#3"
+        ]
+      },
+      {
+        "tick": 126,
+        "notes": [
+          "G#4"
+        ]
+      }
+    ]
+  ]
+}

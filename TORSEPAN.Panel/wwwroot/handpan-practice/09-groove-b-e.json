@@ -1,0 +1,1854 @@
+{
+  "bpm": 114,
+  "beatsPerBar": 4,
+  "subdivisions": 4,
+  "totalTicks": 408,
+  "phraseStarts": [
+    0,
+    128,
+    272,
+    384
+  ],
+  "phraseNames": [
+    "Groove B",
+    "Groove C",
+    "Groove D",
+    "پایان"
+  ],
+  "phrases": [
+    [
+      {
+        "tick": 0,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 2,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 3,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 4,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 6,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 8,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 10,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 11,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 12,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 14,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 16,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 18,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 19,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 20,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 22,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 24,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 26,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 28,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 30,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 31,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 32,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 34,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 35,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 36,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 38,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 40,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 42,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 43,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 44,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 46,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 48,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 50,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 51,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 52,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 54,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 56,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 58,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 60,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 61,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 62,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 63,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 64,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 66,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 67,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 68,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 70,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 72,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 74,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 75,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 76,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 78,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 80,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 82,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 83,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 84,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 86,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 88,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 90,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 92,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 94,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 95,
+        "notes": [
+          "F4",
+          "D4"
+        ]
+      },
+      {
+        "tick": 96,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 98,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 99,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 100,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 102,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 104,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 106,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 107,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 108,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 110,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 112,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      }
+    ],
+    [
+      {
+        "tick": 128,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 129,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 130,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 131,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 132,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 133,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 134,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 135,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 136,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 137,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 138,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 139,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 140,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 141,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 142,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 144,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 146,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 147,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 148,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 150,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 151,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 152,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 153,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 154,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 155,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 156,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 157,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 158,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 159,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 160,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 161,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 162,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 163,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 164,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 165,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 166,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 167,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 168,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 169,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 170,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 171,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 172,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 173,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 174,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 176,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 178,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 179,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 180,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 182,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 183,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 184,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 185,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 186,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 187,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 188,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 189,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 190,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 191,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 192,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 193,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 194,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 195,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 196,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 197,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 198,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 199,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 200,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 201,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 202,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 203,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 204,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 205,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 206,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 208,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 210,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 211,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 212,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 214,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 215,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 216,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 217,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 218,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 219,
+        "notes": [
+          "E4",
+          "C4"
+        ],
+        "muted": true
+      },
+      {
+        "tick": 220,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 221,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 222,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 223,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 224,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 225,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 226,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 227,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 228,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 229,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 230,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 231,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 232,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 233,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 234,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 235,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 236,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 237,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 238,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 240,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 243,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 246,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 248,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 251,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 254,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 256,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 257,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 258,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 259,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 260,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 261,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 262,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 263,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 264,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 265,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 266,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 267,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 268,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 269,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 270,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 271,
+        "notes": [
+          "F4"
+        ]
+      }
+    ],
+    [
+      {
+        "tick": 272,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 273,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 274,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 275,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 276,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 277,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 278,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 279,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 280,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 281,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 282,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 283,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 284,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 285,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 286,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 287,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 288,
+        "notes": [
+          "D4",
+          "Bb3",
+          "F4"
+        ]
+      },
+      {
+        "tick": 290,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 291,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 292,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 293,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 294,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 296,
+        "notes": [
+          "D4",
+          "Bb3",
+          "F4"
+        ]
+      },
+      {
+        "tick": 298,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 300,
+        "notes": [
+          "E4",
+          "C4",
+          "G4"
+        ]
+      },
+      {
+        "tick": 302,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 303,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 304,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 305,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 306,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 307,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 308,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 309,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 310,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 311,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 312,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 313,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 314,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 315,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 316,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 317,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 318,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 319,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 320,
+        "notes": [
+          "D4",
+          "Bb3",
+          "F4"
+        ]
+      },
+      {
+        "tick": 322,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 323,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 324,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 325,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 326,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 327,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 328,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 329,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 330,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 331,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 332,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 333,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 334,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 335,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 336,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 337,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 338,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 339,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 340,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 341,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 342,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 343,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 344,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 345,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 346,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 347,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 348,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 349,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 350,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 351,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 352,
+        "notes": [
+          "D4",
+          "Bb3",
+          "F4"
+        ]
+      },
+      {
+        "tick": 354,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 355,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 356,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 358,
+        "notes": [
+          "D4",
+          "Bb3",
+          "F4"
+        ]
+      },
+      {
+        "tick": 360,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 361,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 362,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 364,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "T"
+      },
+      {
+        "tick": 366,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 368,
+        "notes": [
+          "E4",
+          "C4",
+          "G4"
+        ]
+      },
+      {
+        "tick": 370,
+        "notes": [
+          "E4",
+          "C4",
+          "G4"
+        ]
+      },
+      {
+        "tick": 372,
+        "notes": [
+          "E4",
+          "C4",
+          "G4"
+        ]
+      },
+      {
+        "tick": 374,
+        "notes": [
+          "E4",
+          "C4",
+          "G4"
+        ]
+      },
+      {
+        "tick": 376,
+        "notes": [
+          "E4",
+          "C4",
+          "G4"
+        ]
+      },
+      {
+        "tick": 378,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 380,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 382,
+        "notes": [
+          "F4"
+        ]
+      }
+    ],
+    [
+      {
+        "tick": 384,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 385,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 386,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 387,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 388,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 389,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 390,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 391,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 392,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 393,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 394,
+        "notes": [],
+        "percussion": "•"
+      },
+      {
+        "tick": 395,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 396,
+        "notes": [],
+        "percussion": "T"
+      },
+      {
+        "tick": 397,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 398,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 399,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 400,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 402,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 404,
+        "notes": [
+          "D3",
+          "A3",
+          "D4"
+        ]
+      }
+    ]
+  ]
+}
