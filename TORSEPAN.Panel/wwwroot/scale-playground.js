@@ -308,12 +308,12 @@
     }
 
     const practicePercussion = {
-        T: { sample: "tap.wav" },
-        K: { sample: "knock.wav" },
+        T: { sample: "finger-tap.wav" },
+        K: { sample: "body-knock.wav" },
         P: { mutedDing: true },
         DM: { mutedDing: true, label: "Dᴹ" },
-        S: { sample: "knock.wav", highpass: 950, rate: 1.35 },
-        "•": { sample: "tap.wav", gain: .18 }
+        S: { sample: "body-knock.wav", highpass: 950, rate: 1.35 },
+        "•": { sample: "soft-touch.wav" }
     };
     const percussionBuffers = new Map();
 
@@ -404,7 +404,7 @@
         const name = root.dataset.practiceScore;
         if (prepareAudio(false)) {
             loadBassSample(50);
-            for (const sample of ["tap.wav", "knock.wav"]) loadPercussion(sample).catch(() => {});
+            for (const sample of ["finger-tap.wav", "body-knock.wav", "soft-touch.wav"]) loadPercussion(sample).catch(() => {});
         }
         try {
             const score = await loadPracticeScore(name);
@@ -474,7 +474,7 @@
             return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
         }
         const progress = root.querySelector("[data-practice-progress]");
-        progress.max = total;
+        progress.max = total || 1;
         progress.value = elapsed;
         root.querySelector("[data-practice-elapsed]").textContent = format(elapsed);
         root.querySelector("[data-practice-duration]").textContent = format(total);
@@ -602,15 +602,66 @@
         }
     });
 
+    document.addEventListener("click", event => {
+        const picker = event.target.closest(".practice-picker");
+        for (const open of document.querySelectorAll(".practice-picker[open]")) {
+            if (open !== picker) open.open = false;
+        }
+        if (!picker) return;
+        const select = picker.querySelector("select");
+        const summary = picker.querySelector("summary");
+        if (event.target.closest("summary") && !picker.open) {
+            const choices = Array.from(select.options, option => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.dataset.practiceOption = option.value;
+                button.textContent = option.textContent;
+                button.setAttribute("aria-pressed", String(option.selected));
+                return button;
+            });
+            picker.querySelector(".practice-options").replaceChildren(...choices);
+        }
+        const button = event.target.closest("[data-practice-option]");
+        if (!button) return;
+        picker.open = false;
+        summary.focus();
+        if (select.value === button.dataset.practiceOption) return;
+        select.value = button.dataset.practiceOption;
+        summary.querySelector("strong").textContent = button.textContent;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Escape") return;
+        const picker = event.target.closest(".practice-picker[open]");
+        if (!picker) return;
+        picker.open = false;
+        picker.querySelector("summary").focus();
+    });
+
     document.addEventListener("change", event => {
         const control = event.target.closest("[data-practice-exercise], [data-practice-phrase], [data-practice-speed]");
         const root = control?.closest("[data-handpan-practice]");
         if (!root) return;
         stopPractice(root);
         if (control.matches("[data-practice-exercise]")) {
-            const destination = new URL(window.location.href);
-            destination.searchParams.set("exercise", control.value);
-            window.location.assign(destination.href);
+            const option = control.selectedOptions[0];
+            root.dataset.practiceScore = control.value;
+            preparedExercise.delete(root);
+            root.querySelector("[data-practice-scale]").textContent = `D Kurd · ${option.dataset.notes} notes`;
+            for (const layout of root.querySelectorAll("[data-practice-layout]")) {
+                layout.hidden = layout.dataset.practiceLayout !== option.dataset.notes;
+            }
+            const extras = option.dataset.extra.split(" ");
+            for (const hit of root.querySelectorAll("[data-practice-extra-hit]")) {
+                hit.hidden = !extras.includes(hit.dataset.practicePercussion);
+            }
+            root.querySelector("[data-practice-timeline]").replaceChildren();
+            root.querySelector("[data-practice-phrase]").replaceChildren(new Option("کل تمرین", "all"));
+            root.querySelector("[data-practice-phrase]").closest("details").querySelector("summary strong").textContent = "کل تمرین";
+            updatePracticeTime(root, 0, 0);
+            practiceStatus(root, "در حال آماده‌سازی تمرین…");
+            preparePractice(root);
         } else if (control.matches("[data-practice-phrase]")) {
             preparePractice(root);
         } else {
