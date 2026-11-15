@@ -1,0 +1,65 @@
+.practice-page {
+    box-sizing:border-box; min-height:100dvh; padding:clamp(.75rem,3vw,2rem);
+    background:radial-gradient(ellipse at 50% 10%,#102b43,#071725 60%,#050d17);
+    color:#f4e5c5; display:grid; gap:.75rem; align-content:start;
+}
+.practice-page > * { width:min(100%,66rem); margin-inline:auto; }
+.practice-header { display:grid; grid-template-columns:1fr auto; gap:.25rem .8rem; align-items:center; }
+.practice-header h1 { font-size:clamp(1.3rem,4vw,2rem); margin:0; }
+.practice-header p { grid-column:2; margin:0; color:#b8cde0; }
+.practice-header a { color:#ffe2a0; width:fit-content; }
+.practice-panel { display:grid; min-width:0; gap:.55rem; border:1px solid #39536a; border-radius:1rem; background:#0b2338; padding:.65rem; }
+.practice-controls { display:flex; flex-wrap:wrap; gap:.4rem; }
+.practice-controls label { flex:1 1 7rem; display:grid; gap:.2rem; color:#c2d4e4; font-size:.8rem; }
+.practice-controls select,.practice-controls button,.practice-view {
+    color:#f5e9ce; background:#102e48; border:1px solid #496278; border-radius:.6rem;
+    min-height:2.4rem; padding:.35rem .65rem; font-size:.84rem;
+}
+.practice-controls button { flex:1 1 auto; }
+.practice-controls button[data-practice-action="listen"] { color:#14120e; background:#efc270; border-color:#efc270; }
+.practice-track { min-width:0; overflow-x:auto; background:#071a2a; border-radius:.55rem; scrollbar-color:#a47b43 #0b2436; }
+.practice-track ::deep .practice-grid { display:flex; width:max-content; min-height:5.5rem; }
+.practice-track ::deep .practice-tick {
+    width:2.35rem; flex:none; display:flex; flex-direction:column; align-items:center; gap:.08rem;
+    border-inline-start:1px solid #223b50; font-size:.68rem; color:#ffe1a0; padding:.15rem .08rem;
+}
+.practice-track ::deep .practice-tick.is-beat { border-inline-start-color:#597187; }
+.practice-track ::deep .practice-tick.is-bar { border-inline-start-color:#d2a961; }
+.practice-track ::deep .practice-tick.is-active { background:#68491f; box-shadow:inset 0 2px #ffcf78; }
+.practice-track ::deep .practice-beat { min-height:1rem; color:#b2c5d5; }
+.practice-track ::deep .practice-pitch { font-weight:700; line-height:1; }
+.practice-status { margin:0; min-height:1.15rem; color:#d3dfeb; font-size:.82rem; }
+.practice-instrument { position:relative; }
+.practice-view { display:block; margin-inline-start:auto; }
+.practice-instrument ::deep .playground-diagram { width:min(100%,37rem); }
+.practice-instrument ::deep .preset-photo { outline:1px solid #f4c275; box-shadow:0 0 .9rem #ecad5555; }
+.practice-schematic ::deep .playground-bowl {
+    border:1px solid #eac17f;
+    background:radial-gradient(circle at 50% 49%,#234864,#0c263d 35%,#071926 75%,#091019);
+    box-shadow:inset 0 0 2rem #07131e,0 0 1rem #e4b36255;
+}
+.practice-schematic ::deep .playground-note {
+    width:12.5%; aspect-ratio:1; border:1px solid #a8814c; border-radius:50%;
+    background:radial-gradient(circle at 40% 25%,#244763,#0a2338 70%);
+    box-shadow:inset 0 .08rem .28rem #b98a4433,0 .2rem .55rem #050f19;
+}
+.practice-schematic ::deep .playground-note.practice-cue,
+.practice-schematic ::deep .playground-note.playing {
+    border-color:#ffe5a3; background:#735022; box-shadow:0 0 .8rem #efbb66;
+}
+
+.practice-percussion { display:flex; justify-content:space-between; gap:.55rem; width:min(100%,37rem); margin:.75rem auto 0; }
+.practice-percussion button {
+    display:inline-flex; align-items:center; gap:.38rem; min-height:2.65rem; padding:.3rem .65rem;
+    border:1px solid #627f94; border-radius:.65rem; background:#102a43; color:#e5f2ff;
+    font-size:.8rem; touch-action:none;
+}
+.practice-percussion strong {
+    color:#ffd58d; font-size:1rem; min-width:1.1em; text-align:center;
+}
+.practice-percussion button[data-practice-percussion="K"] strong,
+.practice-track ::deep .practice-tick .practice-body-hit { color:#8fe1ed; }
+.practice-percussion button[data-practice-percussion="T"] strong { color:#ffd58d; }
+.practice-percussion button.playing,.practice-percussion button.practice-cue {
+    border-color:#ffe29e; background:#674722; box-shadow:0 0 .65rem #e6af60;
+}

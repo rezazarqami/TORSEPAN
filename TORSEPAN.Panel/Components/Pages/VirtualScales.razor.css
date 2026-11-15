@@ -59,14 +59,5 @@
 
 .sound-note[data-scale-multitouch="true"] { touch-action:none; }
 
-.practice-controls { display:flex; flex-wrap:wrap; gap:.45rem; }
-.practice-controls label { flex:1 1 8rem; }
-.practice-status { min-height:1.7rem; color:#ffe2a6; }
-.practice-shells { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; }
-.practice-shells h3 { text-align:center; font-size:.9rem; }
-.practice-shells ::deep .playground-note {
-    min-width:1.55rem;
-    min-height:1.55rem;
-    padding:.12rem;
-    font-size:clamp(.64rem, 2.6vw, .92rem);
-}
+.workshop-presets a.workshop-action { display:grid; place-items:center; text-decoration:none; }
+.workshop-presets a.workshop-action:focus-visible { outline:2px solid #ffe19d; outline-offset:3px; }

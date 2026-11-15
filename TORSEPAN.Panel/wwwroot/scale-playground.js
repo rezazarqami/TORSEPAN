@@ -268,7 +268,7 @@
         }
     }
 
-    const practiceUrl = new URL("./handpan-practice/01-g2-hijaz.json", document.currentScript.src);
+    const practiceUrl = new URL("./handpan-practice/01-d-kurd.json", document.currentScript.src);
     const practiceRuns = new WeakMap();
     let practiceScore;
 
@@ -287,10 +287,129 @@
         root.querySelector("[data-practice-status]").textContent = message;
     }
 
+    const practicePercussion = { T: "tap.wav", K: "knock.wav" };
+    const percussionBuffers = new Map();
+
+    function loadPercussion(hit) {
+        if (!percussionBuffers.has(hit)) {
+            const buffer = fetch(new URL(practicePercussion[hit], practiceUrl))
+                .then(response => {
+                    if (!response.ok) throw new Error("Body strike sample unavailable");
+                    return response.arrayBuffer();
+                })
+                .then(bytes => context.decodeAudioData(bytes))
+                .catch(error => {
+                    percussionBuffers.delete(hit);
+                    throw error;
+                });
+            percussionBuffers.set(hit, buffer);
+        }
+        return percussionBuffers.get(hit);
+    }
+
+    function playPracticeHit(hit) {
+        if (!Object.hasOwn(practicePercussion, hit)) {
+            playBankNote(hit);
+            return;
+        }
+        if (!prepareAudio()) return;
+
+        loadPercussion(hit).then(buffer => {
+            const source = context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(output);
+            source.onended = () => source.disconnect();
+            source.start();
+        }).catch(() => {});
+    }
+
+    function practiceHits(step) {
+        if (!step) return [];
+        return step.percussion ? [...step.notes, step.percussion] : step.notes;
+    }
+
+    function practiceHitKey(hit) {
+        return Object.hasOwn(practicePercussion, hit) ? hit : midiFor(hit);
+    }
+
+    function buttonPracticeHit(button) {
+        return button.dataset.practicePercussion ?? button.dataset.scalePitch;
+    }
+
     function showPracticeCue(root, pitches = []) {
-        const wanted = new Set(pitches.map(midiFor));
-        for (const button of root.querySelectorAll("button[data-scale-pitch]")) {
-            button.classList.toggle("practice-cue", wanted.has(midiFor(button.dataset.scalePitch)));
+        const wanted = new Set(pitches.map(practiceHitKey));
+        for (const button of root.querySelectorAll("button[data-scale-pitch], button[data-practice-percussion]")) {
+            button.classList.toggle("practice-cue", wanted.has(practiceHitKey(buttonPracticeHit(button))));
+        }
+    }
+
+    function practiceSelection(root, score) {
+        const value = root.querySelector("[data-practice-phrase]").value;
+        if (value === "all") return { start: 0, end: score.totalTicks, steps: score.phrases.flat() };
+        const phrase = Number(value);
+        return {
+            start: score.phraseStarts[phrase],
+            end: score.phraseStarts[phrase + 1] ?? score.totalTicks,
+            steps: score.phrases[phrase]
+        };
+    }
+
+    async function preparePractice(root) {
+        if (prepareAudio(false)) {
+            for (const hit of Object.keys(practicePercussion)) loadPercussion(hit).catch(() => {});
+        }
+        try {
+            const score = await loadPracticeScore();
+            if (!root.isConnected) return;
+            const { start, end, steps } = practiceSelection(root, score);
+            const byTick = new Map(steps.map(step => [step.tick, practiceHits(step)]));
+            const track = root.querySelector("[data-practice-timeline]");
+            const grid = document.createElement("div");
+            grid.className = "practice-grid";
+            const ticksPerBar = score.beatsPerBar * score.subdivisions;
+            for (let tick = start; tick < end; tick += 1) {
+                const cell = document.createElement("div");
+                cell.className = "practice-tick";
+                cell.dataset.practiceTick = tick;
+                const label = document.createElement("span");
+                label.className = "practice-beat";
+                const position = tick + (score.pickupTicks ?? 0);
+                if (position % score.subdivisions === 0) {
+                    cell.classList.add("is-beat");
+                    const beat = (position % ticksPerBar) / score.subdivisions + 1;
+                    label.textContent = String(beat);
+                    if (beat === 1) {
+                        cell.classList.add("is-bar");
+                        label.textContent = `${Math.floor(position / ticksPerBar) + 1} : 1`;
+                    }
+                }
+                cell.append(label);
+                for (const pitch of byTick.get(tick) ?? []) {
+                    const note = document.createElement("span");
+                    note.className = Object.hasOwn(practicePercussion, pitch) ? "practice-pitch practice-body-hit" : "practice-pitch";
+                    note.textContent = pitch;
+                    cell.append(note);
+                }
+                grid.append(cell);
+            }
+            track.replaceChildren(grid);
+            track.scrollLeft = 0;
+            practiceStatus(root, `${score.bpm} ضرب در دقیقه در سرعت اصلی`);
+        } catch {
+            if (root.isConnected) practiceStatus(root, "بارگذاری تمرین انجام نشد. دوباره امتحان کن.");
+        }
+    }
+
+    function movePracticeCursor(root, tick) {
+        const track = root.querySelector("[data-practice-timeline]");
+        track.querySelector(".is-active")?.classList.remove("is-active");
+        const cell = track.querySelector(`[data-practice-tick="${tick}"]`);
+        if (!cell) return;
+        cell.classList.add("is-active");
+        const trackRect = track.getBoundingClientRect();
+        const cellRect = cell.getBoundingClientRect();
+        if (cellRect.left < trackRect.left || cellRect.right > trackRect.right) {
+            track.scrollLeft += cellRect.left - trackRect.left;
         }
     }
 
@@ -298,6 +417,7 @@
         clearTimeout(practiceRuns.get(root)?.timer);
         practiceRuns.delete(root);
         showPracticeCue(root);
+        movePracticeCursor(root);
     }
 
     function setStep(root, run) {
@@ -307,10 +427,14 @@
             practiceStatus(root, "تمرین کامل شد.");
             return;
         }
-        run.remaining = new Set(step.notes.map(midiFor));
+        const hits = practiceHits(step);
+        run.remaining = new Set(hits.map(practiceHitKey));
         run.firstHit = undefined;
-        showPracticeCue(root, step.notes);
-        practiceStatus(root, step.notes.length > 1 ? "نت‌های روشن را با هم بزن." : "نت روشن را بزن.");
+        showPracticeCue(root, hits);
+        movePracticeCursor(root, step.tick);
+        practiceStatus(root, hits.length > 1 ? "جای ضربه‌های روشن را با هم بزن." :
+            step.percussion === "T" ? "ضربهٔ انگشت (T) را بزن." :
+            step.percussion === "K" ? "ناک بدنه (K) را بزن." : "نت روشن را بزن.");
     }
 
     function acceptPracticeStrike(button) {
@@ -318,8 +442,9 @@
         const run = root && practiceRuns.get(root);
         if (run?.mode !== "step" || !run.remaining) return;
         const now = performance.now();
-        if (run.firstHit !== undefined && now - run.firstHit > 180) setStep(root, run);
-        if (!run.remaining.delete(midiFor(button.dataset.scalePitch))) return;
+        const timeWindow = practiceHits(run.steps[run.index]).length > 2 ? 500 : 180;
+        if (run.firstHit !== undefined && now - run.firstHit > timeWindow) setStep(root, run);
+        if (!run.remaining.delete(practiceHitKey(buttonPracticeHit(button)))) return;
         run.firstHit ??= now;
         if (run.remaining.size === 0) {
             run.index += 1;
@@ -331,39 +456,42 @@
         stopPractice(root);
         const run = { mode, index: 0 };
         practiceRuns.set(root, run);
-        const selected = root.querySelector("[data-practice-phrase]").value;
         const speed = Number(root.querySelector("[data-practice-speed]").value) || 1;
         practiceStatus(root, "در حال آماده‌سازی تمرین…");
         if (mode === "listen") prepareAudio();
 
         try {
-            const { phrases } = await loadPracticeScore();
+            const score = await loadPracticeScore();
             if (!root.isConnected || practiceRuns.get(root) !== run) return;
-            run.steps = selected === "all" ? phrases.flat() : phrases[Number(selected)];
-            if (!run.steps?.length) throw new Error("Practice phrase unavailable");
+            const { start, end, steps } = practiceSelection(root, score);
+            run.steps = steps;
+            if (!steps?.length) throw new Error("Practice phrase unavailable");
             if (mode === "step") {
                 setStep(root, run);
                 return;
             }
 
             practiceStatus(root, mode === "listen" ? "در حال پخش تمرین…" : "با روشن شدن نت‌ها همراهی کن.");
-            const origin = selected === "all" ? 0 : run.steps[0].ms;
+            const byTick = new Map(steps.map(step => [step.tick, practiceHits(step)]));
+            const interval = 60000 / (score.bpm * score.subdivisions * speed);
             const started = performance.now() + (mode === "guide" ? 750 : 0);
+            let tick = start;
             function advance() {
                 if (!root.isConnected || practiceRuns.get(root) !== run) return;
-                const step = run.steps[run.index++];
-                if (!step) {
+                if (tick >= end) {
                     stopPractice(root);
                     practiceStatus(root, "تمرین به پایان رسید.");
                     return;
                 }
-                showPracticeCue(root, step.notes);
-                if (mode === "listen") for (const pitch of step.notes) playBankNote(pitch);
+                const notes = byTick.get(tick) ?? [];
+                movePracticeCursor(root, tick);
+                showPracticeCue(root, notes);
+                if (mode === "listen") for (const hit of notes) playPracticeHit(hit);
+                tick += 1;
                 scheduleNext();
             }
             function scheduleNext() {
-                const next = run.steps[run.index];
-                const delay = next ? started + (next.ms - origin) / speed - performance.now() : 500;
+                const delay = started + (tick - start) * interval - performance.now();
                 run.timer = setTimeout(advance, Math.max(0, delay));
             }
             scheduleNext();
@@ -375,7 +503,7 @@
     }
 
     document.addEventListener("click", event => {
-        const control = event.target.closest("button[data-practice-action]");
+        const control = event.target.closest("[data-practice-action]");
         const root = control?.closest("[data-handpan-practice]");
         if (!root) return;
         const mode = control.dataset.practiceAction;
@@ -390,16 +518,22 @@
     document.addEventListener("change", event => {
         const control = event.target.closest("[data-practice-phrase], [data-practice-speed]");
         const root = control?.closest("[data-handpan-practice]");
-        if (!root || !practiceRuns.has(root)) return;
+        if (!root) return;
         stopPractice(root);
-        practiceStatus(root, "برای شروع دوباره یک حالت تمرین را انتخاب کن.");
+        if (control.matches("[data-practice-phrase]")) {
+            preparePractice(root);
+        } else {
+            practiceStatus(root, "برای شروع دوباره یک حالت تمرین را انتخاب کن.");
+        }
     });
 
     function strikeNote(button) {
         acceptPracticeStrike(button);
         const recording = button.querySelector("audio");
         const pitch = button.dataset.scalePitch;
-        if (recording) {
+        if (button.dataset.practicePercussion) {
+            playPracticeHit(button.dataset.practicePercussion);
+        } else if (recording) {
             const player = recording.paused ? recording : new Audio(recording.src);
             player.currentTime = 0;
             player.play().catch(() => playBankNote(pitch));
@@ -443,7 +577,7 @@
     });
 
     document.addEventListener("click", event => {
-        const button = event.target.closest("button[data-scale-pitch]");
+        const button = event.target.closest("button[data-scale-pitch], button[data-practice-percussion]");
         if (!button || button.disabled) return;
 
         // A touch can also produce a native click on release. Keyboard clicks have zero detail.
@@ -452,6 +586,7 @@
     });
 
     window.scalePlayground = {
+        preparePractice,
         preload() {
             for (const { midi } of profiles) fetchSample(`${midi}-sustain`).catch(() => {});
             fetchSample(highNoteSample).catch(() => {});
