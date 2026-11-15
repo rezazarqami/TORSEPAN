@@ -35,6 +35,44 @@
                 </div>
             </section>
         }
+        else if (_view == WorkshopView.Practice)
+        {
+            <section class="workshop-card handpan-practice" data-handpan-practice aria-label="تمرین هنگ‌درام">
+                <button type="button" class="workshop-secondary" data-practice-action="stop" @onclick="ShowScales">بازگشت به اسکیل‌ها</button>
+                <h2>تمرین شمارهٔ ۱</h2>
+                <p dir="ltr">G2 Hijaz · 18 notes</p>
+                <div class="practice-controls">
+                    <label>بخش تمرین
+                        <select data-practice-phrase class="form-select">
+                            <option value="all">کل تمرین</option>
+                            <option value="0">جملهٔ ۱</option>
+                            <option value="1">جملهٔ ۲</option>
+                            <option value="2">جملهٔ ۳</option>
+                            <option value="3">جملهٔ ۴</option>
+                        </select>
+                    </label>
+                    <label>سرعت
+                        <select data-practice-speed class="form-select">
+                            <option value="0.5">۵۰٪</option>
+                            <option value="0.75">۷۵٪</option>
+                            <option value="1" selected>۱۰۰٪</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="practice-controls">
+                    <button type="button" class="workshop-secondary" data-practice-action="listen">گوش دادن</button>
+                    <button type="button" class="workshop-secondary" data-practice-action="guide">تمرین با ریتم</button>
+                    <button type="button" class="workshop-secondary" data-practice-action="step">قدم‌به‌قدم</button>
+                    <button type="button" class="workshop-secondary" data-practice-action="stop">توقف</button>
+                </div>
+                <p class="practice-status" data-practice-status role="status">یکی از حالت‌های تمرین را انتخاب کن.</p>
+                <div class="practice-shells">
+                    <div><h3>کاسه رو</h3><ScalePlaygroundEditor Photos="PracticeDiagram" ReadOnly="true" FixedBottom="false" /></div>
+                    <div><h3>کاسه زیر</h3><ScalePlaygroundEditor Photos="PracticeDiagram" ReadOnly="true" FixedBottom="true" /></div>
+                </div>
+                <small>نت‌ها از روی ضبط استخراج شده‌اند و بعضی ضربه‌ها تقریبی‌اند.</small>
+            </section>
+        }
         else if (_view != WorkshopView.Design || !_isAdministrator)
         {
             <section class="workshop-card workshop-presets" aria-label="اسکیل‌ها">
@@ -76,6 +114,7 @@
                 {
                     <p role="status">@_albumMessage</p>
                 }
+                <button type="button" class="workshop-action" @onclick="ShowPractice">تمرین ملودی</button>
                 @if (_canUseSoundBank)
                 {
                     <div class="workshop-bank-row">
@@ -111,12 +150,16 @@
 </section>
 
 @code {
-    private enum WorkshopView { Scales, Design, Bank }
+    private enum WorkshopView { Scales, Design, Bank, Practice }
     private WorkshopView _view;
     private bool _isAdministrator;
     private bool _canUseSoundBank;
 
+    private static ScalePhotoSources PracticeDiagram { get; } = VirtualScalePresets.All
+        .Single(preset => preset.Name == "G2 Hijaz 18 + bottom notes").CreateDiagram();
+
     private void ShowScales() => _view = WorkshopView.Scales;
+    private void ShowPractice() => _view = WorkshopView.Practice;
     private bool _loading = true, _editing;
     private int _presetIndex = VirtualScalePresets.All.ToList().FindIndex(preset => preset.Name == "D Minor / Kurd 10");
     private Guid _albumTarget;

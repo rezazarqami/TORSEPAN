@@ -62,3 +62,12 @@
 }
 
 .playground-note[data-scale-multitouch="true"] { touch-action:none; }
+
+.playground-note.practice-cue {
+    z-index:2;
+    border:1px solid #ffe19a;
+    border-radius:50%;
+    background:#482e10de;
+    color:#fff7dd;
+    box-shadow:0 0 .65rem #ffbe5e;
+}

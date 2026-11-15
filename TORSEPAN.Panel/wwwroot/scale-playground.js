@@ -268,7 +268,135 @@
         }
     }
 
+    const practiceUrl = new URL("./handpan-practice/01-g2-hijaz.json", document.currentScript.src);
+    const practiceRuns = new WeakMap();
+    let practiceScore;
+
+    function loadPracticeScore() {
+        practiceScore ??= fetch(practiceUrl).then(response => {
+            if (!response.ok) throw new Error("Practice score unavailable");
+            return response.json();
+        }).catch(error => {
+            practiceScore = undefined;
+            throw error;
+        });
+        return practiceScore;
+    }
+
+    function practiceStatus(root, message) {
+        root.querySelector("[data-practice-status]").textContent = message;
+    }
+
+    function showPracticeCue(root, pitches = []) {
+        const wanted = new Set(pitches.map(midiFor));
+        for (const button of root.querySelectorAll("button[data-scale-pitch]")) {
+            button.classList.toggle("practice-cue", wanted.has(midiFor(button.dataset.scalePitch)));
+        }
+    }
+
+    function stopPractice(root) {
+        clearTimeout(practiceRuns.get(root)?.timer);
+        practiceRuns.delete(root);
+        showPracticeCue(root);
+    }
+
+    function setStep(root, run) {
+        const step = run.steps[run.index];
+        if (!step) {
+            stopPractice(root);
+            practiceStatus(root, "تمرین کامل شد.");
+            return;
+        }
+        run.remaining = new Set(step.notes.map(midiFor));
+        run.firstHit = undefined;
+        showPracticeCue(root, step.notes);
+        practiceStatus(root, step.notes.length > 1 ? "نت‌های روشن را با هم بزن." : "نت روشن را بزن.");
+    }
+
+    function acceptPracticeStrike(button) {
+        const root = button.closest("[data-handpan-practice]");
+        const run = root && practiceRuns.get(root);
+        if (run?.mode !== "step" || !run.remaining) return;
+        const now = performance.now();
+        if (run.firstHit !== undefined && now - run.firstHit > 180) setStep(root, run);
+        if (!run.remaining.delete(midiFor(button.dataset.scalePitch))) return;
+        run.firstHit ??= now;
+        if (run.remaining.size === 0) {
+            run.index += 1;
+            setStep(root, run);
+        }
+    }
+
+    async function startPractice(root, mode) {
+        stopPractice(root);
+        const run = { mode, index: 0 };
+        practiceRuns.set(root, run);
+        const selected = root.querySelector("[data-practice-phrase]").value;
+        const speed = Number(root.querySelector("[data-practice-speed]").value) || 1;
+        practiceStatus(root, "در حال آماده‌سازی تمرین…");
+        if (mode === "listen") prepareAudio();
+
+        try {
+            const { phrases } = await loadPracticeScore();
+            if (!root.isConnected || practiceRuns.get(root) !== run) return;
+            run.steps = selected === "all" ? phrases.flat() : phrases[Number(selected)];
+            if (!run.steps?.length) throw new Error("Practice phrase unavailable");
+            if (mode === "step") {
+                setStep(root, run);
+                return;
+            }
+
+            practiceStatus(root, mode === "listen" ? "در حال پخش تمرین…" : "با روشن شدن نت‌ها همراهی کن.");
+            const origin = selected === "all" ? 0 : run.steps[0].ms;
+            const started = performance.now() + (mode === "guide" ? 750 : 0);
+            function advance() {
+                if (!root.isConnected || practiceRuns.get(root) !== run) return;
+                const step = run.steps[run.index++];
+                if (!step) {
+                    stopPractice(root);
+                    practiceStatus(root, "تمرین به پایان رسید.");
+                    return;
+                }
+                showPracticeCue(root, step.notes);
+                if (mode === "listen") for (const pitch of step.notes) playBankNote(pitch);
+                scheduleNext();
+            }
+            function scheduleNext() {
+                const next = run.steps[run.index];
+                const delay = next ? started + (next.ms - origin) / speed - performance.now() : 500;
+                run.timer = setTimeout(advance, Math.max(0, delay));
+            }
+            scheduleNext();
+        } catch {
+            if (practiceRuns.get(root) !== run) return;
+            stopPractice(root);
+            practiceStatus(root, "بارگذاری تمرین انجام نشد. دوباره امتحان کن.");
+        }
+    }
+
+    document.addEventListener("click", event => {
+        const control = event.target.closest("button[data-practice-action]");
+        const root = control?.closest("[data-handpan-practice]");
+        if (!root) return;
+        const mode = control.dataset.practiceAction;
+        if (mode === "stop") {
+            stopPractice(root);
+            practiceStatus(root, "تمرین متوقف شد.");
+        } else {
+            startPractice(root, mode);
+        }
+    });
+
+    document.addEventListener("change", event => {
+        const control = event.target.closest("[data-practice-phrase], [data-practice-speed]");
+        const root = control?.closest("[data-handpan-practice]");
+        if (!root || !practiceRuns.has(root)) return;
+        stopPractice(root);
+        practiceStatus(root, "برای شروع دوباره یک حالت تمرین را انتخاب کن.");
+    });
+
     function strikeNote(button) {
+        acceptPracticeStrike(button);
         const recording = button.querySelector("audio");
         const pitch = button.dataset.scalePitch;
         if (recording) {
