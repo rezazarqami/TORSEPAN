@@ -1,0 +1,908 @@
+{
+  "bpm": 132,
+  "beatsPerBar": 9,
+  "subdivisions": 2,
+  "totalTicks": 144,
+  "phraseStarts": [
+    0,
+    72
+  ],
+  "phraseNames": [
+    "الگوی دست RRL",
+    "دست‌های یکی‌درمیان"
+  ],
+  "phrases": [
+    [
+      {
+        "tick": 0,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 1,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 2,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 3,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 4,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 5,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 6,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 7,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 8,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 9,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 10,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 11,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 12,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 13,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 14,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 15,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 16,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 17,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 18,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 19,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 20,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 21,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 22,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 23,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 24,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 25,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 26,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 27,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 28,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 29,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 30,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 31,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 32,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 33,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 34,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 35,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 36,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 37,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 38,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 39,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 40,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 41,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 42,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 43,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 44,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 45,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 46,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 47,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 48,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 49,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 50,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 51,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 52,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 53,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 54,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 55,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 56,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 57,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 58,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 59,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 60,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 61,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 62,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 63,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 64,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 65,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 66,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 67,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 68,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 69,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 70,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 71,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      }
+    ],
+    [
+      {
+        "tick": 72,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 73,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 74,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 75,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 76,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 77,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 78,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 79,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 80,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 81,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 82,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 83,
+        "notes": [
+          "D3"
+        ],
+        "hand": "L"
+      },
+      {
+        "tick": 84,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 85,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 86,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 87,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 88,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 89,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 90,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 91,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 92,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 93,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 94,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 95,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 96,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 97,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 98,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 99,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 100,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 101,
+        "notes": [
+          "D3"
+        ],
+        "hand": "L"
+      },
+      {
+        "tick": 102,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 103,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 104,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 105,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 106,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 107,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 108,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 109,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 110,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 111,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 112,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 113,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 114,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 115,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 116,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 117,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 118,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 119,
+        "notes": [
+          "D3"
+        ],
+        "hand": "L"
+      },
+      {
+        "tick": 120,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 121,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 122,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 123,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 124,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 125,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 126,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 127,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 128,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 129,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 130,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 131,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 132,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 133,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 134,
+        "notes": [
+          "D3"
+        ],
+        "hand": "R"
+      },
+      {
+        "tick": 135,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 136,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 137,
+        "notes": [
+          "D3"
+        ],
+        "hand": "L"
+      },
+      {
+        "tick": 138,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 139,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 140,
+        "notes": [],
+        "percussion": "T",
+        "hand": "R"
+      },
+      {
+        "tick": 141,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      },
+      {
+        "tick": 142,
+        "notes": [],
+        "percussion": "•",
+        "hand": "R"
+      },
+      {
+        "tick": 143,
+        "notes": [],
+        "percussion": "•",
+        "hand": "L"
+      }
+    ]
+  ]
+}

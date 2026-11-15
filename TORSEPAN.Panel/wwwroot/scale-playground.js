@@ -445,6 +445,13 @@
                     if (tick >= start && tick < end) {
                         cell.dataset.practiceTick = tick;
                         const step = byTick.get(tick);
+                        if (step?.hand) {
+                            const hand = document.createElement("span");
+                            hand.className = "practice-hand";
+                            hand.textContent = step.hand;
+                            hand.setAttribute("aria-label", step.hand === "R" ? "دست راست" : "دست چپ");
+                            cell.append(hand);
+                        }
                         for (const pitch of practiceHits(step)) {
                             const note = document.createElement("span");
                             const percussion = Object.hasOwn(practicePercussion, pitch);

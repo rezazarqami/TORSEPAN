@@ -151,3 +151,7 @@
 .practice-options ::deep button[aria-pressed="true"] {
     color:#ffda91; border-color:#a57f48; background:#2e302c;
 }
+
+.practice-track ::deep .practice-hand {
+    color:#adc6d8; font-size:.62rem; font-weight:600; line-height:1;
+}
