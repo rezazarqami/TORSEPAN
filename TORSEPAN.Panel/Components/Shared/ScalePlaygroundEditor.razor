@@ -35,7 +35,8 @@
             : _bottom ? _bottomPhoto?.Source ?? Photos?.Bottom : _topPhoto?.Source ?? Photos?.Top;
         var presetPhoto = source?.StartsWith(VirtualScalePreset.ImageDirectory, StringComparison.Ordinal) == true;
         var sampleBottom = SampleShells && _bottom && source is null;
-        <div class="playground-diagram @(notes.Count > 12 || presetPhoto ? "dense" : null) @(SampleShells ? "sample-shell" : null) @(ShowBothShells ? "playground-orbit" : null)" @ref="_diagram">
+        var practiceSchematic = PracticeSchematic && source is null;
+        <div class="playground-diagram @(notes.Count > 12 || presetPhoto ? "dense" : null) @(SampleShells ? "sample-shell" : null) @(practiceSchematic ? "playground-practice-diagram" : null) @(ShowBothShells ? "playground-orbit" : null)" @ref="_diagram">
             @if (source is not null)
             {
                 <img class="@(presetPhoto ? "preset-photo" : null)" src="@source" alt="@(_bottom ? "کاسه زیر" : "کاسه رو")" />
@@ -52,9 +53,15 @@
             {
                 <span class="playground-pending" style="@Position(_pending.X, _pending.Y)" aria-hidden="true">+</span>
             }
-            @foreach (var note in notes)
+            @for (var i = 0; i < notes.Count; i++)
             {
-                <button type="button" class="playground-note @(sampleBottom ? "sample-tone-field" : null) @(ShowBothShells && note.Bottom ? "peripheral-note" : null)" dir="ltr"
+                var note = notes[i];
+                var noteStyle = !practiceSchematic ? null
+                    : i == 0 ? "ding-note"
+                    : note.Bottom ? (note.Y >= 65 ? "peripheral-note peripheral-bass" : "peripheral-note")
+                    : ShowBothShells && note.X >= 43 && note.X <= 57 && note.Y >= 37 && note.Y <= 42 ? "inner-note"
+                    : null;
+                <button type="button" class="playground-note @(sampleBottom ? "sample-tone-field" : null) @noteStyle" dir="ltr"
                         style="@Position(note.X, note.Y)" data-scale-pitch="@note.Pitch"
                         data-scale-multitouch="@(ReadOnly ? "true" : null)"
                         aria-label="@($"نت {note.Pitch}{(ShowBothShells && note.Bottom ? "، کاسهٔ زیر" : "")}")" @onclick="() => SelectNote(note)">
@@ -117,6 +124,7 @@
     [Parameter] public EventCallback<SaveScalePlayground> SaveDesign { get; set; }
     [Parameter] public bool ReadOnly { get; set; }
     [Parameter] public bool? FixedBottom { get; set; }
+    [Parameter] public bool PracticeSchematic { get; set; }
     [Parameter] public bool ShowBothShells { get; set; }
     [Parameter] public bool SampleShells { get; set; }
     [Parameter] public ScalePhotoSources? Photos { get; set; }

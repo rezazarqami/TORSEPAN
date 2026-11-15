@@ -72,45 +72,86 @@
     box-shadow:0 0 .65rem #ffbe5e;
 }
 
-.playground-diagram.playground-orbit {
+.playground-diagram.playground-practice-diagram {
+    --bowl-size:87%;
+    --bowl-center:50%;
+    --note-size:13%;
+    --ding-size:14%;
+    --ding-ring:23%;
+    width:min(100%,31rem);
     aspect-ratio:1;
-    width:min(100%,32rem);
+    isolation:isolate;
 }
-.playground-orbit .playground-bowl {
+.playground-practice-diagram.playground-orbit {
+    --bowl-size:65%;
+    --bowl-center:52%;
+    --note-size:11.5%;
+    --ding-size:10.5%;
+    --ding-ring:19%;
+}
+.playground-practice-diagram .playground-bowl {
     position:absolute;
     box-sizing:border-box;
-    width:57%;
+    width:var(--bowl-size);
     left:50%;
-    top:57%;
+    top:var(--bowl-center);
     transform:translate(-50%,-50%);
-    border:1px solid #8098aa;
-    background:#57768e;
-    box-shadow:none;
+    border:1px solid #7496ad;
+    background:radial-gradient(ellipse at 40% 24%,#50768e 0%,#34566f 55%,#27465d 81%,#203e53);
+    box-shadow:inset 0 0 0 .22rem #99b8cd22,inset 0 -.3rem .65rem #142d4477,0 .4rem 1rem #020f1980;
 }
-.playground-diagram.playground-orbit .playground-note {
+.playground-practice-diagram::after {
+    content:"";
+    position:absolute;
+    z-index:0;
+    pointer-events:none;
+    width:var(--ding-ring);
+    aspect-ratio:1;
+    left:50%;
+    top:var(--bowl-center);
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    background:radial-gradient(circle,#7792a2 0 44%,#f4e5c2 47%,#e5d3ad 72%);
+    box-shadow:0 0 .3rem #f1dcb761,inset 0 0 0 1px #ffedc4;
+}
+.playground-diagram.playground-practice-diagram .playground-note {
+    position:absolute;
+    z-index:1;
     box-sizing:border-box;
     display:grid;
     place-items:center;
-    width:9%;
+    width:var(--note-size);
     min-width:0;
     min-height:0;
     aspect-ratio:1;
     padding:0;
     border-radius:50%;
-    border:1px solid #aec4d4;
-    background:#d6e2e9;
-    color:#172f44;
-    font-size:clamp(.58rem,2.65vw,1rem);
+    border:1px solid #e6edf0;
+    background:radial-gradient(circle at 43% 29%,#edf2f1 0%,#c1d3df 94%);
+    color:#142f44;
+    font-size:clamp(.65rem,2.8vw,1rem);
     text-shadow:none;
     -webkit-text-stroke:0;
+    box-shadow:0 .13rem .28rem #10263791;
 }
-.playground-diagram.playground-orbit .playground-note.peripheral-note {
+.playground-diagram.playground-practice-diagram .inner-note {
+    width:8%;
+    font-size:clamp(.47rem,2.1vw,.78rem);
+}
+.playground-diagram.playground-practice-diagram .ding-note {
+    width:var(--ding-size);
+    background:radial-gradient(circle at 40% 29%,#9fb8c6,#7195a9);
+    border-color:#7fa0b2;
+}
+.playground-diagram.playground-practice-diagram .peripheral-note {
     width:10%;
-    background:transparent;
-    border-color:#819cb2;
-    color:#d8e5ee;
+    background:#0f2739;
+    border-color:#94a9b8;
+    color:#dae8ef;
+    box-shadow:none;
 }
-.playground-diagram.playground-orbit .playground-note:is(.playing,.practice-cue,:active) {
+.playground-diagram.playground-practice-diagram .peripheral-bass { width:13%; }
+.playground-diagram.playground-practice-diagram .playground-note:is(.playing,.practice-cue,:active) {
     background:#f3c66d;
     color:#102738;
     border-color:#ffe2a0;
