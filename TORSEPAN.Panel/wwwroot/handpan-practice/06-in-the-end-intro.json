@@ -1,0 +1,245 @@
+{
+  "bpm": 98,
+  "beatsPerBar": 4,
+  "subdivisions": 4,
+  "totalTicks": 144,
+  "phraseStarts": [
+    0,
+    64
+  ],
+  "phraseNames": [
+    "Intro",
+    "Repeat"
+  ],
+  "phrases": [
+    [
+      {
+        "tick": 0,
+        "notes": [
+          "D3",
+          "D4"
+        ]
+      },
+      {
+        "tick": 4,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 8,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 12,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 16,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 20,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 24,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 28,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 30,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 32,
+        "notes": [
+          "Bb3",
+          "D4"
+        ]
+      },
+      {
+        "tick": 36,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 40,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 44,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 48,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 52,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 56,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 60,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 62,
+        "notes": [
+          "F4"
+        ]
+      }
+    ],
+    [
+      {
+        "tick": 64,
+        "notes": [
+          "D3",
+          "D4"
+        ]
+      },
+      {
+        "tick": 68,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 72,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 76,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 80,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 84,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 88,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 92,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 94,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 96,
+        "notes": [
+          "Bb3",
+          "D4"
+        ]
+      },
+      {
+        "tick": 100,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 104,
+        "notes": [
+          "A4"
+        ]
+      },
+      {
+        "tick": 108,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 112,
+        "notes": [
+          "E4",
+          "C4"
+        ]
+      },
+      {
+        "tick": 118,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 120,
+        "notes": [
+          "A3"
+        ]
+      },
+      {
+        "tick": 124,
+        "notes": [
+          "Bb3"
+        ]
+      },
+      {
+        "tick": 128,
+        "notes": [
+          "D3",
+          "A3"
+        ]
+      }
+    ]
+  ]
+}

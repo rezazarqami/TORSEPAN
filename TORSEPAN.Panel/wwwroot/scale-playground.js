@@ -13,6 +13,7 @@
     const sampleDirectory = new URL("./handpan-samples/", document.currentScript.src);
     const highNoteStart = 76; // E5
     const highNoteSample = "69-octave-sustain";
+    const bassPlaybackGain = .5; // Reserve 6 dB of headroom for bass samples and overlapping strikes.
     const lowNoteEnd = 65; // F4
     const sampleBytes = new Map();
     const sampleBuffers = new Map();
@@ -113,11 +114,11 @@
         bassLoads.set(midi, load);
     }
 
-    function playBassNote(pitch, midi) {
+    function playBassNote(pitch, midi, articulation) {
         const buffer = bassBuffers.get(midi);
         if (!buffer) {
             loadBassSample(midi);
-            playSynth(pitch);
+            if (!articulation) playSynth(pitch, bassPlaybackGain);
             return;
         }
 
@@ -126,10 +127,24 @@
         const source = context.createBufferSource();
         const bus = context.createGain();
         source.buffer = buffer;
-        source.connect(bus).connect(context.destination);
+        const level = bassPlaybackGain * (articulation === "P" ? .65 : 1);
+        bus.gain.setValueAtTime(level, now);
+        let mutedTail;
+        if (articulation) {
+            const muted = context.createBiquadFilter();
+            muted.type = "lowpass";
+            muted.frequency.value = articulation === "P" ? 450 : 1200;
+            source.connect(muted).connect(bus);
+            mutedTail = articulation === "P" ? .13 : .19;
+            bus.gain.setValueAtTime(level, now + .025);
+            bus.gain.exponentialRampToValueAtTime(.001, now + mutedTail);
+        } else {
+            source.connect(bus);
+        }
+        bus.connect(output);
         const voice = {
             stop(at) {
-                bus.gain.setValueAtTime(1, context.currentTime);
+                bus.gain.cancelAndHoldAtTime(context.currentTime);
                 bus.gain.linearRampToValueAtTime(0, at);
                 source.stop(at);
             }
@@ -140,6 +155,7 @@
             voices.delete(voice);
         };
         source.start(now);
+        if (mutedTail) source.stop(now + mutedTail + .01);
     }
 
     async function playBankNote(pitch) {
@@ -206,7 +222,7 @@
         }
     }
 
-    function playSynth(pitch) {
+    function playSynth(pitch, volume = 1) {
         const midi = midiFor(pitch);
         if (midi === null || !prepareAudio()) return;
         const fundamental = 440 * 2 ** ((midi - 69) / 12);
@@ -216,8 +232,8 @@
         const bus = context.createGain();
         bus.connect(output);
         const duration = noteDuration(midi);
-        bus.gain.setValueAtTime(1, now);
-        applyNoteDecay(bus.gain, 1, now, duration);
+        bus.gain.setValueAtTime(volume, now);
+        applyNoteDecay(bus.gain, volume, now, duration);
         const oscillators = [];
         const highNote = midi >= highNoteStart;
         const profile = modesFor(midi);
@@ -268,43 +284,54 @@
         }
     }
 
-    const practiceUrl = new URL("./handpan-practice/01-d-kurd.json", document.currentScript.src);
+    const practiceDirectory = new URL("./handpan-practice/", document.currentScript.src);
     const practiceRuns = new WeakMap();
-    let practiceScore;
+    const practiceScores = new Map();
+    const preparedExercise = new WeakMap();
 
-    function loadPracticeScore() {
-        practiceScore ??= fetch(practiceUrl).then(response => {
-            if (!response.ok) throw new Error("Practice score unavailable");
-            return response.json();
-        }).catch(error => {
-            practiceScore = undefined;
-            throw error;
-        });
-        return practiceScore;
+    function loadPracticeScore(name) {
+        if (!practiceScores.has(name)) {
+            const load = fetch(new URL(`${name}.json`, practiceDirectory)).then(response => {
+                if (!response.ok) throw new Error("Practice score unavailable");
+                return response.json();
+            }).catch(error => {
+                practiceScores.delete(name);
+                throw error;
+            });
+            practiceScores.set(name, load);
+        }
+        return practiceScores.get(name);
     }
 
     function practiceStatus(root, message) {
         root.querySelector("[data-practice-status]").textContent = message;
     }
 
-    const practicePercussion = { T: "tap.wav", K: "knock.wav" };
+    const practicePercussion = {
+        T: { sample: "tap.wav" },
+        K: { sample: "knock.wav" },
+        P: { mutedDing: true },
+        DM: { mutedDing: true, label: "Dᴹ" },
+        S: { sample: "knock.wav", highpass: 950, rate: 1.35 },
+        "•": { sample: "tap.wav", gain: .18 }
+    };
     const percussionBuffers = new Map();
 
-    function loadPercussion(hit) {
-        if (!percussionBuffers.has(hit)) {
-            const buffer = fetch(new URL(practicePercussion[hit], practiceUrl))
+    function loadPercussion(sample) {
+        if (!percussionBuffers.has(sample)) {
+            const buffer = fetch(new URL(sample, practiceDirectory))
                 .then(response => {
                     if (!response.ok) throw new Error("Body strike sample unavailable");
                     return response.arrayBuffer();
                 })
                 .then(bytes => context.decodeAudioData(bytes))
                 .catch(error => {
-                    percussionBuffers.delete(hit);
+                    percussionBuffers.delete(sample);
                     throw error;
                 });
-            percussionBuffers.set(hit, buffer);
+            percussionBuffers.set(sample, buffer);
         }
-        return percussionBuffers.get(hit);
+        return percussionBuffers.get(sample);
     }
 
     function playPracticeHit(hit) {
@@ -314,11 +341,30 @@
         }
         if (!prepareAudio()) return;
 
-        loadPercussion(hit).then(buffer => {
+        const sound = practicePercussion[hit];
+        if (sound.mutedDing) {
+            playBassNote("D3", 50, hit);
+            return;
+        }
+        loadPercussion(sound.sample).then(buffer => {
             const source = context.createBufferSource();
+            const gain = context.createGain();
             source.buffer = buffer;
-            source.connect(output);
-            source.onended = () => source.disconnect();
+            source.playbackRate.value = sound.rate ?? 1;
+            gain.gain.value = sound.gain ?? 1;
+            if (sound.highpass) {
+                const filter = context.createBiquadFilter();
+                filter.type = "highpass";
+                filter.frequency.value = sound.highpass;
+                source.connect(filter).connect(gain);
+            } else {
+                source.connect(gain);
+            }
+            gain.connect(output);
+            source.onended = () => {
+                source.disconnect();
+                gain.disconnect();
+            };
             source.start();
         }).catch(() => {});
     }
@@ -355,48 +401,68 @@
     }
 
     async function preparePractice(root) {
+        const name = root.dataset.practiceScore;
         if (prepareAudio(false)) {
-            for (const hit of Object.keys(practicePercussion)) loadPercussion(hit).catch(() => {});
+            loadBassSample(50);
+            for (const sample of ["tap.wav", "knock.wav"]) loadPercussion(sample).catch(() => {});
         }
         try {
-            const score = await loadPracticeScore();
-            if (!root.isConnected) return;
+            const score = await loadPracticeScore(name);
+            if (!root.isConnected || name !== root.dataset.practiceScore) return;
+            const phrase = root.querySelector("[data-practice-phrase]");
+            if (preparedExercise.get(root) !== name) {
+                phrase.replaceChildren(new Option("کل تمرین", "all"), ...score.phrases.map((_, index) =>
+                    new Option(score.phraseNames?.[index] ?? `جملهٔ ${(index + 1).toLocaleString("fa")}`, index)));
+                preparedExercise.set(root, name);
+                phrase.value = "all";
+            }
+
             const { start, end, steps } = practiceSelection(root, score);
             const byTick = new Map(steps.map(step => [step.tick, practiceHits(step)]));
             const track = root.querySelector("[data-practice-timeline]");
             const grid = document.createElement("div");
             grid.className = "practice-grid";
             const ticksPerBar = score.beatsPerBar * score.subdivisions;
-            for (let tick = start; tick < end; tick += 1) {
-                const cell = document.createElement("div");
-                cell.className = "practice-tick";
-                cell.dataset.practiceTick = tick;
-                const label = document.createElement("span");
-                label.className = "practice-beat";
-                const position = tick + (score.pickupTicks ?? 0);
-                if (position % score.subdivisions === 0) {
-                    cell.classList.add("is-beat");
-                    const beat = (position % ticksPerBar) / score.subdivisions + 1;
-                    label.textContent = String(beat);
-                    if (beat === 1) {
-                        cell.classList.add("is-bar");
-                        label.textContent = `${Math.floor(position / ticksPerBar) + 1} : 1`;
+            const pickup = score.pickupTicks ?? 0;
+            const firstBar = Math.floor((start + pickup) / ticksPerBar);
+            const lastBar = Math.floor((end + pickup - 1) / ticksPerBar);
+            for (let bar = firstBar; bar <= lastBar; bar += 1) {
+                const row = document.createElement("div");
+                row.className = "practice-row";
+                row.setAttribute("aria-label", `میزان ${bar + 1}`);
+                row.style.setProperty("--ticks-per-bar", ticksPerBar);
+
+                const measure = document.createElement("span");
+                measure.className = "practice-measure";
+                measure.textContent = bar + 1;
+                row.append(measure);
+
+                for (let offset = 0; offset < ticksPerBar; offset += 1) {
+                    const tick = bar * ticksPerBar + offset - pickup;
+                    const cell = document.createElement("div");
+                    cell.className = "practice-tick";
+                    if (offset % score.subdivisions === 0) cell.classList.add("is-beat");
+                    if (tick >= start && tick < end) {
+                        cell.dataset.practiceTick = tick;
+                        for (const pitch of byTick.get(tick) ?? []) {
+                            const note = document.createElement("span");
+                            const percussion = Object.hasOwn(practicePercussion, pitch);
+                            note.className = percussion ? "practice-pitch practice-body-hit" : "practice-pitch";
+                            note.textContent = percussion ? practicePercussion[pitch].label ?? pitch : pitch;
+                            cell.append(note);
+                        }
                     }
+                    row.append(cell);
                 }
-                cell.append(label);
-                for (const pitch of byTick.get(tick) ?? []) {
-                    const note = document.createElement("span");
-                    note.className = Object.hasOwn(practicePercussion, pitch) ? "practice-pitch practice-body-hit" : "practice-pitch";
-                    note.textContent = pitch;
-                    cell.append(note);
-                }
-                grid.append(cell);
+                grid.append(row);
             }
             track.replaceChildren(grid);
-            track.scrollLeft = 0;
+            track.scrollTop = 0;
             practiceStatus(root, `${score.bpm} ضرب در دقیقه در سرعت اصلی`);
         } catch {
-            if (root.isConnected) practiceStatus(root, "بارگذاری تمرین انجام نشد. دوباره امتحان کن.");
+            if (root.isConnected && name === root.dataset.practiceScore) {
+                practiceStatus(root, "بارگذاری تمرین انجام نشد. دوباره امتحان کن.");
+            }
         }
     }
 
@@ -407,10 +473,9 @@
         if (!cell) return;
         cell.classList.add("is-active");
         const trackRect = track.getBoundingClientRect();
-        const cellRect = cell.getBoundingClientRect();
-        if (cellRect.left < trackRect.left || cellRect.right > trackRect.right) {
-            track.scrollLeft += cellRect.left - trackRect.left;
-        }
+        const rowRect = cell.parentElement.getBoundingClientRect();
+        if (rowRect.top < trackRect.top) track.scrollTop += rowRect.top - trackRect.top;
+        if (rowRect.bottom > trackRect.bottom) track.scrollTop += rowRect.bottom - trackRect.bottom;
     }
 
     function stopPractice(root) {
@@ -461,8 +526,10 @@
         if (mode === "listen") prepareAudio();
 
         try {
-            const score = await loadPracticeScore();
-            if (!root.isConnected || practiceRuns.get(root) !== run) return;
+            const name = root.dataset.practiceScore;
+            if (preparedExercise.get(root) !== name) await preparePractice(root);
+            const score = await loadPracticeScore(name);
+            if (!root.isConnected || practiceRuns.get(root) !== run || name !== root.dataset.practiceScore) return;
             const { start, end, steps } = practiceSelection(root, score);
             run.steps = steps;
             if (!steps?.length) throw new Error("Practice phrase unavailable");
@@ -516,11 +583,13 @@
     });
 
     document.addEventListener("change", event => {
-        const control = event.target.closest("[data-practice-phrase], [data-practice-speed]");
+        const control = event.target.closest("[data-practice-exercise], [data-practice-phrase], [data-practice-speed]");
         const root = control?.closest("[data-handpan-practice]");
         if (!root) return;
         stopPractice(root);
-        if (control.matches("[data-practice-phrase]")) {
+        if (control.matches("[data-practice-exercise]")) {
+            practiceStatus(root, "در حال آماده‌سازی تمرین…");
+        } else if (control.matches("[data-practice-phrase]")) {
             preparePractice(root);
         } else {
             practiceStatus(root, "برای شروع دوباره یک حالت تمرین را انتخاب کن.");

@@ -7,22 +7,26 @@
 
 <PageTitle>تمرین ملودی | تورسپن</PageTitle>
 
-<main class="practice-page" dir="rtl" data-handpan-practice @ref="_practice">
+<main class="practice-page" dir="rtl" data-handpan-practice data-practice-score="@Current.Score" @ref="_practice">
     <header class="practice-header">
         <a href="/virtual-scales" data-practice-action="stop">بازگشت به اسکیل‌ها</a>
-        <h1>تمرین شمارهٔ ۱</h1>
-        <p dir="ltr">D Kurd · 10 notes</p>
+        <h1>تمرین ملودی</h1>
+        <p dir="ltr">D Kurd · @(Current.NoteCount) notes</p>
     </header>
 
     <section class="practice-panel" aria-label="تایم‌لاین و کنترل تمرین">
         <div class="practice-controls">
+            <label>تمرین
+                <select class="form-select" data-practice-exercise @bind="_selected" @bind:after="SelectExercise">
+                    @for (var i = 0; i < Exercises.Length; i++)
+                    {
+                        <option value="@i">@ExerciseNumbers[i] · @Exercises[i].Title</option>
+                    }
+                </select>
+            </label>
             <label>بخش تمرین
                 <select data-practice-phrase class="form-select">
                     <option value="all">کل تمرین</option>
-                    <option value="0">جملهٔ ۱</option>
-                    <option value="1">جملهٔ ۲</option>
-                    <option value="2">جملهٔ ۳</option>
-                    <option value="3">جملهٔ ۴</option>
                 </select>
             </label>
             <label>سرعت
@@ -49,7 +53,7 @@
                 aria-pressed="@_photoView" @onclick="TogglePhoto">
             @(_photoView ? "نمای شماتیک" : "عکس ساز")
         </button>
-        <ScalePlaygroundEditor @key="_photoView" Photos="@(_photoView ? PhotoDiagram : SchematicDiagram)"
+        <ScalePlaygroundEditor @key="(_selected, _photoView)" Photos="@CurrentDiagram"
                                ReadOnly="true" FixedBottom="false" />
         <div class="practice-percussion" aria-label="ضربه‌های بدنه">
             <button type="button" data-practice-percussion="T" data-scale-multitouch="true">
@@ -58,24 +62,64 @@
             <button type="button" data-practice-percussion="K" data-scale-multitouch="true">
                 <strong dir="ltr">K</strong><span>ناک بدنه</span>
             </button>
+            @foreach (var hit in Current.ExtraHits)
+            {
+                <button type="button" data-practice-percussion="@hit.Symbol" data-scale-multitouch="true">
+                    <strong dir="ltr">@hit.Label</strong><span>@hit.Description</span>
+                </button>
+            }
         </div>
     </section>
 </main>
 
 @code {
-    private static readonly VirtualScalePreset Preset = VirtualScalePresets.All.Single(preset => preset.Name == "D Minor / Kurd 10");
-    private static ScalePhotoSources PhotoDiagram { get; } = Preset.CreateDiagram();
-    private static ScalePhotoSources SchematicDiagram { get; } =
-        (Preset with { TopImage = "", TopPositions = "" }).CreateDiagram();
+    private sealed record BodyHit(string Symbol, string Label, string Description);
+    private sealed record Exercise(string Title, string Score, int NoteCount, BodyHit[] ExtraHits);
 
+    private static readonly BodyHit Soft = new("•", "•", "ضربهٔ خیلی آرام");
+    private static readonly BodyHit Palm = new("P", "P", "ضربهٔ خفه با کف دست");
+    private static readonly BodyHit MutedDing = new("DM", "Dᴹ", "دینگ خفه");
+    private static readonly BodyHit Slap = new("S", "S", "سیلی به بدنه");
+    private const string ExerciseNumbers = "۱۲۳۴۵۶";
+    private static readonly Exercise[] Exercises =
+    [
+        new("تمرین اول", "01-d-kurd", 10, []),
+        new("Pocket Groove 1", "02-pocket-groove-1", 9, [Soft]),
+        new("Pocket Groove 2", "03-pocket-groove-2", 9, [Palm]),
+        new("Pocket Groove 4", "04-pocket-groove-4", 9, [Palm, Soft, MutedDing]),
+        new("Seven Nation Army", "05-seven-nation-army", 9, [Soft, Slap]),
+        new("In The End (Intro)", "06-in-the-end-intro", 9, [])
+    ];
+
+    private static readonly VirtualScalePreset NineNotePreset = VirtualScalePresets.All.Single(preset => preset.Name == "D Kurd 9");
+    private static readonly VirtualScalePreset TenNotePreset = VirtualScalePresets.All.Single(preset => preset.Name == "D Minor / Kurd 10");
+    private static readonly ScalePhotoSources NineNotePhoto = NineNotePreset.CreateDiagram();
+    private static readonly ScalePhotoSources NineNoteSchematic = (NineNotePreset with
+    {
+        TopImage = "",
+        TopPositions = "50,49 50,85 24,76 76,76 13,47 87,47 26,23 74,23 50,12"
+    }).CreateDiagram();
+    private static readonly ScalePhotoSources TenNotePhoto = TenNotePreset.CreateDiagram();
+    private static readonly ScalePhotoSources TenNoteSchematic = (TenNotePreset with { TopImage = "", TopPositions = "" }).CreateDiagram();
+
+    private int _selected;
     private ElementReference _practice;
     private bool _photoView;
+    private bool _prepare = true;
+    private Exercise Current => Exercises[_selected];
+    private ScalePhotoSources CurrentDiagram => Current.NoteCount == 9
+        ? (_photoView ? NineNotePhoto : NineNoteSchematic)
+        : (_photoView ? TenNotePhoto : TenNoteSchematic);
 
+    private void SelectExercise() => _prepare = true;
     private void TogglePhoto() => _photoView = !_photoView;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (_prepare)
+        {
+            _prepare = false;
             await JS.InvokeVoidAsync("scalePlayground.preparePractice", _practice);
+        }
     }
 }

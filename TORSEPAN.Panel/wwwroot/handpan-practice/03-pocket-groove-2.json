@@ -1,0 +1,433 @@
+{
+  "bpm": 46,
+  "beatsPerBar": 4,
+  "subdivisions": 4,
+  "totalTicks": 128,
+  "phraseStarts": [
+    0,
+    64
+  ],
+  "phraseNames": [
+    "Groove",
+    "Repeat"
+  ],
+  "phrases": [
+    [
+      {
+        "tick": 0,
+        "notes": [
+          "Bb3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 2,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 4,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 6,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 7,
+        "notes": [],
+        "percussion": "P"
+      },
+      {
+        "tick": 8,
+        "notes": [
+          "Bb3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 10,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 12,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 14,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 16,
+        "notes": [
+          "A3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 18,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 20,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 22,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 23,
+        "notes": [],
+        "percussion": "P"
+      },
+      {
+        "tick": 24,
+        "notes": [
+          "A3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 26,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 28,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 30,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 32,
+        "notes": [
+          "A3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 34,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 36,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 38,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 39,
+        "notes": [],
+        "percussion": "P"
+      },
+      {
+        "tick": 40,
+        "notes": [
+          "A3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 42,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 44,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 46,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 48,
+        "notes": [
+          "C4"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 50,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 52,
+        "notes": [
+          "G4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 54,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 56,
+        "notes": [
+          "D3",
+          "D4"
+        ]
+      },
+      {
+        "tick": 60,
+        "notes": [],
+        "percussion": "K"
+      }
+    ],
+    [
+      {
+        "tick": 64,
+        "notes": [
+          "Bb3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 66,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 68,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 70,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 71,
+        "notes": [],
+        "percussion": "P"
+      },
+      {
+        "tick": 72,
+        "notes": [
+          "Bb3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 74,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 76,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 78,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 80,
+        "notes": [
+          "A3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 82,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 84,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 86,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 87,
+        "notes": [],
+        "percussion": "P"
+      },
+      {
+        "tick": 88,
+        "notes": [
+          "A3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 90,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 92,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 94,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 96,
+        "notes": [
+          "A3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 98,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 100,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 102,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 103,
+        "notes": [],
+        "percussion": "P"
+      },
+      {
+        "tick": 104,
+        "notes": [
+          "A3"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 106,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 108,
+        "notes": [
+          "F4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 110,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 112,
+        "notes": [
+          "C4"
+        ],
+        "percussion": "P"
+      },
+      {
+        "tick": 114,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 116,
+        "notes": [
+          "G4"
+        ],
+        "percussion": "K"
+      },
+      {
+        "tick": 118,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 120,
+        "notes": [
+          "D3",
+          "D4"
+        ]
+      }
+    ]
+  ]
+}
