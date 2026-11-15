@@ -657,7 +657,7 @@
             root.dataset.practiceScore = control.value;
             preparedExercise.delete(root);
             root.querySelector("[data-practice-scale]").textContent = option.dataset.scaleName;
-            root.querySelector("[data-practice-photo]").hidden = option.dataset.notes === "21";
+            root.querySelector("[data-practice-photo]").hidden = ["18", "21"].includes(option.dataset.notes);
             for (const layout of root.querySelectorAll("[data-practice-layout]")) {
                 layout.hidden = layout.dataset.practiceLayout !== option.dataset.notes;
             }

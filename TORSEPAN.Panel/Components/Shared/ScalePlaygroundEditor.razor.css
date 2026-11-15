@@ -71,3 +71,48 @@
     color:#fff7dd;
     box-shadow:0 0 .65rem #ffbe5e;
 }
+
+.playground-diagram.playground-orbit {
+    aspect-ratio:1;
+    width:min(100%,32rem);
+}
+.playground-orbit .playground-bowl {
+    position:absolute;
+    box-sizing:border-box;
+    width:57%;
+    left:50%;
+    top:57%;
+    transform:translate(-50%,-50%);
+    border:1px solid #8098aa;
+    background:#57768e;
+    box-shadow:none;
+}
+.playground-diagram.playground-orbit .playground-note {
+    box-sizing:border-box;
+    display:grid;
+    place-items:center;
+    width:9%;
+    min-width:0;
+    min-height:0;
+    aspect-ratio:1;
+    padding:0;
+    border-radius:50%;
+    border:1px solid #aec4d4;
+    background:#d6e2e9;
+    color:#172f44;
+    font-size:clamp(.58rem,2.65vw,1rem);
+    text-shadow:none;
+    -webkit-text-stroke:0;
+}
+.playground-diagram.playground-orbit .playground-note.peripheral-note {
+    width:10%;
+    background:transparent;
+    border-color:#819cb2;
+    color:#d8e5ee;
+}
+.playground-diagram.playground-orbit .playground-note:is(.playing,.practice-cue,:active) {
+    background:#f3c66d;
+    color:#102738;
+    border-color:#ffe2a0;
+    box-shadow:0 0 .45rem #f3c66d77;
+}

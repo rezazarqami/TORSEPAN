@@ -1,0 +1,200 @@
+{
+  "bpm": 80,
+  "beatsPerBar": 4,
+  "subdivisions": 2,
+  "totalTicks": 64,
+  "phraseStarts": [
+    0,
+    32
+  ],
+  "phraseNames": [
+    "جملهٔ اول",
+    "جملهٔ دوم"
+  ],
+  "phrases": [
+    [
+      {
+        "tick": 0,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 2,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 4,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 6,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 8,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 10,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 12,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 14,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 16,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 18,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 20,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 22,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 24,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 27,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 28,
+        "notes": [
+          "D4"
+        ]
+      }
+    ],
+    [
+      {
+        "tick": 32,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 34,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 36,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 38,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 40,
+        "notes": [
+          "G4"
+        ]
+      },
+      {
+        "tick": 42,
+        "notes": [
+          "F4"
+        ]
+      },
+      {
+        "tick": 44,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 46,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 48,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 50,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 52,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 54,
+        "notes": [
+          "E4"
+        ]
+      },
+      {
+        "tick": 56,
+        "notes": [
+          "D4"
+        ]
+      },
+      {
+        "tick": 59,
+        "notes": [
+          "C4"
+        ]
+      },
+      {
+        "tick": 60,
+        "notes": [
+          "C4"
+        ]
+      }
+    ]
+  ]
+}

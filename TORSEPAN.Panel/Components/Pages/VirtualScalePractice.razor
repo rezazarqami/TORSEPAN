@@ -83,7 +83,7 @@
                 <span aria-hidden="true">›</span> بازگشت به اسکیل‌ها
             </a>
             <button type="button" class="practice-view" data-practice-action="stop"
-                    data-practice-photo hidden="@(Current.NoteCount == 21)" aria-pressed="@_photoView" @onclick="TogglePhoto">
+                    data-practice-photo hidden="@(Current.NoteCount is 18 or 21)" aria-pressed="@_photoView" @onclick="TogglePhoto">
                 <span class="practice-camera" aria-hidden="true"></span>
                 @(_photoView ? "نمای شماتیک" : "عکس ساز")
             </button>
@@ -96,8 +96,11 @@
             <ScalePlaygroundEditor @key="_photoView" Photos="@(_photoView ? NineNotePhoto : NineNoteSchematic)"
                                    ReadOnly="true" FixedBottom="false" />
         </div>
-        <div class="practice-low-pygmy practice-schematic" data-practice-layout="21" hidden="@(Current.NoteCount != 21)">
+        <div data-practice-layout="21" hidden="@(Current.NoteCount != 21)">
             <ScalePlaygroundEditor Photos="@LowPygmyDiagram" ReadOnly="true" FixedBottom="false" ShowBothShells="true" />
+        </div>
+        <div data-practice-layout="18" hidden="@(Current.NoteCount != 18)">
+            <ScalePlaygroundEditor Photos="@AegeanDiagram" ReadOnly="true" FixedBottom="false" ShowBothShells="true" />
         </div>
         <div class="practice-percussion" aria-label="ضربه‌های بدنه">
             <button type="button" data-practice-percussion="T" data-scale-multitouch="true">
@@ -125,7 +128,7 @@
     private static readonly BodyHit MutedDing = new("DM", "Dᴹ", "دینگ خفه");
     private static readonly BodyHit Slap = new("S", "S", "سیلی به بدنه");
     private static readonly BodyHit[] ExtraHits = [Soft, Palm, MutedDing, Slap];
-    private const string ExerciseNumbers = "۱۲۳۴۵۶۷۸۹";
+    private const string PersianDigits = "۰۱۲۳۴۵۶۷۸۹";
     private static readonly Exercise[] Exercises =
     [
         new("تمرین اول", "01-d-kurd", 10, [], "D Kurd 10"),
@@ -136,7 +139,10 @@
         new("In The End (Intro)", "06-in-the-end-intro", 9, []),
         new("4/4 | 3/3/2 Variation A", "07-low-pygmy-variation-a", 21, [], "F# Low Pygmy 21"),
         new("La Valse d’Amélie (Easy)", "08-la-valse-d-amelie", 9, []),
-        new("Groove B–E", "09-groove-b-e", 9, [Soft])
+        new("Groove B–E", "09-groove-b-e", 9, [Soft]),
+        new("Groove by Malte Marten", "10-d-aegean-groove", 18, [Soft], "D Aegean 18"),
+        new("Heavy Sa’idi", "11-heavy-saidi", 9, []),
+        new("Ode to Joy", "12-ode-to-joy", 9, [])
     ];
 
     private static readonly VirtualScalePreset NineNotePreset = VirtualScalePresets.All.Single(preset => preset.Name == "D Kurd 9");
@@ -153,8 +159,17 @@
     private static readonly ScalePhotoSources LowPygmyDiagram =
         (VirtualScalePresets.All.Single(preset => preset.Name == "F# Low Pygmy 21") with
         {
-            TopPositions = "50,59 50,83 33,76 67,76 26,60 74,60 30,44 70,44 41,34 44,46 59,34 56,46",
-            BottomPositions = "86,74 14,74 88,51 12,51 19,28 81,28 33,15 67,15 50,9"
+            TopImage = "", BottomImage = "",
+            TopPositions = "50,57 50,79 35,72 65,72 29,57 71,57 33,42 67,42 42,36 44,46 58,36 56,46",
+            BottomPositions = "86,74 14,74 89,50 11,50 20,28 80,28 33,17 67,17 50,12"
+        }).CreateDiagram();
+
+    private static readonly ScalePhotoSources AegeanDiagram =
+        (VirtualScalePresets.All.Single(preset => preset.Name == "D Aegean 18") with
+        {
+            TopImage = "", BottomImage = "",
+            TopPositions = "50,57 50,79 35,72 65,72 29,57 71,57 33,42 67,42 42,36 58,36 50,46",
+            BottomPositions = "86,74 14,74 89,50 11,50 22,25 78,25 50,12"
         }).CreateDiagram();
 
     [SupplyParameterFromQuery(Name = "exercise")]
@@ -166,7 +181,12 @@
     private ElementReference _practice;
     private bool _photoView;
     private Exercise Current => Exercises[SelectedIndex];
-    private static string ExerciseLabel(int i) => $"{ExerciseNumbers[i]} · {Exercises[i].Title} ({Exercises[i].Scale})";
+    private static string ExerciseLabel(int i)
+    {
+        var number = (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var localized = string.Concat(number.Select(digit => PersianDigits[digit - '0']));
+        return $"{localized} · {Exercises[i].Title} ({Exercises[i].Scale})";
+    }
 
     private void TogglePhoto() => _photoView = !_photoView;
 
