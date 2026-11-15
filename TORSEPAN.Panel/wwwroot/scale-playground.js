@@ -458,6 +458,8 @@
             }
             track.replaceChildren(grid);
             track.scrollTop = 0;
+            const tickSeconds = 60 / (score.bpm * score.subdivisions);
+            updatePracticeTime(root, start * tickSeconds, score.totalTicks * tickSeconds);
             practiceStatus(root, `${score.bpm} ضرب در دقیقه در سرعت اصلی`);
         } catch {
             if (root.isConnected && name === root.dataset.practiceScore) {
@@ -466,16 +468,26 @@
         }
     }
 
-    function movePracticeCursor(root, tick) {
+    function updatePracticeTime(root, elapsed, total) {
+        function format(seconds) {
+            const whole = Math.round(seconds);
+            return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+        }
+        const progress = root.querySelector("[data-practice-progress]");
+        progress.max = total;
+        progress.value = elapsed;
+        root.querySelector("[data-practice-elapsed]").textContent = format(elapsed);
+        root.querySelector("[data-practice-duration]").textContent = format(total);
+    }
+
+    function movePracticeCursor(root, tick, interval = 0) {
         const track = root.querySelector("[data-practice-timeline]");
         track.querySelector(".is-active")?.classList.remove("is-active");
         const cell = track.querySelector(`[data-practice-tick="${tick}"]`);
         if (!cell) return;
+        cell.style.setProperty("--tick-duration", `${interval}ms`);
         cell.classList.add("is-active");
-        const trackRect = track.getBoundingClientRect();
-        const rowRect = cell.parentElement.getBoundingClientRect();
-        if (rowRect.top < trackRect.top) track.scrollTop += rowRect.top - trackRect.top;
-        if (rowRect.bottom > trackRect.bottom) track.scrollTop += rowRect.bottom - trackRect.bottom;
+        track.scrollTop = cell.parentElement.offsetTop;
     }
 
     function stopPractice(root) {
@@ -489,6 +501,7 @@
         const step = run.steps[run.index];
         if (!step) {
             stopPractice(root);
+            updatePracticeTime(root, run.end * run.tickSeconds, run.totalSeconds);
             practiceStatus(root, "تمرین کامل شد.");
             return;
         }
@@ -497,6 +510,7 @@
         run.firstHit = undefined;
         showPracticeCue(root, hits);
         movePracticeCursor(root, step.tick);
+        updatePracticeTime(root, step.tick * run.tickSeconds, run.totalSeconds);
         practiceStatus(root, hits.length > 1 ? "جای ضربه‌های روشن را با هم بزن." :
             step.percussion === "T" ? "ضربهٔ انگشت (T) را بزن." :
             step.percussion === "K" ? "ناک بدنه (K) را بزن." : "نت روشن را بزن.");
@@ -532,6 +546,10 @@
             if (!root.isConnected || practiceRuns.get(root) !== run || name !== root.dataset.practiceScore) return;
             const { start, end, steps } = practiceSelection(root, score);
             run.steps = steps;
+            run.end = end;
+            run.tickSeconds = 60 / (score.bpm * score.subdivisions);
+            run.totalSeconds = score.totalTicks * run.tickSeconds;
+            updatePracticeTime(root, start * run.tickSeconds, run.totalSeconds);
             if (!steps?.length) throw new Error("Practice phrase unavailable");
             if (mode === "step") {
                 setStep(root, run);
@@ -547,11 +565,13 @@
                 if (!root.isConnected || practiceRuns.get(root) !== run) return;
                 if (tick >= end) {
                     stopPractice(root);
+                    updatePracticeTime(root, end * run.tickSeconds, run.totalSeconds);
                     practiceStatus(root, "تمرین به پایان رسید.");
                     return;
                 }
                 const notes = byTick.get(tick) ?? [];
-                movePracticeCursor(root, tick);
+                movePracticeCursor(root, tick, interval);
+                updatePracticeTime(root, tick * run.tickSeconds, run.totalSeconds);
                 showPracticeCue(root, notes);
                 if (mode === "listen") for (const hit of notes) playPracticeHit(hit);
                 tick += 1;
@@ -588,7 +608,9 @@
         if (!root) return;
         stopPractice(root);
         if (control.matches("[data-practice-exercise]")) {
-            practiceStatus(root, "در حال آماده‌سازی تمرین…");
+            const destination = new URL(window.location.href);
+            destination.searchParams.set("exercise", control.value);
+            window.location.assign(destination.href);
         } else if (control.matches("[data-practice-phrase]")) {
             preparePractice(root);
         } else {
