@@ -67,7 +67,8 @@ public sealed class GetBowlForDimpleQueryHandler
         var events = await _unitOfWork.ProductionEvents.GetInstrumentEventsAsync(
             relatedBowlIds, handpanId, cancellationToken);
         dto.Notes.AddRange(events.Where(x => x.BowlId == bowl.Id && x.Description.StartsWith("NOTE:") &&
-                                                !x.Description.StartsWith("NOTE:INSTRUMENT:"))
+                                                !x.Description.StartsWith("NOTE:INSTRUMENT:", StringComparison.Ordinal) &&
+                                                !x.Description.StartsWith("NOTE:SHAPE-EDIT:", StringComparison.Ordinal))
             .OrderBy(x => x.EventDate)
             .Select(x => $"{(string.IsNullOrWhiteSpace(x.User.FullName) ? x.User.UserName : x.User.FullName)}: {x.Description[5..]}")
             .Distinct());

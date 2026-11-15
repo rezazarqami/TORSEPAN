@@ -12,7 +12,8 @@ internal static class InstrumentNotes
         var ids = bowlIds.Distinct().ToArray();
         if (ids.Length == 0) return [];
         var rows = await db.ProductionEvents.AsNoTracking()
-            .Where(x => x.BowlId.HasValue && ids.Contains(x.BowlId.Value) && x.Description.StartsWith("NOTE:"))
+            .Where(x => x.BowlId.HasValue && ids.Contains(x.BowlId.Value) && x.Description.StartsWith("NOTE:") &&
+                        !x.Description.StartsWith("NOTE:SHAPE-EDIT:"))
             .OrderByDescending(x => x.EventDate)
             .Select(x => new { BowlId = x.BowlId!.Value, x.Description })
             .ToListAsync(ct);
