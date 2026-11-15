@@ -45,17 +45,17 @@
                 @if (_presetIndex >= 0)
                 {
                     var preset = VirtualScalePresets.All[_presetIndex];
-                    <ScalePlaygroundEditor @key="_presetIndex" Photos="preset.CreateDiagram()" ReadOnly="true" />
+                    <ScalePlaygroundEditor @key="_presetIndex" Photos="preset.CreateDiagram()" ReadOnly="true" SampleShells="_showAdditionalPresets" />
                     @if (_showAdditionalPresets)
                     {
-                        <small>نمای شماتیک کاسه‌ها</small>
+                        <small>نمای نمونهٔ کاسه‌ها</small>
                     }
                     @if (_isAdministrator)
                     {
                         <button type="button" class="workshop-action" @onclick="() => StartFromPresetAsync(_presetIndex)">طراحی از روی این اسکیل</button>
                     }
                 }
-                @if (_isAdministrator && _presetIndex >= 0 && _catalog.Count > 0 && VirtualScalePresets.All[_presetIndex].TopImage.Length > 0)
+                @if (_isAdministrator && _presetIndex >= 0 && _catalog.Count > 0 && !_showAdditionalPresets && VirtualScalePresets.All[_presetIndex].TopImage.Length > 0)
                 {
                     <details class="workshop-card workshop-album">
                         <summary>افزودن عکس به آلبوم اسکیل</summary>

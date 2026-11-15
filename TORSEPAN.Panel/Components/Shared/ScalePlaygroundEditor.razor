@@ -32,14 +32,15 @@
         }
         var source = _bottom ? _bottomPhoto?.Source ?? Photos?.Bottom : _topPhoto?.Source ?? Photos?.Top;
         var presetPhoto = source?.StartsWith(VirtualScalePreset.ImageDirectory, StringComparison.Ordinal) == true;
-        <div class="playground-diagram @(notes.Count > 12 || presetPhoto ? "dense" : null)" @ref="_diagram">
+        var sampleBottom = SampleShells && _bottom && source is null;
+        <div class="playground-diagram @(notes.Count > 12 || presetPhoto ? "dense" : null) @(SampleShells ? "sample-shell" : null)" @ref="_diagram">
             @if (source is not null)
             {
                 <img class="@(presetPhoto ? "preset-photo" : null)" src="@source" alt="@(_bottom ? "کاسه زیر" : "کاسه رو")" />
             }
             else
             {
-                <div class="playground-bowl" role="img" aria-label="طرح شماتیک هنگ‌درام"></div>
+                <div class="playground-bowl @(sampleBottom ? "sample-bottom-bowl" : null)" role="img" aria-label="طرح شماتیک هنگ‌درام"></div>
             }
             @if (_editing)
             {
@@ -51,7 +52,7 @@
             }
             @foreach (var note in notes)
             {
-                <button type="button" class="playground-note" dir="ltr"
+                <button type="button" class="playground-note @(sampleBottom ? "sample-tone-field" : null)" dir="ltr"
                         style="@Position(note.X, note.Y)" data-scale-pitch="@note.Pitch"
                         aria-label="@($"نت {note.Pitch}")" @onclick="() => SelectNote(note)">
                     @note.Pitch
@@ -112,6 +113,7 @@
 @code {
     [Parameter] public EventCallback<SaveScalePlayground> SaveDesign { get; set; }
     [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public bool SampleShells { get; set; }
     [Parameter] public ScalePhotoSources? Photos { get; set; }
     [Parameter] public EventCallback<bool> EditingChanged { get; set; }
     [Parameter] public EventCallback<ScalePhotoSources> PhotosChanged { get; set; }

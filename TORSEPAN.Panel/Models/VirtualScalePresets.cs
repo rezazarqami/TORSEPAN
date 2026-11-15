@@ -238,6 +238,43 @@ internal static class VirtualScalePresets
             TopImage: "pantam-9.jpg", TopPositions: "48.14,42.71 69.00,80.93 30.71,82.00 89.29,54.21 10.36,55.36 81.29,25.07 15.79,26.86 60.00,10.14 34.43,10.43"),
     ];
 
+    private static readonly (string Image, string Positions)[] TopShells =
+    [
+        ("pantam-9.jpg", "48.14,42.71 69.00,80.93 30.71,82.00 89.29,54.21 10.36,55.36 81.29,25.07 15.79,26.86 60.00,10.14 34.43,10.43"), // 9 notes
+        ("pantam-10.jpg", "49.64,44.50 67.07,82.79 31.71,83.21 89.36,58.79 11.07,59.36 86.64,31.21 12.93,32.43 68.64,12.64 27.00,13.86 47.00,8.29"), // 10 notes
+        ("pantam-11.jpg", "50.14,56.93 68.14,84.57 33.57,85.07 88.57,62.50 12.36,64.21 87.79,34.21 11.07,35.71 71.36,14.36 26.64,16.00 48.43,8.64 49.57,28.71"), // 11 notes
+        ("pantam-12.jpg", "52.21,57.64 67.14,86.93 32.71,86.36 89.14,63.93 11.21,62.36 89.79,35.21 11.21,34.86 73.86,13.71 26.43,12.93 50.21,6.64 36.07,27.14 64.93,27.43"), // 12 notes
+        ("pantam-13.jpg", "48.36,58.00 64.93,85.79 29.50,84.14 87.79,62.79 11.29,60.50 89.79,35.21 10.29,32.57 74.50,14.50 26.43,12.93 50.21,5.57 48.43,19.93 70.43,31.71 28.21,31.86"), // 13 notes
+        ("pantam-14.jpg", "49.36,56.07 51.21,88.29 20.43,75.93 79.93,77.21 8.14,50.21 91.79,52.50 15.71,23.00 87.57,28.21 30.57,9.43 74.07,12.21 52.07,3.86 51.57,15.93 32.79,30.57 70.43,31.71"), // 14 notes
+        ("pantam-15.jpg", "50.07,54.93 52.71,88.50 23.43,77.93 80.29,76.71 9.00,53.36 92.36,51.21 12.86,29.00 87.57,28.21 28.86,11.86 71.07,11.57 50.36,5.71 60.86,21.71 37.21,24.07 75.79,38.00 24.36,41.14"), // 15 notes
+        ("pantam-16.jpg", "49.00,60.00 64.43,87.64 35.00,88.00 84.71,70.86 15.00,72.00 91.71,47.43 8.00,49.00 85.71,26.36 13.93,26.79 70.14,12.00 28.86,11.86 50.07,7.00 36.21,27.79 59.86,27.57 23.93,45.86 73.21,45.00"), // 16 notes
+    ];
+
+    private static readonly (string Image, string Positions)[] BottomShells =
+    [
+        ("bottom-shells/YUKI_SCALE_BOTTOM.jpg", "83.07,67.50 22.07,69.21 77.71,17.86 22.43,22.07"), // 4 notes
+        ("bottom-shells/E_MAJOR_17_BOTTOM.jpg", "23.86,72.14 74.36,76.43 85.57,40.29 18.43,34.79 34.79,11.57"), // 5 notes
+        ("bottom-shells/C_HARMONIC_MINOR_BOTTOM.jpg", "73.79,80.21 31.79,81.93 73.36,22.00 33.50,20.07 91.07,50.00 12.43,50.00"), // 6 notes
+        ("bottom-shells/F3_PYGMY_19_BOTTOM.jpg", "78.64,74.86 20.64,71.64 91.07,38.43 14.64,32.57 30.50,9.79 74.79,12.93 53.64,5.29"), // 7 notes
+        ("bottom-shells/G2_MINOR_17_BOTTOM.jpg", "81.71,70.29 22.79,71.43 89.50,40.64 10.64,42.43 78.79,22.36 22.36,21.64 61.43,11.14 39.64,10.79"), // 8 notes
+        ("bottom-shells/C_AEGEAN_19_BOTTOM.jpg", "72.50,77.07 24.93,76.29 89.50,51.36 12.00,51.71 83.93,28.71 16.93,27.64 70.71,14.00 30.00,13.36 49.86,7.36"), // 9 notes
+    ];
+
+    private static VirtualScalePreset AddSampleShells(VirtualScalePreset preset)
+    {
+        var topCount = preset.Top.Split(' ').Length;
+        var bottomCount = preset.Bottom.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+        var top = TopShells[topCount - 9];
+        var bottom = bottomCount is >= 4 and <= 9 ? BottomShells[bottomCount - 4] : ("", "");
+        return preset with
+        {
+            TopImage = top.Image,
+            TopPositions = top.Positions,
+            BottomImage = bottom.Item1,
+            BottomPositions = bottomCount == 2 ? "24,61 76,61" : bottom.Item2
+        };
+    }
+
     // Exact pitches and shell assignments verified against the source catalogues.
     private static IReadOnlyList<VirtualScalePreset> Additional { get; } =
     [
@@ -301,5 +338,5 @@ internal static class VirtualScalePresets
     public static int OriginalCount => Original.Count;
 
     public static IReadOnlyList<VirtualScalePreset> All { get; } =
-        [.. Original, .. Additional];
+        [.. Original, .. Additional.Select(AddSampleShells)];
 }
