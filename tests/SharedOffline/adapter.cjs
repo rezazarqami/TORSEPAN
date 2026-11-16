@@ -142,3 +142,45 @@ test('production tabs count and sort work before warehouse entry',()=>{
  assert.deepEqual(h.request('GET','bowls?productionOnly=true&pageSize=1&page=2').value.items.map(x=>x.productionCode),['TS-003']);
  assert.deepEqual(h.request('GET','handpans').value.map(x=>x.serialNumber),['BB-001','AA-002']);
 });
+
+test('opening-stock imports remain in inventory but stay out of daily, monthly and production totals',()=>{
+ const state=fixture(),snapshot=state.snapshot,w=snapshot.workspace.sections,day='2026-10-18T10:00:00Z';
+ const add=(i,code)=>{
+  const [bowlId,handpanId,assemblyId]=[id(30+i),id(50+i),id(70+i)];
+  const bowl={id:bowlId,code,type:1,hasNotes:true,stage:18,version:'v',instrumentCode:code,handpanId,materialId:id(5)};
+  snapshot.bowls.push(bowl);
+  w.bowls.push(bowl);
+  w.handpans.push({id:handpanId,serialNumber:code,assemblyId,stage:18});
+  w.assemblies.push({id:assemblyId,topBowlId:bowlId});
+  return {bowlId,handpanId};
+ };
+ const old=add(0,'OPENING-STOCK'),current=add(1,'NEW-PRODUCTION');
+ const event=(i,ids,action,description,eventDate=day)=>({id:id(i),...ids,action,description,eventDate,result:1,userId:id(1)});
+ w.events=[
+  event(80,{handpanId:old.handpanId},1,'LEGACY_STOCK:IMPORT:historical','2026-08-18T10:00:00Z'),
+  event(81,old,6,'LEGACY_STOCK:historical tune'),
+  event(82,{handpanId:old.handpanId},7,'LEGACY_STOCK:historical fine tune'),
+  event(83,{handpanId:old.handpanId},9,'Later packaging'),
+  event(84,{handpanId:current.handpanId},9,'Packaging completed'),
+  event(85,current,6,'Current tune'),
+  event(86,{bowlId:old.bowlId},12,'EXPORT_SALE:later movement')
+ ];
+ const h=harness(state);
+ const dashboard=h.request('GET','production/dashboard').value;
+ for(const rows of [dashboard.dailyUserOperations,dashboard.monthlyUserOperations]){
+  assert.equal(rows.filter(x=>x.operation==='تیون کاسه رو').reduce((n,x)=>n+x.count,0),1);
+  assert.ok(!rows.some(x=>x.operation==='فاین تیون'));
+ }
+ assert.deepEqual(dashboard.queues.find(x=>x.stage==='ورودی انبار این ماه').codes,['NEW-PRODUCTION']);
+ const performance=h.request('GET','production/report?userId='+id(1)).value;
+ assert.deepEqual(performance.activities.filter(x=>x.action===6).map(x=>x.id),[id(85)]);
+ assert.ok(!performance.activities.some(x=>x.action===7));
+ assert.equal(performance.trend.at(-1).count,4);
+ const production=h.request('GET','management-reports/production').value;
+ assert.equal(production.currentMonthHandpanCount,1);
+ assert.equal(production.totalBowlCount,1);
+ assert.equal(production.exportBowlCount,0);
+ assert.equal(h.request('GET','materials').value[0].topBowlQuantity,2);
+ const inventory=h.request('GET','production/warehouse').value;
+ assert.ok(inventory.some(x=>x.serialNumber==='OPENING-STOCK'));
+});

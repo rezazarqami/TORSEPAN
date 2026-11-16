@@ -90,20 +90,28 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
     private async Task<ProductionAnalytics> BuildProductionAsync(ManagementReportRequest request,CancellationToken ct)
     {
         var (start,end)=Range(request.From,request.To);
-        var allEvents=await db.ProductionEvents.AsNoTracking().Include(x=>x.User).Where(x=>x.Result==EventResult.Completed&&!x.Description.StartsWith("LEGACY_STOCK:")).ToListAsync(ct);
+        var allEvents=await db.ProductionEvents.AsNoTracking().Include(x=>x.User)
+            .Where(x=>x.Result==EventResult.Completed&&!x.Description.StartsWith(LegacyStockRecord.Prefix)).ToListAsync(ct);
+        var importedHandpans=(await db.ProductionEvents.AsNoTracking()
+            .Where(x=>x.Action==ProductionAction.Created&&x.Result==EventResult.Completed&&x.HandpanId.HasValue&&
+                x.Description.StartsWith(LegacyStockRecord.ImportPrefix))
+            .Select(x=>x.HandpanId!.Value).Distinct().ToListAsync(ct)).ToHashSet();
         var allBowls=await db.Bowls.AsNoTracking().Include(x=>x.Material).Include(x=>x.Scale).ToListAsync(ct);
         var bowlsById=allBowls.ToDictionary(x=>x.Id);
         var assemblies=await db.HandpanAssemblies.AsNoTracking().ToListAsync(ct);
         var assembliesById=assemblies.ToDictionary(x=>x.Id);
         var allHandpans=await db.Handpans.AsNoTracking().ToListAsync(ct);
         var handpansById=allHandpans.ToDictionary(x=>x.Id);
+        var importedAssemblyIds=allHandpans.Where(x=>importedHandpans.Contains(x.Id)).Select(x=>x.AssemblyId).ToHashSet();
+        var importedBowlIds=assemblies.Where(x=>importedAssemblyIds.Contains(x.Id))
+            .SelectMany(x=>new[]{x.TopBowlId,x.BottomBowlId}).ToHashSet();
         var paid=await PaidBowlIdsAsync(ct);
 
         bool MatchesBowl(Bowl bowl)=>(request.MaterialIds.Count==0||request.MaterialIds.Contains(bowl.MaterialId))&&
             (request.ScaleIds.Count==0||(bowl.ScaleId.HasValue&&request.ScaleIds.Contains(bowl.ScaleId.Value)))&&
             (request.Payroll=="all"||(request.Payroll=="calculated")==paid.Contains(bowl.Id));
 
-        var warehouseDates=allEvents.Where(IsHandpanWarehouseEntry)
+        var warehouseDates=allEvents.Where(x=>IsHandpanWarehouseEntry(x)&&!importedHandpans.Contains(x.HandpanId!.Value))
             .GroupBy(x=>x.HandpanId!.Value).ToDictionary(x=>x.Key,x=>x.Min(y=>y.EventDate));
         var domesticCompletions=new List<CompletedBowl>();
         foreach(var entry in warehouseDates)
@@ -115,7 +123,7 @@ public sealed class ManagementReportsController(TORSEPANDbContext db, IHttpClien
         domesticCompletions=domesticCompletions.GroupBy(x=>x.Bowl.Id).Select(x=>x.MinBy(y=>y.CompletedAt)!).ToList();
         var domesticIds=domesticCompletions.Select(x=>x.Bowl.Id).ToHashSet();
 
-        var exportCompletions=allEvents.Where(IsExportCompletion)
+        var exportCompletions=allEvents.Where(x=>IsExportCompletion(x)&&!importedBowlIds.Contains(x.BowlId!.Value))
             .GroupBy(x=>x.BowlId!.Value).Select(x=>x.MinBy(y=>y.EventDate)!)
             .Where(x=>!domesticIds.Contains(x.BowlId!.Value)&&bowlsById.TryGetValue(x.BowlId.Value,out var bowl)&&bowl.HasNotes)
             .Select(x=>new CompletedBowl(bowlsById[x.BowlId!.Value],x.EventDate,true)).ToList();

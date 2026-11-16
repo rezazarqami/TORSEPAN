@@ -1,5 +1,6 @@
 using MediatR;
 using TORSEPAN.Application.Interfaces;
+using TORSEPAN.Domain.Entities;
 using TORSEPAN.Domain.Enums;
 using System.Globalization;
 
@@ -55,7 +56,14 @@ public sealed class GetProductionDashboardQueryHandler
         var bowlStageDates = includeQueues ? allEvents.Where(x => x.BowlId.HasValue && !x.Description.StartsWith("NOTE:"))
             .GroupBy(x => x.BowlId!.Value)
             .ToDictionary(x => x.Key, x => x.Max(e => e.EventDate)) : [];
-        var events = allEvents.Where(x => x.EventDate >= monthStartUtc).ToList();
+        var events = allEvents.Where(x => x.EventDate >= monthStartUtc && !LegacyStockRecord.IsHistorical(x.Description)).ToList();
+        var warehouseEvents = includeQueues
+            ? events.Where(x => x.HandpanId.HasValue && x.Action == ProductionAction.Packaging && !x.BowlId.HasValue).ToList()
+            : [];
+        var legacyWarehouseIds = warehouseEvents.Count > 0
+            ? await _unitOfWork.ProductionEvents.GetLegacyStockHandpanIdsAsync(
+                warehouseEvents.Select(x => x.HandpanId!.Value).Distinct().ToArray(), cancellationToken)
+            : [];
         var tracked = new[] { ProductionAction.Dimple, ProductionAction.Shape, ProductionAction.Design, ProductionAction.Furnace, ProductionAction.Glue, ProductionAction.Tune, ProductionAction.FineTune, ProductionAction.QualityCheck, ProductionAction.Packaging };
         var bowlCodes = includeDaily ? bowls.ToDictionary(x => x.Id, x => x.ProductionCode) : [];
         var handpanCodes = includeDaily ? allHandpans.ToDictionary(x => x.Id, x => x.SerialNumber) : [];
@@ -89,7 +97,7 @@ public sealed class GetProductionDashboardQueryHandler
             .Where(x => x.Count > 0)
             .OrderBy(x => x.DisplayOrder).ThenBy(x => x.UserName).ThenBy(x => x.Operation).ToList();
         var monthly = includeMonthly ? Summarize(events) : [];
-        var daily = includeDaily ? Summarize(allEvents.Where(x => x.EventDate >= selectedStartUtc && x.EventDate < selectedStartUtc.AddDays(1)), includeCodes: true) : [];
+        var daily = includeDaily ? Summarize(events.Where(x => x.EventDate >= selectedStartUtc && x.EventDate < selectedStartUtc.AddDays(1)), includeCodes: true) : [];
         var firstDay = calendar.ToDateTime(year, month, 1, 0, 0, 0, 0);
 
         return new GetProductionDashboardResponse
@@ -142,8 +150,8 @@ public sealed class GetProductionDashboardQueryHandler
 
         ProductionQueueItemResponse MonthlyWarehouseQueue()
         {
-            var entries = events
-                .Where(x => x.HandpanId.HasValue && x.Action == ProductionAction.Packaging && !x.BowlId.HasValue)
+            var entries = warehouseEvents
+                .Where(x => !legacyWarehouseIds.Contains(x.HandpanId!.Value))
                 .GroupBy(x => x.HandpanId!.Value)
                 .Select(x => x.OrderByDescending(e => e.EventDate).First())
                 .Join(allHandpans, e => e.HandpanId!.Value, h => h.Id, (e, h) => new { Event = e, Handpan = h })

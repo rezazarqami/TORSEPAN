@@ -70,11 +70,13 @@ function create(native,model,workspace,now=()=>new Date()){
   const first=new Date(selected);while(persian(first).day!==1)first.setDate(first.getDate()-1);
   let days=1,last=new Date(first);while(true){last.setDate(last.getDate()+1);if(persian(last).month!==p.month)break;days++;}
   const es=events(c).filter(e=>e.result===1&&!e.description?.startsWith('NOTE:'));
+  const imported=new Set(es.filter(e=>e.action===1&&e.handpanId&&e.description?.startsWith('LEGACY_STOCK:IMPORT:')).map(e=>e.handpanId));
+  const reportable=es.filter(e=>!e.description?.startsWith('LEGACY_STOCK:'));
   const opTitle=(action,kind=0)=>({2:'دیمپل',3:'شیپ',4:'پخت',5:'چسب',6:'تیون',7:'فاین تیون',8:'کنترل کیفیت',9:kind===2?'بسته‌بندی صادراتی':'بسته‌بندی عادی',13:'دیزاین'})[action]||'';
   const month=e=>{const a=persian(new Date(e.eventDate));return a.year===p.year&&a.month===p.month;};
   const group=predicate=>{
    const out=new Map();
-   for(const e of es.filter(e=>predicate(e)&&[2,3,4,5,6,7,8,9,13].includes(e.action)&&e.description!=='Released from glue room')){
+   for(const e of reportable.filter(e=>predicate(e)&&[2,3,4,5,6,7,8,9,13].includes(e.action)&&e.description!=='Released from glue room')){
     const bowl=c.b.find(b=>b.id===e.bowlId),side=[2,3,6].includes(e.action)?bowl?.type:null,kind=e.action===9?(e.bowlId?2:1):0;
     const key=e.userId+':'+e.action+':'+side+':'+kind;
     if(!out.has(key))out.set(key,{userName:user(c,e.userId),operation:opTitle(e.action,kind)+(side===1?' کاسه رو':side===2?' کاسه زیر':''),count:0,displayOrder:c.w.users?.find(u=>u.id===e.userId)?.displayOrder||0,seen:new Set()});
@@ -90,7 +92,7 @@ function create(native,model,workspace,now=()=>new Date()){
    return {stage:title,colorByAge:true,codes:items.map(i=>i.code),items,groups};
   };
   const queues=[makeQueue('آماده دیمپل',2),makeQueue('آماده شیپ',4,null,2,true),makeQueue('آماده پخت',6),makeQueue('آماده تیون',8,null,3,true),makeQueue('آماده چسب — کاسه رو',10,1,6),makeQueue('آماده چسب — کاسه زیر',10,2,6),makeQueue('اتاق چسب',11),makeQueue('آماده بسته‌بندی صادراتی',21,null,null,true),makeQueue('آماده فاین تیون',12,null,6),makeQueue('آماده کنترل کیفیت (QC)',14),makeQueue('آماده بسته‌بندی عادی',16)];
-  const entered=[...new Set(es.filter(e=>month(e)&&e.action===9&&e.handpanId&&!e.bowlId).map(e=>e.handpanId))].map(id=>hs.find(b=>handpanId(c,b)===id)).filter(Boolean).map(b=>({code:b.instrumentCode,daysInStage:0}));queues.push({stage:'ورودی انبار این ماه',colorByAge:false,codes:entered.map(x=>x.code),items:entered,groups:[]});
+  const entered=[...new Set(reportable.filter(e=>month(e)&&e.action===9&&e.handpanId&&!e.bowlId&&!imported.has(e.handpanId)).map(e=>e.handpanId))].map(id=>hs.find(b=>handpanId(c,b)===id)).filter(Boolean).map(b=>({code:b.instrumentCode,daysInStage:0}));queues.push({stage:'ورودی انبار این ماه',colorByAge:false,codes:entered.map(x=>x.code),items:entered,groups:[]});
   const finished=hs.filter(b=>b.stage===18).length,rejected=hs.filter(b=>b.stage===19).length,count=stage=>c.b.filter(b=>b.stage===stage).length,loose=c.b.filter(b=>!b.instrumentCode&&[2,4,6,8,10,21].includes(b.stage));
   return {totalBowls:c.b.length,totalAssemblies:hs.length,totalHandpans:hs.length,inProduction:hs.length-finished-rejected,finished,rejected,completionRate:hs.length?Math.round(finished/hs.length*10000)/100:0,hallStock:{topBowls:loose.filter(b=>b.type===1).length,bottomBowls:loose.filter(b=>b.type===2).length,handpans:hs.filter(b=>[11,12,14,16].includes(b.stage)).length},waitingForDimple:count(2),waitingForShape:count(4),waitingForHeatTreatment:count(6),waitingForTune:count(8),waitingForGlue:count(10),waitingForFineTune:count(12),waitingForQualityControl:count(14),waitingForPackaging:count(16),queues,persianYear:p.year,persianMonth:p.month,selectedPersianDay:p.day,daysInMonth:days,firstDayOffset:(first.getDay()+1)%7,currentPersianMonthTitle:new Intl.DateTimeFormat('fa-IR-u-ca-persian',{month:'long',year:'numeric'}).format(selected),monthlyUserOperations:group(month),dailyUserOperations:group(e=>{const a=persian(new Date(e.eventDate));return a.year===p.year&&a.month===p.month&&a.day===p.day;})};
  }

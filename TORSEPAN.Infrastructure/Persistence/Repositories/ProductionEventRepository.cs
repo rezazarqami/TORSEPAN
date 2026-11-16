@@ -91,6 +91,19 @@ public sealed class ProductionEventRepository
             .OrderByDescending(x => x.EventDate).ToListAsync(cancellationToken);
     }
 
+    public async Task<HashSet<Guid>> GetLegacyStockHandpanIdsAsync(IReadOnlyCollection<Guid> handpanIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (handpanIds.Count == 0) return [];
+        var ids = handpanIds.ToArray();
+        var imported = await _context.ProductionEvents.AsNoTracking()
+            .Where(x => x.Action == ProductionAction.Created && x.Result == EventResult.Completed &&
+                x.HandpanId.HasValue && ids.Contains(x.HandpanId.Value) &&
+                x.Description.StartsWith(LegacyStockRecord.ImportPrefix))
+            .Select(x => x.HandpanId!.Value).Distinct().ToListAsync(cancellationToken);
+        return imported.ToHashSet();
+    }
+
     public void Update(
         ProductionEvent productionEvent)
     {

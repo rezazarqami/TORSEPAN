@@ -49,6 +49,12 @@ for(var i=0;i<120;i++)Event(bowls[i],null,i%2==0?ProductionAction.Tune:Productio
 Event(bowls[0],null,ProductionAction.Tune,now,"NOTE: not an operation");
 Event(bowls[0],null,ProductionAction.Tune,now,"failed",EventResult.Failed);
 for(var i=20;i<40;i++)Event(null,instruments[i],ProductionAction.Packaging,month.AddHours(2+i),"Packaging completed",user:i);
+Event(null,instruments[50],ProductionAction.Created,month.AddDays(-60),LegacyStockRecord.ImportPrefix+"previous-month");
+Event(bowls[300],instruments[50],ProductionAction.Tune,now,LegacyStockRecord.Prefix+"historical tune",user:6);
+Event(null,instruments[50],ProductionAction.FineTune,now,LegacyStockRecord.Prefix+"historical fine tune",user:6);
+Event(null,instruments[50],ProductionAction.Packaging,now,"Later packaging recorded for opening stock",user:6);
+Event(null,instruments[51],ProductionAction.FineTune,now,"Current fine tune",user:7);
+
 Event(bowls[202],instruments[1],ProductionAction.Glue,now.AddHours(-1),"Glued with bowl bottom",user:1);
 Event(bowls[203],instruments[1],ProductionAction.Glue,now.AddHours(-1),"Glued with bowl top",user:1);
 Event(bowls[0],null,ProductionAction.Dimple,DateTime.SpecifyKind(local.Date.AddHours(-3.5).AddTicks(-1),DateTimeKind.Utc),"day boundary",user:0);
@@ -59,7 +65,13 @@ await handler.Handle(new(),default); // warm JIT/EF metadata before measurement
 meter.Reset();var clock=Stopwatch.StartNew();var full=await handler.Handle(new(),default);clock.Stop();
 Console.WriteLine($"Full dashboard: {clock.ElapsedMilliseconds} ms, {meter.Commands} SQL commands, {meter.Entities} materialized entities, {JsonSerializer.SerializeToUtf8Bytes(full).Length} response bytes");
 Check(full.Queues.Single(x=>x.Stage=="آماده شیپ").Groups.Any(x=>x.UserName!="نامشخص"),"performers from prior months are preserved");
-Check(full.Queues.Single(x=>x.Stage=="ورودی انبار این ماه").Codes.Count==20,"monthly warehouse queue remains complete");
+var warehouseCodes=full.Queues.Single(x=>x.Stage=="ورودی انبار این ماه").Codes;
+Check(warehouseCodes.Count==20&&!warehouseCodes.Contains(instruments[50].SerialNumber),"monthly warehouse entries exclude previously imported stock");
+foreach(var operations in new[]{full.DailyUserOperations,full.MonthlyUserOperations})
+{
+ Check(operations.Where(x=>x.Operation=="فاین تیون").Sum(x=>x.Count)==1,"only the current fine tune contributes to performance");
+ Check(operations.Where(x=>x.Operation=="تیون کاسه رو").Sum(x=>x.Count)==60,"opening-stock tuning history does not contribute to performance");
+}
 Check(full.DailyUserOperations.Where(x=>x.Operation=="چسب").Sum(x=>x.Count)==1,"paired glue events count one instrument");
 var json=JsonSerializer.Serialize(full);
 if(Environment.GetEnvironmentVariable("TORSEPAN_DASHBOARD_BASELINE") is {} baseline)await File.WriteAllTextAsync(baseline,json);
@@ -69,7 +81,7 @@ Console.WriteLine($"Initial queues: {clock.ElapsedMilliseconds} ms, {meter.Comma
 Check(JsonSerializer.Serialize(queues.Queues)==JsonSerializer.Serialize(full.Queues),"initial queues retain exact codes, grouping, age, hall totals and warehouse entries");
 Check(JsonSerializer.Serialize(queues.HallStock)==JsonSerializer.Serialize(full.HallStock),"production hall totals stay unchanged");
 Check(queues.DailyUserOperations.Count==0&&queues.MonthlyUserOperations.Count==0,"closed statistics tabs are not computed or sent on entry");
-Check(meter.Commands==4&&meter.Entities<5000,"entry uses four bounded reads instead of graph/history expansion");
+Check(meter.Commands==5&&meter.Entities<5000,"entry adds one bounded provenance read without materializing historical event graphs");
 meter.Reset();var daily=await handler.Handle(new(null,DashboardSection.Daily),default);
 Check(JsonSerializer.Serialize(daily.DailyUserOperations)==JsonSerializer.Serialize(full.DailyUserOperations),"lazy daily tab exactly matches full report including glue, codes and Tehran boundary");
 Check(daily.Queues.Count==0&&daily.MonthlyUserOperations.Count==0&&meter.Commands==3,"changing the calendar day does not reload queues or monthly summary");

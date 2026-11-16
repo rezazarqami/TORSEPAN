@@ -4,8 +4,12 @@ namespace TORSEPAN.Domain.Entities;
 public static class LegacyStockRecord
 {
     public const string Prefix = "LEGACY_STOCK:";
+    public const string ImportPrefix = Prefix + "IMPORT:";
+
+    public static bool IsHistorical(string description) => description.StartsWith(Prefix, StringComparison.Ordinal);
+
     public const string UnknownBottomPrefix = "LEGACY-BOTTOM-";
-    public static string DisplayDescription(string description) => description.StartsWith(Prefix + "IMPORT:", StringComparison.Ordinal)
+    public static string DisplayDescription(string description) => description.StartsWith(ImportPrefix, StringComparison.Ordinal)
         ? "ورود ساز قدیمی به موجودی؛ دستمزد قبلاً محاسبه شده است."
         : description.StartsWith(Prefix, StringComparison.Ordinal) ? description[Prefix.Length..].Trim() : description;
     public static string DisplayCode(string code) => code.StartsWith(UnknownBottomPrefix, StringComparison.Ordinal)

@@ -31,6 +31,16 @@ public interface IProductionEventRepository
                 (!warehouseOnly || x.Action == ProductionAction.Packaging && !x.BowlId.HasValue)) ||
              x.BowlId.HasValue && stageBowlIds.Contains(x.BowlId.Value))).ToList();
     }
+    async Task<HashSet<Guid>> GetLegacyStockHandpanIdsAsync(IReadOnlyCollection<Guid> handpanIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (handpanIds.Count == 0) return [];
+        var rows = await GetReportAsync(null, null, null, ProductionAction.Created, EventResult.Completed);
+        return rows.Where(x => x.HandpanId.HasValue && handpanIds.Contains(x.HandpanId.Value) &&
+                x.Description.StartsWith(LegacyStockRecord.ImportPrefix, StringComparison.Ordinal))
+            .Select(x => x.HandpanId!.Value).ToHashSet();
+    }
+
     Task AddAsync(ProductionEvent productionEvent);
     void Update(ProductionEvent productionEvent);
     void Remove(ProductionEvent productionEvent);
