@@ -2,6 +2,7 @@
 @page "/production/process"
 
 @using System.Net
+@using System.Text.RegularExpressions
 @using TORSEPAN.Application.Materials
 @using TORSEPAN.Panel.Models
 @using TORSEPAN.Panel.Services.Api
@@ -106,6 +107,7 @@
     @if (_bowl is not null)
     {
         var isHandpan = !string.IsNullOrWhiteSpace(_bowl.HandpanCode);
+        var bowlScale = isHandpan ? default : FormatBowlPassportScale(_bowl);
         <div class="instrument-passport @(isHandpan ? "handpan-file" : "bowl-file")">
             <div class="passport-overview">
                 <section class="passport-identity" aria-label="شناسنامه ساز یا کاسه">
@@ -122,9 +124,26 @@
                         <div class="passport-bottom-code"><span>نوع کاسه</span><strong>@BowlTypeText(_bowl.BowlType)</strong></div>
                     }
                 </div>
-                <div class="passport-info-line passport-scale"><span class="passport-feature-icon"><PassportIcon Kind="music" /></span><div><small>Scale</small><strong dir="auto">@PassportScaleTitle</strong>
-                    @if (isHandpan) { <span class="passport-note-breakdown" dir="ltr" aria-label="@($"نت کاسه رو: {_bowl.TopNoteCount?.ToString() ?? "نامشخص"}؛ نت کاسه زیر: {_bowl.BottomNoteCount?.ToString() ?? "نامشخص"}")">(@(_bowl.TopNoteCount?.ToString() ?? "نامشخص")+@(_bowl.BottomNoteCount?.ToString() ?? "نامشخص"))</span> }
-                </div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
+                <div class="passport-info-line passport-scale">
+                    <span class="passport-feature-icon"><PassportIcon Kind="music" /></span>
+                    <div>
+                        <small>Scale</small>
+                        @if (isHandpan)
+                        {
+                            <strong dir="auto">@PassportScaleTitle</strong>
+                            <span class="passport-note-breakdown" dir="ltr" aria-label="@($"نت کاسه رو: {_bowl.TopNoteCount?.ToString() ?? "نامشخص"}؛ نت کاسه زیر: {_bowl.BottomNoteCount?.ToString() ?? "نامشخص"}")">(@(_bowl.TopNoteCount?.ToString() ?? "نامشخص")+@(_bowl.BottomNoteCount?.ToString() ?? "نامشخص"))</span>
+                        }
+                        else
+                        {
+                            <strong dir="auto">@bowlScale.Name</strong>
+                            @if (bowlScale.NoteCount is int noteCount)
+                            {
+                                <span class="passport-bowl-note-count" dir="rtl"><bdi>@noteCount</bdi> نت</span>
+                            }
+                        }
+                    </div>
+                    <span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span>
+                </div>
                 <div class="passport-info-line"><span class="passport-feature-icon"><PassportIcon Kind="design" /></span><div><small>Design</small><strong dir="auto">@_bowl.DesignName</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
                 <div class="passport-info-line passport-status"><span class="passport-feature-icon"><PassportIcon Kind="status" /></span><div><small>وضعیت <i class="passport-status-dot"></i></small><strong>@PassportStatus</strong></div><span class="passport-row-chevron"><PassportIcon Kind="chevron" /></span></div>
                 @if (!string.IsNullOrWhiteSpace(_bowl.OrderCustomerName)) { <div class="passport-info-line passport-order"><strong>سفارش @_bowl.OrderCustomerName</strong></div> }
@@ -446,6 +465,26 @@
 }
 
 @code {
+    private static (string Name, int? NoteCount) FormatBowlPassportScale(DimpleBowlDto bowl)
+    {
+        var label = Regex.Replace(bowl.ScaleName.Trim(), @"^(?:روی|رو|زیر)\s+", "");
+        label = Regex.Replace(label, @"\s*[—–-]\s*تعداد نت نامشخص\s*$", "");
+        var count = TORSEPAN.Domain.Entities.ScaleFamilyNames.GenericNoteCount(label);
+        var suffix = Regex.Match(label, @"\s+(?<count>\p{Nd}{1,2})\s*(?:نوت|نت|notes?)$", RegexOptions.IgnoreCase);
+        if (suffix.Success)
+        {
+            var digits = string.Concat(suffix.Groups["count"].Value.Select(digit => (char)('0' + char.GetNumericValue(digit))));
+            if (int.TryParse(digits, out var suffixCount))
+                count = suffixCount;
+            label = label[..suffix.Index].Trim();
+        }
+
+        // Older Kurd titles can include a hyphen before the model's nominal note count.
+        label = Regex.Replace(label, @"^(d\s*kurd|دی\s*[کك]ورد|دی\s*[کك]رد)\s*[—–-]\s*(?=\p{Nd})", "$1 ", RegexOptions.IgnoreCase);
+        var scale = TORSEPAN.Domain.Entities.ScaleFamilyNames.Parse(label);
+        return (scale.FamilyName ?? "بدون اسکیل", bowl.NoteCount ?? count ?? scale.NoteCount);
+    }
+
     private string PassportScaleTitle
     {
         get
